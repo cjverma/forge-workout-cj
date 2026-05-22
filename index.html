@@ -6,681 +6,850 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>FORGE</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --black:#000; --g1:#111; --g2:#1c1c1c; --g3:#2a2a2a; --g4:#444; --g5:#888;
-  --white:#f5f5f5; --orange:#FF6B1A; --obg:#1a0a00; --oborder:#2a1500;
-  --green:#22c55e; --red:#ef4444; --blue:#3b82f6;
-  --r:14px; --rsm:10px;
+:root{
+  --black:#000;
+  --s0:#080808;
+  --s1:#111;
+  --s2:#181818;
+  --s3:#202020;
+  --b1:#252525;
+  --b2:#333;
+  --dim:#666;
+  --mid:#888;
+  --lt:#bbb;
+  --white:#ede9e3;
+  --orange:#FF6B1A;
+  --orange-lo:#1c0a00;
+  --orange-mid:#7a3200;
+  --green:#22c55e;
+  --green-lo:#041a08;
+  --red:#ef4444;
+  --amber:#f59e0b;
+  --blue:#60a5fa;
 }
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
 html,body{height:100%;overflow:hidden;background:var(--black);}
-body{font-family:'DM Sans',sans-serif;color:var(--white);max-width:430px;margin:0 auto;display:flex;flex-direction:column;height:100dvh;}
+body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;margin:0 auto;display:flex;flex-direction:column;height:100dvh;}
 
-/* HEADER */
-.hdr{padding:14px 20px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--g2);flex-shrink:0;}
-.logo{font-family:'Bebas Neue';font-size:28px;letter-spacing:4px;color:var(--orange);}
-.target-badge{background:var(--obg);border:1px solid var(--oborder);border-radius:99px;padding:4px 12px;font-size:11px;font-weight:600;color:var(--orange);}
+/* ── HEADER ── */
+.hdr{padding:14px 18px 12px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--b1);flex-shrink:0;background:var(--black);}
+.logo{font-family:'Space Grotesk',sans-serif;font-size:22px;font-weight:700;letter-spacing:6px;color:var(--orange);text-transform:uppercase;}
+.target-pill{background:var(--orange-lo);border:1px solid var(--orange-mid);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:600;letter-spacing:1.5px;color:var(--orange);text-transform:uppercase;}
 
-/* QUOTE */
-.quote{background:var(--obg);border-bottom:1px solid var(--oborder);padding:7px 20px;font-size:11px;font-style:italic;color:var(--orange);text-align:center;flex-shrink:0;transition:opacity .4s;}
+/* ── QUOTE ── */
+.quote{background:var(--orange-lo);border-bottom:1px solid #1a0900;padding:7px 18px;font-size:11px;font-style:italic;color:var(--orange-mid);text-align:center;letter-spacing:0.2px;flex-shrink:0;transition:opacity .5s;}
 
-/* DAY PILLS */
-.days{display:flex;gap:8px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;}
+/* ── DAY NAV ── */
+.days{display:flex;gap:6px;padding:12px 18px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:1px solid var(--b1);}
 .days::-webkit-scrollbar{display:none;}
-.day-btn{flex:0 0 auto;padding:9px 16px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;border:1.5px solid var(--g3);color:var(--g5);background:var(--g1);cursor:pointer;transition:all .18s;}
-.day-btn.today{border-color:var(--orange);color:var(--orange);}
-.day-btn.active{background:var(--orange);border-color:var(--orange);color:#000;}
+.day-btn{flex:0 0 auto;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;border:1px solid var(--b1);color:var(--dim);background:transparent;cursor:pointer;transition:all .15s;}
+.day-btn.today{border-color:var(--b2);color:var(--mid);}
+.day-btn.active{background:var(--orange);border-color:var(--orange);color:#000;font-weight:700;}
 
-/* SCROLL */
-.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 20px;padding-bottom:100px;}
+/* ── SCROLL ── */
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:88px;}
 
-/* DAY HEADER */
-.day-title{font-family:'Bebas Neue';font-size:46px;letter-spacing:5px;color:var(--orange);line-height:1;padding:8px 0 4px;}
-.day-sub{font-size:13px;color:var(--g5);margin-bottom:14px;}
-.prog-wrap{background:var(--g2);border-radius:99px;height:5px;margin-bottom:18px;overflow:hidden;}
-.prog-fill{height:100%;background:var(--orange);border-radius:99px;transition:width .4s ease;}
+/* ── PAGE HEADER ── */
+.pg{padding:18px 18px 0;}
+.pg-title{font-size:36px;font-weight:700;letter-spacing:-0.5px;color:var(--white);line-height:1;}
+.pg-title span{color:var(--orange);}
+.pg-sub{font-size:12px;color:var(--dim);margin-top:5px;letter-spacing:0.2px;}
 
-/* SECTION LABEL */
-.sec{font-size:10px;font-weight:700;color:var(--g4);text-transform:uppercase;letter-spacing:1.5px;margin:16px 0 8px;}
+/* ── PROGRESS ── */
+.prog-wrap{margin:14px 18px 0;height:2px;background:var(--b1);border-radius:99px;overflow:hidden;}
+.prog-fill{height:100%;background:var(--orange);border-radius:99px;transition:width .5s ease;}
 
-/* START BUTTON */
-.start-workout-btn{width:100%;padding:18px;background:var(--orange);border:none;border-radius:var(--r);font-family:'Bebas Neue';font-size:22px;letter-spacing:3px;color:#000;cursor:pointer;margin-bottom:20px;transition:opacity .2s;}
-.start-workout-btn:active{opacity:.85;}
+/* ── SESSION BAR ── */
+.session-bar{margin:12px 18px;display:flex;gap:10px;}
+.btn-start{flex:1;padding:15px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;color:#000;cursor:pointer;text-transform:uppercase;transition:opacity .15s;}
+.btn-start:active{opacity:.8;}
+.btn-stop{flex:1;padding:15px;background:transparent;border:1px solid var(--red);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;color:var(--red);cursor:pointer;text-transform:uppercase;display:none;}
+.btn-stop.show{display:block;}
+.btn-start.hide{display:none;}
 
-/* EXERCISE CARD */
-.ex-card{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--r);margin-bottom:10px;overflow:hidden;transition:border-color .25s;}
-.ex-card.done{border-color:var(--green);}
-.ex-top{display:flex;align-items:center;padding:14px 16px;gap:12px;cursor:pointer;}
-.ex-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
-.dot-gym{background:var(--orange);}
-.dot-physio{background:var(--green);}
-.dot-cardio{background:var(--blue);}
-.ex-info{flex:1;}
-.ex-name{font-size:15px;font-weight:600;line-height:1.2;}
-.ex-meta{font-size:12px;color:var(--g5);margin-top:3px;}
-.ex-right{display:flex;gap:8px;align-items:center;}
-.watch-btn{background:var(--g2);border:1px solid var(--g3);border-radius:8px;padding:7px 11px;font-size:12px;color:var(--g5);text-decoration:none;white-space:nowrap;flex-shrink:0;}
-.chev{font-size:18px;color:var(--g4);transition:transform .2s;flex-shrink:0;}
-.chev.open{transform:rotate(180deg);}
+/* ── SECTION LABEL ── */
+.sec{padding:16px 18px 8px;font-size:10px;font-weight:600;letter-spacing:2.5px;color:var(--dim);text-transform:uppercase;}
 
-/* SETS AREA */
-.sets-area{display:none;border-top:1px solid var(--g2);padding:12px 16px 14px;}
-.sets-area.open{display:block;}
-.cue-box{background:var(--obg);border:1px solid var(--oborder);border-left:3px solid var(--orange);border-radius:var(--rsm);padding:9px 12px;font-size:12px;color:var(--orange);margin-bottom:12px;line-height:1.5;}
+/* ── EXERCISE CARD ── */
+.ex-card{
+  margin:0 18px 8px;
+  background:var(--s1);
+  border:1px solid var(--b1);
+  border-radius:12px;
+  overflow:hidden;
+  transition:border-color .25s, box-shadow .25s;
+}
+.ex-card.active-card{
+  border-color:var(--orange);
+  box-shadow:0 0 0 1px var(--orange), 0 0 20px rgba(255,107,26,0.15);
+}
+.ex-card.done{border-color:#1a4a1a;box-shadow:0 0 0 1px #1a4a1a;}
+.ex-card.skipped{opacity:.45;border-color:var(--b1);}
 
-/* SET ROW */
-.set-row{display:grid;grid-template-columns:auto 1fr auto 1fr auto;align-items:center;gap:8px;min-height:56px;background:var(--g2);border-radius:var(--rsm);padding:0 14px;margin-bottom:8px;border:1.5px solid transparent;transition:all .2s;}
-.set-row.done{border-color:var(--green);background:#0a1a0a;}
-.set-label{font-size:12px;font-weight:700;color:var(--g5);white-space:nowrap;}
-.set-row.done .set-label{color:var(--green);}
-.set-inp{background:transparent;border:none;outline:none;font-family:'DM Sans';font-size:16px;font-weight:600;color:var(--white);text-align:center;min-width:0;width:100%;-webkit-appearance:none;}
-.set-inp::placeholder{color:var(--g4);font-size:13px;font-weight:400;}
-.set-x{font-size:13px;color:var(--g4);}
-.set-check-btn{width:38px;height:38px;border-radius:50%;border:2px solid var(--g3);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;transition:all .2s;}
-.set-check-btn.done{background:var(--green);border-color:var(--green);color:#000;}
+.ex-top{display:flex;align-items:center;padding:14px 14px;gap:10px;cursor:pointer;}
+.ex-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ex-icon.gym{background:#1a0800;}
+.ex-icon.physio{background:#041a08;}
+.ex-icon.cardio{background:#04081a;}
 
-/* CARDIO ROW */
-.cardio-row{display:flex;align-items:center;justify-content:space-between;min-height:56px;background:var(--g2);border-radius:var(--rsm);padding:0 14px;margin-bottom:8px;border:1.5px solid transparent;cursor:pointer;transition:all .2s;}
-.cardio-row.done{border-color:var(--green);background:#0a1a0a;}
-.cardio-label{font-size:15px;font-weight:600;}
-.cardio-row.done .cardio-label{color:var(--green);}
+.ex-info{flex:1;min-width:0;}
+.ex-name{font-size:14px;font-weight:600;letter-spacing:-0.2px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ex-card.done .ex-name{color:var(--dim);}
+.ex-meta{font-size:11px;color:var(--dim);margin-top:3px;}
 
-.add-set-btn{width:100%;border:1.5px dashed var(--g3);border-radius:var(--rsm);padding:10px;font-size:13px;color:var(--g4);background:transparent;cursor:pointer;font-family:'DM Sans';margin-top:4px;transition:all .2s;}
+.ex-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.watch-chip{background:var(--s2);border:1px solid var(--b2);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:500;color:var(--mid);text-decoration:none;white-space:nowrap;}
+.ex-chev{color:var(--b2);font-size:16px;transition:transform .2s;}
+.ex-chev.open{transform:rotate(180deg);}
+
+/* ── SETS BODY ── */
+.sets-body{display:none;border-top:1px solid var(--b1);}
+.sets-body.open{display:block;}
+
+.cue-box{margin:12px 14px 10px;padding:10px 13px;border-left:2px solid var(--orange);background:var(--orange-lo);border-radius:0 6px 6px 0;font-size:12px;color:var(--orange-mid);line-height:1.6;}
+
+.action-row{display:flex;gap:8px;padding:0 14px 10px;}
+.skip-btn{background:transparent;border:1px solid var(--b2);border-radius:6px;padding:6px 12px;font-size:11px;font-weight:500;color:var(--dim);cursor:pointer;font-family:'Space Grotesk',sans-serif;letter-spacing:0.3px;}
+.skip-btn:active{border-color:var(--mid);color:var(--lt);}
+
+/* ── SET ROWS ── */
+.sets-wrap{padding:0 14px 4px;}
+.set-hdr{display:grid;grid-template-columns:42px 1fr 16px 1fr 44px;gap:6px;padding:0 2px 6px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;text-align:center;}
+
+.set-row{
+  display:grid;grid-template-columns:42px 1fr 16px 1fr 44px;
+  gap:6px;align-items:center;min-height:54px;
+  background:var(--s2);border-radius:8px;padding:0 10px;
+  margin-bottom:6px;border:1px solid transparent;transition:all .2s;
+}
+.set-row.done{background:var(--green-lo);border-color:#0a3014;}
+.set-row.needs-input{border-color:var(--amber);}
+
+.sn{font-size:12px;font-weight:600;color:var(--dim);text-align:center;}
+.set-row.done .sn{color:var(--green);}
+
+.si{width:100%;background:transparent;border:none;outline:none;font-family:'Space Grotesk',sans-serif;font-size:20px;font-weight:700;color:var(--white);text-align:center;-webkit-appearance:none;}
+.si::placeholder{color:var(--b2);font-size:14px;font-weight:400;}
+.set-row.done .si{color:var(--mid);}
+.sx{font-size:12px;color:var(--dim);text-align:center;}
+
+.sdone{width:36px;height:36px;border-radius:6px;border:1px solid var(--b2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);transition:all .15s;flex-shrink:0;margin:0 auto;}
+.sdone.done{background:var(--green);border-color:var(--green);color:#000;}
+.sdone.locked{opacity:.3;cursor:not-allowed;}
+
+/* Cardio */
+.cardio-row{display:flex;align-items:center;justify-content:space-between;min-height:54px;background:var(--s2);border-radius:8px;padding:0 14px;margin-bottom:6px;border:1px solid transparent;cursor:pointer;transition:all .2s;}
+.cardio-row.done{background:var(--green-lo);border-color:#0a3014;}
+.cardio-dur{font-size:18px;font-weight:600;letter-spacing:-0.3px;}
+.cardio-row.done .cardio-dur{color:var(--green);}
+.cardio-chk{width:36px;height:36px;border-radius:6px;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);transition:all .2s;}
+.cardio-row.done .cardio-chk{background:var(--green);border-color:var(--green);color:#000;}
+
+.add-set-btn{width:100%;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-size:12px;font-weight:500;color:var(--dim);background:transparent;cursor:pointer;font-family:'Space Grotesk',sans-serif;margin-top:2px;margin-bottom:10px;transition:all .15s;}
 .add-set-btn:active{border-color:var(--orange);color:var(--orange);}
 
-/* REST DAY */
-.rest{text-align:center;padding:50px 0 20px;}
-.rest-icon{font-size:56px;margin-bottom:14px;}
-.rest-title{font-family:'Bebas Neue';font-size:46px;letter-spacing:5px;color:var(--orange);margin-bottom:8px;}
-.rest-body{font-size:14px;color:var(--g5);line-height:1.7;margin-bottom:24px;}
-.info-card{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--r);padding:16px;}
-.info-card-title{font-size:13px;font-weight:700;color:var(--green);margin-bottom:6px;}
-.info-card-body{font-size:12px;color:var(--g5);line-height:1.6;}
+/* ── CUSTOM EX ── */
+.custom-wrap{margin:0 18px 12px;}
+.custom-trigger{width:100%;padding:12px;border:1px dashed var(--b2);border-radius:8px;background:transparent;cursor:pointer;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);text-transform:uppercase;transition:all .15s;}
+.custom-trigger:active{border-color:var(--orange);color:var(--orange);}
 
-/* AI COACH */
-.ai-card{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--r);padding:16px;margin-bottom:12px;}
-.ai-title{font-size:15px;font-weight:700;margin-bottom:4px;}
-.ai-sub{font-size:12px;color:var(--g5);margin-bottom:12px;line-height:1.5;}
-.ai-inp{width:100%;background:var(--g2);border:1.5px solid var(--g3);border-radius:var(--rsm);padding:12px 14px;font-size:14px;color:var(--white);font-family:'DM Sans';outline:none;margin-bottom:10px;-webkit-appearance:none;}
+.custom-form{display:none;background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-top:8px;}
+.custom-form.open{display:block;}
+.cf-label{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:5px;}
+.search-wrap{position:relative;margin-bottom:12px;}
+.cf-inp{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px 13px;font-family:'Space Grotesk',sans-serif;font-size:14px;color:var(--white);outline:none;-webkit-appearance:none;}
+.cf-inp:focus{border-color:var(--orange);}
+.cf-inp::placeholder{color:var(--dim);}
+.search-dd{position:absolute;top:100%;left:0;right:0;z-index:50;background:var(--s2);border:1px solid var(--orange);border-top:none;border-radius:0 0 10px 10px;max-height:340px;overflow-y:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,0.6);}
+.search-dd.show{display:block;}
+.dd-item{padding:13px 14px;font-size:14px;font-weight:500;cursor:pointer;border-bottom:1px solid var(--b1);transition:background .1s;display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.dd-item:last-child{border:none;}
+.dd-item:active{background:var(--s3);}
+.dd-item-left{flex:1;}
+.dd-name{font-size:14px;font-weight:500;}
+.dd-cat{font-size:11px;color:var(--dim);margin-top:3px;}
+.dd-add-btn{background:var(--orange);border:none;border-radius:6px;padding:6px 12px;font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:700;color:#000;cursor:pointer;white-space:nowrap;flex-shrink:0;}
+.num-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.cf-num{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px;font-family:'Space Grotesk',sans-serif;font-size:18px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}
+.cf-num:focus{border-color:var(--orange);}
+.cf-num::placeholder{color:var(--dim);font-size:13px;font-weight:400;}
+.cf-add{width:100%;padding:13px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:#000;cursor:pointer;text-transform:uppercase;}
+.cf-add:active{opacity:.85;}
+
+/* ── REST DAY ── */
+.rest-screen{padding:48px 18px 20px;text-align:center;}
+.rest-emoji{font-size:48px;margin-bottom:14px;}
+.rest-ttl{font-size:32px;font-weight:700;letter-spacing:-0.5px;color:var(--orange);margin-bottom:8px;}
+.rest-body{font-size:14px;color:var(--mid);line-height:1.7;margin-bottom:22px;}
+.rest-card{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--green);border-radius:0 10px 10px 0;padding:14px 16px;text-align:left;}
+.rest-card-title{font-size:13px;font-weight:600;color:var(--green);margin-bottom:5px;}
+.rest-card-body{font-size:12px;color:var(--mid);line-height:1.6;}
+
+/* ── AI ── */
+.ai-wrap{padding:18px;}
+.ai-pg-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px;}
+.ai-pg-title span{color:var(--orange);}
+.ai-pg-sub{font-size:12px;color:var(--dim);margin-bottom:18px;}
+.ai-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:16px;margin-bottom:12px;}
+.ai-card-title{font-size:15px;font-weight:700;letter-spacing:-0.2px;margin-bottom:4px;}
+.ai-card-sub{font-size:12px;color:var(--mid);margin-bottom:12px;line-height:1.5;}
+.ai-inp{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px 13px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--white);outline:none;margin-bottom:10px;-webkit-appearance:none;}
 .ai-inp:focus{border-color:var(--orange);}
-.ai-inp-sm{background:var(--g2);border:1.5px solid var(--g3);border-radius:var(--rsm);padding:10px 12px;font-size:14px;color:var(--white);font-family:'DM Sans';outline:none;-webkit-appearance:none;width:100%;}
-.ai-inp-sm:focus{border-color:var(--orange);}
-.ai-btn{width:100%;background:var(--orange);border:none;border-radius:var(--rsm);padding:14px;font-size:15px;font-weight:700;color:#000;cursor:pointer;margin-bottom:10px;font-family:'DM Sans';}
+.ai-inp::placeholder{color:var(--dim);}
+.ai-btn{width:100%;padding:13px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:#000;cursor:pointer;text-transform:uppercase;margin-bottom:10px;}
 .ai-btn:active{opacity:.85;}
-.ai-out{background:var(--g2);border:1.5px solid var(--g3);border-radius:var(--rsm);padding:12px 14px;font-size:13px;color:var(--g5);line-height:1.7;min-height:60px;white-space:pre-wrap;display:none;}
-.ai-out.show{display:block;color:var(--white);}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.ai-out{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px 13px;font-size:12px;color:var(--mid);line-height:1.7;white-space:pre-wrap;display:none;}
+.ai-out.show{display:block;color:var(--lt);}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.ai-sm{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}
+.ai-sm:focus{border-color:var(--orange);}
+.ai-sm::placeholder{color:var(--dim);font-size:12px;font-weight:400;}
+.ai-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:5px;}
 
-/* SETTINGS */
-.settings-group{background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--r);overflow:hidden;margin-bottom:14px;}
-.settings-row{display:flex;align-items:center;padding:16px;border-bottom:1px solid var(--g2);gap:14px;cursor:pointer;}
-.settings-row:last-child{border:none;}
-.settings-icon{font-size:20px;width:36px;text-align:center;flex-shrink:0;}
-.settings-info{flex:1;}
-.settings-title{font-size:14px;font-weight:600;}
-.settings-sub{font-size:12px;color:var(--g5);margin-top:2px;}
-.settings-arrow{color:var(--g5);font-size:16px;}
-
-/* EXPORT */
-.export-area{width:100%;background:var(--g2);border:1.5px solid var(--g3);border-radius:var(--rsm);padding:12px;font-size:11px;color:var(--g5);font-family:monospace;min-height:200px;outline:none;resize:none;}
+/* ── SETTINGS ── */
+.st-wrap{padding:18px;}
+.st-pg-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;margin-bottom:4px;}
+.st-pg-title span{color:var(--orange);}
+.st-pg-sub{font-size:12px;color:var(--dim);margin-bottom:18px;}
+.st-sec{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin:16px 0 8px;}
+.export-card{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--orange);border-radius:0 12px 12px 0;padding:16px;margin-bottom:14px;}
+.export-title{font-size:15px;font-weight:700;margin-bottom:4px;}
+.export-sub{font-size:12px;color:var(--mid);margin-bottom:12px;line-height:1.5;}
 .btn-row{display:flex;gap:8px;margin-bottom:10px;}
-.btn-outline{flex:1;background:var(--g2);border:1.5px solid var(--g3);border-radius:var(--rsm);padding:12px;font-size:14px;font-weight:700;color:var(--g5);cursor:pointer;font-family:'DM Sans';}
-.btn-orange{flex:1;background:var(--orange);border:none;border-radius:var(--rsm);padding:12px;font-size:14px;font-weight:700;color:#000;cursor:pointer;font-family:'DM Sans';}
+.btn-o{flex:1;padding:12px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:0.5px;color:#000;cursor:pointer;}
+.btn-g{flex:1;padding:12px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;color:var(--mid);cursor:pointer;}
+.export-area{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px;font-size:11px;color:var(--dim);font-family:monospace;min-height:160px;outline:none;resize:none;}
+.rule-item{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--red);border-radius:0 8px 8px 0;padding:11px 13px;margin-bottom:7px;}
+.rule-ttl{font-size:13px;font-weight:600;margin-bottom:3px;}
+.rule-desc{font-size:12px;color:var(--mid);line-height:1.5;}
+.st-group{background:var(--s1);border:1px solid var(--b1);border-radius:12px;overflow:hidden;margin-bottom:14px;}
+.st-row{display:flex;align-items:center;padding:14px;gap:12px;border-bottom:1px solid var(--b1);cursor:pointer;}
+.st-row:last-child{border:none;}
+.st-icon{font-size:16px;width:28px;text-align:center;flex-shrink:0;}
+.st-info{flex:1;}
+.st-ttl{font-size:14px;font-weight:600;}
+.st-sub{font-size:12px;color:var(--mid);margin-top:2px;}
 
-/* RULE CARDS */
-.rule-card{background:var(--g1);border:1.5px solid var(--g2);border-left:3px solid var(--red);border-radius:var(--rsm);padding:12px 14px;margin-bottom:8px;}
-.rule-title{font-size:13px;font-weight:700;margin-bottom:3px;}
-.rule-desc{font-size:12px;color:var(--g5);line-height:1.5;}
-
-/* BOTTOM NAV */
-.bot-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:var(--g1);border-top:1px solid var(--g2);display:flex;padding-bottom:env(safe-area-inset-bottom,0);z-index:100;}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 6px;gap:3px;cursor:pointer;color:var(--g4);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;transition:color .2s;}
+/* ── BOTTOM NAV ── */
+.bot-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:var(--s0);border-top:1px solid var(--b1);display:flex;padding-bottom:env(safe-area-inset-bottom,0);z-index:100;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 6px;gap:3px;cursor:pointer;color:var(--dim);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:color .15s;}
 .nav-item.active{color:var(--orange);}
-.nav-icon{font-size:22px;}
+.nav-icon{font-size:20px;}
 
-/* TOAST */
-.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--green);color:#000;font-weight:700;font-size:14px;padding:11px 22px;border-radius:99px;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+/* ── TOAST ── */
+.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--orange);border-radius:8px;color:var(--white);font-weight:600;font-size:13px;letter-spacing:0.2px;padding:10px 20px;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
 
-/* SPINNER */
-.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--g3);border-top-color:var(--orange);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px;}
-@keyframes spin{to{transform:rotate(360deg);}}
+/* ── SUMMARY ── */
+.summary{display:none;position:fixed;inset:0;background:rgba(0,0,0,.95);z-index:400;flex-direction:column;align-items:center;justify-content:center;padding:32px;max-width:430px;left:50%;transform:translateX(-50%);}
+.summary.show{display:flex;}
+.sum-icon{font-size:52px;margin-bottom:14px;}
+.sum-title{font-size:32px;font-weight:700;letter-spacing:-0.5px;color:var(--orange);margin-bottom:6px;text-align:center;}
+.sum-sub{font-size:14px;color:var(--mid);text-align:center;margin-bottom:26px;line-height:1.6;}
+.sum-stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;width:100%;margin-bottom:26px;}
+.sum-stat{background:var(--s1);border:1px solid var(--b1);border-top:2px solid var(--orange);border-radius:10px;padding:16px;text-align:center;}
+.sum-val{font-size:32px;font-weight:700;color:var(--orange);letter-spacing:-0.5px;}
+.sum-lbl{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-top:4px;}
+.sum-close{width:100%;padding:16px;background:var(--orange);border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:700;letter-spacing:1.5px;color:#000;cursor:pointer;text-transform:uppercase;}
+
+/* ── SPINNER ── */
+.spin{display:inline-block;width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--orange);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes sp{to{transform:rotate(360deg);}}
 </style>
 </head>
 <body>
 
 <div class="hdr">
   <div class="logo">FORGE</div>
-  <div class="target-badge">95 kg · Dec 1</div>
+  <div class="target-pill">95KG · DEC 1</div>
 </div>
 <div class="quote" id="quoteEl"></div>
-
-<!-- DAY PILLS — only shown on workout tab -->
 <div class="days" id="dayNav" style="display:none"></div>
-
-<div class="scroll" id="mainScroll">
-  <div id="tabContent"></div>
-</div>
+<div class="scroll" id="mainScroll"><div id="tc"></div></div>
 
 <div class="bot-nav">
-  <div class="nav-item active" id="nav-workout" onclick="switchTab('workout')"><div class="nav-icon">🏋</div><div>Workout</div></div>
-  <div class="nav-item" id="nav-ai" onclick="switchTab('ai')"><div class="nav-icon">🤖</div><div>AI Coach</div></div>
-  <div class="nav-item" id="nav-settings" onclick="switchTab('settings')"><div class="nav-icon">⚙️</div><div>Settings</div></div>
+  <div class="nav-item active" id="nav-workout" onclick="go('workout')"><div class="nav-icon">🏋</div><div>Workout</div></div>
+  <div class="nav-item" id="nav-ai" onclick="go('ai')"><div class="nav-icon">🤖</div><div>AI Coach</div></div>
+  <div class="nav-item" id="nav-settings" onclick="go('settings')"><div class="nav-icon">⚙️</div><div>Settings</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<div class="summary" id="sum">
+  <div class="sum-icon">🔥</div>
+  <div class="sum-title">Session Complete</div>
+  <div class="sum-sub">You showed up. That's everything.</div>
+  <div class="sum-stats">
+    <div class="sum-stat"><div class="sum-val" id="sumDur">—</div><div class="sum-lbl">Duration</div></div>
+    <div class="sum-stat"><div class="sum-val" id="sumSets">—</div><div class="sum-lbl">Sets Done</div></div>
+  </div>
+  <button class="sum-close" onclick="closeSummary()">Back to Forge</button>
+</div>
+
 <script>
-// ═══════ QUOTES ═══════
-const QUOTES=[
-  "136 to 95. Every session is a vote for the new version.",
-  "CPAP. Zepbound. Protein. Gym. The formula is set.",
-  "December 1st. India. New version of yourself.",
-  "The only session you regret is the one you skipped.",
-  "Small wins compound. Show up today.",
-  "Your spine doesn't define your limits. Your consistency does.",
-  "The bike first. Always. Without exception.",
-  "You lost 25kg before with less support. You'll do more this time.",
-  "Controlled. Intentional. Minimal. That's the identity.",
-  "Every rep is a vote against August 2024.",
-  "Enclomiphene. Levothyroxine. Zepbound. CPAP. Stack is stacking.",
-  "The fade. The chain. The studs. Waiting at 95kg.",
+const Q=["136 to 95. Every session is a vote.","CPAP · Zepbound · Protein · Gym.","December 1st. India. New version.","The only session you regret is the one you skipped.","Small wins compound. Show up.","Your spine doesn't define your limits.","The bike first. Always.","Controlled. Intentional. Minimal.","Every rep is a vote against August 2024.","The fade. The chain. The studs. 95kg."];
+
+const EX_DB=[
+  {name:"Seated Cable Row",cat:"Gym",hint:"30-40 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Core tight. Do not lean back excessively."},
+  {name:"Chest Press Machine",cat:"Gym",hint:"35-45 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Back flat against pad. Full press, controlled return."},
+  {name:"Pec Fly Machine",cat:"Gym",hint:"25-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Stop at chest stretch. Never go too wide."},
+  {name:"Tricep Extension Machine",cat:"Gym",hint:"25-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows aligned with pivot. Smooth movement."},
+  {name:"Seated Dumbbell Curl",cat:"Gym",hint:"10-15 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=av7-8igSXTs",cue:"Elbows fixed. No torso swinging."},
+  {name:"Leg Press Machine",cat:"Gym",hint:"60-90 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high. 90 degrees max. Back flat always."},
+  {name:"Seated Leg Curl",cat:"Gym",hint:"30-45 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Slow and controlled. Helps calf symptoms."},
+  {name:"Seated Calf Raise",cat:"Gym",hint:"30-45 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Strengthens S1 territory."},
+  {name:"Hip Abduction Machine",cat:"Gym",hint:"25-40 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Side glute. Critical for spinal support."},
+  {name:"Cable Face Pull",cat:"Gym",hint:"15-25 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Elbows flare wide."},
+  {name:"Seated Lateral Raise",cat:"Gym",hint:"6-10 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"SEATED only. Shoulder height max."},
+  {name:"Stationary Bike",cat:"Cardio",hint:"Level 6-9",sets:1,reps:"20 min",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Hip flexion protects spine. Start every session here."},
+  {name:"Treadmill Walk",cat:"Cardio",hint:"Incline 1-3%",sets:1,reps:"15 min",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Slight forward lean. Slow down if calf twinges."},
+  {name:"Knee-to-Chest Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"30s each",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Opens L3/4 and L4/5. Do this first every time."},
+  {name:"Glute Bridge",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 (3s hold)",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds."},
+  {name:"Bird Dog",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 each side",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level. Hold 8 seconds."},
+  {name:"Dead Bug",cat:"Physio",hint:"Bodyweight",sets:3,reps:"8 each side",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays on floor. Non-negotiable."},
+  {name:"Hip Flexor Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"60s each",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side. Direct spine treatment."},
+  {name:"Cat-Cow",cat:"Physio",hint:"Bodyweight",sets:2,reps:"10 slow reps",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly."},
+  {name:"Nerve Floss Left Leg",cat:"Physio",hint:"Bodyweight",sets:2,reps:"10 slow reps",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force."},
+  {name:"Dumbbell Row",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=roCP6wCXPqo",cue:"Supported on bench. Pull elbow to hip. Core braced."},
+  {name:"Cable Tricep Pushdown",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows fixed at sides. Full extension."},
+  {name:"Chest Supported Row",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=0hF4XgKqBTI",cue:"Chest on pad. Full stretch at bottom. Squeeze at top."},
 ];
 
-// ═══════ PROGRAMME ═══════
 const PROG={
-  Monday:{label:'UPPER BODY',sub:'Gym + Physio',exercises:[
-    {id:'m1',name:'Stationary Bike',cat:'cardio',sets:1,reps:'15 min',hint:'Level 6-8',url:'https://www.youtube.com/watch?v=_GBMmuWFJrI',cue:'Start here every single time. Hip flexion protects your spine before loading.'},
-    {id:'m2',name:'Seated Cable Row',cat:'gym',sets:3,reps:12,hint:'30-35 kg',url:'https://www.youtube.com/watch?v=GZbfZ033f74',cue:'Pull to lower chest. Core tight. Do not lean back excessively.'},
-    {id:'m3',name:'Chest Press Machine',cat:'gym',sets:3,reps:12,hint:'35-40 kg',url:'https://www.youtube.com/watch?v=xUm0BiZCX_I',cue:'Back flat against pad. Full press, controlled return. No arching.'},
-    {id:'m4',name:'Pec Fly Machine',cat:'gym',sets:3,reps:12,hint:'25-30 kg',url:'https://www.youtube.com/watch?v=Z57CtFmRMxA',cue:'Stop when you feel the chest stretch. Never go too wide.'},
-    {id:'m5',name:'Tricep Extension Machine',cat:'gym',sets:3,reps:12,hint:'25-30 kg',url:'https://www.youtube.com/watch?v=2-LAMcpzODU',cue:'Elbows aligned with the machine pivot. Smooth both ways.'},
-    {id:'m6',name:'Seated Dumbbell Curl',cat:'gym',sets:3,reps:12,hint:'10-12 kg',url:'https://www.youtube.com/watch?v=av7-8igSXTs',cue:'Sit upright. Elbows fixed at sides. No torso swinging.'},
-    {id:'m7',name:'Treadmill Cool-Down',cat:'cardio',sets:1,reps:'15 min',hint:'Incline 1-2%',url:'https://www.youtube.com/watch?v=ASdvN_XEl_c',cue:'Easy pace, slight forward lean. If calf twinges, slow down.'},
-    {id:'mp1',name:'Knee-to-Chest Stretch',cat:'physio',sets:2,reps:'30s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=Kn5AROv5bag',cue:'Do this first in the physio section every time. Opens the spine.'},
-    {id:'mp2',name:'Glute Bridge',cat:'physio',sets:3,reps:'10 (hold 3s)',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=OUgsJ8-Vi0E',cue:'Push up with glutes, not lower back. Hold 3 seconds at the top.'},
-    {id:'mp3',name:'Bird Dog',cat:'physio',sets:3,reps:'10 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=jiPi9MniP70',cue:'Opposite arm and leg, hold 8 seconds. Keep hips perfectly level.'},
+  Monday:{label:"Upper Body",sub:"Gym + Physio",exercises:[
+    {id:"m1",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Start here every time. Hip flexion protects your spine before loading."},
+    {id:"m2",name:"Seated Cable Row",cat:"gym",sets:3,reps:12,hint:"30-35 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Core tight. Do not lean back excessively."},
+    {id:"m3",name:"Chest Press Machine",cat:"gym",sets:3,reps:12,hint:"35-40 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Back flat against pad. Full press, controlled return. No arching."},
+    {id:"m4",name:"Pec Fly Machine",cat:"gym",sets:3,reps:12,hint:"25-30 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Stop when you feel the chest stretch. Never go too wide."},
+    {id:"m5",name:"Tricep Extension Machine",cat:"gym",sets:3,reps:12,hint:"25-30 kg",url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows aligned with machine pivot. Smooth movement."},
+    {id:"m6",name:"Seated Dumbbell Curl",cat:"gym",sets:3,reps:12,hint:"10-12 kg",url:"https://www.youtube.com/watch?v=av7-8igSXTs",cue:"Sit upright. Elbows fixed at sides. No torso swinging."},
+    {id:"m7",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy pace. Slight forward lean. Slow down if calf twinges."},
+    {id:"mp1",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first in physio sequence. Opens your spine."},
+    {id:"mp2",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes, not lower back. Hold 3 seconds at top."},
+    {id:"mp3",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level."},
   ]},
-  Tuesday:{label:'PHYSIO',sub:'Home or Gym Mat',exercises:[
-    {id:'t1',name:'Knee-to-Chest Stretch',cat:'physio',sets:2,reps:'30s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=Kn5AROv5bag',cue:'Always first. Decompresses your spine.'},
-    {id:'t2',name:'Glute Bridge',cat:'physio',sets:3,reps:'10 (hold 3s)',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=OUgsJ8-Vi0E',cue:'Push with glutes. Hold 3 seconds. Feel it in the glutes, not back.'},
-    {id:'t3',name:'Bird Dog',cat:'physio',sets:3,reps:'10 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=jiPi9MniP70',cue:'Most important exercise for your spine. Go slowly.'},
-    {id:'t4',name:'Dead Bug',cat:'physio',sets:3,reps:'8 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=4XLEnwUr1d8',cue:'Lower back stays on the floor the whole time. Non-negotiable.'},
-    {id:'t5',name:'Hip Flexor Stretch',cat:'physio',sets:2,reps:'60s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=7bRaX6M2nr8',cue:'Hold the full 60 seconds each side. Directly helps your spine.'},
-    {id:'t6',name:'Cat-Cow',cat:'physio',sets:2,reps:'10 slow reps',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=kqnua4rHVVA',cue:'Move slowly. The arch-up (cat) phase is more important for you.'},
-    {id:'t7',name:'Nerve Floss — Left Leg',cat:'physio',sets:2,reps:'10 slow reps',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=AWDNpIKdJVs',cue:'Left leg only. Gentle rhythm. Helps your left calf symptoms. Never force.'},
+  Tuesday:{label:"Physio",sub:"Home or Gym Mat",exercises:[
+    {id:"t1",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first."},
+    {id:"t2",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds."},
+    {id:"t3",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Most important exercise for your spine. Go slowly."},
+    {id:"t4",name:"Dead Bug",cat:"physio",sets:3,reps:"8 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays on floor the whole time."},
+    {id:"t5",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side."},
+    {id:"t6",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Cat phase most important."},
+    {id:"t7",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force."},
   ]},
-  Wednesday:{label:'LOWER BODY',sub:'Gym + Physio',exercises:[
-    {id:'w1',name:'Stationary Bike',cat:'cardio',sets:1,reps:'20 min',hint:'Level 7-9',url:'https://www.youtube.com/watch?v=_GBMmuWFJrI',cue:'Longer bike today. Warms glutes and hip flexors before machines.'},
-    {id:'w2',name:'Leg Press Machine',cat:'gym',sets:3,reps:12,hint:'60-80 kg',url:'https://www.youtube.com/watch?v=IZxyjW7MPJQ',cue:'Feet HIGH on plate. 90 degrees max depth. Lower back flat against pad always.'},
-    {id:'w3',name:'Seated Leg Curl',cat:'gym',sets:3,reps:12,hint:'30-40 kg',url:'https://www.youtube.com/watch?v=1Tq3QdYUuHs',cue:'Slow and controlled. Directly helps reduce your calf symptoms.'},
-    {id:'w4',name:'Seated Calf Raise',cat:'gym',sets:3,reps:15,hint:'30-40 kg',url:'https://www.youtube.com/watch?v=JbyjNymZOt0',cue:'Slow raise and lower. Strengthens the nerve area causing calf pain.'},
-    {id:'w5',name:'Hip Abduction Machine',cat:'gym',sets:3,reps:15,hint:'25-35 kg',url:'https://www.youtube.com/watch?v=SjEcTMDMIJw',cue:'Works side glute. Critical for spinal support and stability.'},
-    {id:'w6',name:'Treadmill Cool-Down',cat:'cardio',sets:1,reps:'15 min',hint:'Incline 1-2%',url:'https://www.youtube.com/watch?v=ASdvN_XEl_c',cue:'Easy pace. Monitor calf. Slight forward lean.'},
-    {id:'wp1',name:'Knee-to-Chest Stretch',cat:'physio',sets:2,reps:'30s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=Kn5AROv5bag',cue:'Do this after every session. Opens the spine.'},
-    {id:'wp2',name:'Glute Bridge',cat:'physio',sets:3,reps:'10 (hold 3s)',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=OUgsJ8-Vi0E',cue:'Extra important on leg day. Glutes must fire correctly.'},
-    {id:'wp3',name:'Bird Dog',cat:'physio',sets:3,reps:'10 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=jiPi9MniP70',cue:'Slow deliberate reps. Quality over speed.'},
+  Wednesday:{label:"Lower Body",sub:"Gym + Physio",exercises:[
+    {id:"w1",name:"Stationary Bike",cat:"cardio",sets:1,reps:"20 min",hint:"Level 7-9",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Longer bike today. Warms glutes before machines."},
+    {id:"w2",name:"Leg Press Machine",cat:"gym",sets:3,reps:12,hint:"60-80 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on plate. 90 degrees max depth. Back flat always."},
+    {id:"w3",name:"Seated Leg Curl",cat:"gym",sets:3,reps:12,hint:"30-40 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Slow controlled reps. Directly reduces calf symptoms."},
+    {id:"w4",name:"Seated Calf Raise",cat:"gym",sets:3,reps:15,hint:"30-40 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Strengthens nerve area."},
+    {id:"w5",name:"Hip Abduction Machine",cat:"gym",sets:3,reps:15,hint:"25-35 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Works side glute. Critical for spinal stability."},
+    {id:"w6",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy pace. Monitor calf."},
+    {id:"wp1",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Do after every session."},
+    {id:"wp2",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Extra important on leg day."},
+    {id:"wp3",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Slow deliberate reps."},
   ]},
-  Thursday:{label:'PHYSIO',sub:'Home or Gym Mat',exercises:[
-    {id:'th1',name:'Knee-to-Chest Stretch',cat:'physio',sets:2,reps:'30s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=Kn5AROv5bag',cue:'Always first.'},
-    {id:'th2',name:'Glute Bridge',cat:'physio',sets:3,reps:'10 (hold 3s)',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=OUgsJ8-Vi0E',cue:'Glutes, not lower back. Hold 3 seconds.'},
-    {id:'th3',name:'Bird Dog',cat:'physio',sets:3,reps:'10 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=jiPi9MniP70',cue:'Most important exercise. Go slowly.'},
-    {id:'th4',name:'Dead Bug',cat:'physio',sets:3,reps:'8 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=4XLEnwUr1d8',cue:'Back stays flat on floor throughout.'},
-    {id:'th5',name:'Hip Flexor Stretch',cat:'physio',sets:2,reps:'60s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=7bRaX6M2nr8',cue:'60 full seconds each side. Direct spine treatment.'},
-    {id:'th6',name:'Cat-Cow',cat:'physio',sets:2,reps:'10 slow reps',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=kqnua4rHVVA',cue:'Slowly. Always last.'},
-    {id:'th7',name:'Nerve Floss — Left Leg',cat:'physio',sets:2,reps:'10 slow reps',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=AWDNpIKdJVs',cue:'Gentle. Helps left calf symptoms.'},
+  Thursday:{label:"Physio",sub:"Home or Gym Mat",exercises:[
+    {id:"th1",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first."},
+    {id:"th2",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Glutes not back. Hold 3 seconds."},
+    {id:"th3",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Most important. Go slowly."},
+    {id:"th4",name:"Dead Bug",cat:"physio",sets:3,reps:"8 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Back stays flat on floor."},
+    {id:"th5",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side."},
+    {id:"th6",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last."},
+    {id:"th7",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle. Left leg only."},
   ]},
-  Friday:{label:'FULL BODY',sub:'Gym + Physio',exercises:[
-    {id:'f1',name:'Stationary Bike',cat:'cardio',sets:1,reps:'15 min',hint:'Level 6-8',url:'https://www.youtube.com/watch?v=_GBMmuWFJrI',cue:'Start here. Always.'},
-    {id:'f2',name:'Seated Cable Row',cat:'gym',sets:3,reps:12,hint:'32-38 kg',url:'https://www.youtube.com/watch?v=GZbfZ033f74',cue:'Try slightly heavier than Monday if it felt comfortable.'},
-    {id:'f3',name:'Leg Press Machine',cat:'gym',sets:3,reps:12,hint:'65-85 kg',url:'https://www.youtube.com/watch?v=IZxyjW7MPJQ',cue:'Feet high. 90 degrees max. Back flat against pad.'},
-    {id:'f4',name:'Chest Press Machine',cat:'gym',sets:3,reps:12,hint:'37-42 kg',url:'https://www.youtube.com/watch?v=xUm0BiZCX_I',cue:'Full range. Controlled return. No arching.'},
-    {id:'f5',name:'Seated Leg Curl',cat:'gym',sets:3,reps:12,hint:'32-42 kg',url:'https://www.youtube.com/watch?v=1Tq3QdYUuHs',cue:'Hamstring strength reduces calf symptoms.'},
-    {id:'f6',name:'Seated Lateral Raise',cat:'gym',sets:3,reps:12,hint:'6-8 kg',url:'https://www.youtube.com/watch?v=3VcKaXpzqRo',cue:'SEATED only. Arms to shoulder height max. Stop if left hip hurts.'},
-    {id:'f7',name:'Treadmill Cool-Down',cat:'cardio',sets:1,reps:'15 min',hint:'Incline 1-2%',url:'https://www.youtube.com/watch?v=ASdvN_XEl_c',cue:'Easy pace to finish.'},
-    {id:'fp1',name:'Knee-to-Chest Stretch',cat:'physio',sets:2,reps:'30s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=Kn5AROv5bag',cue:'Always first in physio.'},
-    {id:'fp2',name:'Glute Bridge',cat:'physio',sets:3,reps:'10 (hold 3s)',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=OUgsJ8-Vi0E',cue:'Squeeze and hold.'},
-    {id:'fp3',name:'Bird Dog',cat:'physio',sets:3,reps:'10 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=jiPi9MniP70',cue:'Slow deliberate reps.'},
+  Friday:{label:"Full Body",sub:"Gym + Physio",exercises:[
+    {id:"f1",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Start here. Always."},
+    {id:"f2",name:"Seated Cable Row",cat:"gym",sets:3,reps:12,hint:"32-38 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Try slightly heavier than Monday if comfortable."},
+    {id:"f3",name:"Leg Press Machine",cat:"gym",sets:3,reps:12,hint:"65-85 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high. 90 degrees. Back flat."},
+    {id:"f4",name:"Chest Press Machine",cat:"gym",sets:3,reps:12,hint:"37-42 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Full range. Controlled. No arching."},
+    {id:"f5",name:"Seated Leg Curl",cat:"gym",sets:3,reps:12,hint:"32-42 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Hamstring strength reduces calf symptoms."},
+    {id:"f6",name:"Seated Lateral Raise",cat:"gym",sets:3,reps:12,hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"SEATED only. Shoulder height max."},
+    {id:"f7",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy pace to finish."},
+    {id:"fp1",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first."},
+    {id:"fp2",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Squeeze and hold."},
+    {id:"fp3",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Slow deliberate reps."},
   ]},
-  Saturday:{label:'CARDIO',sub:'Gym + Full Physio',exercises:[
-    {id:'sa1',name:'Stationary Bike',cat:'cardio',sets:1,reps:'30 min',hint:'Increase level every 5 min',url:'https://www.youtube.com/watch?v=_GBMmuWFJrI',cue:'Biggest session of the week. Increase resistance every 5 minutes.'},
-    {id:'sa2',name:'Treadmill Walk',cat:'cardio',sets:1,reps:'20 min',hint:'Incline 2-3%',url:'https://www.youtube.com/watch?v=ASdvN_XEl_c',cue:'Higher incline today. Builds glutes. Lean slightly forward.'},
-    {id:'sa3',name:'Cable Face Pull',cat:'gym',sets:3,reps:15,hint:'15-20 kg',url:'https://www.youtube.com/watch?v=rep-qVOkqgk',cue:'Rope at face height. Pull toward nose. Elbows flare wide.'},
-    {id:'sa4',name:'Hip Abduction Machine',cat:'gym',sets:3,reps:15,hint:'27-37 kg',url:'https://www.youtube.com/watch?v=SjEcTMDMIJw',cue:'Second session this week. Side glute critical for spine.'},
-    {id:'sa5',name:'Seated Calf Raise',cat:'gym',sets:3,reps:15,hint:'32-42 kg',url:'https://www.youtube.com/watch?v=JbyjNymZOt0',cue:'Slow and controlled both ways.'},
-    {id:'sap1',name:'Knee-to-Chest Stretch',cat:'physio',sets:2,reps:'30s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=Kn5AROv5bag',cue:'Always first.'},
-    {id:'sap2',name:'Glute Bridge',cat:'physio',sets:3,reps:'10 (hold 3s)',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=OUgsJ8-Vi0E',cue:'Squeeze at top.'},
-    {id:'sap3',name:'Bird Dog',cat:'physio',sets:3,reps:'10 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=jiPi9MniP70',cue:'Quality reps.'},
-    {id:'sap4',name:'Dead Bug',cat:'physio',sets:3,reps:'8 each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=4XLEnwUr1d8',cue:'Back stays flat.'},
-    {id:'sap5',name:'Hip Flexor Stretch',cat:'physio',sets:2,reps:'60s each side',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=7bRaX6M2nr8',cue:'60 full seconds each side.'},
-    {id:'sap6',name:'Cat-Cow',cat:'physio',sets:2,reps:'10 slow reps',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=kqnua4rHVVA',cue:'Slowly. Always last.'},
-    {id:'sap7',name:'Nerve Floss — Left Leg',cat:'physio',sets:2,reps:'10 slow reps',hint:'Bodyweight',url:'https://www.youtube.com/watch?v=AWDNpIKdJVs',cue:'Gentle rhythm. Left leg only.'},
+  Saturday:{label:"Cardio",sub:"Gym + Full Physio",exercises:[
+    {id:"sa1",name:"Stationary Bike",cat:"cardio",sets:1,reps:"30 min",hint:"Increase level every 5 min",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Biggest session. Increase resistance every 5 minutes."},
+    {id:"sa2",name:"Treadmill Walk",cat:"cardio",sets:1,reps:"20 min",hint:"Incline 2-3%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Higher incline. Builds glutes. Lean slightly forward."},
+    {id:"sa3",name:"Cable Face Pull",cat:"gym",sets:3,reps:15,hint:"15-20 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Pull toward nose. Elbows flare wide."},
+    {id:"sa4",name:"Hip Abduction Machine",cat:"gym",sets:3,reps:15,hint:"27-37 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Second session this week. Side glute critical."},
+    {id:"sa5",name:"Seated Calf Raise",cat:"gym",sets:3,reps:15,hint:"32-42 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled both ways."},
+    {id:"sap1",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first."},
+    {id:"sap2",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Squeeze at top."},
+    {id:"sap3",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Quality reps."},
+    {id:"sap4",name:"Dead Bug",cat:"physio",sets:3,reps:"8 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Back stays flat."},
+    {id:"sap5",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side."},
+    {id:"sap6",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last."},
+    {id:"sap7",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Left leg only."},
   ]},
-  Sunday:{label:'REST',sub:'Recovery Day',exercises:[]}
+  Sunday:{label:"Rest",sub:"Recovery Day",exercises:[]}
 };
 
-const DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
-const GYM_EQUIP='Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press machine (feet high, 90 deg max), seated leg curl, seated hip abduction machine, seated calf raise, dumbbells 5-30kg';
+const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";
 
-// ═══════ STATE ═══════
-let S=JSON.parse(localStorage.getItem('forge4')||'{}');
+let S=JSON.parse(localStorage.getItem("f5")||"{}");
 if(!S.sessions)S.sessions={};
-if(!S.weights)S.weights=[];
-function save(){localStorage.setItem('forge4',JSON.stringify(S));}
+function save(){localStorage.setItem("f5",JSON.stringify(S));}
 
-let currentDay='',currentTab='workout',quoteIdx=0;
+let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 
-// ═══════ INIT ═══════
-window.addEventListener('DOMContentLoaded',()=>{
-  buildDayNav();
-  const todayName=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
-  selectDay(todayName);
-  cycleQuote();
-  setInterval(cycleQuote,9000);
+window.addEventListener("DOMContentLoaded",()=>{
+  buildNav();
+  const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
+  selectDay(t);
+  cycleQ();
+  setInterval(cycleQ,9000);
 });
 
-function cycleQuote(){
-  const el=document.getElementById('quoteEl');
+function cycleQ(){
+  const el=document.getElementById("quoteEl");
   el.style.opacity=0;
-  setTimeout(()=>{el.textContent=QUOTES[quoteIdx++%QUOTES.length];el.style.opacity=1;},350);
+  setTimeout(()=>{el.textContent=Q[qIdx++%Q.length];el.style.opacity=1;},400);
 }
 
-// ═══════ TABS ═══════
-function switchTab(tab){
-  currentTab=tab;
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
-  document.getElementById('nav-'+tab).classList.add('active');
-  document.getElementById('dayNav').style.display=tab==='workout'?'flex':'none';
-  document.getElementById('mainScroll').scrollTop=0;
-  if(tab==='workout') renderWorkout();
-  else if(tab==='ai') renderAI();
-  else if(tab==='settings') renderSettings();
+function go(tab){
+  cTab=tab;
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("nav-"+tab).classList.add("active");
+  document.getElementById("dayNav").style.display=tab==="workout"?"flex":"none";
+  document.getElementById("mainScroll").scrollTop=0;
+  if(tab==="workout")renderW();
+  else if(tab==="ai")renderAI();
+  else renderST();
 }
 
-// ═══════ DAY NAV ═══════
-function buildDayNav(){
-  const el=document.getElementById('dayNav');
-  el.style.display='flex';
-  const todayIdx=new Date().getDay()===0?6:new Date().getDay()-1;
+function buildNav(){
+  const el=document.getElementById("dayNav");
+  el.style.display="flex";
+  const ti=new Date().getDay()===0?6:new Date().getDay()-1;
   DAYS.forEach((d,i)=>{
-    const b=document.createElement('div');
-    b.className='day-btn'+(i===todayIdx?' today':'');
-    b.id='pill-'+d;b.textContent=d.slice(0,3).toUpperCase();
+    const b=document.createElement("div");
+    b.className="day-btn"+(i===ti?" today":"");
+    b.id="p-"+d;b.textContent=d.slice(0,3).toUpperCase();
     b.onclick=()=>selectDay(d);
     el.appendChild(b);
   });
 }
 
 function selectDay(day){
-  currentDay=day;
-  DAYS.forEach(d=>{const p=document.getElementById('pill-'+d);if(p)p.classList.toggle('active',d===day);});
-  renderWorkout();
+  cDay=day;
+  DAYS.forEach(d=>{const p=document.getElementById("p-"+d);if(p)p.classList.toggle("active",d===day);});
+  renderW();
 }
 
-// ═══════ WORKOUT ═══════
-function weekKey(){
-  const d=new Date(),j=new Date(d.getFullYear(),0,1);
-  return d.getFullYear()+'W'+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
-}
-function sessKey(day){return day+'_'+weekKey();}
+function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function sk(day){return day+"_"+wk();}
 
-function renderWorkout(){
-  const prog=PROG[currentDay];
-  const el=document.getElementById('tabContent');
-
-  if(currentDay==='Sunday'){
-    el.innerHTML=`
-      <div class="rest">
-        <div class="rest-icon">😴</div>
-        <div class="rest-title">REST DAY</div>
-        <div class="rest-body">Recovery is where adaptation happens.<br>Your spine rebuilds today.</div>
-        <div class="info-card">
-          <div class="info-card-title">✅ Still do physio exercises</div>
-          <div class="info-card-body">Knee-to-chest, glute bridge, and bird dog — 10 minutes. Do these every day including Sundays. Your spine does not take rest days.</div>
-        </div>
-      </div>`;
+function renderW(){
+  const prog=PROG[cDay],el=document.getElementById("tc");
+  if(cDay==="Sunday"){
+    el.innerHTML=`<div class="rest-screen"><div class="rest-emoji">😴</div><div class="rest-ttl">Rest Day</div><div class="rest-body">Recovery is where adaptation happens.<br>Your spine rebuilds today.</div><div class="rest-card"><div class="rest-card-title">✅ Still do physio exercises</div><div class="rest-card-body">Knee-to-chest, glute bridge, and bird dog — 10 minutes. Every day including Sundays.</div></div></div>`;
     return;
   }
-
-  const key=sessKey(currentDay);
+  const key=sk(cDay);
   if(!S.sessions[key])S.sessions[key]={};
   const sess=S.sessions[key];
   const total=prog.exercises.length;
   const done=prog.exercises.filter(e=>sess[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
+  const gymExs=prog.exercises.filter(e=>e.cat!=="physio");
+  const physioExs=prog.exercises.filter(e=>e.cat==="physio");
 
-  const gymExs=prog.exercises.filter(e=>e.cat!=='physio');
-  const physioExs=prog.exercises.filter(e=>e.cat==='physio');
+  let h=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub} &nbsp;·&nbsp; ${done} of ${total} complete</div></div>
+  <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
+  <div class="session-bar">
+    <button class="btn-start${workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
+    <button class="btn-stop${workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
+  </div>`;
 
-  let html=`
-    <div class="day-title">${prog.label}</div>
-    <div class="day-sub">${prog.sub} · ${done}/${total} exercises done</div>
-    <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
-    <button class="start-workout-btn" onclick="showToast('Workout started! Work through each exercise below ⬇')">⚡ START WORKOUT</button>`;
+  if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key);});}
+  if(physioExs.length){h+=`<div class="sec">🟢 Physio — Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key);});}
 
-  if(gymExs.length){
-    const secLabel=prog.sub.includes('Gym')?'🏋 Gym Exercises':'Exercises';
-    html+=`<div class="sec">${secLabel}</div>`;
-    gymExs.forEach(ex=>{html+=renderExCard(ex,sess,key);});
-  }
-  if(physioExs.length){
-    html+=`<div class="sec">🟢 Physio — Do on Yoga Mat</div>`;
-    physioExs.forEach(ex=>{html+=renderExCard(ex,sess,key);});
-  }
-
-  el.innerHTML=html;
-}
-
-function renderExCard(ex,sess,key){
-  const exData=sess[ex.id]||{done:false,sets:[]};
-  const isDone=exData.done;
-  const dotCls=ex.cat==='physio'?'dot-physio':ex.cat==='cardio'?'dot-cardio':'dot-gym';
-  const setsLabel=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
-
-  let bodyHtml='';
-  if(ex.sets===1){
-    // Cardio / single set
-    bodyHtml=`
-      <div class="cue-box">${ex.cue}</div>
-      <div class="cardio-row ${isDone?'done':''}" onclick="toggleCardio('${key}','${ex.id}')">
-        <div class="cardio-label">${ex.reps}</div>
-        <div class="set-check-btn ${isDone?'done':''}">${isDone?'✓':'○'}</div>
-      </div>`;
-  } else {
-    const count=Math.max(ex.sets,(exData.sets||[]).length);
-    let rows='';
-    for(let i=0;i<count;i++){
-      const sd=(exData.sets||[])[i]||{};
-      rows+=`
-        <div class="set-row ${sd.done?'done':''}" id="sr-${ex.id}-${i}">
-          <div class="set-label">Set ${i+1}</div>
-          <input class="set-inp" type="number" placeholder="kg" value="${sd.weight||''}"
-            onchange="saveField('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
-          <div class="set-x">×</div>
-          <input class="set-inp" type="number" placeholder="${typeof ex.reps==='number'?ex.reps:'reps'}" value="${sd.reps||''}"
-            onchange="saveField('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
-          <div class="set-check-btn ${sd.done?'done':''}" onclick="toggleSet('${key}','${ex.id}',${i})">${sd.done?'✓':'○'}</div>
-        </div>`;
-    }
-    bodyHtml=`
-      <div class="cue-box">${ex.cue}</div>
-      ${rows}
-      <button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button>`;
-  }
-
-  return `
-    <div class="ex-card ${isDone?'done':''}" id="ex-${ex.id}">
-      <div class="ex-top" onclick="toggleExpand('${ex.id}')">
-        <div class="ex-dot ${dotCls}"></div>
-        <div class="ex-info">
-          <div class="ex-name">${isDone?'✓ ':''} ${ex.name}</div>
-          <div class="ex-meta">${setsLabel} · ${ex.hint}</div>
-        </div>
-        <div class="ex-right">
-          <a class="watch-btn" href="${ex.url}" target="_blank" onclick="event.stopPropagation()">▶ Watch</a>
-          <div class="chev" id="chev-${ex.id}">▾</div>
-        </div>
+  h+=`<div class="custom-wrap">
+    <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
+    <div class="custom-form" id="cf">
+      <label class="cf-label">Search exercise library</label>
+      <div class="search-wrap">
+        <input class="cf-inp" id="cfSearch" placeholder="Type exercise name to search..." oninput="searchEx(this.value,'${key}')" autocomplete="off">
+        <div class="search-dd" id="cfDD"></div>
       </div>
-      <div class="sets-area" id="sa-${ex.id}">${bodyHtml}</div>
-    </div>`;
+      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + on any result to add directly to today's session</div>
+    </div>
+  </div><div style="height:12px"></div>`;
+
+  el.innerHTML=h;
 }
 
-function toggleExpand(id){
-  const area=document.getElementById('sa-'+id);
-  const chev=document.getElementById('chev-'+id);
-  const open=area.classList.toggle('open');
-  chev.classList.toggle('open',open);
+function card(ex,sess,key){
+  const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
+  const isDone=ed.done,isSkip=ed.skipped;
+  const icon=ex.cat==="physio"?"🟢":ex.cat==="cardio"?"🚴":"💪";
+  const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
+  const sLbl=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
+  const cls=isSkip?"skipped":isDone?"done":"";
+  const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
+
+  let body="";
+  if(ex.sets===1){
+    body=`<div class="cue-box">${ex.cue}</div>
+    <div class="action-row"><a class="watch-chip" href="${ex.url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}" onclick="toggleCardio('${key}','${ex.id}')"><div class="cardio-dur">${ex.reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
+  } else {
+    const cnt=Math.max(ex.sets,(ed.sets||[]).length);
+    let rows=`<div class="set-hdr"><div>Set</div><div>KG</div><div></div><div>Reps</div><div></div></div>`;
+    for(let i=0;i<cnt;i++){
+      const sd=(ed.sets||[])[i]||{};
+      const hasD=sd.weight&&sd.reps;
+      const rCls=sd.done?"done":(!hasD&&sd.attempted?"needs-input":"");
+      rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
+        <div class="sn">${i+1}</div>
+        <input class="si" type="number" placeholder="${ex.hint||"kg"}" value="${sd.weight||""}" onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
+        <div class="sx">×</div>
+        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${sd.reps||""}" onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
+        <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
+      </div>`;
+    }
+    body=`<div class="cue-box">${ex.cue}</div>
+    <div class="action-row"><a class="watch-chip" href="${ex.url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap">${rows}<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button></div>`;
+  }
+
+  return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
+    <div class="ex-top" onclick="expand('${ex.id}')">
+      <div class="ex-icon ${iconCls}">${icon}</div>
+      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${ex.name}</div><div class="ex-meta">${sLbl} · ${ex.hint}</div></div>
+      <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
+    </div>
+    <div class="sets-body" id="sb-${ex.id}">${body}</div>
+  </div>`;
+}
+
+function expand(id){
+  const body=document.getElementById("sb-"+id);
+  const chev=document.getElementById("chev-"+id);
+  const card=document.getElementById("ex-"+id);
+  const open=body.classList.toggle("open");
+  chev.classList.toggle("open",open);
+  card.classList.toggle("active-card",open&&!card.classList.contains("done")&&!card.classList.contains("skipped"));
+}
+
+function ensure(key,exId,i){
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  while(S.sessions[key][exId].sets.length<=i)S.sessions[key][exId].sets.push({});
+}
+
+function saveF(key,exId,i,field,val){
+  ensure(key,exId,i);
+  S.sessions[key][exId].sets[i][field]=val;
+  save();
+  const sd=S.sessions[key][exId].sets[i];
+  const row=document.getElementById("sr-"+exId+"-"+i);
+  if(row){const btn=row.querySelector(".sdone");const hasD=sd.weight&&sd.reps;if(btn){btn.classList.toggle("locked",!hasD);btn.title=hasD?"Done":"Enter weight and reps first";}}
 }
 
 function toggleSet(key,exId,i){
-  ensureExData(key,exId,i);
+  ensure(key,exId,i);
   const sd=S.sessions[key][exId].sets[i];
-  sd.done=!sd.done;
-  // Check if all sets done
-  const prog=PROG[currentDay];
-  const ex=prog.exercises.find(e=>e.id===exId);
-  if(ex){
-    const exData=S.sessions[key][exId];
-    const requiredSets=Math.max(ex.sets,(exData.sets||[]).length);
-    exData.done=exData.sets.slice(0,requiredSets).every(s=>s.done)&&exData.sets.length>=ex.sets;
-    if(sd.done) showToast('Set logged ✓');
-    if(exData.done) showToast('Exercise complete! 🔥');
-  }
+  if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
+  sd.done=!sd.done;sd.attempted=true;
+  const prog=PROG[cDay];
+  const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
+  const ed=S.sessions[key][exId];
+  ed.done=ed.sets.length>=ex.sets&&ed.sets.slice(0,ex.sets).every(s=>s.done);
+  if(sd.done)showToast("Set logged ✓");
+  if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
-  save();
-  renderWorkout();
-  // Reopen card
-  setTimeout(()=>{
-    const area=document.getElementById('sa-'+exId);
-    if(area&&!area.classList.contains('open')){area.classList.add('open');document.getElementById('chev-'+exId).classList.add('open');}
-  },10);
+  save();reCard(key,exId);
 }
 
 function toggleCardio(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
-  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[]};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].done=!S.sessions[key][exId].done;
-  if(S.sessions[key][exId].done)showToast('Done! ✓');
+  if(S.sessions[key][exId].done)showToast("Done ✓");
   if(navigator.vibrate)navigator.vibrate([25]);
-  save();
-  renderWorkout();
+  save();renderW();
 }
 
-function saveField(key,exId,i,field,val){
-  ensureExData(key,exId,i);
-  S.sessions[key][exId].sets[i][field]=val;
-  save();
-}
-
-function ensureExData(key,exId,i){
+function skipEx(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
-  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[]};
-  while(S.sessions[key][exId].sets.length<=i)S.sessions[key][exId].sets.push({});
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  S.sessions[key][exId].skipped=true;
+  save();showToast("Exercise skipped");renderW();
+  setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
 }
 
 function addSet(key,exId){
-  if(!S.sessions[key])S.sessions[key]={};
-  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[]};
+  ensure(key,exId,0);
   S.sessions[key][exId].sets.push({});
-  save();
-  renderWorkout();
-  setTimeout(()=>{
-    const area=document.getElementById('sa-'+exId);
-    if(area){area.classList.add('open');document.getElementById('chev-'+exId).classList.add('open');}
-  },10);
+  save();renderW();
+  setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
 }
 
-// ═══════ AI COACH ═══════
+function reCard(key,exId){
+  const prog=PROG[cDay];
+  const ex=prog.exercises.find(e=>e.id===exId);
+  if(!ex){renderW();return;}
+  const sess=S.sessions[key]||{};
+  const wasOpen=document.getElementById("sb-"+exId)?.classList.contains("open");
+  const tmp=document.createElement("div");
+  tmp.innerHTML=card(ex,sess,key);
+  const old=document.getElementById("ex-"+exId);
+  if(old){old.replaceWith(tmp.firstElementChild);}
+  if(wasOpen){
+    const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");
+    const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");
+    const cd=document.getElementById("ex-"+exId);
+    if(cd&&!cd.classList.contains("done")&&!cd.classList.contains("skipped"))cd.classList.add("active-card");
+  }
+  const prog2=PROG[cDay];
+  const total=prog2.exercises.length;
+  const done=prog2.exercises.filter(e=>(S.sessions[key]||{})[e.id]?.done).length;
+  const pct=total?Math.round((done/total)*100):0;
+  const fill=document.querySelector(".prog-fill");if(fill)fill.style.width=pct+"%";
+  const sub=document.querySelector(".pg-sub");if(sub)sub.textContent=`${prog2.sub} · ${done} of ${total} complete`;
+}
+
+// Custom exercise
+function toggleCF(){
+  const f=document.getElementById("cf");
+  f.classList.toggle("open");
+  if(f.classList.contains("open"))document.getElementById("cfSearch").focus();
+}
+
+function searchEx(q,key){
+  const dd=document.getElementById("cfDD");
+  if(!q||q.length<1){dd.classList.remove("show");dd.innerHTML="";return;}
+  const res=EX_DB.filter(e=>e.name.toLowerCase().includes(q.toLowerCase()));
+  if(!res.length){
+    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${q}" anyway</div></div><button class="dd-add-btn" onclick="addFreeform('${key||cDay}','`+q+`')">Add</button></div>`;
+    dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
+  }
+  dd.innerHTML=res.map((e,i)=>`<div class="dd-item">
+    <div class="dd-item-left">
+      <div class="dd-name">${e.name}</div>
+      <div class="dd-cat">${e.cat} · ${typeof e.reps==="number"?e.sets+"×"+e.reps:e.reps} · ${e.hint}</div>
+    </div>
+    <button class="dd-add-btn" onclick="addFromDB(${i},'__KEY__')">+</button>
+  </div>`).join("").replace(/__KEY__/g, key||cDay);
+  dd.dataset.r=JSON.stringify(res);dd.classList.add("show");
+}
+
+function addFromDB(i,key){
+  const res=JSON.parse(document.getElementById("cfDD").dataset.r||"[]");
+  const base=res[i];
+  if(!base)return;
+  const sessKey=sk(key);
+  const ex={id:"c_"+Date.now(),name:base.name,cat:base.cat?.toLowerCase()||"gym",sets:base.sets||3,reps:base.reps||12,hint:base.hint||"",url:base.url||"",cue:base.cue||"Focus on controlled movement.",custom:true};
+  PROG[key].exercises.push(ex);
+  if(!S.sessions[sessKey])S.sessions[sessKey]={};
+  save();showToast(base.name+" added ✓");
+  document.getElementById("cfSearch").value="";
+  document.getElementById("cfDD").classList.remove("show");
+  renderW();
+}
+
+function addFreeform(day,name){
+  const sessKey=sk(day);
+  const ex={id:"c_"+Date.now(),name,cat:"gym",sets:3,reps:12,hint:"",url:"",cue:"Focus on controlled movement. Core braced throughout.",custom:true};
+  PROG[day].exercises.push(ex);
+  if(!S.sessions[sessKey])S.sessions[sessKey]={};
+  save();showToast(name+" added ✓");
+  document.getElementById("cfSearch").value="";
+  document.getElementById("cfDD").classList.remove("show");
+  renderW();
+}
+
+function addCustom(key){
+  showToast("Use the search above to add exercises");
+}
+
+// Session
+function startSess(){
+  workoutOn=true;sessStart=Date.now();
+  document.getElementById("bStart").classList.add("hide");
+  document.getElementById("bStop").classList.add("show");
+  showToast("Workout started ⚡");
+  if(navigator.vibrate)navigator.vibrate([40,20,40]);
+}
+
+function stopSess(){
+  if(!confirm("Stop workout and save session?"))return;
+  workoutOn=false;clearInterval(sessTimer);
+  const el=Math.floor((Date.now()-sessStart)/1000);
+  const m=Math.floor(el/60),s=el%60;
+  const key=sk(cDay);
+  const prog=PROG[cDay];
+  const setsDone=prog.exercises.reduce((a,ex)=>a+((S.sessions[key]||{})[ex.id]?.sets?.filter(s=>s.done)?.length||0),0);
+  document.getElementById("sumDur").textContent=m+"m "+(s<10?"0":"")+s+"s";
+  document.getElementById("sumSets").textContent=setsDone;
+  document.getElementById("sum").classList.add("show");
+  if(navigator.vibrate)navigator.vibrate([80,40,160]);
+  sessStart=null;
+}
+
+function closeSummary(){
+  document.getElementById("sum").classList.remove("show");
+  workoutOn=false;renderW();
+}
+
+// AI Coach
 function renderAI(){
-  document.getElementById('tabContent').innerHTML=`
-    <div style="padding-top:8px">
+  document.getElementById("tc").innerHTML=`<div class="ai-wrap">
+    <div class="ai-pg-title">AI <span>Coach</span></div>
+    <div class="ai-pg-sub">Powered by Claude · Your personal strength coach</div>
 
-      <div class="ai-card">
-        <div class="ai-title">🎙 Log a Set in Plain English</div>
-        <div class="ai-sub">Type what you just did in any way you like. Claude will parse it into your session automatically.</div>
-        <input class="ai-inp" id="convInp" placeholder='e.g. "leg press 80kg 3 sets 12 reps, felt tough"'>
-        <button class="ai-btn" onclick="runAI('conv')">Parse & Log</button>
-        <div class="ai-out" id="convOut"></div>
-      </div>
+    <div class="ai-card">
+      <div class="ai-card-title">🎙 Log in Plain English</div>
+      <div class="ai-card-sub">Type what you just did in any format. Claude structures it instantly.</div>
+      <input class="ai-inp" id="ci" placeholder='e.g. "leg press 80kg 3 sets 12 reps, felt tough"'>
+      <button class="ai-btn" onclick="aiRun('conv')">Parse & Structure</button>
+      <div class="ai-out" id="co"></div>
+    </div>
 
-      <div class="ai-card">
-        <div class="ai-title">📈 What Weight Should I Use Today?</div>
-        <div class="ai-sub">Tell Claude what you did last session. It will calculate your target for today.</div>
-        <input class="ai-inp" id="overloadInp" placeholder='e.g. "leg press 80kg 3x12, felt easy last week"'>
-        <button class="ai-btn" onclick="runAI('overload')">Get Today's Target</button>
-        <div class="ai-out" id="overloadOut"></div>
-      </div>
+    <div class="ai-card">
+      <div class="ai-card-title">📈 What Weight Today?</div>
+      <div class="ai-card-sub">Tell Claude last session's performance. Get today's exact target.</div>
+      <input class="ai-inp" id="oi" placeholder='e.g. "leg press 80kg 3x12, felt easy last week"'>
+      <button class="ai-btn" onclick="aiRun('overload')">Get Today's Target</button>
+      <div class="ai-out" id="oo"></div>
+    </div>
 
-      <div class="ai-card">
-        <div class="ai-title">🔄 Machine is Busy — Find Alternative</div>
-        <div class="ai-sub">Tell Claude which machine is taken. It finds the best swap from your gym's equipment.</div>
-        <input class="ai-inp" id="subInp" placeholder='e.g. "chest press machine is busy"'>
-        <button class="ai-btn" onclick="runAI('sub')">Find Alternative</button>
-        <div class="ai-out" id="subOut"></div>
-      </div>
+    <div class="ai-card">
+      <div class="ai-card-title">🔄 Machine Busy?</div>
+      <div class="ai-card-sub">Tell Claude which machine is taken. Get 3 alternatives immediately.</div>
+      <input class="ai-inp" id="si" placeholder='e.g. "chest press machine is busy"'>
+      <button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button>
+      <div class="ai-out" id="so"></div>
+    </div>
 
-      <div class="ai-card">
-        <div class="ai-title">💤 How Hard Should I Train Today?</div>
-        <div class="ai-sub">Enter how you feel. Claude adjusts today's intensity based on your recovery.</div>
-        <div class="grid2">
-          <div>
-            <div style="font-size:11px;color:var(--g5);margin-bottom:5px">CPAP Score (0-100)</div>
-            <input class="ai-inp-sm" id="sleepInp" type="number" placeholder="e.g. 91">
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--g5);margin-bottom:5px">Energy (1-10)</div>
-            <input class="ai-inp-sm" id="energyInp" type="number" placeholder="e.g. 7">
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--g5);margin-bottom:5px">Soreness (1-10)</div>
-            <input class="ai-inp-sm" id="soreInp" type="number" placeholder="e.g. 3">
-          </div>
-          <div>
-            <div style="font-size:11px;color:var(--g5);margin-bottom:5px">Calf Pain Today</div>
-            <select class="ai-inp-sm" id="calfInp">
-              <option value="none">None</option>
-              <option value="mild">Mild (1-2x)</option>
-              <option value="moderate">Moderate (3-4x)</option>
-              <option value="severe">Severe (5+x)</option>
-            </select>
-          </div>
+    <div class="ai-card">
+      <div class="ai-card-title">💤 How Hard Should I Train?</div>
+      <div class="ai-card-sub">Enter your recovery metrics. Claude auto-adjusts today's intensity.</div>
+      <div class="g2">
+        <div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div>
+        <div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div>
+        <div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div>
+        <div><label class="ai-lbl">Calf Pain</label>
+          <select class="ai-sm" id="cp">
+            <option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option>
+          </select>
         </div>
-        <button class="ai-btn" onclick="runAI('recovery')">Analyse My Recovery</button>
-        <div class="ai-out" id="recoveryOut"></div>
       </div>
-
-    </div>`;
+      <button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button>
+      <div class="ai-out" id="ro"></div>
+    </div>
+  </div>`;
 }
 
-async function runAI(type){
-  let system='',user='',outId='';
-
-  if(type==='conv'){
-    const inp=document.getElementById('convInp').value.trim();
-    if(!inp)return;
-    system='You are a fitness data extraction assistant. Convert the text into a brief structured summary. Format: Exercise → Sets × Reps @ Weight. Keep it short and scannable. 3 lines max.';
-    user=inp; outId='convOut';
-  } else if(type==='overload'){
-    const inp=document.getElementById('overloadInp').value.trim();
-    if(!inp)return;
-    system='You are a strength coach for someone with a lumbar spine condition (L2-L5 degeneration, no axial loading, no overhead press, seated machines only). Give micro-progression targets (add 2.5-5kg or 1-2 reps). Be specific and brief. 4 lines max.';
-    user=`Last session: ${inp}\n\nWhat should my targets be today?`; outId='overloadOut';
-  } else if(type==='sub'){
-    const inp=document.getElementById('subInp').value.trim();
-    if(!inp)return;
-    system=`You are an exercise substitution expert for someone with lumbar spine issues. NO overhead movements, NO standing loaded exercises, NO barbell work. Available equipment: ${GYM_EQUIP}. Give 3 ranked alternatives. One sentence each. Be brief.`;
-    user=inp; outId='subOut';
-  } else if(type==='recovery'){
-    const sleep=document.getElementById('sleepInp').value;
-    const energy=document.getElementById('energyInp').value;
-    const sore=document.getElementById('soreInp').value;
-    const calf=document.getElementById('calfInp').value;
-    system='You are a sports science coach. Review recovery metrics and give a clear intensity recommendation: Train normally / Train at 80% / Light session only. One paragraph max. Be direct and encouraging.';
-    user=`CPAP score: ${sleep||'unknown'}/100\nEnergy: ${energy||'unknown'}/10\nSoreness: ${sore||'unknown'}/10\nCalf pain: ${calf}\n\nHow hard should I train today?`;
-    outId='recoveryOut';
+async function aiRun(type){
+  let sys="",user="",outId="";
+  if(type==="conv"){
+    const v=document.getElementById("ci").value.trim();if(!v)return;
+    sys="Extract workout data concisely. Format: Exercise → Sets × Reps @ Weight. 3 lines max.";
+    user=v;outId="co";
+  }else if(type==="overload"){
+    const v=document.getElementById("oi").value.trim();if(!v)return;
+    sys="Elite strength coach for patient with lumbar spine condition L2-L5 (no axial loading, no overhead press, seated machines only). Give micro-progression targets — specific numbers. 4 lines max.";
+    user="Last session: "+v+"\n\nToday's exact targets?";outId="oo";
+  }else if(type==="sub"){
+    const v=document.getElementById("si").value.trim();if(!v)return;
+    sys=`Exercise substitution for spine patient. NO overhead, NO standing loaded, NO barbell. Gym has: ${GYM}. 3 ranked alternatives. One sentence each.`;
+    user=v;outId="so";
+  }else{
+    sys="Sports science coach. Give: Full intensity / 80% intensity / Light session only. 3 sentences max. Direct and encouraging.";
+    user=`CPAP: ${document.getElementById("sl").value||"?"}/100 Energy: ${document.getElementById("en").value||"?"}/10 Soreness: ${document.getElementById("sr").value||"?"}/10 Calf: ${document.getElementById("cp").value}`;
+    outId="ro";
   }
-
-  const outEl=document.getElementById(outId);
-  outEl.className='ai-out show';
-  outEl.innerHTML='<span class="spin"></span>Thinking...';
-
+  const out=document.getElementById(outId);
+  out.className="ai-out show";
+  out.innerHTML='<span class="spin"></span>Thinking...';
   try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,system,messages:[{role:'user',content:user}]})
-    });
-    const data=await resp.json();
-    outEl.textContent=data.content?.[0]?.text||'No response received.';
-  } catch(e){
-    outEl.textContent='Network error. Check your connection.';
-  }
+    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:sys,messages:[{role:"user",content:user}]})});
+    const d=await r.json();
+    out.textContent=d.content?.[0]?.text||"No response.";
+  }catch(e){out.textContent="Network error. Check connection.";}
 }
 
-// ═══════ SETTINGS ═══════
-function renderSettings(){
-  document.getElementById('tabContent').innerHTML=`
-    <div style="padding-top:8px">
+// Settings
+function renderST(){
+  document.getElementById("tc").innerHTML=`<div class="st-wrap">
+    <div class="st-pg-title">Set<span>tings</span></div>
+    <div class="st-pg-sub">Export data, spine rules, and profile</div>
 
-      <div class="sec" style="padding:0 0 8px">Export Data</div>
-      <div style="background:var(--g1);border:1.5px solid var(--g2);border-radius:var(--r);padding:16px;margin-bottom:14px">
-        <div style="font-size:14px;font-weight:700;margin-bottom:6px">📋 Export for Claude Review</div>
-        <div style="font-size:12px;color:var(--g5);margin-bottom:12px;line-height:1.5">Generate a full summary of your sessions and progress. Copy it and paste it into Claude to review your programme, adjust weights, or modify exercises.</div>
-        <div class="btn-row">
-          <button class="btn-orange" onclick="generateExport()">Generate</button>
-          <button class="btn-outline" onclick="copyExport()">Copy All</button>
-        </div>
-        <textarea class="export-area" id="exportArea" readonly placeholder="Tap Generate to create your export..."></textarea>
+    <div class="st-sec">Export Data</div>
+    <div class="export-card">
+      <div class="export-title">📋 Export for Claude Review</div>
+      <div class="export-sub">Generate your session history. Copy and paste into Claude to review progress, adjust weights, or modify exercises.</div>
+      <div class="btn-row">
+        <button class="btn-o" onclick="genExp()">Generate</button>
+        <button class="btn-g" onclick="copyExp()">Copy All</button>
       </div>
+      <textarea class="export-area" id="expArea" readonly placeholder="Tap Generate..."></textarea>
+    </div>
 
-      <div class="sec" style="padding:0 0 8px">Permanent Spine Rules</div>
-      <div class="rule-card"><div class="rule-title">No overhead movements</div><div class="rule-desc">Lat pulldown standard form, overhead press, any upward reach under load. Multi-level L2-L5 condition.</div></div>
-      <div class="rule-card"><div class="rule-title">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
-      <div class="rule-card"><div class="rule-title">Always start with the bike</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip this.</div></div>
-      <div class="rule-card"><div class="rule-title">Calf pain = sit down immediately</div><div class="rule-desc">Left-sided nerve issue. 3 or more episodes in one session means end the session.</div></div>
-      <div class="rule-card"><div class="rule-title">Core gently braced throughout</div><div class="rule-desc">Light tightening of the stomach during all exercises. Protects the lumbar spine.</div></div>
+    <div class="st-sec">Permanent Spine Rules</div>
+    <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Lat pulldown standard, overhead press, any reach under load. L2-L5 multi-level condition.</div></div>
+    <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
+    <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
+    <div class="rule-item"><div class="rule-ttl">Calf pain — sit down immediately</div><div class="rule-desc">Left-sided nerve issue. 3+ episodes in one session means end the session.</div></div>
+    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
 
-      <div class="sec" style="padding:14px 0 8px">Profile</div>
-      <div class="settings-group">
-        <div class="settings-row"><div class="settings-icon">👤</div><div class="settings-info"><div class="settings-title">Chiranjay Verma</div><div class="settings-sub">6'3" · 30 years · Waterloo, ON</div></div></div>
-        <div class="settings-row"><div class="settings-icon">🎯</div><div class="settings-info"><div class="settings-title">Target</div><div class="settings-sub">95 kg by December 1, 2026</div></div></div>
-        <div class="settings-row"><div class="settings-icon">💊</div><div class="settings-info"><div class="settings-title">Current Stack</div><div class="settings-sub">Zepbound · Levothyroxine · Enclomiphene · CPAP</div></div></div>
-      </div>
+    <div class="st-sec">Profile</div>
+    <div class="st-group">
+      <div class="st-row"><div class="st-icon">👤</div><div class="st-info"><div class="st-ttl">Chiranjay Verma</div><div class="st-sub">6'3" · 30 · Waterloo, ON</div></div></div>
+      <div class="st-row"><div class="st-icon">🎯</div><div class="st-info"><div class="st-ttl">Target</div><div class="st-sub">95 kg by December 1, 2026</div></div></div>
+      <div class="st-row"><div class="st-icon">💊</div><div class="st-info"><div class="st-ttl">Active Stack</div><div class="st-sub">Zepbound · Levothyroxine · Enclomiphene · CPAP</div></div></div>
+    </div>
 
-      <div class="sec" style="padding:0 0 8px">Data</div>
-      <div class="settings-group">
-        <div class="settings-row" onclick="clearAllData()"><div class="settings-icon">🗑</div><div class="settings-info"><div class="settings-title" style="color:var(--red)">Clear All Data</div><div class="settings-sub">Wipe all sessions and history</div></div></div>
-      </div>
-
-      <div style="height:20px"></div>
-    </div>`;
+    <div class="st-sec">Data</div>
+    <div class="st-group">
+      <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
+    </div>
+    <div style="height:20px"></div>
+  </div>`;
 }
 
-function generateExport(){
-  const lines=['=== FORGE WORKOUT EXPORT ===',`Generated: ${new Date().toLocaleString()}`,''];
-  lines.push('SESSIONS:');
+function genExp(){
+  const lines=["=== FORGE EXPORT ===","Generated: "+new Date().toLocaleString(),"","SESSIONS:"];
   Object.entries(S.sessions).forEach(([key,data])=>{
     const hasData=Object.values(data).some(e=>(e.sets||[]).some(s=>s.done)||e.done);
     if(!hasData)return;
-    lines.push(`\n${key}:`);
-    Object.entries(data).forEach(([exId,exData])=>{
-      const name=findName(exId);
-      const sets=(exData.sets||[]).filter(s=>s.done).map(s=>`${s.weight||'—'}kg × ${s.reps||'—'}`).join(', ');
-      const cardio=exData.done&&!sets?'Completed':'';
-      if(sets||cardio)lines.push(`  ${name}: ${sets||cardio}`);
+    lines.push("\n"+key+":");
+    Object.entries(data).forEach(([id,ed])=>{
+      const name=findN(id);
+      const sets=(ed.sets||[]).filter(s=>s.done).map(s=>`${s.weight||"—"}kg×${s.reps||"—"}`).join(", ");
+      const skip=ed.skipped?"(skipped)":"";
+      const card=ed.done&&!sets&&!skip?"(completed)":"";
+      if(sets||skip||card)lines.push(`  ${name}: ${sets||skip||card}`);
     });
   });
-  document.getElementById('exportArea').value=lines.join('\n');
+  document.getElementById("expArea").value=lines.join("\n");
 }
 
-function copyExport(){
-  const ta=document.getElementById('exportArea');
-  if(!ta.value)generateExport();
-  if(navigator.clipboard){navigator.clipboard.writeText(ta.value).then(()=>showToast('Copied! Paste into Claude ✓'));}
-  else{ta.select();document.execCommand('copy');showToast('Copied ✓');}
+function copyExp(){
+  const ta=document.getElementById("expArea");
+  if(!ta.value)genExp();
+  navigator.clipboard?.writeText(ta.value).then(()=>showToast("Copied — paste into Claude ✓")).catch(()=>{ta.select();document.execCommand("copy");showToast("Copied ✓");});
 }
 
-function findName(id){
-  for(const day of Object.values(PROG)){
-    const ex=day.exercises?.find(e=>e.id===id);
-    if(ex)return ex.name;
-  }
+function findN(id){
+  for(const day of Object.values(PROG)){const ex=day.exercises?.find(e=>e.id===id);if(ex)return ex.name;}
   return id;
 }
 
-function clearAllData(){
-  if(confirm('Clear all workout history? This cannot be undone.')){
-    localStorage.removeItem('forge4');location.reload();
-  }
-}
+function clearD(){if(confirm("Clear all data?")){localStorage.removeItem("f5");location.reload();}}
 
-// ═══════ UTILS ═══════
 function showToast(msg){
-  const t=document.getElementById('toast');
-  t.textContent=msg;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("show");
+  setTimeout(()=>t.classList.remove("show"),2200);
 }
 </script>
 </body>
