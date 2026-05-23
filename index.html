@@ -317,7 +317,6 @@ const EX_DB=[
   {name:"Cable Tricep Pushdown",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows fixed at sides. Full extension."},
   {name:"Chest Supported Row",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=0hF4XgKqBTI",cue:"Chest on pad. Full stretch at bottom. Squeeze at top."},
 ];
-
 const PROG={
   Monday:{label:"Upper Body",sub:"Gym + Physio",exercises:[
     {id:"m1",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Start here every time. Hip flexion protects your spine before loading."},
@@ -394,7 +393,27 @@ const GYM="Stationary bike, treadmill, seated cable machine, chest press machine
 
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
 if(!S.sessions)S.sessions={};
+if(!S.custom)S.custom={};
+hydrateCustomExercises();
 function save(){localStorage.setItem("f5",JSON.stringify(S));}
+
+function hydrateCustomExercises(){
+  Object.entries(S.custom||{}).forEach(([day,exs])=>{
+    if(!PROG[day]||!Array.isArray(exs))return;
+    const ids=new Set(PROG[day].exercises.map(ex=>ex.id));
+    exs.forEach(ex=>{if(ex&&ex.id&&!ids.has(ex.id)){PROG[day].exercises.push(ex);ids.add(ex.id);}});
+  });
+}
+
+function rememberCustom(day,ex){
+  if(!S.custom)S.custom={};
+  if(!S.custom[day])S.custom[day]=[];
+  if(!S.custom[day].some(e=>e.id===ex.id))S.custom[day].push(ex);
+}
+
+function esc(v){
+  return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 
@@ -475,7 +494,7 @@ function renderW(){
     <div class="custom-form" id="cf">
       <label class="cf-label">Search exercise library</label>
       <div class="search-wrap">
-        <input class="cf-inp" id="cfSearch" placeholder="Type exercise name to search..." oninput="searchEx(this.value,'${key}')" autocomplete="off">
+        <input class="cf-inp" id="cfSearch" placeholder="Type exercise name to search..." oninput="searchEx(this.value,'${cDay}')" autocomplete="off">
         <div class="search-dd" id="cfDD"></div>
       </div>
       <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + on any result to add directly to today's session</div>
@@ -493,12 +512,12 @@ function card(ex,sess,key){
   const sLbl=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
-
+  const name=esc(ex.name),hint=esc(ex.hint),cue=esc(ex.cue),url=esc(ex.url),reps=esc(ex.reps);
   let body="";
   if(ex.sets===1){
-    body=`<div class="cue-box">${ex.cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${ex.url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}" onclick="toggleCardio('${key}','${ex.id}')"><div class="cardio-dur">${ex.reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
+    body=`<div class="cue-box">${cue}</div>
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}" onclick="toggleCardio('${key}','${ex.id}')"><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=Math.max(ex.sets,(ed.sets||[]).length);
     let rows=`<div class="set-hdr"><div>Set</div><div>KG</div><div></div><div>Reps</div><div></div></div>`;
@@ -508,21 +527,21 @@ function card(ex,sess,key){
       const rCls=sd.done?"done":(!hasD&&sd.attempted?"needs-input":"");
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input class="si" type="number" placeholder="${ex.hint||"kg"}" value="${sd.weight||""}" onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
+        <input class="si" type="number" placeholder="${hint||"kg"}" value="${esc(sd.weight)}" onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
         <div class="sx">×</div>
-        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${sd.reps||""}" onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
+        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(sd.reps)}" onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
       </div>`;
     }
-    body=`<div class="cue-box">${ex.cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${ex.url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    body=`<div class="cue-box">${cue}</div>
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
     <div class="sets-wrap">${rows}<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button></div>`;
   }
 
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${ex.name}</div><div class="ex-meta">${sLbl} · ${ex.hint}</div></div>
+      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div></div>
       <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -547,10 +566,22 @@ function ensure(key,exId,i){
 function saveF(key,exId,i,field,val){
   ensure(key,exId,i);
   S.sessions[key][exId].sets[i][field]=val;
+  S.sessions[key][exId].sets[i].attempted=true;
+  updateExerciseDone(key,exId);
   save();
   const sd=S.sessions[key][exId].sets[i];
   const row=document.getElementById("sr-"+exId+"-"+i);
   if(row){const btn=row.querySelector(".sdone");const hasD=sd.weight&&sd.reps;if(btn){btn.classList.toggle("locked",!hasD);btn.title=hasD?"Done":"Enter weight and reps first";}}
+  reCard(key,exId);
+}
+
+function updateExerciseDone(key,exId){
+  const prog=PROG[cDay];
+  const ex=prog?.exercises.find(e=>e.id===exId);
+  const ed=S.sessions[key]?.[exId];
+  if(!ex||!ed||ex.sets===1)return;
+  ed.sets.forEach(s=>{if(!s.weight||!s.reps)s.done=false;});
+  ed.done=ed.sets.length>=ex.sets&&ed.sets.slice(0,ex.sets).every(s=>s.weight&&s.reps&&s.done);
 }
 
 function toggleSet(key,exId,i){
@@ -561,7 +592,7 @@ function toggleSet(key,exId,i){
   const prog=PROG[cDay];
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
-  ed.done=ed.sets.length>=ex.sets&&ed.sets.slice(0,ex.sets).every(s=>s.done);
+  updateExerciseDone(key,exId);
   if(sd.done)showToast("Set logged ✓");
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
@@ -623,31 +654,32 @@ function toggleCF(){
   if(f.classList.contains("open"))document.getElementById("cfSearch").focus();
 }
 
-function searchEx(q,key){
+function searchEx(q,day){
   const dd=document.getElementById("cfDD");
   if(!q||q.length<1){dd.classList.remove("show");dd.innerHTML="";return;}
   const res=EX_DB.filter(e=>e.name.toLowerCase().includes(q.toLowerCase()));
   if(!res.length){
-    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${q}" anyway</div></div><button class="dd-add-btn" onclick="addFreeform('${key||cDay}','`+q+`')">Add</button></div>`;
+    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" onclick='addFreeform(${JSON.stringify(day||cDay)},${JSON.stringify(q)})'>Add</button></div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
   }
   dd.innerHTML=res.map((e,i)=>`<div class="dd-item">
     <div class="dd-item-left">
-      <div class="dd-name">${e.name}</div>
-      <div class="dd-cat">${e.cat} · ${typeof e.reps==="number"?e.sets+"×"+e.reps:e.reps} · ${e.hint}</div>
+      <div class="dd-name">${esc(e.name)}</div>
+      <div class="dd-cat">${esc(e.cat)} · ${esc(typeof e.reps==="number"?e.sets+"×"+e.reps:e.reps)} · ${esc(e.hint)}</div>
     </div>
-    <button class="dd-add-btn" onclick="addFromDB(${i},'__KEY__')">+</button>
-  </div>`).join("").replace(/__KEY__/g, key||cDay);
+    <button class="dd-add-btn" onclick='addFromDB(${i},${JSON.stringify(day||cDay)})'>+</button>
+  </div>`).join("");
   dd.dataset.r=JSON.stringify(res);dd.classList.add("show");
 }
 
-function addFromDB(i,key){
+function addFromDB(i,day){
   const res=JSON.parse(document.getElementById("cfDD").dataset.r||"[]");
   const base=res[i];
-  if(!base)return;
-  const sessKey=sk(key);
+  if(!base||!PROG[day])return;
+  const sessKey=sk(day);
   const ex={id:"c_"+Date.now(),name:base.name,cat:base.cat?.toLowerCase()||"gym",sets:base.sets||3,reps:base.reps||12,hint:base.hint||"",url:base.url||"",cue:base.cue||"Focus on controlled movement.",custom:true};
-  PROG[key].exercises.push(ex);
+  PROG[day].exercises.push(ex);
+  rememberCustom(day,ex);
   if(!S.sessions[sessKey])S.sessions[sessKey]={};
   save();showToast(base.name+" added ✓");
   document.getElementById("cfSearch").value="";
@@ -656,9 +688,13 @@ function addFromDB(i,key){
 }
 
 function addFreeform(day,name){
+  if(!PROG[day])return;
   const sessKey=sk(day);
-  const ex={id:"c_"+Date.now(),name,cat:"gym",sets:3,reps:12,hint:"",url:"",cue:"Focus on controlled movement. Core braced throughout.",custom:true};
+  name=String(name||"").trim();
+  if(!name)return;
+  const ex={id:"c_"+Date.now(),name,cat:"gym",sets:3,reps:12,hint:"kg",url:"",cue:"Focus on controlled movement. Core braced throughout.",custom:true};
   PROG[day].exercises.push(ex);
+  rememberCustom(day,ex);
   if(!S.sessions[sessKey])S.sessions[sessKey]={};
   save();showToast(name+" added ✓");
   document.getElementById("cfSearch").value="";
@@ -698,7 +734,6 @@ function closeSummary(){
   document.getElementById("sum").classList.remove("show");
   workoutOn=false;renderW();
 }
-
 // AI Coach
 function renderAI(){
   document.getElementById("tc").innerHTML=`<div class="ai-wrap">
@@ -748,33 +783,35 @@ function renderAI(){
   </div>`;
 }
 
+const API_CFG={baseUrl:"http://localhost:8787",token:"replace_with_long_random_token"};
+
 async function aiRun(type){
-  let sys="",user="",outId="";
+  let prompt="",outId="";
   if(type==="conv"){
     const v=document.getElementById("ci").value.trim();if(!v)return;
-    sys="Extract workout data concisely. Format: Exercise → Sets × Reps @ Weight. 3 lines max.";
-    user=v;outId="co";
+    prompt="Convert this workout note into compact structure (Exercise → Sets × Reps @ Weight, max 3 lines): "+v;
+    outId="co";
   }else if(type==="overload"){
     const v=document.getElementById("oi").value.trim();if(!v)return;
-    sys="Elite strength coach for patient with lumbar spine condition L2-L5 (no axial loading, no overhead press, seated machines only). Give micro-progression targets — specific numbers. 4 lines max.";
-    user="Last session: "+v+"\n\nToday's exact targets?";outId="oo";
+    prompt="Last session: "+v+"\n\nGive today's exact progressive overload targets in 4 lines max.";
+    outId="oo";
   }else if(type==="sub"){
     const v=document.getElementById("si").value.trim();if(!v)return;
-    sys=`Exercise substitution for spine patient. NO overhead, NO standing loaded, NO barbell. Gym has: ${GYM}. 3 ranked alternatives. One sentence each.`;
-    user=v;outId="so";
+    prompt=`Machine busy request: ${v}. Gym equipment: ${GYM}. Give 3 ranked safe alternatives, one sentence each.`;
+    outId="so";
   }else{
-    sys="Sports science coach. Give: Full intensity / 80% intensity / Light session only. 3 sentences max. Direct and encouraging.";
-    user=`CPAP: ${document.getElementById("sl").value||"?"}/100 Energy: ${document.getElementById("en").value||"?"}/10 Soreness: ${document.getElementById("sr").value||"?"}/10 Calf: ${document.getElementById("cp").value}`;
+    prompt=`Recovery decision request. CPAP: ${document.getElementById("sl").value||"?"}/100 Energy: ${document.getElementById("en").value||"?"}/10 Soreness: ${document.getElementById("sr").value||"?"}/10 Calf: ${document.getElementById("cp").value}. Give: Full / 80% / Light.`;
     outId="ro";
   }
   const out=document.getElementById(outId);
   out.className="ai-out show";
   out.innerHTML='<span class="spin"></span>Thinking...';
   try{
-    const r=await fetch("https://api.anthropic.com/v1/messages",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:"claude-sonnet-4-20250514",max_tokens:300,system:sys,messages:[{role:"user",content:user}]})});
+    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:cDay,program:PROG[cDay]?.title||""}})});
     const d=await r.json();
-    out.textContent=d.content?.[0]?.text||"No response.";
-  }catch(e){out.textContent="Network error. Check connection.";}
+    if(!r.ok)throw new Error(d.error||"Request failed");
+    out.textContent=d.text||"No response.";
+  }catch(e){out.textContent="AI unavailable. Check backend server/token.";}
 }
 
 // Settings
