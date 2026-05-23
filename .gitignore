@@ -6,3 +6,7 @@
 # Temporary local copy files
 index.from-agent.html
 *.tmp
+config.local.js
+
+# Dependencies
+node_modules/

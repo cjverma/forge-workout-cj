@@ -15,7 +15,16 @@ export default async function handler(req, res) {
 
   const { weekSummary = {}, profile = {}, rules = {} } = req.body || {};
 
-  const system = `Generate a complete 6-day weekly programme plus 1 rest day for this specific user. Apply progressive overload carefully and obey these hard restrictions at all times: ${HARD_RULES}. Return valid JSON only with keys: week_plan, coaching_notes, flags.`;
+  const system = `You are a careful strength coach. Review the user's session history and current program, then produce next week's updates with progressive overload. Obey these hard restrictions at all times: ${HARD_RULES}
+
+Return ONLY valid JSON with exactly these keys:
+{
+  "week_plan": { "Monday": [{"id":"ex_id","sets":3,"reps":12,"hint":"35-40 kg"}], ... },
+  "coaching_notes": "2-3 sentence summary of key changes and reasoning",
+  "flags": ["any safety warnings or observations"]
+}
+
+Rules: Only include exercises that need updating in week_plan. Use the exact exercise IDs from profile.currentPlan. Progressive overload: ONLY increase a weight hint if the exercise has completed=true AND sets_logged is non-empty with actual weights recorded. If an exercise was skipped, not started, or sets_logged is empty — keep its parameters exactly unchanged. Never change physio exercise parameters (cat === "physio"). Every training day (Mon-Sat) must cover at least 2 distinct body-part groups. Omit exercises that stay the same.`;
   const user = JSON.stringify({ task: "Generate next week plan", weekSummary, profile, rules });
 
   try {
