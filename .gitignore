@@ -6,11 +6,3 @@
 # Temporary local copy files
 index.from-agent.html
 *.tmp
-# Local env files
-.env
-.env.local
-.env.*.local
-
-# Temporary local copy files
-index.from-agent.html
-*.tmp
