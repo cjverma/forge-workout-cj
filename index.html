@@ -441,6 +441,13 @@ function initApp(){
   selectDay(t);
   cycleQ();
   setInterval(cycleQ,9000);
+  document.addEventListener("click",e=>{
+    const btn=e.target.closest("[data-action]");
+    if(!btn)return;
+    const{action,day,q,idx}=btn.dataset;
+    if(action==="freeform")addFreeform(day,q);
+    else if(action==="fromdb")addFromDB(Number(idx),day);
+  });
 }
 
 window.addEventListener("DOMContentLoaded",()=>{
@@ -684,10 +691,9 @@ function searchEx(q,day){
   const dd=document.getElementById("cfDD");
   if(!q||q.length<1){dd.classList.remove("show");dd.innerHTML="";return;}
   const res=EX_DB.filter(e=>e.name.toLowerCase().includes(q.toLowerCase()));
+  const d=esc(day||cDay);
   if(!res.length){
-    const safeDay=JSON.stringify(day||cDay).replace(/'/g,"&#39;");
-    const safeQ=JSON.stringify(q).replace(/'/g,"&#39;");
-    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" onclick='addFreeform(${safeDay},${safeQ})'>Add</button></div>`;
+    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button></div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
   }
   dd.innerHTML=res.map((e,i)=>`<div class="dd-item">
@@ -695,7 +701,7 @@ function searchEx(q,day){
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)} · ${esc(typeof e.reps==="number"?e.sets+"×"+e.reps:e.reps)} · ${esc(e.hint)}</div>
     </div>
-    <button class="dd-add-btn" onclick='addFromDB(${i},${JSON.stringify(day||cDay).replace(/'/g,"&#39;")})'>+</button>
+    <button class="dd-add-btn" data-action="fromdb" data-idx="${i}" data-day="${d}">+</button>
   </div>`).join("");
   dd.dataset.r=JSON.stringify(res);dd.classList.add("show");
 }
