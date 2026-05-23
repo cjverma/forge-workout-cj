@@ -496,8 +496,16 @@ applyPlanOverrides();
 function save(){localStorage.setItem("f5",JSON.stringify(S));}
 
 function applyPlanOverrides(){
-  if(!S.plan)return;
-  for(const[day,updates]of Object.entries(S.plan)){
+  // Migrate legacy S.plan → S.weekPlans keyed by ISO week
+  if(S.plan&&!S.weekPlans){
+    S.weekPlans={};
+    S.weekPlans[wk()]=S.plan;
+    delete S.plan;
+    save();
+  }
+  const weekPlan=(S.weekPlans||{})[wk()];
+  if(!weekPlan)return;
+  for(const[day,updates]of Object.entries(weekPlan)){
     if(!PROG[day]||!Array.isArray(updates))continue;
     for(const upd of updates){
       const ex=PROG[day].exercises.find(e=>e.id===upd.id);
@@ -589,6 +597,8 @@ function selectDay(day){
 }
 
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function nextWk(){const d=new Date();d.setDate(d.getDate()+7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
 function sk(day){return day+"_"+wk();}
 
 function renderW(){
@@ -992,9 +1002,9 @@ function renderST(){
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
       <div class="export-title">📅 Generate Next Week</div>
-      <div class="export-sub">Based on this week's sessions, Claude applies progressive overload and updates your program automatically.${S.plan?'<br><span style="color:var(--green);font-weight:600">✓ Custom plan active</span>':''}</div>
+      <div class="export-sub">Based on this week's sessions, Claude applies progressive overload and updates your program automatically.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:#f5a623;font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
       <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()">Generate Next Week</button>
-      ${S.plan?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
+      ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
     </div>
 
     <div class="st-sec">Export Data</div>
@@ -1056,7 +1066,8 @@ function clearD(){if(confirm("Clear all data?")){localStorage.removeItem("f5");l
 
 function resetPlan(){
   if(!confirm("Reset to the default program? Your session history is kept."))return;
-  delete S.plan;
+  delete S.weekPlans;
+  delete S.plan; // migration cleanup
   save();
   location.reload();
 }
@@ -1149,7 +1160,7 @@ function showPlanModal(parsed){
 
   modal.innerHTML=`
     <div class="pm-title">Next Week's Plan</div>
-    <div class="pm-sub">Review the proposed changes then apply.</div>
+    <div class="pm-sub">Effective from week of ${esc(weekLabel(nextWk()))}. Review then apply.</div>
     ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${esc(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
@@ -1168,25 +1179,25 @@ function closePlanModal(){
 
 function applyPendingPlan(){
   if(!_pendingPlan?.week_plan){closePlanModal();return;}
-  S.plan=S.plan||{};
+  const nwk=nextWk();
+  S.weekPlans=S.weekPlans||{};
+  S.weekPlans[nwk]=S.weekPlans[nwk]||{};
   for(const[day,exercises]of Object.entries(_pendingPlan.week_plan)){
     if(!Array.isArray(exercises)||!PROG[day])continue;
-    if(!S.plan[day])S.plan[day]=[];
+    if(!S.weekPlans[nwk][day])S.weekPlans[nwk][day]=[];
     for(const upd of exercises){
       const ex=PROG[day].exercises.find(e=>e.id===upd.id);
       if(!ex)continue;
-      if(upd.sets!==undefined)ex.sets=upd.sets;
-      if(upd.reps!==undefined)ex.reps=upd.reps;
-      if(upd.hint!==undefined)ex.hint=upd.hint;
-      const stored=S.plan[day].find(e=>e.id===upd.id);
+      // Store only — do NOT mutate PROG now; applyPlanOverrides() applies it next week
+      const stored=S.weekPlans[nwk][day].find(e=>e.id===upd.id);
       if(stored)Object.assign(stored,upd);
-      else S.plan[day].push({...upd});
+      else S.weekPlans[nwk][day].push({...upd});
     }
   }
   save();
   closePlanModal();
   renderST();
-  showToast("Plan applied ✓");
+  showToast("Plan saved for week of "+weekLabel(nwk)+" ✓");
 }
 
 function showToast(msg){
