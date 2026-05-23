@@ -1,3 +1,5 @@
+import { timingSafeEqual } from "crypto";
+
 export const HARD_RULES = [
   "Never prescribe overhead press.",
   "Never prescribe standard lat pulldown.",
@@ -24,7 +26,13 @@ export function checkAuth(req, res) {
   }
   const header = req.headers["authorization"] || "";
   const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
-  if (provided !== token) {
+  let valid = false;
+  try {
+    const a = Buffer.from(provided.padEnd(token.length, "\0"));
+    const b = Buffer.from(token.padEnd(provided.length, "\0"));
+    valid = a.length === b.length && timingSafeEqual(a, b);
+  } catch { valid = false; }
+  if (!valid) {
     res.status(401).json({ error: "Unauthorized" });
     return false;
   }

@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import { timingSafeEqual } from "crypto";
 
 dotenv.config();
 
@@ -38,12 +39,16 @@ function auth(req, res, next) {
   }
 
   const header = req.get("authorization") || "";
-  const token = header.startsWith("Bearer ") ? header.slice(7) : "";
+  const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
 
-  if (token !== FORGE_API_TOKEN) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
+  let valid = false;
+  try {
+    const a = Buffer.from(provided.padEnd(FORGE_API_TOKEN.length, "\0"));
+    const b = Buffer.from(FORGE_API_TOKEN.padEnd(provided.length, "\0"));
+    valid = a.length === b.length && timingSafeEqual(a, b);
+  } catch { valid = false; }
 
+  if (!valid) return res.status(401).json({ error: "Unauthorized" });
   return next();
 }
 
