@@ -45,9 +45,17 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 /* ── DAY NAV ── */
 .days{display:flex;gap:6px;padding:12px 18px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;border-bottom:1px solid var(--b1);}
 .days::-webkit-scrollbar{display:none;}
-.day-btn{flex:0 0 auto;padding:7px 14px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;border:1px solid var(--b1);color:var(--dim);background:transparent;cursor:pointer;transition:all .15s;}
+.day-btn{flex:0 0 auto;padding:5px 12px 6px;border-radius:6px;font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;border:1px solid var(--b1);color:var(--dim);background:transparent;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:1px;}
 .day-btn.today{border-color:var(--b2);color:var(--mid);}
 .day-btn.active{background:var(--orange);border-color:var(--orange);color:#000;font-weight:700;}
+.day-date{font-size:9px;font-weight:400;letter-spacing:0.2px;text-transform:none;opacity:0.6;}
+.wk-nav{display:flex;align-items:center;padding:8px 18px 6px;gap:8px;}
+.wk-nav-btn{background:var(--s2);border:1px solid var(--b2);border-radius:20px;padding:5px 14px;font-size:12px;color:var(--mid);cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:opacity .15s;}
+.wk-nav-btn:disabled{opacity:0.25;cursor:default;}
+.wk-nav-lbl{flex:1;font-size:12px;color:var(--mid);text-align:center;line-height:1.5;}
+.wk-nav-cur{font-size:10px;color:var(--green);display:block;}
+.wk-nav-back{font-size:10px;color:var(--orange);display:block;cursor:pointer;text-decoration:underline;}
+.past-banner{margin:0 18px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--dim);text-align:center;}
 
 /* ── SCROLL ── */
 .scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:88px;}
@@ -549,6 +557,7 @@ function initApp(){
   buildNav();
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
   selectDay(t);
+  updateDayNavDates();
   cycleQ();
   setInterval(cycleQ,9000);
   document.addEventListener("click",e=>{
@@ -607,34 +616,75 @@ function selectDay(day){
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nextWk(){const d=new Date();d.setDate(d.getDate()+7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
-function sk(day){return day+"_"+wk();}
+let _viewWk=null;
+function vwk(){return _viewWk||wk();}
+function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
+function isPast(){return !!_viewWk&&wkOrd(_viewWk)<wkOrd(wk());}
+function sk(day){return day+"_"+vwk();}
+function shiftWeek(delta){
+  const base=vwk();
+  const m=base.match(/(\d{4})W(\d+)/);if(!m)return;
+  const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7;
+  const mon=new Date(yr,0,1+(wn-1)*7-(dow-1));
+  mon.setDate(mon.getDate()+delta*7);
+  const j=new Date(mon.getFullYear(),0,1);
+  const nw=mon.getFullYear()+"W"+Math.ceil(((mon-j)/86400000+j.getDay()+1)/7);
+  _viewWk=wkOrd(nw)>=wkOrd(wk())?null:nw;
+  updateDayNavDates();renderW();
+}
+function goCurrentWeek(){_viewWk=null;updateDayNavDates();renderW();}
+function updateDayNavDates(){
+  const m=vwk().match(/(\d{4})W(\d+)/);if(!m)return;
+  const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7;
+  const mon=new Date(yr,0,1+(wn-1)*7-(dow-1));
+  DAYS.forEach((d,i)=>{
+    const btn=document.getElementById("p-"+d);if(!btn)return;
+    const dd=new Date(mon);dd.setDate(mon.getDate()+i);
+    const lbl=dd.toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+    btn.innerHTML=`<span>${d.slice(0,3).toUpperCase()}</span><small class="day-date">${lbl}</small>`;
+  });
+}
 
 function renderW(){
   const prog=PROG[cDay],el=document.getElementById("tc");
+  const past=isPast();
+  const cwk=wk();
+  const wkLbl=past?weekLabel(vwk()):"This Week";
+  const wkNav=`<div class="wk-nav">
+    <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
+    <div class="wk-nav-lbl">${esc(wkLbl)}${past
+      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">↩ Back to this week</span>`
+      :`<span class="wk-nav-cur">${esc(weekLabel(cwk))}</span>`}
+    </div>
+    <button class="wk-nav-btn" ${past?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
+  </div>`;
+
   if(cDay==="Sunday"){
-    el.innerHTML=`<div class="rest-screen"><div class="rest-emoji">😴</div><div class="rest-ttl">Rest Day</div><div class="rest-body">Recovery is where adaptation happens.<br>Your spine rebuilds today.</div><div class="rest-card"><div class="rest-card-title">✅ Still do physio exercises</div><div class="rest-card-body">Knee-to-chest, glute bridge, and bird dog — 10 minutes. Every day including Sundays.</div></div></div>`;
+    el.innerHTML=wkNav+`<div class="rest-screen"><div class="rest-emoji">😴</div><div class="rest-ttl">Rest Day</div><div class="rest-body">Recovery is where adaptation happens.<br>Your spine rebuilds today.</div><div class="rest-card"><div class="rest-card-title">✅ Still do physio exercises</div><div class="rest-card-body">Knee-to-chest, glute bridge, and bird dog — 10 minutes. Every day including Sundays.</div></div></div>`;
     return;
   }
   const key=sk(cDay);
-  if(!S.sessions[key])S.sessions[key]={};
-  const sess=S.sessions[key];
+  if(!past&&!S.sessions[key])S.sessions[key]={};
+  const sess=S.sessions[key]||{};
   const total=prog.exercises.length;
   const done=prog.exercises.filter(e=>sess[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
   const gymExs=prog.exercises.filter(e=>e.cat!=="physio");
   const physioExs=prog.exercises.filter(e=>e.cat==="physio");
 
-  let h=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub} &nbsp;·&nbsp; ${done} of ${total} complete</div></div>
-  <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>
-  <div class="session-bar">
+  let h=wkNav;
+  if(past)h+=`<div class="past-banner">📅 Past week · View only</div>`;
+  h+=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub} &nbsp;·&nbsp; ${done} of ${total} complete</div></div>
+  <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>`;
+  if(!past)h+=`<div class="session-bar">
     <button class="btn-start${workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
     <button class="btn-stop${workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
   </div>`;
 
-  if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key);});}
-  if(physioExs.length){h+=`<div class="sec">🟢 Physio — Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key);});}
+  if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,past);});}
+  if(physioExs.length){h+=`<div class="sec">🟢 Physio — Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,past);});}
 
-  h+=`<div class="custom-wrap">
+  if(!past)h+=`<div class="custom-wrap">
     <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
     <div class="custom-form" id="cf">
       <label class="cf-label">Search exercise library</label>
@@ -644,12 +694,12 @@ function renderW(){
       </div>
       <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + on any result to add directly to today's session</div>
     </div>
-  </div><div style="height:12px"></div>`;
-
+  </div>`;
+  h+=`<div style="height:12px"></div>`;
   el.innerHTML=h;
 }
 
-function card(ex,sess,key){
+function card(ex,sess,key,rdOnly=false){
   const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
   const isDone=ed.done,isSkip=ed.skipped;
   const icon=ex.cat==="physio"?"🟢":ex.cat==="cardio"?"🚴":"💪";
@@ -660,9 +710,10 @@ function card(ex,sess,key){
   const name=esc(ex.name),hint=esc(ex.hint),cue=esc(ex.cue),url=esc(ex.url),reps=esc(ex.reps);
   let body="";
   if(ex.sets===1){
+    const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
     body=`<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}" onclick="toggleCardio('${key}','${ex.id}')"><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}${rdOnly?" style='cursor:default'":""}"${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=Math.max(ex.sets,(ed.sets||[]).length);
     let rows=`<div class="set-hdr"><div>Set</div><div>KG</div><div></div><div>Reps</div><div></div></div>`;
@@ -672,15 +723,15 @@ function card(ex,sess,key){
       const rCls=sd.done?"done":(!hasD&&sd.attempted?"needs-input":"");
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input class="si" type="number" placeholder="${hint||"kg"}" value="${esc(sd.weight)}" onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
+        <input class="si" type="number" placeholder="${hint||"kg"}" value="${esc(sd.weight)}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
         <div class="sx">×</div>
-        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(sd.reps)}" onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
-        <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
+        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(sd.reps)}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
+        <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
       </div>`;
     }
     body=`<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap">${rows}<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button></div>`;
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button>`:""}</div>`;
   }
 
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
@@ -709,6 +760,7 @@ function ensure(key,exId,i){
 }
 
 function saveF(key,exId,i,field,val){
+  if(isPast())return;
   ensure(key,exId,i);
   S.sessions[key][exId].sets[i][field]=val;
   S.sessions[key][exId].sets[i].attempted=true;
@@ -730,6 +782,7 @@ function updateExerciseDone(key,exId){
 }
 
 function toggleSet(key,exId,i){
+  if(isPast())return;
   ensure(key,exId,i);
   const sd=S.sessions[key][exId].sets[i];
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
@@ -745,6 +798,7 @@ function toggleSet(key,exId,i){
 }
 
 function toggleCardio(key,exId){
+  if(isPast())return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].done=!S.sessions[key][exId].done;
@@ -754,6 +808,7 @@ function toggleCardio(key,exId){
 }
 
 function skipEx(key,exId){
+  if(isPast())return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].skipped=true;
@@ -762,6 +817,7 @@ function skipEx(key,exId){
 }
 
 function addSet(key,exId){
+  if(isPast())return;
   ensure(key,exId,0);
   S.sessions[key][exId].sets.push({});
   save();renderW();
@@ -847,7 +903,7 @@ function addFromDB(i,day){
   const res=JSON.parse(document.getElementById("cfDD").dataset.r||"[]");
   const base=res[i];
   if(!base||!PROG[day])return;
-  const sessKey=sk(day);
+  const sessKey=day+"_"+wk();
   const ex={id:"c_"+Date.now(),name:base.name,cat:base.cat?.toLowerCase()||"gym",sets:base.sets||3,reps:base.reps||12,hint:base.hint||"",url:base.url||"",cue:base.cue||"Focus on controlled movement.",custom:true};
   PROG[day].exercises.push(ex);
   rememberCustom(day,ex);
@@ -860,7 +916,7 @@ function addFromDB(i,day){
 
 function addFreeform(day,name){
   if(!PROG[day])return;
-  const sessKey=sk(day);
+  const sessKey=day+"_"+wk();
   name=String(name||"").trim();
   if(!name)return;
   const ex={id:"c_"+Date.now(),name,cat:"gym",sets:3,reps:12,hint:"kg",url:"",cue:"Focus on controlled movement. Core braced throughout.",custom:true};
