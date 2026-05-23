@@ -311,29 +311,66 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 const Q=["The only session you regret is the one you skipped.","Small wins compound. Show up.","Controlled. Intentional. Minimal.","The bike first. Always.","Strength is built one rep at a time.","Progress over perfection.","Show up. Lift. Recover. Repeat.","Every session counts.","Consistency beats intensity.","You are stronger than yesterday."];
 
 const EX_DB=[
-  {name:"Seated Cable Row",cat:"Gym",hint:"30-40 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Core tight. Do not lean back excessively."},
-  {name:"Chest Press Machine",cat:"Gym",hint:"35-45 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Back flat against pad. Full press, controlled return."},
-  {name:"Pec Fly Machine",cat:"Gym",hint:"25-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Stop at chest stretch. Never go too wide."},
-  {name:"Tricep Extension Machine",cat:"Gym",hint:"25-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows aligned with pivot. Smooth movement."},
-  {name:"Seated Dumbbell Curl",cat:"Gym",hint:"10-15 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=av7-8igSXTs",cue:"Elbows fixed. No torso swinging."},
-  {name:"Leg Press Machine",cat:"Gym",hint:"60-90 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high. 90 degrees max. Back flat always."},
-  {name:"Seated Leg Curl",cat:"Gym",hint:"30-45 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Slow and controlled. Helps calf symptoms."},
-  {name:"Seated Calf Raise",cat:"Gym",hint:"30-45 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Strengthens the lower leg."},
-  {name:"Hip Abduction Machine",cat:"Gym",hint:"25-40 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Side glute. Critical for spinal support."},
-  {name:"Cable Face Pull",cat:"Gym",hint:"15-25 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Elbows flare wide."},
-  {name:"Seated Lateral Raise",cat:"Gym",hint:"6-10 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"SEATED only. Shoulder height max."},
-  {name:"Stationary Bike",cat:"Cardio",hint:"Level 6-9",sets:1,reps:"20 min",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Hip flexion protects spine. Start every session here."},
-  {name:"Treadmill Walk",cat:"Cardio",hint:"Incline 1-3%",sets:1,reps:"15 min",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Slight forward lean. Slow down if calf twinges."},
-  {name:"Knee-to-Chest Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"30s each",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Decompresses the lower spine. Do this first every time."},
-  {name:"Glute Bridge",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 (3s hold)",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds."},
-  {name:"Bird Dog",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 each side",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level. Hold 8 seconds."},
-  {name:"Dead Bug",cat:"Physio",hint:"Bodyweight",sets:3,reps:"8 each side",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays on floor. Non-negotiable."},
-  {name:"Hip Flexor Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"60s each",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side. Direct spine treatment."},
-  {name:"Cat-Cow",cat:"Physio",hint:"Bodyweight",sets:2,reps:"10 slow reps",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly."},
-  {name:"Nerve Floss Left Leg",cat:"Physio",hint:"Bodyweight",sets:2,reps:"10 slow reps",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force."},
-  {name:"Dumbbell Row",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=roCP6wCXPqo",cue:"Supported on bench. Pull elbow to hip. Core braced."},
-  {name:"Cable Tricep Pushdown",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows fixed at sides. Full extension."},
-  {name:"Chest Supported Row",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=0hF4XgKqBTI",cue:"Chest on pad. Full stretch at bottom. Squeeze at top."},
+  // ── MACHINES ──
+  {name:"Seated Cable Row",cat:"Gym",hint:"30-40 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Core tight. Do not lean back excessively.",muscles:["back","biceps","rear delt"],tags:["cable","pull","row"]},
+  {name:"Chest Press Machine",cat:"Gym",hint:"35-45 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Back flat against pad. Full press, controlled return.",muscles:["chest","triceps","front delt"],tags:["machine","push","press","chest"]},
+  {name:"Incline Chest Press Machine",cat:"Gym",hint:"30-40 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=incline+chest+press+machine+form",cue:"Upper chest focus. Back flat on pad. Controlled descent.",muscles:["upper chest","front delt","triceps"],tags:["machine","push","press","chest","incline"]},
+  {name:"Pec Fly Machine",cat:"Gym",hint:"25-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Stop at chest stretch. Never go too wide.",muscles:["chest"],tags:["machine","fly","chest"]},
+  {name:"Rear Delt Fly Machine",cat:"Gym",hint:"15-25 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=rear+delt+fly+machine+form",cue:"Sit facing pad. Pull handles wide. Squeeze shoulder blades together.",muscles:["rear delt","rhomboids","mid back"],tags:["machine","pull","shoulder","rear delt","fly"]},
+  {name:"Chest Supported Row",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=0hF4XgKqBTI",cue:"Chest on pad. Full stretch at bottom. Squeeze at top.",muscles:["mid back","rhomboids","biceps"],tags:["machine","pull","row","back"]},
+  {name:"Tricep Extension Machine",cat:"Gym",hint:"25-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows aligned with pivot. Smooth movement.",muscles:["triceps"],tags:["machine","push","tricep"]},
+  {name:"Preacher Curl Machine",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=preacher+curl+machine+form",cue:"Full range. Slow negative. Upper arm stays on pad.",muscles:["biceps"],tags:["machine","curl","bicep","preacher"]},
+  {name:"Leg Press Machine",cat:"Gym",hint:"60-90 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high. 90 degrees max. Back flat always.",muscles:["quads","glutes","hamstrings"],tags:["machine","legs","press","quad"]},
+  {name:"Seated Leg Curl",cat:"Gym",hint:"30-45 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Slow and controlled both ways.",muscles:["hamstrings"],tags:["machine","legs","curl","hamstring"]},
+  {name:"Leg Extension Machine",cat:"Gym",hint:"30-50 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=leg+extension+machine+form",cue:"Seated. Full extension at top. Slow on the way down.",muscles:["quads"],tags:["machine","legs","quad","extension"]},
+  {name:"Seated Calf Raise",cat:"Gym",hint:"30-45 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Full range of motion.",muscles:["calves"],tags:["machine","calf","legs"]},
+  {name:"Hip Abduction Machine",cat:"Gym",hint:"25-40 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Side glute. Critical for spinal support.",muscles:["glutes","hip abductors"],tags:["machine","glute","hips","abduction"]},
+  {name:"Hip Adduction Machine",cat:"Gym",hint:"25-40 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow and controlled. Good for hip stability.",muscles:["inner thigh","adductors"],tags:["machine","legs","hips","adduction","inner thigh"]},
+  {name:"Glute Kickback Machine",cat:"Gym",hint:"20-35 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=glute+kickback+machine+form",cue:"Squeeze glute at top. Controlled return. Hip drive only.",muscles:["glutes"],tags:["machine","glute","legs","kickback"]},
+  // ── CABLE ──
+  {name:"Cable Face Pull",cat:"Gym",hint:"15-25 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Elbows flare wide.",muscles:["rear delt","rotator cuff","traps"],tags:["cable","pull","shoulder","face pull"]},
+  {name:"Neutral Grip Lat Pulldown",cat:"Gym",hint:"40-55 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=neutral+grip+lat+pulldown+form",cue:"Close neutral grip. Pull to upper chest. Core engaged.",muscles:["lats","biceps","mid back"],tags:["cable","pull","back","lat","close grip"]},
+  {name:"Straight Arm Pulldown",cat:"Gym",hint:"20-30 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Arms straight. Hinge at shoulder. Great lat isolation.",muscles:["lats","triceps"],tags:["cable","pull","back","lat","straight arm"]},
+  {name:"Low Cable Row",cat:"Gym",hint:"35-50 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=seated+low+cable+row+form",cue:"Sit tall. Row to belly button. Squeeze mid-back at finish.",muscles:["mid back","biceps","rear delt"],tags:["cable","pull","row","back","low"]},
+  {name:"Cable Tricep Pushdown",cat:"Gym",hint:"20-35 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows fixed at sides. Full extension.",muscles:["triceps"],tags:["cable","push","tricep"]},
+  {name:"Cable Tricep Pushdown (Rope)",cat:"Gym",hint:"20-30 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Flare rope at bottom. Full extension. Elbows fixed.",muscles:["triceps"],tags:["cable","push","tricep","rope"]},
+  {name:"Cable Bicep Curl",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=cable+bicep+curl+form",cue:"Constant tension. Elbows fixed at sides.",muscles:["biceps"],tags:["cable","curl","bicep"]},
+  {name:"Seated Cable Lateral Raise",cat:"Gym",hint:"5-12 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+cable+lateral+raise+form",cue:"Seated. Single arm. Cable from low pulley. Smooth arc to shoulder height.",muscles:["lateral delt"],tags:["cable","shoulder","lateral","raise"]},
+  {name:"Seated Cable Woodchop",cat:"Gym",hint:"10-20 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=seated+cable+woodchop+core",cue:"Seated. Rotate torso. Core controls movement. No lumbar flexion.",muscles:["obliques","core"],tags:["cable","core","rotation","woodchop"]},
+  // ── DUMBBELLS ──
+  {name:"Dumbbell Row",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=roCP6wCXPqo",cue:"Supported on bench. Pull elbow to hip. Core braced.",muscles:["back","biceps","lats"],tags:["dumbbell","pull","row","back"]},
+  {name:"Seated Dumbbell Curl",cat:"Gym",hint:"10-15 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=av7-8igSXTs",cue:"Elbows fixed. No torso swinging.",muscles:["biceps"],tags:["dumbbell","curl","bicep"]},
+  {name:"Hammer Curl",cat:"Gym",hint:"10-15 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=hammer+curl+dumbbell+form",cue:"Neutral grip. Elbows fixed. Slow controlled movement.",muscles:["biceps","brachialis","forearms"],tags:["dumbbell","curl","bicep","hammer"]},
+  {name:"Concentration Curl",cat:"Gym",hint:"8-14 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=concentration+curl+form",cue:"Elbow braced on inner thigh. Full range of motion.",muscles:["biceps"],tags:["dumbbell","curl","bicep","concentration"]},
+  {name:"Reverse Curl",cat:"Gym",hint:"8-12 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=reverse+dumbbell+curl+form",cue:"Overhand grip. Slow controlled. Builds forearm strength.",muscles:["brachioradialis","forearms","biceps"],tags:["dumbbell","curl","forearm","reverse"]},
+  {name:"Seated Lateral Raise",cat:"Gym",hint:"6-10 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"SEATED only. Shoulder height max. Slow and controlled.",muscles:["lateral delt"],tags:["dumbbell","shoulder","lateral","raise"]},
+  {name:"Incline Dumbbell Fly",cat:"Gym",hint:"8-14 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=incline+dumbbell+fly+form",cue:"Supported on incline bench. Wide arc. Stop at stretch.",muscles:["upper chest","front delt"],tags:["dumbbell","fly","chest","incline"]},
+  {name:"Seated External Rotation",cat:"Gym",hint:"3-8 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+dumbbell+external+rotation+shoulder",cue:"Elbow at 90 degrees. Rotate outward slowly. Rotator cuff health.",muscles:["rotator cuff","rear delt"],tags:["dumbbell","shoulder","rotation","rehab"]},
+  {name:"Seated Wrist Curl",cat:"Gym",hint:"5-10 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range of motion. Slow.",muscles:["forearms"],tags:["dumbbell","forearm","wrist","curl"]},
+  // ── CARDIO ──
+  {name:"Stationary Bike",cat:"Cardio",hint:"Level 6-9",sets:1,reps:"20 min",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Hip flexion protects spine. Start every session here.",muscles:["quads","glutes"],tags:["cardio","bike","warmup","spin"]},
+  {name:"Recumbent Bike",cat:"Cardio",hint:"Level 5-8",sets:1,reps:"20 min",url:"https://www.youtube.com/results?search_query=recumbent+bike+workout+technique",cue:"Seat far back. Very spine-friendly. Relax shoulders.",muscles:["quads","glutes"],tags:["cardio","bike","recumbent","low impact"]},
+  {name:"Treadmill Walk",cat:"Cardio",hint:"Incline 1-3%",sets:1,reps:"15 min",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Slight forward lean. Smooth stride.",muscles:["glutes","calves"],tags:["cardio","treadmill","walk"]},
+  {name:"Elliptical Machine",cat:"Cardio",hint:"Resistance 5-8",sets:1,reps:"20 min",url:"https://www.youtube.com/results?search_query=elliptical+machine+proper+form",cue:"Low impact. Light grip on handles. Upright posture.",muscles:["legs","glutes"],tags:["cardio","elliptical","low impact"]},
+  // ── PHYSIO ──
+  {name:"Knee-to-Chest Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"30s each",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Decompresses the lower spine. Do this first every time.",muscles:["spine","hip flexors"],tags:["stretch","physio","spine","warmup"]},
+  {name:"Glute Bridge",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 (3s hold)",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:["glutes","hamstrings","core"],tags:["physio","glute","bridge","core"]},
+  {name:"Bird Dog",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 each side",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level. Hold 8 seconds.",muscles:["core","glutes","erectors"],tags:["physio","core","spine","stability"]},
+  {name:"Dead Bug",cat:"Physio",hint:"Bodyweight",sets:3,reps:"8 each side",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays on floor. Non-negotiable.",muscles:["core","hip flexors"],tags:["physio","core","spine","stability"]},
+  {name:"Hip Flexor Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"60s each",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:["hip flexors","quads"],tags:["stretch","physio","hip","flexibility"]},
+  {name:"Cat-Cow",cat:"Physio",hint:"Bodyweight",sets:2,reps:"10 slow reps",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly.",muscles:["spine","core"],tags:["physio","spine","mobility","stretch"]},
+  {name:"Nerve Floss",cat:"Physio",hint:"Bodyweight",sets:2,reps:"10 slow reps",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Never force the stretch.",muscles:["sciatic nerve","hamstrings"],tags:["physio","nerve","floss","leg"]},
+  {name:"McKenzie Press Up",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 reps",url:"https://www.youtube.com/results?search_query=McKenzie+press+up+lumbar+extension",cue:"Hips stay on floor. Press up through arms. Gentle extension.",muscles:["spine","erectors"],tags:["physio","spine","extension","lumbar","mcKenzie"]},
+  {name:"Pelvic Tilt",cat:"Physio",hint:"Bodyweight",sets:3,reps:"15 reps",url:"https://www.youtube.com/results?search_query=supine+pelvic+tilt+exercise",cue:"Flatten lower back against floor. Hold 5 seconds. Release.",muscles:["core","spine","glutes"],tags:["physio","core","spine","pelvic"]},
+  {name:"Clamshell",cat:"Physio",hint:"Bodyweight",sets:3,reps:"15 each side",url:"https://www.youtube.com/results?search_query=clamshell+exercise+glutes+hips",cue:"Feet together. Rotate top knee up. Keep hips stacked.",muscles:["glutes","hip abductors"],tags:["physio","glute","hip","clamshell"]},
+  {name:"Supine Spinal Twist",cat:"Physio",hint:"Bodyweight",sets:2,reps:"30s each side",url:"https://www.youtube.com/results?search_query=supine+spinal+twist+stretch",cue:"Gentle rotation. Shoulders stay on floor. Breathe.",muscles:["spine","obliques","piriformis"],tags:["physio","spine","rotation","stretch","twist"]},
+  {name:"Child's Pose",cat:"Physio",hint:"Bodyweight",sets:2,reps:"60s",url:"https://www.youtube.com/results?search_query=child+pose+spine+stretch",cue:"Arms extended. Let spine decompress naturally. Breathe slowly.",muscles:["spine","hip flexors","glutes"],tags:["physio","stretch","spine","rest"]},
+  {name:"Prone Cobra",cat:"Physio",hint:"Bodyweight",sets:3,reps:"10 reps",url:"https://www.youtube.com/results?search_query=prone+cobra+exercise+back+extension",cue:"Gentle extension. Squeeze glutes. Lift only to comfort.",muscles:["erectors","spine","glutes"],tags:["physio","spine","extension","prone","cobra"]},
+  {name:"Piriformis Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"30s each",url:"https://www.youtube.com/results?search_query=piriformis+stretch+figure+four",cue:"Figure four position. Pull knee toward opposite shoulder.",muscles:["piriformis","glutes","hip"],tags:["physio","stretch","hip","piriformis","glute"]},
+  {name:"Calf Stretch (Seated)",cat:"Physio",hint:"Bodyweight",sets:2,reps:"30s each",url:"https://www.youtube.com/results?search_query=seated+calf+stretch+towel",cue:"Towel around foot. Pull toes toward shin. Hold.",muscles:["calves","achilles"],tags:["physio","stretch","calf","ankle","flexibility"]},
+  {name:"Clamshell with Band",cat:"Physio",hint:"Light band",sets:3,reps:"15 each side",url:"https://www.youtube.com/results?search_query=clamshell+resistance+band+glutes",cue:"Band just above knees. Same as clamshell but harder.",muscles:["glutes","hip abductors"],tags:["physio","glute","hip","band","clamshell"]},
+  {name:"Ankle Pumps",cat:"Physio",hint:"Bodyweight",sets:2,reps:"20 reps",url:"https://www.youtube.com/results?search_query=ankle+pumps+exercise+circulation",cue:"Point and flex. Helps circulation after any session.",muscles:["calves","ankles"],tags:["physio","ankle","circulation","recovery"]},
+  {name:"Heel Slides",cat:"Physio",hint:"Bodyweight",sets:3,reps:"12 each side",url:"https://www.youtube.com/results?search_query=heel+slides+exercise+rehab",cue:"Slide heel toward glutes. Keep back flat on floor.",muscles:["core","hip flexors","knees"],tags:["physio","knee","core","rehab"]},
 ];
 const PROG={
   Monday:{label:"Upper Body",sub:"Gym + Physio",exercises:[
@@ -687,23 +724,48 @@ function toggleCF(){
   if(f.classList.contains("open"))document.getElementById("cfSearch").focus();
 }
 
+function scoreEx(e,ql){
+  const nameLow=e.name.toLowerCase();
+  const catLow=e.cat.toLowerCase();
+  const allText=[nameLow,catLow,...(e.muscles||[]),...(e.tags||[])].join(" ");
+  if(nameLow===ql)return 100;
+  if(nameLow.startsWith(ql))return 85;
+  if(nameLow.includes(ql))return 70;
+  if(catLow===ql)return 65;
+  const tokens=ql.split(/\s+/).filter(Boolean);
+  if(tokens.length>1){
+    if(tokens.every(t=>nameLow.includes(t)))return 60;
+    if(tokens.every(t=>allText.includes(t)))return 45;
+    const matched=tokens.filter(t=>allText.includes(t)).length;
+    if(matched>0)return Math.round(25*matched/tokens.length);
+  }else{
+    if(allText.includes(ql))return 40;
+  }
+  return 0;
+}
+
 function searchEx(q,day){
   const dd=document.getElementById("cfDD");
   if(!q||q.length<1){dd.classList.remove("show");dd.innerHTML="";return;}
-  const res=EX_DB.filter(e=>e.name.toLowerCase().includes(q.toLowerCase()));
+  const ql=q.toLowerCase().trim();
   const d=esc(day||cDay);
-  if(!res.length){
+  const results=EX_DB
+    .map((e,i)=>({e,i,score:scoreEx(e,ql)}))
+    .filter(x=>x.score>0)
+    .sort((a,b)=>b.score-a.score)
+    .slice(0,8);
+  if(!results.length){
     dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button></div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
   }
-  dd.innerHTML=res.map((e,i)=>`<div class="dd-item">
+  dd.innerHTML=results.map(({e},idx)=>`<div class="dd-item">
     <div class="dd-item-left">
       <div class="dd-name">${esc(e.name)}</div>
-      <div class="dd-cat">${esc(e.cat)} · ${esc(typeof e.reps==="number"?e.sets+"×"+e.reps:e.reps)} · ${esc(e.hint)}</div>
+      <div class="dd-cat">${esc(e.cat)}${e.muscles?.length?" · "+esc(e.muscles.slice(0,2).join(", ")):""}</div>
     </div>
-    <button class="dd-add-btn" data-action="fromdb" data-idx="${i}" data-day="${d}">+</button>
+    <button class="dd-add-btn" data-action="fromdb" data-idx="${idx}" data-day="${d}">+</button>
   </div>`).join("");
-  dd.dataset.r=JSON.stringify(res);dd.classList.add("show");
+  dd.dataset.r=JSON.stringify(results.map(({e})=>e));dd.classList.add("show");
 }
 
 function addFromDB(i,day){
