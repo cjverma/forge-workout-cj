@@ -6,10 +6,18 @@ dotenv.config();
 const app = express();
 app.use(express.json({ limit: "1mb" }));
 
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const FORGE_API_TOKEN = process.env.FORGE_API_TOKEN || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5-mini";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 const HARD_RULES = [
@@ -69,7 +77,23 @@ async function callOpenAI({ system, user, maxOutputTokens }) {
     throw new Error(msg);
   }
 
-  return data?.output_text || "";
+  return extractResponseText(data);
+}
+
+function extractResponseText(data) {
+  if (typeof data?.output_text === "string" && data.output_text.trim()) {
+    return data.output_text;
+  }
+
+  const chunks = [];
+  for (const item of data?.output || []) {
+    for (const content of item?.content || []) {
+      if (typeof content?.text === "string") chunks.push(content.text);
+      if (typeof content?.output_text === "string") chunks.push(content.output_text);
+    }
+  }
+
+  return chunks.join("\n").trim();
 }
 
 app.get("/api/health", (_req, res) => {

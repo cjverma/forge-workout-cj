@@ -289,6 +289,7 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
   <button class="sum-close" onclick="closeSummary()">Back to Forge</button>
 </div>
 
+<script src="config.local.js"></script>
 <script>
 const Q=["136 to 95. Every session is a vote.","CPAP · Zepbound · Protein · Gym.","December 1st. India. New version.","The only session you regret is the one you skipped.","Small wins compound. Show up.","Your spine doesn't define your limits.","The bike first. Always.","Controlled. Intentional. Minimal.","Every rep is a vote against August 2024.","The fade. The chain. The studs. 95kg."];
 
@@ -783,7 +784,7 @@ function renderAI(){
   </div>`;
 }
 
-const API_CFG={baseUrl:"http://localhost:8787",token:"replace_with_long_random_token"};
+const API_CFG=window.FORGE_API_CFG||{baseUrl:"",token:""};
 
 async function aiRun(type){
   let prompt="",outId="";
