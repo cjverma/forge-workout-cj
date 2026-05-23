@@ -19,12 +19,27 @@ export default async function handler(req, res) {
 
 Return ONLY valid JSON with exactly these keys:
 {
-  "week_plan": { "Monday": [{"id":"ex_id","sets":3,"reps":12,"hint":"35-40 kg"}], ... },
+  "week_plan": {
+    "Monday": [
+      {"id":"ex_id","sets":3,"reps":12,"hint":"35-40 kg"},
+      {"action":"remove","id":"ex_id2"},
+      {"action":"add","id":"ai_mon_lowrow","name":"Low Cable Row","cat":"gym","sets":3,"reps":12,"hint":"35-45 kg","cue":"Sit tall. Row to belly button. Squeeze mid-back.","muscles":["mid back","biceps"]}
+    ]
+  },
   "coaching_notes": "2-3 sentence summary of key changes and reasoning",
   "flags": ["any safety warnings or observations"]
 }
 
-Rules: Only include exercises that need updating in week_plan. Use the exact exercise IDs from profile.currentPlan. Progressive overload: ONLY increase a weight hint if the exercise has completed=true AND sets_logged is non-empty with actual weights recorded. If an exercise was skipped, not started, or sets_logged is empty — keep its parameters exactly unchanged. Never change physio exercise parameters (cat === "physio"). Every training day (Mon-Sat) must cover at least 2 distinct body-part groups. Omit exercises that stay the same.`;
+Rules:
+- Updates (no action field): use exact exercise IDs from profile.currentPlan. Only include if sets/reps/hint actually change.
+- Progressive overload: ONLY increase weight hint if completed=true AND sets_logged has actual weights recorded. Skipped or unlogged exercises → no changes at all.
+- Adds (action:"add"): you MAY introduce a new exercise to replace something stale or add variety for a muscle group. Provide a unique id prefixed with "ai_", name, cat, sets, reps, hint, cue, muscles array. Must respect all spine restrictions.
+- Removes (action:"remove"): you MAY remove an exercise that has been plateauing, is redundant, or is being replaced by an add. Only remove gym exercises — never physio or cardio.
+- Never modify physio (cat="physio") or cardio exercises.
+- Never add overhead, barbell, standing-loaded, or axial-compression movements.
+- Max 4 gym exercises per body-part group per day.
+- Every training day (Mon-Sat) must cover exactly 2 distinct body-part groups.
+- Omit days with no changes.`;
   const user = JSON.stringify({ task: "Generate next week plan", weekSummary, profile, rules });
 
   try {

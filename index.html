@@ -508,11 +508,19 @@ function applyPlanOverrides(){
   for(const[day,updates]of Object.entries(weekPlan)){
     if(!PROG[day]||!Array.isArray(updates))continue;
     for(const upd of updates){
-      const ex=PROG[day].exercises.find(e=>e.id===upd.id);
-      if(!ex)continue;
-      if(upd.sets!==undefined)ex.sets=upd.sets;
-      if(upd.reps!==undefined)ex.reps=upd.reps;
-      if(upd.hint!==undefined)ex.hint=upd.hint;
+      if(upd.action==="remove"){
+        PROG[day].exercises=PROG[day].exercises.filter(e=>e.id!==upd.id);
+      } else if(upd.action==="add"){
+        if(!PROG[day].exercises.find(e=>e.id===upd.id)){
+          PROG[day].exercises.push({id:upd.id,name:upd.name,cat:upd.cat||"gym",sets:upd.sets,reps:upd.reps,hint:upd.hint||"",url:upd.url||"",cue:upd.cue||"",muscles:upd.muscles||[]});
+        }
+      } else {
+        const ex=PROG[day].exercises.find(e=>e.id===upd.id);
+        if(!ex)continue;
+        if(upd.sets!==undefined)ex.sets=upd.sets;
+        if(upd.reps!==undefined)ex.reps=upd.reps;
+        if(upd.hint!==undefined)ex.hint=upd.hint;
+      }
     }
   }
 }
@@ -1035,19 +1043,24 @@ function renderST(){
 }
 
 function genExp(){
-  const lines=["=== FORGE EXPORT ===","Generated: "+new Date().toLocaleString(),"","SESSIONS:"];
-  Object.entries(S.sessions).forEach(([key,data])=>{
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-91);
+  const lines=["=== FORGE EXPORT — Last 3 Months ===","Generated: "+new Date().toLocaleString(),"","SESSIONS:"];
+  const sorted=Object.keys(S.sessions).sort();
+  for(const key of sorted){
+    const m=key.match(/_(\d{4})W(\d+)$/);
+    if(m){const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));if(mon<cutoff)continue;}
+    const data=S.sessions[key];
     const hasData=Object.values(data).some(e=>(e.sets||[]).some(s=>s.done)||e.done);
-    if(!hasData)return;
+    if(!hasData)continue;
     lines.push("\n"+key+":");
     Object.entries(data).forEach(([id,ed])=>{
-      const name=findN(id);
+      const name=findN(id)||id;
       const sets=(ed.sets||[]).filter(s=>s.done).map(s=>`${s.weight||"—"}kg×${s.reps||"—"}`).join(", ");
       const skip=ed.skipped?"(skipped)":"";
       const card=ed.done&&!sets&&!skip?"(completed)":"";
       if(sets||skip||card)lines.push(`  ${name}: ${sets||skip||card}`);
     });
-  });
+  }
   document.getElementById("expArea").value=lines.join("\n");
 }
 
@@ -1097,7 +1110,7 @@ function buildPlanSnapshot(){
   const snap={};
   for(const[day,dayData]of Object.entries(PROG)){
     if(!dayData.exercises?.length)continue;
-    snap[day]={label:dayData.label,exercises:dayData.exercises.map(ex=>({id:ex.id,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint}))};
+    snap[day]={label:dayData.label,exercises:dayData.exercises.map(ex=>({id:ex.id,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint,muscles:ex.muscles||[]}))};
   }
   return snap;
 }
@@ -1116,7 +1129,7 @@ async function genWeeklyPlan(){
       body:JSON.stringify({
         weekSummary:buildWeekSummary(),
         profile:{equipment:GYM,currentPlan:buildPlanSnapshot()},
-        rules:"Progressive overload: ONLY increase weight if the exercise was completed (completed=true) AND sets_logged is non-empty with actual weights recorded. If an exercise was skipped, not logged, or sets_logged is empty, keep its parameters exactly as-is — no changes. Keep all physio exercise parameters unchanged always. Every training day (Mon-Sat) must cover at least 2 distinct body-part groups. Return only exercises that need updating."
+        rules:"Progressive overload: ONLY increase weight if completed=true AND sets_logged has actual weights. Skipped or unlogged → no change. You MAY add new exercises (action:'add') or remove stale ones (action:'remove') to add variety — swap a plateau exercise for a different movement hitting the same muscle group. For adds: provide id (e.g. 'ai_mon_cablerow'), name, cat, sets, reps, hint, cue, muscles array. Never touch physio (cat=physio) or cardio exercises. Max 4 gym exercises per body-part group per day. Each training day must cover exactly 2 distinct body-part groups."
       })
     });
     if(!r.ok)throw new Error("Request failed");
@@ -1145,16 +1158,26 @@ function showPlanModal(parsed){
   for(const[day,exercises]of Object.entries(weekPlan)){
     if(!Array.isArray(exercises)||!exercises.length||!PROG[day])continue;
     for(const upd of exercises){
-      const cur=PROG[day].exercises.find(e=>e.id===upd.id);
-      if(!cur)continue;
-      const hintChanged=upd.hint!==undefined&&upd.hint!==cur.hint;
-      const setsChanged=upd.sets!==undefined&&upd.sets!==cur.sets;
-      const repsChanged=upd.reps!==undefined&&String(upd.reps)!==String(cur.reps);
-      if(!hintChanged&&!setsChanged&&!repsChanged)continue;
-      changeCount++;
-      const from=[cur.hint,`${cur.sets}×${cur.reps}`].filter(Boolean).join(" · ");
-      const to=[upd.hint||(hintChanged?"":cur.hint),(setsChanged||repsChanged)?`${upd.sets||cur.sets}×${upd.reps||cur.reps}`:null].filter(Boolean).join(" · ");
-      changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex">${esc(cur.name)}</div><div class="pm-change-val">${esc(from)} → ${esc(to)}</div></div>`;
+      if(upd.action==="remove"){
+        const cur=PROG[day].exercises.find(e=>e.id===upd.id);
+        if(!cur)continue;
+        changeCount++;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">🗑 ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div></div>`;
+      } else if(upd.action==="add"){
+        changeCount++;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">➕ ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div></div>`;
+      } else {
+        const cur=PROG[day].exercises.find(e=>e.id===upd.id);
+        if(!cur)continue;
+        const hintChanged=upd.hint!==undefined&&upd.hint!==cur.hint;
+        const setsChanged=upd.sets!==undefined&&upd.sets!==cur.sets;
+        const repsChanged=upd.reps!==undefined&&String(upd.reps)!==String(cur.reps);
+        if(!hintChanged&&!setsChanged&&!repsChanged)continue;
+        changeCount++;
+        const from=[cur.hint,`${cur.sets}×${cur.reps}`].filter(Boolean).join(" · ");
+        const to=[upd.hint||(hintChanged?"":cur.hint),(setsChanged||repsChanged)?`${upd.sets||cur.sets}×${upd.reps||cur.reps}`:null].filter(Boolean).join(" · ");
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex">${esc(cur.name)}</div><div class="pm-change-val">${esc(from)} → ${esc(to)}</div></div>`;
+      }
     }
   }
 
@@ -1186,12 +1209,24 @@ function applyPendingPlan(){
     if(!Array.isArray(exercises)||!PROG[day])continue;
     if(!S.weekPlans[nwk][day])S.weekPlans[nwk][day]=[];
     for(const upd of exercises){
-      const ex=PROG[day].exercises.find(e=>e.id===upd.id);
-      if(!ex)continue;
-      // Store only — do NOT mutate PROG now; applyPlanOverrides() applies it next week
-      const stored=S.weekPlans[nwk][day].find(e=>e.id===upd.id);
-      if(stored)Object.assign(stored,upd);
-      else S.weekPlans[nwk][day].push({...upd});
+      if(upd.action==="add"){
+        // New exercise — store full definition
+        const stored=S.weekPlans[nwk][day].find(e=>e.id===upd.id);
+        if(stored)Object.assign(stored,upd);
+        else S.weekPlans[nwk][day].push({...upd});
+      } else if(upd.action==="remove"){
+        // Store remove marker
+        if(!S.weekPlans[nwk][day].find(e=>e.id===upd.id))
+          S.weekPlans[nwk][day].push({action:"remove",id:upd.id});
+      } else {
+        // Standard update — only for exercises that exist in PROG
+        const ex=PROG[day].exercises.find(e=>e.id===upd.id);
+        if(!ex)continue;
+        // Store only — do NOT mutate PROG now; applyPlanOverrides() applies it next week
+        const stored=S.weekPlans[nwk][day].find(e=>e.id===upd.id);
+        if(stored)Object.assign(stored,upd);
+        else S.weekPlans[nwk][day].push({...upd});
+      }
     }
   }
   save();
