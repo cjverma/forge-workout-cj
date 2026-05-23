@@ -28,8 +28,8 @@ export function checkAuth(req, res) {
   const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
   let valid = false;
   try {
-    const a = Buffer.from(provided.padEnd(token.length, "\0"));
-    const b = Buffer.from(token.padEnd(provided.length, "\0"));
+    const a = Buffer.from(provided);
+    const b = Buffer.from(token);
     valid = a.length === b.length && timingSafeEqual(a, b);
   } catch { valid = false; }
   if (!valid) {

@@ -1,10 +1,17 @@
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
 
+const MAX_BODY_BYTES = 8_000;
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   if (!checkAuth(req, res)) return;
+
+  const bodyStr = JSON.stringify(req.body || {});
+  if (bodyStr.length > MAX_BODY_BYTES) {
+    return res.status(400).json({ error: "Request body too large" });
+  }
 
   const { weekSummary = {}, profile = {}, rules = {} } = req.body || {};
 
@@ -15,6 +22,7 @@ export default async function handler(req, res) {
     const text = await callOpenAI({ system, user, maxOutputTokens: 2000 });
     return res.json({ text });
   } catch (e) {
-    return res.status(502).json({ error: String(e.message || e) });
+    console.error("[weekly-plan]", e.message);
+    return res.status(502).json({ error: "AI service unavailable" });
   }
 }

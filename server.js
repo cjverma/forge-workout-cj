@@ -43,8 +43,8 @@ function auth(req, res, next) {
 
   let valid = false;
   try {
-    const a = Buffer.from(provided.padEnd(FORGE_API_TOKEN.length, "\0"));
-    const b = Buffer.from(FORGE_API_TOKEN.padEnd(provided.length, "\0"));
+    const a = Buffer.from(provided);
+    const b = Buffer.from(FORGE_API_TOKEN);
     valid = a.length === b.length && timingSafeEqual(a, b);
   } catch { valid = false; }
 
@@ -112,20 +112,24 @@ app.post("/api/coach", auth, async (req, res) => {
   if (!prompt || typeof prompt !== "string") {
     return res.status(400).json({ error: "Invalid payload: prompt is required" });
   }
+  if (prompt.length > 2000) {
+    return res.status(400).json({ error: "prompt must be 2000 characters or fewer" });
+  }
+
+  const safeContext = {
+    day: typeof context.day === "string" ? context.day.slice(0, 20) : "",
+    program: typeof context.program === "string" ? context.program.slice(0, 60) : ""
+  };
 
   const system = `You are a careful strength coach for one user. Follow these hard restrictions at all times: ${HARD_RULES}. Keep answers concise, practical, and safe.`;
-
-  const user = JSON.stringify({
-    task: "Coach response",
-    prompt,
-    context
-  });
+  const user = JSON.stringify({ task: "Coach response", prompt, context: safeContext });
 
   try {
     const text = await callOpenAI({ system, user, maxOutputTokens: 1000 });
     return res.json({ text });
   } catch (error) {
-    return res.status(502).json({ error: String(error.message || error) });
+    console.error("[coach]", error.message);
+    return res.status(502).json({ error: "AI service unavailable" });
   }
 });
 
@@ -147,7 +151,8 @@ app.post("/api/weekly-plan", auth, async (req, res) => {
     const text = await callOpenAI({ system, user, maxOutputTokens: 2000 });
     return res.json({ text });
   } catch (error) {
-    return res.status(502).json({ error: String(error.message || error) });
+    console.error("[weekly-plan]", error.message);
+    return res.status(502).json({ error: "AI service unavailable" });
   }
 });
 
