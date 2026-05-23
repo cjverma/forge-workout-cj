@@ -22,15 +22,23 @@ const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 const HARD_RULES = [
-  "Never prescribe overhead press.",
+  // Medical context — always present in every AI call
+  "This user has a lumbar spine condition (disc herniation with nerve impingement) causing left-leg sciatica and chronic left calf nerve pain.",
+  "All recommendations must account for this condition at all times — safety over performance, always.",
+  // Absolute exercise restrictions
+  "Never prescribe overhead press or any overhead loaded movement.",
   "Never prescribe standard lat pulldown.",
-  "Never prescribe barbell squat, deadlift, or good mornings.",
-  "Never prescribe standing loaded exercises.",
-  "Never prescribe axial compression exercises.",
-  "Never prescribe stairmaster.",
-  "Always begin gym sessions with stationary bike.",
-  "If left calf pain triggers 3 or more times, instruct user to sit and end or modify session.",
-  "Core gently braced throughout exercises."
+  "Never prescribe barbell squat, deadlift, good mornings, or any hip-hinge under axial load.",
+  "Never prescribe standing loaded exercises — all resistance work must be seated or lying.",
+  "Never prescribe axial compression exercises (no load directed through the spine).",
+  "Never prescribe stairmaster or step-climbing under load.",
+  // Session structure
+  "Always begin every gym session with stationary bike (minimum 15 minutes) — hip flexion decompresses the spine before any loading.",
+  "Always end gym sessions with easy treadmill walking at low incline — no running.",
+  "Core gently braced throughout all exercises to protect the lumbar spine.",
+  // Nerve symptom protocol
+  "Left calf pain or tingling is a nerve symptom, not muscle fatigue. If it triggers 3 or more times in one session, instruct the user to sit down immediately and end or significantly modify the session.",
+  "Never push through left calf nerve pain."
 ].join(" ");
 
 function auth(req, res, next) {
