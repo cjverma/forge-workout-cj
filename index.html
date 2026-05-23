@@ -1061,7 +1061,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, export, and spine rules</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -1069,17 +1069,6 @@ function renderST(){
       <div class="export-sub">Based on this week's sessions, Claude applies progressive overload and updates your program automatically.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:#f5a623;font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
       <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()">Generate Next Week</button>
       ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
-    </div>
-
-    <div class="st-sec">Export Data</div>
-    <div class="export-card">
-      <div class="export-title">📋 Export for Claude Review</div>
-      <div class="export-sub">Generate your session history. Copy and paste into Claude to review progress, adjust weights, or modify exercises.</div>
-      <div class="btn-row">
-        <button class="btn-o" onclick="genExp()">Generate</button>
-        <button class="btn-g" onclick="copyExp()">Copy All</button>
-      </div>
-      <textarea class="export-area" id="expArea" readonly placeholder="Tap Generate..."></textarea>
     </div>
 
     <div class="st-sec">Permanent Spine Rules</div>
@@ -1091,6 +1080,7 @@ function renderST(){
 
     <div class="st-sec">Data</div>
     <div class="st-group">
+      <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history copied to clipboard — paste into Claude</div></div></div>
       ${!window.FORGE_API_CFG?`<div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>`:""}
       <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
     </div>
@@ -1117,13 +1107,14 @@ function genExp(){
       if(sets||skip||card)lines.push(`  ${name}: ${sets||skip||card}`);
     });
   }
-  document.getElementById("expArea").value=lines.join("\n");
+  return lines.join("\n");
 }
 
 function copyExp(){
-  const ta=document.getElementById("expArea");
-  if(!ta.value)genExp();
-  navigator.clipboard?.writeText(ta.value).then(()=>showToast("Copied — paste into Claude ✓")).catch(()=>{ta.select();document.execCommand("copy");showToast("Copied ✓");});
+  const text=genExp();
+  navigator.clipboard?.writeText(text)
+    .then(()=>showToast("Copied — paste into Claude ✓"))
+    .catch(()=>showToast("Copy failed — try again"));
 }
 
 function findN(id){
