@@ -18,7 +18,10 @@ export function setCors(res) {
 
 export function checkAuth(req, res) {
   const token = process.env.FORGE_API_TOKEN;
-  if (!token) return true; // no token configured = open (personal use)
+  if (!token) {
+    res.status(500).json({ error: "Server misconfigured: FORGE_API_TOKEN not set" });
+    return false;
+  }
   const header = req.headers["authorization"] || "";
   const provided = header.startsWith("Bearer ") ? header.slice(7) : "";
   if (provided !== token) {

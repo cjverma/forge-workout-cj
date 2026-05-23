@@ -258,9 +258,26 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 /* ── SPINNER ── */
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--orange);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:6px;}
 @keyframes sp{to{transform:rotate(360deg);}}
+
+/* ── LOCK SCREEN ── */
+.lock-screen{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;max-width:430px;margin:0 auto;}
+.lock-logo{font-size:26px;font-weight:700;letter-spacing:8px;color:var(--orange);text-transform:uppercase;margin-bottom:6px;}
+.lock-sub{font-size:12px;color:var(--dim);letter-spacing:0.5px;margin-bottom:44px;text-align:center;line-height:1.6;}
+.lock-input{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:15px 16px;font-size:14px;color:var(--white);font-family:inherit;outline:none;margin-bottom:12px;}
+.lock-input:focus{border-color:var(--orange);}
+.lock-btn{width:100%;background:var(--orange);color:#000;border:none;border-radius:10px;padding:15px;font-size:13px;font-weight:700;font-family:inherit;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:4px;}
+.lock-err{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:16px;}
 </style>
 </head>
 <body>
+
+<div class="lock-screen" id="lockScreen" style="display:none">
+  <div class="lock-logo">FORGE</div>
+  <div class="lock-sub">Personal fitness. Private by default.<br>Enter your access token to continue.</div>
+  <input class="lock-input" id="lockInput" type="password" placeholder="Access token" autocomplete="current-password" onkeydown="if(event.key==='Enter')submitLock()">
+  <button class="lock-btn" onclick="submitLock()">Unlock</button>
+  <div class="lock-err" id="lockErr"></div>
+</div>
 
 <div class="hdr">
   <div class="logo">FORGE</div>
@@ -418,12 +435,20 @@ function esc(v){
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 
-window.addEventListener("DOMContentLoaded",()=>{
+function initApp(){
   buildNav();
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
   selectDay(t);
   cycleQ();
   setInterval(cycleQ,9000);
+}
+
+window.addEventListener("DOMContentLoaded",()=>{
+  if(window.FORGE_API_CFG){initApp();return;}
+  const stored=localStorage.getItem("forge_key");
+  if(stored){API_CFG.token=stored;initApp();return;}
+  document.getElementById("lockScreen").style.display="flex";
+  setTimeout(()=>document.getElementById("lockInput").focus(),100);
 });
 
 function cycleQ(){
@@ -660,7 +685,9 @@ function searchEx(q,day){
   if(!q||q.length<1){dd.classList.remove("show");dd.innerHTML="";return;}
   const res=EX_DB.filter(e=>e.name.toLowerCase().includes(q.toLowerCase()));
   if(!res.length){
-    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" onclick='addFreeform(${JSON.stringify(day||cDay)},${JSON.stringify(q)})'>Add</button></div>`;
+    const safeDay=JSON.stringify(day||cDay).replace(/'/g,"&#39;");
+    const safeQ=JSON.stringify(q).replace(/'/g,"&#39;");
+    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches — tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" onclick='addFreeform(${safeDay},${safeQ})'>Add</button></div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
   }
   dd.innerHTML=res.map((e,i)=>`<div class="dd-item">
@@ -668,7 +695,7 @@ function searchEx(q,day){
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)} · ${esc(typeof e.reps==="number"?e.sets+"×"+e.reps:e.reps)} · ${esc(e.hint)}</div>
     </div>
-    <button class="dd-add-btn" onclick='addFromDB(${i},${JSON.stringify(day||cDay)})'>+</button>
+    <button class="dd-add-btn" onclick='addFromDB(${i},${JSON.stringify(day||cDay).replace(/'/g,"&#39;")})'>+</button>
   </div>`).join("");
   dd.dataset.r=JSON.stringify(res);dd.classList.add("show");
 }
@@ -784,7 +811,23 @@ function renderAI(){
   </div>`;
 }
 
-const API_CFG=window.FORGE_API_CFG||{baseUrl:"",token:""};
+const API_CFG=window.FORGE_API_CFG||{baseUrl:"",token:localStorage.getItem("forge_key")||""};
+
+function submitLock(){
+  const val=document.getElementById("lockInput").value.trim();
+  if(!val){document.getElementById("lockErr").textContent="Enter your access token";return;}
+  localStorage.setItem("forge_key",val);
+  API_CFG.token=val;
+  document.getElementById("lockScreen").style.display="none";
+  initApp();
+}
+
+function lockApp(){
+  if(confirm("Lock the app? You'll need your access token to re-enter.")){
+    localStorage.removeItem("forge_key");
+    location.reload();
+  }
+}
 
 async function aiRun(type){
   let prompt="",outId="";
@@ -848,6 +891,7 @@ function renderST(){
 
     <div class="st-sec">Data</div>
     <div class="st-group">
+      ${!window.FORGE_API_CFG?`<div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>`:""}
       <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
     </div>
     <div style="height:20px"></div>
