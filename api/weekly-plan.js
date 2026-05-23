@@ -1,6 +1,6 @@
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
 
-const MAX_BODY_BYTES = 8_000;
+const MAX_BODY_BYTES = 32_000;
 
 export default async function handler(req, res) {
   setCors(res);
