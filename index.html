@@ -725,10 +725,26 @@ function shiftWeek(delta){
   mon.setDate(mon.getDate()+delta*7);
   const j=new Date(mon.getFullYear(),0,1);
   const nw=mon.getFullYear()+"W"+Math.ceil(((mon-j)/86400000+j.getDay()+1)/7);
-  _viewWk=wkOrd(nw)>=wkOrd(wk())?null:nw;
+  const ord=wkOrd(nw);
+  if(ord>wkOrd(nextWk()))return; // cap navigation at next week
+  _viewWk=ord===wkOrd(wk())?null:nw;
   updateDayNavDates();renderW();
 }
+function isFuture(){return !!_viewWk&&wkOrd(_viewWk)>wkOrd(wk());}
 function goCurrentWeek(){_viewWk=null;updateDayNavDates();renderW();}
+
+// Returns exercises for next week with any queued plan overrides applied (preview only)
+function getPreviewExercises(day){
+  const base=(PROG[day]?.exercises||[]).map(ex=>({...ex}));
+  const overrides=((S.weekPlans||{})[nextWk()]||{})[day]||[];
+  let exs=base;
+  for(const upd of overrides){
+    if(upd.action==="remove"){exs=exs.filter(e=>e.id!==upd.id);}
+    else if(upd.action==="add"){if(!exs.find(e=>e.id===upd.id))exs.push({...upd});}
+    else{const ex=exs.find(e=>e.id===upd.id);if(ex){if(upd.sets!==undefined)ex.sets=upd.sets;if(upd.reps!==undefined)ex.reps=upd.reps;if(upd.hint!==undefined)ex.hint=upd.hint;}}
+  }
+  return exs;
+}
 function updateDayNavDates(){
   const m=vwk().match(/(\d{4})W(\d+)/);if(!m)return;
   const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7;
@@ -744,15 +760,18 @@ function updateDayNavDates(){
 function renderW(){
   const prog=PROG[cDay],el=document.getElementById("tc");
   const past=isPast();
+  const future=isFuture();
+  const readOnly=past||future;
   const cwk=wk();
-  const wkLbl=past?weekLabel(vwk()):"This Week";
+  const wkLbl=past?weekLabel(vwk()):future?'Next Week':'This Week';
+  const canGoForward=wkOrd(vwk())<wkOrd(nextWk());
   const wkNav=`<div class="wk-nav">
     <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
-    <div class="wk-nav-lbl">${esc(wkLbl)}${past
+    <div class="wk-nav-lbl">${esc(wkLbl)}${(past||future)
       ?`<span class="wk-nav-back" onclick="goCurrentWeek()">↩ Back to this week</span>`
       :`<span class="wk-nav-cur">${esc(weekLabel(cwk))}</span>`}
     </div>
-    <button class="wk-nav-btn" ${past?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
+    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
   </div>`;
 
   if(cDay==="Sunday"){
@@ -760,19 +779,24 @@ function renderW(){
     return;
   }
   const key=sk(cDay);
-  if(!past&&!S.sessions[key])S.sessions[key]={};
+  if(!readOnly&&!S.sessions[key])S.sessions[key]={};
   const sess=S.sessions[key]||{};
-  const total=prog.exercises.length;
-  const done=prog.exercises.filter(e=>sess[e.id]?.done).length;
+  const dispExs=future?getPreviewExercises(cDay):prog.exercises;
+  const total=dispExs.length;
+  const done=dispExs.filter(e=>sess[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
-  const gymExs=prog.exercises.filter(e=>e.cat!=="physio");
-  const physioExs=prog.exercises.filter(e=>e.cat==="physio");
+  const gymExs=dispExs.filter(e=>e.cat!=="physio");
+  const physioExs=dispExs.filter(e=>e.cat==="physio");
 
   let h=wkNav;
   if(past)h+=`<div class="past-banner">📅 Past week · View only</div>`;
-  h+=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub} &nbsp;·&nbsp; ${done} of ${total} complete</div></div>
-  <div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>`;
-  if(!past){
+  if(future){
+    const hasPlan=!!((S.weekPlans||{})[vwk()]);
+    h+=`<div class="past-banner" style="color:#f5a623;border-color:rgba(245,166,35,0.3)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
+  }
+  h+=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub}${future?'':` &nbsp;·&nbsp; ${done} of ${total} complete`}</div></div>`;
+  if(!future)h+=`<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>`;
+  if(!readOnly){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
     const wasStopped=!workoutOn&&!!sess._stopped;
@@ -788,10 +812,10 @@ function renderW(){
     }
   }
 
-  if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,past);});}
-  if(physioExs.length){h+=`<div class="sec">🟢 Physio — Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,past);});}
+  if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});}
+  if(physioExs.length){h+=`<div class="sec">🟢 Physio — Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});}
 
-  if(!past)h+=`<div class="custom-wrap">
+  if(!readOnly)h+=`<div class="custom-wrap">
     <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
     <div class="custom-form" id="cf">
       <label class="cf-label">Search exercise library</label>
