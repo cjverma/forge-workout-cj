@@ -716,7 +716,7 @@ function rememberCustom(day,ex){
 // ── UNITS — per-exercise label (no conversion, you enter what you see) ──
 function getExUnit(key,exId){return S.sessions[key]?.[exId]?.unit||"kg";}
 function toggleExUnit(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
@@ -963,6 +963,7 @@ let _viewWk=null;
 function vwk(){return _viewWk||wk();}
 function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
 function isPast(){return !!_viewWk&&wkOrd(_viewWk)<wkOrd(wk());}
+function isReadOnly(key){return isPast()||(!workoutOn&&!!S.sessions[key]?._stopped);}
 function sk(day){return day+"_"+vwk();}
 function shiftWeek(delta){
   const base=vwk();
@@ -1008,7 +1009,11 @@ function renderW(){
   const prog=PROG[cDay],el=document.getElementById("tc");
   const past=isPast();
   const future=isFuture();
-  const readOnly=past||future;
+  const key=sk(cDay);
+  if(!past&&!future&&!S.sessions[key])S.sessions[key]={};
+  const sess=S.sessions[key]||{};
+  const stopped=!workoutOn&&!!sess._stopped;
+  const readOnly=past||future||stopped;
   const cwk=wk();
   const wkLbl=past?weekLabel(vwk()):future?'Next Week':'This Week';
   const canGoForward=wkOrd(vwk())<wkOrd(nextWk());
@@ -1021,9 +1026,6 @@ function renderW(){
     <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
   </div>`;
 
-  const key=sk(cDay);
-  if(!readOnly&&!S.sessions[key])S.sessions[key]={};
-  const sess=S.sessions[key]||{};
   const dispExs=future?getPreviewExercises(cDay):prog.exercises;
   const total=dispExs.length;
   const done=dispExs.filter(e=>sess[e.id]?.done).length;
@@ -1181,7 +1183,7 @@ function onWtKey(e,exId,i){if(e.key==="Enter"){e.preventDefault();const r=docume
 function onRpKey(e,key,exId,i){if(e.key==="Enter"){e.preventDefault();document.activeElement.blur();}}
 
 function saveF(key,exId,i,field,val){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   ensure(key,exId,i);
   S.sessions[key][exId].sets[i][field]=val;
   S.sessions[key][exId].sets[i].attempted=true;
@@ -1203,7 +1205,7 @@ function updateExerciseDone(key,exId){
 }
 
 function toggleSet(key,exId,i){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   ensure(key,exId,i);
   const sd=S.sessions[key][exId].sets[i];
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
@@ -1220,7 +1222,7 @@ function toggleSet(key,exId,i){
 }
 
 function toggleCardio(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].done=!S.sessions[key][exId].done;
@@ -1230,7 +1232,7 @@ function toggleCardio(key,exId){
 }
 
 function skipEx(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].skipped=true;
@@ -1239,7 +1241,7 @@ function skipEx(key,exId){
 }
 
 function addSet(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   ensure(key,exId,0);
   S.sessions[key][exId].sets.push({});
   save();renderW();
