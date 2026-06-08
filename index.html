@@ -1041,13 +1041,12 @@ function renderW(){
   }
   h+=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub}${future?'':` &nbsp;·&nbsp; ${done} of ${total} complete`}</div></div>`;
   if(!future)h+=`<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>`;
-  if(!readOnly){
+  if(!past&&!future){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
-    const wasStopped=!workoutOn&&!!sess._stopped;
-    if(allDone){
+    if(allDone&&!stopped){
       h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete</div></div>`;
-    } else if(wasStopped){
+    } else if(stopped){
       h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
     } else {
       // Build calf twinge button if workout is active
