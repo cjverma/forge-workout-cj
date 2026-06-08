@@ -1148,7 +1148,7 @@ function go(tab){
   document.getElementById("dayNav").style.display=tab==="workout"?"flex":"none";
   document.getElementById("mainScroll").scrollTop=0;
   if(tab==="workout")renderW();
-  else if(tab==="nutrition")renderNutrition();
+  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;renderNutrition();}
   else renderST();
 }
 
@@ -1813,9 +1813,9 @@ function renderNutrition(){
 function nutShiftDate(delta){
   const d=new Date(_nutDate+"T12:00:00");
   d.setDate(d.getDate()+delta);
-  const tomorrow=new Date();tomorrow.setDate(tomorrow.getDate()+1);
-  if(d>=tomorrow)return; // don't go to future
-  _nutDate=d.toISOString().slice(0,10);
+  const nextISO=d.toISOString().slice(0,10);
+  if(nextISO>isoToday())return; // don't go to future
+  _nutDate=nextISO;
   _pendingFood=null;_foodChatOpen=false;
   renderNutrition();
 }
