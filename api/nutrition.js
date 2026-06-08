@@ -1,9 +1,10 @@
-import { setCors, callOpenAI } from "./_shared.js";
+import { setCors } from "./_shared.js";
 
 const SYSTEM = `You are a nutrition estimator. Respond ONLY with valid JSON — no markdown, no explanation, no code fences.
 Format: {"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>}
 All numbers are integers. Estimate realistic UK/Australian portion sizes if not specified.
-If you cannot estimate (e.g. input is not food-related), respond: {"error":"could not estimate"}`;
+If the input is a full day of food, sum all items into a single JSON object with a name like "Today's meals".
+If you cannot estimate, respond: {"error":"could not estimate"}`;
 
 export default async function handler(req, res) {
   setCors(res);
@@ -12,38 +13,79 @@ export default async function handler(req, res) {
 
   const { text = "" } = req.body || {};
   if (!text.trim()) return res.status(400).json({ error: "No food description provided" });
-  if (text.length > 400) return res.status(400).json({ error: "Description too long" });
+  if (text.length > 1000) return res.status(400).json({ error: "Description too long" });
 
-  console.log("[nutrition] request text:", text);
+  console.log("[nutrition] request:", text.slice(0, 200));
 
-  try {
-    const raw = await callOpenAI({ system: SYSTEM, user: text, maxOutputTokens: 150 });
-    console.log("[nutrition] raw AI response:", raw);
-
-    let parsed;
-    try {
-      const clean = raw.replace(/```[a-z]*\n?/gi, "").trim();
-      parsed = JSON.parse(clean);
-    } catch (parseErr) {
-      console.error("[nutrition] JSON parse failed:", parseErr.message, "raw:", raw);
-      return res.status(502).json({ error: "AI returned invalid JSON", raw });
-    }
-
-    if (parsed.error) {
-      console.log("[nutrition] AI returned error:", parsed.error);
-      return res.status(422).json({ error: parsed.error });
-    }
-
-    const { name, kcal, protein, carbs, fat } = parsed;
-    if (!name || kcal == null) {
-      console.error("[nutrition] missing fields in parsed:", parsed);
-      return res.status(502).json({ error: "Incomplete nutrition data", parsed });
-    }
-
-    console.log("[nutrition] success:", { name, kcal, protein, carbs, fat });
-    return res.status(200).json({ name, kcal: Number(kcal), protein: Number(protein||0), carbs: Number(carbs||0), fat: Number(fat||0) });
-  } catch (e) {
-    console.error("[nutrition] callOpenAI error:", e.message);
-    return res.status(502).json({ error: "AI service unavailable", detail: e.message });
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) {
+    console.error("[nutrition] missing OPENAI_API_KEY");
+    return res.status(500).json({ error: "Server misconfigured" });
   }
+
+  const model = process.env.OPENAI_MODEL || "gpt-4o";
+
+  let apiRes, data;
+  try {
+    apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: SYSTEM },
+          { role: "user", content: text }
+        ],
+        max_tokens: 300,
+        temperature: 0.1
+      })
+    });
+    data = await apiRes.json();
+  } catch (e) {
+    console.error("[nutrition] fetch error:", e.message);
+    return res.status(502).json({ error: "AI service unavailable" });
+  }
+
+  console.log("[nutrition] openai status:", apiRes.status);
+  if (!apiRes.ok) {
+    console.error("[nutrition] openai error:", JSON.stringify(data?.error));
+    return res.status(502).json({ error: "AI service error" });
+  }
+
+  const raw = data?.choices?.[0]?.message?.content || "";
+  console.log("[nutrition] raw:", raw);
+
+  if (!raw) {
+    console.error("[nutrition] empty response from AI");
+    return res.status(502).json({ error: "Empty AI response" });
+  }
+
+  let parsed;
+  try {
+    const clean = raw.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim();
+    parsed = JSON.parse(clean);
+  } catch (e) {
+    console.error("[nutrition] JSON parse failed:", e.message, "raw:", raw);
+    return res.status(502).json({ error: "AI returned invalid JSON" });
+  }
+
+  if (parsed.error) {
+    console.log("[nutrition] AI could not estimate:", parsed.error);
+    return res.status(422).json({ error: parsed.error });
+  }
+
+  const { name, kcal, protein, carbs, fat } = parsed;
+  if (!name || kcal == null) {
+    console.error("[nutrition] missing fields:", parsed);
+    return res.status(502).json({ error: "Incomplete nutrition data" });
+  }
+
+  console.log("[nutrition] success:", { name, kcal, protein, carbs, fat });
+  return res.status(200).json({
+    name,
+    kcal: Math.round(Number(kcal)),
+    protein: Math.round(Number(protein || 0)),
+    carbs: Math.round(Number(carbs || 0)),
+    fat: Math.round(Number(fat || 0))
+  });
 }

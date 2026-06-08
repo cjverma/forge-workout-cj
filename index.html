@@ -401,11 +401,6 @@ html.light{--black:#fff;--s0:#f5f5f5;--s1:#ebebeb;--s2:#e0e0e0;--s3:#d5d5d5;--b1
     </div>
   </div>
 </div>
-<div class="rest-timer" id="restTimer" style="display:none" onclick="skipRest()">
-  <div class="rt-label">REST</div>
-  <div class="rt-count" id="rtCount">90</div>
-  <div class="rt-skip">Tap to skip</div>
-</div>
 <div class="plan-modal" id="planModal"></div>
 
 <div class="summary" id="sum">
@@ -779,7 +774,6 @@ let _restEnd=null,_restInterval=null;
 function startRest(){
   _restEnd=Date.now()+REST_DURATION*1000;
   const o=document.getElementById("restOverlay");if(o)o.classList.add("show");
-  const rt=document.getElementById("restTimer");if(rt)rt.style.display="flex";
   updateRestDisplay();
   clearInterval(_restInterval);
   _restInterval=setInterval(tickRest,250);
@@ -805,7 +799,6 @@ function updateRestDisplay(){
 function skipRest(){
   clearInterval(_restInterval);
   const o=document.getElementById("restOverlay");if(o)o.classList.remove("show");
-  const rt=document.getElementById("restTimer");if(rt)rt.style.display="none";
   _restEnd=null;
 }
 document.addEventListener("visibilitychange",()=>{
@@ -877,6 +870,15 @@ function logCalfTwinge(){
   } else {
     showToast("Calf twinge logged");
   }
+}
+function undoCalfTwinge(){
+  const key=sk(cDay);
+  const arr=S.sessions[key]?._calfTwinges;
+  if(!arr||!arr.length){showToast("Nothing to undo");return;}
+  arr.pop();
+  save();
+  showToast("Twinge removed");
+  renderW();
 }
 
 // ── VOLUME DATA ──
@@ -1076,7 +1078,7 @@ function renderW(){
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
-      const calfBtnHtml=workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>`:"";
+      const calfBtnHtml=workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
         <button class="btn-start${workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
         <button class="btn-stop${workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
@@ -1507,7 +1509,8 @@ async function aiRun(type){
     outId="oo";
   }else if(type==="sub"){
     const v=document.getElementById("si").value.trim();if(!v)return;
-    prompt=`Machine busy request: ${v}. Gym equipment: ${GYM}. Give 3 ranked safe alternatives, one sentence each.`;
+    const todayExNames=(PROG[cDay]?.exercises||[]).map(e=>e.name||e).join(", ");
+    prompt=`Machine busy: ${v}. Today's routine already includes: ${todayExNames||"none"}. Equipment available: ${GYM}. Suggest exactly ONE alternative not already in today's routine. Just the exercise name and one sentence on why it fits. No lists.`;
     outId="so";
   }else if(type==="calftrend"){
     outId="cto";
@@ -1911,8 +1914,6 @@ function renderNutrition(){
       <summary>💪 AI Coaching</summary>
       <div class="ai-acc-inner">
         ${weekNote?`<div class="weekly-note"><div class="weekly-note-title">Weekly Audit</div>${esc(weekNote)}</div>`:""}
-        <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🎙 Log in Plain English</div><input class="ai-inp" id="ci" placeholder='e.g. "leg press 80kg 3 sets 12 reps"'><button class="ai-btn" onclick="aiRun('conv')">Parse &amp; Structure</button><div class="ai-out" id="co"></div></div>
-        <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">📈 What Weight Today?</div><input class="ai-inp" id="oi" placeholder='e.g. "leg press 80kg 3x12, felt easy"'><button class="ai-btn" onclick="aiRun('overload')">Get Today's Target</button><div class="ai-out" id="oo"></div></div>
         <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press machine is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
         <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
       </div>
