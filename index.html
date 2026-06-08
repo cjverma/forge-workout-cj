@@ -713,23 +713,23 @@ function esc(v){
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 
 // ── REST TIMER ──
-let _rtTimer=null,_rtSec=0;
+let _rtTimer=null,_rtEnd=0;
 function startRest(){
   if(_rtTimer){clearInterval(_rtTimer);_rtTimer=null;}
-  _rtSec=90;
+  _rtEnd=Date.now()+90000;
   const el=document.getElementById("restTimer");
   const cnt=document.getElementById("rtCount");
   el.style.display="flex";
-  cnt.textContent=_rtSec;
+  cnt.textContent=90;
   _rtTimer=setInterval(()=>{
-    _rtSec--;
-    cnt.textContent=_rtSec;
-    if(_rtSec<=0){
+    const sec=Math.max(0,Math.ceil((_rtEnd-Date.now())/1000));
+    cnt.textContent=sec;
+    if(sec<=0){
       clearInterval(_rtTimer);_rtTimer=null;
       el.style.display="none";
       if(navigator.vibrate)navigator.vibrate([100,50,100]);
     }
-  },1000);
+  },250);
 }
 function skipRest(){
   if(_rtTimer){clearInterval(_rtTimer);_rtTimer=null;}
@@ -875,6 +875,21 @@ function initApp(){
     else if(action==="fromdb")addFromDB(Number(idx),day);
   });
 }
+
+// When returning from background, snap the rest timer display immediately
+document.addEventListener("visibilitychange",()=>{
+  if(document.visibilityState==="visible"&&_rtTimer){
+    const sec=Math.max(0,Math.ceil((_rtEnd-Date.now())/1000));
+    const cnt=document.getElementById("rtCount");
+    if(cnt)cnt.textContent=sec;
+    if(sec<=0){
+      clearInterval(_rtTimer);_rtTimer=null;
+      const el=document.getElementById("restTimer");
+      if(el)el.style.display="none";
+      if(navigator.vibrate)navigator.vibrate([100,50,100]);
+    }
+  }
+});
 
 window.addEventListener("DOMContentLoaded",()=>{
   if(window.FORGE_API_CFG){initApp();return;}
