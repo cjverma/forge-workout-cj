@@ -710,6 +710,129 @@ function esc(v){
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 
+// ── REST TIMER ──
+let _rtTimer=null,_rtSec=0;
+function startRest(){
+  if(_rtTimer){clearInterval(_rtTimer);_rtTimer=null;}
+  _rtSec=90;
+  const el=document.getElementById("restTimer");
+  const cnt=document.getElementById("rtCount");
+  el.style.display="flex";
+  cnt.textContent=_rtSec;
+  _rtTimer=setInterval(()=>{
+    _rtSec--;
+    cnt.textContent=_rtSec;
+    if(_rtSec<=0){
+      clearInterval(_rtTimer);_rtTimer=null;
+      el.style.display="none";
+      if(navigator.vibrate)navigator.vibrate([100,50,100]);
+    }
+  },1000);
+}
+function skipRest(){
+  if(_rtTimer){clearInterval(_rtTimer);_rtTimer=null;}
+  document.getElementById("restTimer").style.display="none";
+}
+
+// ── LAST SESSION HELPER ──
+function lastSessionEx(exId){
+  const curKey=sk(cDay);
+  const sessions=S.sessions||{};
+  let best=null;
+  for(const[key,data] of Object.entries(sessions)){
+    if(key===curKey)continue;
+    const ed=data[exId];
+    if(!ed||!ed.sets)continue;
+    const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps);
+    if(!doneSets.length)continue;
+    const m=key.match(/_(\d{4})W(\d+)$/);
+    if(!m)continue;
+    const ord=+m[1]*100+(+m[2]);
+    if(!best||ord>best.ord){best={ord,sets:doneSets};}
+  }
+  if(!best)return null;
+  const weights=best.sets.map(s=>parseFloat(s.weight)||0).filter(v=>v>0);
+  const reps=best.sets.map(s=>s.reps).find(r=>r)||"?";
+  if(!weights.length)return null;
+  const avgW=weights.reduce((a,b)=>a+b,0)/weights.length;
+  return{weight:avgW,reps,sets:best.sets};
+}
+
+// ── OVERLOAD DIRECTION ──
+function overloadDir(exId,sess){
+  const last=lastSessionEx(exId);
+  if(!last)return null;
+  const ed=sess[exId];
+  if(!ed||!ed.sets)return null;
+  const curDone=ed.sets.filter(s=>s.done&&s.weight);
+  if(!curDone.length)return null;
+  const curW=curDone.map(s=>parseFloat(s.weight)||0).filter(v=>v>0);
+  if(!curW.length)return null;
+  const curAvg=curW.reduce((a,b)=>a+b,0)/curW.length;
+  const lastAvg=last.weight;
+  if(curAvg-lastAvg>0.5)return"up";
+  if(lastAvg-curAvg>0.5)return"down";
+  return"eq";
+}
+
+// ── CALF LOGGER ──
+function logCalfTwinge(){
+  const key=sk(cDay);
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!Array.isArray(S.sessions[key]._calfTwinges))S.sessions[key]._calfTwinges=[];
+  S.sessions[key]._calfTwinges.push(Date.now());
+  save();
+  const cnt=S.sessions[key]._calfTwinges.filter(ts=>Number.isFinite(ts)).length;
+  const btn=document.getElementById("calfBtn");
+  if(btn){
+    const badge=btn.querySelector(".calf-badge");
+    if(badge)badge.textContent=cnt;
+    if(cnt>=3){btn.classList.add("calf-warn");}
+  }
+  if(cnt===3){
+    showToast("⚠️ 3 twinges — consider stopping the session");
+    if(navigator.vibrate)navigator.vibrate([100,50,100,50,100]);
+  } else {
+    showToast("Calf twinge logged");
+  }
+}
+
+// ── VOLUME DATA ──
+function buildVolumeData(){
+  const cur=wk();
+  const counts={};
+  for(const[day,dayData] of Object.entries(PROG)){
+    const key=day+"_"+cur;
+    const sessData=S.sessions[key];
+    if(!sessData)continue;
+    for(const ex of(dayData.exercises||[])){
+      const ed=sessData[ex.id];
+      if(!ed||!ed.sets)continue;
+      const doneCount=ed.sets.filter(s=>s.done).length;
+      if(!doneCount)continue;
+      for(const m of(ex.muscles||[])){
+        counts[m]=(counts[m]||0)+doneCount;
+      }
+    }
+  }
+  return Object.entries(counts)
+    .filter(([,c])=>c>0)
+    .map(([muscle,count])=>({muscle,count}))
+    .sort((a,b)=>b.count-a.count);
+}
+
+// ── SESSION NOTES DEBOUNCE ──
+let _notesTimer=null;
+function saveNotes(val){
+  clearTimeout(_notesTimer);
+  _notesTimer=setTimeout(()=>{
+    const key=sk(cDay);
+    if(!S.sessions[key])S.sessions[key]={};
+    S.sessions[key]._notes=val;
+    save();
+  },500);
+}
+
 function initApp(){
   buildNav();
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
@@ -835,10 +958,6 @@ function renderW(){
     <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
   </div>`;
 
-  if(cDay==="Sunday"){
-    el.innerHTML=wkNav+`<div class="rest-screen"><div class="rest-emoji">😴</div><div class="rest-ttl">Rest Day</div><div class="rest-body">Recovery is where adaptation happens.<br>Your spine rebuilds today.</div><div class="rest-card"><div class="rest-card-title">✅ Still do physio exercises</div><div class="rest-card-body">Knee-to-chest, glute bridge, and bird dog — 10 minutes. Every day including Sundays.</div></div></div>`;
-    return;
-  }
   const key=sk(cDay);
   if(!readOnly&&!S.sessions[key])S.sessions[key]={};
   const sess=S.sessions[key]||{};
@@ -866,15 +985,33 @@ function renderW(){
     } else if(wasStopped){
       h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
     } else {
+      // Build calf twinge button if workout is active
+      const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
+      const calfWarnCls=twinges>=3?" calf-warn":"";
+      const calfBtnHtml=workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>`:"";
       h+=`<div class="session-bar">
         <button class="btn-start${workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
         <button class="btn-stop${workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
+        ${calfBtnHtml}
       </div>`;
     }
   }
 
+  if(cDay==="Sunday"){
+    h+=`<div class="physio-banner">Rest day — physio only. Recovery is where adaptation happens.</div>`;
+  }
+
   if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});}
   if(physioExs.length){h+=`<div class="sec">🟢 Physio — Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});}
+
+  // Session notes
+  if(!readOnly){
+    const savedNotes=sess._notes||"";
+    h+=`<div class="notes-wrap">
+      <span class="notes-label">Session Notes</span>
+      <textarea class="notes-area" id="sessNotes" placeholder="Session notes..." oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
+    </div>`;
+  }
 
   if(!readOnly)h+=`<div class="custom-wrap">
     <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
@@ -900,6 +1037,20 @@ function card(ex,sess,key,rdOnly=false){
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
   const name=esc(ex.name),hint=esc(ex.hint),cue=esc(ex.cue),url=esc(ex.url),reps=esc(ex.reps);
+
+  // Last session ghost
+  const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
+  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${parseFloat(lastSess.weight.toFixed(1))}kg × ${esc(String(lastSess.reps))}</div>`:"";
+
+  // Overload badge
+  let olBadge="";
+  if(ex.sets>1){
+    const dir=overloadDir(ex.id,sess);
+    if(dir==="up")olBadge=`<span class="ol-up">↑</span>`;
+    else if(dir==="down")olBadge=`<span class="ol-down">↓</span>`;
+    else if(dir==="eq")olBadge=`<span class="ol-eq">=</span>`;
+  }
+
   let body="";
   if(ex.sets===1){
     const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
@@ -909,15 +1060,22 @@ function card(ex,sess,key,rdOnly=false){
   } else {
     const cnt=Math.max(ex.sets,(ed.sets||[]).length);
     let rows=`<div class="set-hdr"><div>Set</div><div>KG</div><div></div><div>Reps</div><div></div></div>`;
+    const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
       const hasD=sd.weight&&sd.reps;
       const rCls=sd.done?"done":(!hasD&&sd.attempted?"needs-input":"");
+      // Carry-forward: pre-populate weight from last session if not yet set
+      let weightVal=sd.weight;
+      if(!weightVal&&lastSetsForCarry&&!rdOnly){
+        const lastSet=lastSetsForCarry.sets[i]||lastSetsForCarry.sets[0];
+        if(lastSet&&lastSet.weight){weightVal=parseFloat(lastSet.weight)||"";}
+      }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input class="si" type="number" placeholder="${hint||"kg"}" value="${esc(sd.weight)}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
+        <input class="si" type="number" placeholder="${hint||"kg"}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
         <div class="sx">×</div>
-        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(sd.reps)}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
+        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
       </div>`;
     }
@@ -929,7 +1087,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div></div>
+      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}</div>
       <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -986,6 +1144,7 @@ function toggleSet(key,exId,i){
   if(sd.done)showToast("Set logged ✓");
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
+  if(sd.done)startRest();
   save();reCard(key,exId);
 }
 
@@ -1212,6 +1371,22 @@ function renderAI(){
       <button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button>
       <div class="ai-out" id="ro"></div>
     </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">📊 Calf Symptom Trend</div>
+      <div class="ai-card-sub">Analyses your calf twinge log from the last 14 days.</div>
+      <button class="ai-btn" onclick="aiRun('calftrend')">Analyse Trend</button>
+      <div class="ai-out" id="cto"></div>
+    </div>
+
+    <div class="ai-card">
+      <div class="ai-card-title">🔥 Warm-Up Weights</div>
+      <div class="ai-card-sub">Get a progressive warm-up plan for any exercise.</div>
+      <input class="ai-inp" id="wuEx" placeholder="Exercise name (e.g. Leg Press)" maxlength="60">
+      <input class="ai-inp" id="wuWt" type="number" placeholder="Working weight (kg)" min="0" max="500">
+      <button class="ai-btn" onclick="aiRun('warmup')">Get Warm-Up Plan</button>
+      <div class="ai-out" id="wuo"></div>
+    </div>
   </div>`;
 }
 
@@ -1247,6 +1422,40 @@ async function aiRun(type){
     const v=document.getElementById("si").value.trim();if(!v)return;
     prompt=`Machine busy request: ${v}. Gym equipment: ${GYM}. Give 3 ranked safe alternatives, one sentence each.`;
     outId="so";
+  }else if(type==="calftrend"){
+    outId="cto";
+    // Collect last 14 days of twinge data
+    const now=Date.now();
+    const dayMs=86400000;
+    const twingeByDay=[];
+    for(let d=0;d<14;d++){
+      const dayStart=now-(d+1)*dayMs;
+      const dayEnd=now-d*dayMs;
+      const dayDate=new Date(dayEnd);
+      const dayName=dayDate.toLocaleDateString("en-GB",{weekday:"short",month:"short",day:"numeric"});
+      let cnt=0;
+      for(const[,sessData] of Object.entries(S.sessions||{})){
+        const twinges=(sessData._calfTwinges||[]).filter(ts=>Number.isFinite(ts)&&ts>=dayStart&&ts<dayEnd);
+        cnt+=twinges.length;
+      }
+      if(cnt>0)twingeByDay.push({day:dayName,count:cnt});
+    }
+    if(!twingeByDay.length){
+      const outEl=document.getElementById(outId);
+      outEl.className="ai-out show";
+      outEl.textContent="No twinge data yet — use the calf logger during sessions.";
+      return;
+    }
+    prompt=`Calf twinge data last 14 days: ${twingeByDay.map(d=>`${d.day}: ${d.count}`).join(", ")}. Analyse trend briefly (max 150 words). Is it improving, worsening, or stable?`;
+    if(prompt.length>1000)prompt=prompt.slice(0,1000);
+  }else if(type==="warmup"){
+    outId="wuo";
+    // Sanitize inputs
+    let exName=(document.getElementById("wuEx").value||"").replace(/[^\x20-\x7E]/g,"").trim().slice(0,60);
+    let wt=parseFloat(document.getElementById("wuWt").value)||0;
+    wt=Math.max(0,Math.min(500,wt));
+    if(!exName||!wt){showToast("Enter exercise name and weight");return;}
+    prompt=`Warm-up sets for ${exName} working weight ${wt}kg. Give 4-5 progressive warm-up sets as a compact table (set, weight, reps). Max 120 words.`;
   }else{
     prompt=`Recovery decision request. CPAP: ${document.getElementById("sl").value||"?"}/100 Energy: ${document.getElementById("en").value||"?"}/10 Soreness: ${document.getElementById("sr").value||"?"}/10 Calf: ${document.getElementById("cp").value}. Give: Full / 80% / Light.`;
     outId="ro";
@@ -1276,6 +1485,15 @@ function renderST(){
       ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
     </div>
 
+    <div class="st-sec">This Week's Volume</div>
+    ${(()=>{
+      const vdata=buildVolumeData();
+      if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);margin-bottom:12px;padding:0 2px">No sets logged yet this week.</div>`;
+      const max=vdata[0].count;
+      return`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:14px">`+
+        vdata.map(({muscle,count})=>`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${Math.round(count/max*100)}%"></div></div><div class="vol-count">${count}</div></div>`).join("")+
+      `</div>`;
+    })()}
     <div class="st-sec">Permanent Spine Rules</div>
     <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
     <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
