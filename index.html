@@ -292,6 +292,45 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 .pm-btns{display:flex;gap:10px;margin-top:22px;}
 .pm-apply{flex:1;padding:15px;background:var(--orange);border:none;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:#000;cursor:pointer;text-transform:uppercase;}
 .pm-cancel{flex:1;padding:15px;background:transparent;border:1px solid var(--b2);border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;color:var(--mid);cursor:pointer;}
+
+/* ── REST TIMER ── */
+.rest-timer{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);max-width:300px;width:90%;background:#111;border:2px solid var(--orange);border-radius:16px;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px;cursor:pointer;box-shadow:0 4px 24px rgba(255,107,26,0.25);}
+.rt-label{font-size:11px;font-weight:700;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin-bottom:4px;}
+.rt-count{font-size:56px;font-weight:700;color:var(--orange);letter-spacing:-2px;line-height:1;}
+.rt-skip{font-size:11px;color:var(--dim);margin-top:6px;letter-spacing:0.5px;}
+
+/* ── OVERLOAD BADGES ── */
+.ol-up{display:inline-block;background:#052;color:var(--green);border:1px solid var(--green);border-radius:4px;font-size:10px;font-weight:700;padding:1px 5px;margin-left:6px;vertical-align:middle;}
+.ol-down{display:inline-block;background:#200;color:var(--red);border:1px solid var(--red);border-radius:4px;font-size:10px;font-weight:700;padding:1px 5px;margin-left:6px;vertical-align:middle;}
+.ol-eq{display:inline-block;background:var(--s2);color:var(--dim);border:1px solid var(--b2);border-radius:4px;font-size:10px;font-weight:700;padding:1px 5px;margin-left:6px;vertical-align:middle;}
+
+/* ── LAST GHOST ── */
+.last-ghost{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:0.2px;}
+
+/* ── CALF BUTTON ── */
+.calf-btn{padding:8px 14px;background:transparent;border:1px solid var(--orange);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;color:var(--orange);cursor:pointer;white-space:nowrap;position:relative;transition:all .15s;}
+.calf-btn:active{background:var(--orange-lo);}
+.calf-btn.calf-warn{border-color:var(--red);color:var(--red);}
+.calf-badge{display:inline-block;background:var(--orange);color:#000;border-radius:99px;font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 4px;margin-left:5px;vertical-align:middle;}
+.calf-btn.calf-warn .calf-badge{background:var(--red);}
+
+/* ── VOLUME BARS ── */
+.vol-bar-wrap{background:var(--s2);border-radius:99px;height:6px;flex:1;overflow:hidden;margin-left:8px;}
+.vol-bar{height:100%;background:var(--orange);border-radius:99px;transition:width .4s;}
+.vol-row{display:flex;align-items:center;padding:5px 0;font-size:12px;color:var(--lt);}
+.vol-muscle{min-width:90px;color:var(--mid);text-transform:capitalize;}
+.vol-count{font-size:11px;color:var(--dim);margin-left:8px;min-width:30px;text-align:right;}
+
+/* ── SESSION NOTES ── */
+.notes-area{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px 13px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--lt);outline:none;resize:vertical;min-height:80px;box-sizing:border-box;margin:0 0 12px;}
+.notes-area:focus{border-color:var(--orange);}
+.notes-area::placeholder{color:var(--dim);}
+.notes-wrap{margin:0 18px 12px;}
+.notes-label{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;display:block;margin-bottom:6px;}
+
+/* ── PHYSIO REST BANNER ── */
+.physio-banner{margin:12px 18px 4px;background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);line-height:1.6;}
+
 </style>
 </head>
 <body>
@@ -319,6 +358,11 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="rest-timer" id="restTimer" style="display:none" onclick="skipRest()">
+  <div class="rt-label">REST</div>
+  <div class="rt-count" id="rtCount">90</div>
+  <div class="rt-skip">Tap to skip</div>
+</div>
 <div class="plan-modal" id="planModal"></div>
 
 <div class="summary" id="sum">
@@ -492,7 +536,14 @@ const PROG_V1={
     {id:"sa_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last.",muscles:[]},
     {id:"sa_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Left leg only.",muscles:[]},
   ]},
-  Sunday:{label:"Rest",sub:"Recovery Day",exercises:[]}
+  Sunday:{label:"Active Recovery",sub:"Physio & Mobility",exercises:[
+    {id:"su_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"su_gb", name:"Glute Bridge",          cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"su_bd", name:"Bird Dog",               cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"su_hf", name:"Hip Flexor Stretch",     cat:"physio",sets:2,reps:"60s each",    hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:[]},
+    {id:"su_cc", name:"Cat-Cow",                cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly.",muscles:[]},
+    {id:"su_nf", name:"Nerve Floss Left Leg",   cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]}
 };
 
 // ── PROGRAM V2: active from Monday 1 June 2026 ────────────────────────────
@@ -586,7 +637,14 @@ const PROG_V2={
     {id:"sa2_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last.",muscles:[]},
     {id:"sa2_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Left leg only.",muscles:[]},
   ]},
-  Sunday:{label:"Rest",sub:"Recovery Day",exercises:[]}
+  Sunday:{label:"Active Recovery",sub:"Physio & Mobility",exercises:[
+    {id:"su2_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"su2_gb", name:"Glute Bridge",          cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"su2_bd", name:"Bird Dog",               cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"su2_hf", name:"Hip Flexor Stretch",     cat:"physio",sets:2,reps:"60s each",    hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:[]},
+    {id:"su2_cc", name:"Cat-Cow",                cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly.",muscles:[]},
+    {id:"su2_nf", name:"Nerve Floss Left Leg",   cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]}
 };
 
 // Active program: V1 until May 31, V2 from June 1 2026 onwards
