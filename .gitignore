@@ -10,3 +10,4 @@ config.local.js
 
 # Dependencies
 node_modules/
+.claude/worktrees/
