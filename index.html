@@ -258,6 +258,101 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 /* ── SPINNER ── */
 .spin{display:inline-block;width:13px;height:13px;border:2px solid var(--b2);border-top-color:var(--orange);border-radius:50%;animation:sp .6s linear infinite;vertical-align:middle;margin-right:6px;}
 @keyframes sp{to{transform:rotate(360deg);}}
+
+/* ── LIGHT MODE ── */
+html.light{
+  --black:#fff;--s0:#f5f5f5;--s1:#ebebeb;--s2:#e0e0e0;--s3:#d5d5d5;
+  --b1:#d0d0d0;--b2:#b8b8b8;--dim:#666;--mid:#555;--lt:#333;--white:#1a1a1a;
+  --orange-lo:#fff0e8;--orange-mid:#cc4400;--green-lo:#e8f5ed;
+}
+
+/* ── NUTRITION ── */
+.nut-wrap{padding:14px 18px 20px;}
+.nut-date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.nut-date-nav button{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--mid);font-family:'Space Grotesk',sans-serif;font-size:18px;width:36px;height:36px;cursor:pointer;}
+.nut-date-lbl{font-size:13px;font-weight:600;color:var(--lt);letter-spacing:0.3px;}
+.nut-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-bottom:10px;}
+.nut-card-title{font-size:11px;font-weight:600;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}
+.burn-row{display:flex;gap:8px;}
+.burn-col{flex:1;text-align:center;}
+.burn-val{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-0.5px;}
+.burn-val.tappable{cursor:pointer;border-bottom:1px dashed var(--dim);}
+.burn-lbl{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:0.5px;}
+.burn-sep{width:1px;background:var(--b1);margin:4px 0;}
+.target-display{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.target-num{font-size:28px;font-weight:700;letter-spacing:-0.5px;}
+.target-pill-g{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;letter-spacing:1px;}
+.tpill-green{background:var(--green-lo);color:var(--green);}
+.tpill-amber{background:#1a1200;color:var(--amber);}
+.tpill-red{background:#1a0404;color:var(--red);}
+html.light .tpill-amber{background:#fff8e0;}
+html.light .tpill-red{background:#ffe8e8;}
+.prog-bar-wrap{height:6px;background:var(--b1);border-radius:99px;overflow:hidden;margin-bottom:8px;}
+.prog-bar-fill{height:100%;background:var(--orange);border-radius:99px;transition:width .4s ease;}
+.macro-row{display:flex;gap:6px;margin-top:6px;}
+.macro-chip{flex:1;background:var(--s2);border-radius:8px;padding:8px 6px;text-align:center;}
+.macro-val{font-size:16px;font-weight:700;color:var(--white);}
+.macro-lbl{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}
+.net-line{font-size:12px;margin-top:8px;text-align:center;font-weight:600;}
+.net-green{color:var(--green);}
+.net-red{color:var(--red);}
+.shock-btn{width:100%;margin-top:10px;padding:10px;background:transparent;border:1px solid var(--amber);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--amber);cursor:pointer;text-transform:uppercase;}
+.shock-btn.active{background:#1a1200;color:var(--amber);}
+html.light .shock-btn.active{background:#fff8e0;}
+.food-list{margin-bottom:6px;}
+.food-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b1);}
+.food-item:last-child{border:none;}
+.food-name{font-size:13px;font-weight:600;color:var(--white);}
+.food-macros{font-size:11px;color:var(--dim);margin-top:2px;}
+.food-kcal{font-size:15px;font-weight:700;color:var(--orange);margin-right:10px;white-space:nowrap;}
+.food-del{background:transparent;border:none;color:var(--dim);font-size:16px;cursor:pointer;padding:4px;}
+.add-food-btn{width:100%;padding:11px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase;transition:all .15s;}
+.add-food-btn:active{border-color:var(--orange);color:var(--orange);}
+.food-chat{margin-top:10px;}
+.food-ta{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px 13px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--white);outline:none;resize:none;min-height:70px;-webkit-appearance:none;}
+.food-ta:focus{border-color:var(--orange);}
+.food-ta::placeholder{color:var(--dim);}
+.food-chat-btns{display:flex;gap:8px;margin-top:8px;}
+.food-submit{flex:1;padding:12px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}
+.food-cancel{padding:12px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}
+.pending-food{background:var(--s2);border:1px solid var(--orange);border-radius:10px;padding:13px;margin-top:10px;}
+.pending-name{font-size:15px;font-weight:700;margin-bottom:4px;}
+.pending-macros{font-size:12px;color:var(--mid);margin-bottom:10px;}
+.pending-btns{display:flex;gap:8px;}
+.pf-add{flex:1;padding:11px;background:var(--green);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}
+.pf-redo{padding:11px 14px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}
+.wt-entry{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.wt-inp{width:100px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px;font-family:'Space Grotesk',sans-serif;font-size:17px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}
+.wt-inp:focus{border-color:var(--orange);}
+.wt-save{padding:10px 18px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}
+.wt-log-btn{width:100%;padding:10px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase;margin-bottom:8px;}
+.sparkline-wrap{margin:10px 0;overflow:hidden;border-radius:6px;}
+.wt-recent{font-size:11px;color:var(--dim);line-height:1.9;}
+.wt-recent span{color:var(--lt);}
+.wt-arrival{font-size:13px;color:var(--mid);margin-top:8px;}
+.wt-arrival b{color:var(--white);}
+.wt-bmr{font-size:12px;color:var(--dim);margin-top:4px;}
+.hk-btn{width:100%;padding:11px;background:transparent;border:1px solid var(--blue);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--blue);cursor:pointer;text-transform:uppercase;}
+.ai-accordion{margin-top:10px;border:1px solid var(--b1);border-radius:12px;overflow:hidden;}
+.ai-accordion summary{padding:14px;font-size:13px;font-weight:700;color:var(--mid);letter-spacing:0.3px;cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;}
+.ai-accordion summary::-webkit-details-marker{display:none;}
+.ai-accordion[open] summary{border-bottom:1px solid var(--b1);}
+.ai-acc-inner{padding:12px;}
+.weekly-note{background:var(--s2);border:1px solid var(--orange);border-left:2px solid var(--orange);border-radius:0 8px 8px 0;padding:11px 13px;margin-bottom:10px;font-size:12px;color:var(--lt);line-height:1.7;}
+.weekly-note-title{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:5px;}
+/* HK modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.8);z-index:300;align-items:flex-end;max-width:430px;left:50%;transform:translateX(-50%);}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--s1);border-radius:16px 16px 0 0;padding:22px 20px 36px;width:100%;max-height:80vh;overflow-y:auto;}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:6px;}
+.modal-sub{font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.6;}
+.modal-step{display:flex;gap:12px;margin-bottom:12px;}
+.modal-step-num{width:24px;height:24px;border-radius:50%;background:var(--orange);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+.modal-step-text{font-size:13px;color:var(--lt);line-height:1.6;}
+.modal-url{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;color:var(--mid);word-break:break-all;margin:8px 0;}
+.modal-btns{display:flex;gap:8px;margin-top:14px;}
+.modal-copy{flex:1;padding:12px;background:var(--orange);border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}
+.modal-close-btn{padding:12px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}
 </style>
 </head>
 <body>
@@ -272,11 +367,27 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 
 <div class="bot-nav">
   <div class="nav-item active" id="nav-workout" onclick="go('workout')"><div class="nav-icon">🏋</div><div>Workout</div></div>
-  <div class="nav-item" id="nav-ai" onclick="go('ai')"><div class="nav-icon">🤖</div><div>AI Coach</div></div>
+  <div class="nav-item" id="nav-nutrition" onclick="go('nutrition')"><div class="nav-icon">🍎</div><div>Nutrition</div></div>
   <div class="nav-item" id="nav-settings" onclick="go('settings')"><div class="nav-icon">⚙️</div><div>Settings</div></div>
 </div>
 
 <div class="toast" id="toast"></div>
+
+<div class="modal-overlay" id="hkModal">
+  <div class="modal-box">
+    <div class="modal-title">🍏 Apple Health Sync</div>
+    <div class="modal-sub">Set up an iOS Shortcut to auto-sync active calories each evening.</div>
+    <div class="modal-step"><div class="modal-step-num">1</div><div class="modal-step-text">Open the <b>Shortcuts</b> app → tap <b>+</b> → New Shortcut</div></div>
+    <div class="modal-step"><div class="modal-step-num">2</div><div class="modal-step-text">Add action: <b>Get Health Sample</b> → Active Energy Burned → Today → Sum</div></div>
+    <div class="modal-step"><div class="modal-step-num">3</div><div class="modal-step-text">Add action: <b>Open URLs</b> and paste this URL (replace <code>[Energy]</code> with the variable from step 2):</div></div>
+    <div class="modal-url" id="hkUrl">https://your-app-url/?hksync=1&amp;active=[Energy]&amp;date=[Current Date]</div>
+    <div class="modal-step"><div class="modal-step-num">4</div><div class="modal-step-text">Add shortcut to Home Screen. Run each evening after workout.</div></div>
+    <div class="modal-btns">
+      <button class="modal-copy" onclick="copyHkUrl()">Copy URL</button>
+      <button class="modal-close-btn" onclick="document.getElementById('hkModal').classList.remove('show')">Close</button>
+    </div>
+  </div>
+</div>
 
 <div class="summary" id="sum">
   <div class="sum-icon">🔥</div>
@@ -394,9 +505,30 @@ const GYM="Stationary bike, treadmill, seated cable machine, chest press machine
 
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
 if(!S.sessions)S.sessions={};
+if(!S.nutrition)S.nutrition={days:{},weights:{},aiDeficitModifier:0,weeklyCoachNote:"",weeklySnapshots:[]};
+if(!S.nutrition.days)S.nutrition.days={};
+if(!S.nutrition.weights)S.nutrition.weights={};
+if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
+if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 function save(){localStorage.setItem("f5",JSON.stringify(S));}
+document.documentElement.classList.toggle("light",S.theme==="light");
+
+// Personal constants — never rendered in UI
+const USER={weightKg:136.6,targetKg:95,heightCm:190.5,age:30,sex:"M",goalDate:new Date(2026,11,1)};
+function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*USER.age+5);}
+function latestWeightLog(){const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
+function calcTarget(bmr,active){
+  const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+  const lw=latestWeightLog()||USER.weightKg;
+  const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+  const mod=Math.max(-300,Math.min(300,S.nutrition.aiDeficitModifier||0));
+  return{bmr,req,target:Math.max(1500,bmr+active-req+mod),daysLeft,lw};
+}
+function isoToday(){return new Date().toISOString().slice(0,10);}
+function esc(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");}
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
+let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false;
 
 window.addEventListener("DOMContentLoaded",()=>{
   buildNav();
@@ -404,6 +536,11 @@ window.addEventListener("DOMContentLoaded",()=>{
   selectDay(t);
   cycleQ();
   setInterval(cycleQ,9000);
+  handleHKSync();
+  setInterval(checkMondayAudit,60000);
+  // Set HK URL in modal
+  const el=document.getElementById("hkUrl");
+  if(el)el.textContent=location.origin+location.pathname+"?hksync=1&active=[Energy]&date=[Current Date]";
 });
 
 function cycleQ(){
@@ -415,11 +552,12 @@ function cycleQ(){
 function go(tab){
   cTab=tab;
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
-  document.getElementById("nav-"+tab).classList.add("active");
+  const navEl=document.getElementById("nav-"+tab);
+  if(navEl)navEl.classList.add("active");
   document.getElementById("dayNav").style.display=tab==="workout"?"flex":"none";
   document.getElementById("mainScroll").scrollTop=0;
   if(tab==="workout")renderW();
-  else if(tab==="ai")renderAI();
+  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;renderNutrition();}
   else renderST();
 }
 
@@ -808,6 +946,11 @@ function renderST(){
       <div class="st-row"><div class="st-icon">💊</div><div class="st-info"><div class="st-ttl">Active Stack</div><div class="st-sub">Zepbound · Levothyroxine · Enclomiphene · CPAP</div></div></div>
     </div>
 
+    <div class="st-sec">Appearance</div>
+    <div class="st-group">
+      <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":"🌙"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light mode — tap for dark":"Dark mode — tap for light"}</div></div></div>
+    </div>
+
     <div class="st-sec">Data</div>
     <div class="st-group">
       <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
@@ -845,12 +988,380 @@ function findN(id){
 }
 
 function clearD(){if(confirm("Clear all data?")){localStorage.removeItem("f5");location.reload();}}
+function toggleTheme(){S.theme=S.theme==="light"?"dark":"light";save();document.documentElement.classList.toggle("light",S.theme==="light");renderST();}
 
 function showToast(msg){
   const t=document.getElementById("toast");
   t.textContent=msg;t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"),2200);
 }
+
+// ── NUTRITION ──────────────────────────────────────────
+
+function nutShift(delta){
+  const d=new Date(_nutDate+"T12:00:00");d.setDate(d.getDate()+delta);
+  const next=d.toISOString().slice(0,10);
+  if(next>isoToday())return;
+  _nutDate=next;_pendingFood=null;_foodChatOpen=false;renderNutrition();
+}
+
+function nutDateLabel(iso){
+  const today=isoToday();
+  if(iso===today){const d=new Date(iso+"T12:00:00");return d.toLocaleDateString("en-AU",{weekday:"short",month:"short",day:"numeric"})+" (Today)";}
+  const d=new Date(iso+"T12:00:00");return d.toLocaleDateString("en-AU",{weekday:"short",month:"short",day:"numeric"});
+}
+
+function getDayData(date){
+  if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
+  const d=S.nutrition.days[date];
+  if(!d.items)d.items=[];
+  return d;
+}
+
+function renderNutrition(){
+  const date=_nutDate;
+  const day=getDayData(date);
+  const lw=latestWeightLog()||USER.weightKg;
+  const bmr=calcBMR(lw);
+  const resting=day.restingOverride!=null?day.restingOverride:bmr;
+  const restOvr=day.restingOverride!=null?day.restingOverride:null;
+  const active=day.active||0;
+  const totalBurn=resting+active;
+  const {target,req}=calcTarget(resting,active);
+  const shock=day.shockProtocol;
+  const finalTarget=shock?1500:target;
+
+  const items=day.items||[];
+  const consumed=items.reduce((s,i)=>s+i.kcal,0);
+  const protein=items.reduce((s,i)=>s+(i.protein||0),0);
+  const carbs=items.reduce((s,i)=>s+(i.carbs||0),0);
+  const fat=items.reduce((s,i)=>s+(i.fat||0),0);
+  const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
+  const netDef=consumed-totalBurn;
+  const ratio=finalTarget?consumed/finalTarget:0;
+  const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
+  const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
+
+  const foodListHtml=items.length?items.map(it=>`
+    <div class="food-item">
+      <div><div class="food-name">${esc(it.name)}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div>
+      <div style="display:flex;align-items:center"><div class="food-kcal">${it.kcal} kcal</div><button class="food-del" onclick="delFood('${date}','${it.id}')">✕</button></div>
+    </div>`).join(""):"<div style='font-size:12px;color:var(--dim);padding:8px 0'>No food logged yet — tap + Add Food</div>";
+
+  const weekNote=S.nutrition.weeklyCoachNote;
+  const aiAccordionHtml=`<details class="ai-accordion">
+    <summary>💪 AI Coaching</summary>
+    <div class="ai-acc-inner">
+      ${weekNote?`<div class="weekly-note"><div class="weekly-note-title">Weekly Audit</div>${esc(weekNote)}</div>`:""}
+      <div class="ai-card" style="margin-bottom:10px">
+        <div class="ai-card-title">🎙 Log in Plain English</div>
+        <div class="ai-card-sub">Type what you just did. Claude structures it instantly.</div>
+        <input class="ai-inp" id="ci" placeholder='e.g. "leg press 80kg 3 sets 12 reps"'>
+        <button class="ai-btn" onclick="aiRun('conv')">Parse &amp; Structure</button>
+        <div class="ai-out" id="co"></div>
+      </div>
+      <div class="ai-card" style="margin-bottom:10px">
+        <div class="ai-card-title">📈 What Weight Today?</div>
+        <div class="ai-card-sub">Tell Claude last session's performance. Get today's exact target.</div>
+        <input class="ai-inp" id="oi" placeholder='e.g. "leg press 80kg 3x12, felt easy"'>
+        <button class="ai-btn" onclick="aiRun('overload')">Get Today's Target</button>
+        <div class="ai-out" id="oo"></div>
+      </div>
+      <div class="ai-card" style="margin-bottom:10px">
+        <div class="ai-card-title">🔄 Machine Busy?</div>
+        <input class="ai-inp" id="si" placeholder='e.g. "chest press machine is busy"'>
+        <button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button>
+        <div class="ai-out" id="so"></div>
+      </div>
+      <div class="ai-card">
+        <div class="ai-card-title">💤 How Hard Should I Train?</div>
+        <div class="g2">
+          <div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div>
+          <div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div>
+          <div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div>
+          <div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div>
+        </div>
+        <button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button>
+        <div class="ai-out" id="ro"></div>
+      </div>
+    </div>
+  </details>`;
+
+  const wts=S.nutrition.weights||{};
+  const wtKeys=Object.keys(wts).sort().slice(-7);
+  const sparkHtml=buildSparkline(wtKeys,wts);
+  const arrHtml=arrivalEst();
+  const liveWt=latestWeightLog();
+  const liveBMR=liveWt?calcBMR(liveWt):calcBMR(USER.weightKg);
+
+  document.getElementById("tc").innerHTML=`<div class="nut-wrap">
+    <div class="nut-date-nav">
+      <button onclick="nutShift(-1)">‹</button>
+      <div class="nut-date-lbl">${nutDateLabel(date)}</div>
+      <button onclick="nutShift(1)" ${date>=isoToday()?"disabled style='opacity:.3'":""}>›</button>
+    </div>
+
+    <div class="nut-card">
+      <div class="nut-card-title">Burn</div>
+      <div class="burn-row">
+        <div class="burn-col">
+          <div class="burn-val tappable" onclick="editResting('${date}')" title="Tap to override">${resting}${restOvr!=null?"*":""}</div>
+          <div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div>
+        </div>
+        <div class="burn-sep"></div>
+        <div class="burn-col">
+          <div class="burn-val tappable" onclick="editActive('${date}')">${active||"—"}</div>
+          <div class="burn-lbl">Active</div>
+        </div>
+        <div class="burn-sep"></div>
+        <div class="burn-col">
+          <div class="burn-val">${totalBurn}</div>
+          <div class="burn-lbl">Total</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nut-card">
+      <div class="nut-card-title">Target</div>
+      <div class="target-display">
+        <div class="target-num">${finalTarget.toLocaleString()} <span style="font-size:14px;font-weight:400;color:var(--dim)">kcal${shock?" (shock)":""}</span></div>
+        <div class="target-pill-g ${pillCls}">${pillTxt}</div>
+      </div>
+      <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">${consumed.toLocaleString()} / ${finalTarget.toLocaleString()} kcal consumed</div>
+      <div class="macro-row">
+        <div class="macro-chip"><div class="macro-val">${protein}g</div><div class="macro-lbl">Protein</div></div>
+        <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
+        <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
+      </div>
+      <div class="net-line ${netDef<=0?"net-green":"net-red"}">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal</div>
+      <button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active — Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>
+    </div>
+
+    <div class="nut-card">
+      <div class="nut-card-title">Food Log</div>
+      <div class="food-list">${foodListHtml}</div>
+      ${_pendingFood?`<div class="pending-food">
+        <div class="pending-name">${esc(_pendingFood.name)}</div>
+        <div class="pending-macros">${_pendingFood.kcal} kcal · P ${_pendingFood.protein}g · C ${_pendingFood.carbs}g · F ${_pendingFood.fat}g</div>
+        <div class="pending-btns">
+          <button class="pf-add" onclick="confirmFood('${date}')">✓ Add</button>
+          <button class="pf-redo" onclick="redoFood()">Re-enter</button>
+        </div>
+      </div>`:""}
+      ${_foodChatOpen?`<div class="food-chat">
+        <textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 scrambled eggs on 1 slice of toast" rows="3"></textarea>
+        <div class="ai-out" id="foodOut"></div>
+        <div class="food-chat-btns">
+          <button class="food-submit" onclick="askFood()">Estimate with AI</button>
+          <button class="food-cancel" onclick="closeFood()">Cancel</button>
+        </div>
+      </div>`:`<button class="add-food-btn" onclick="openFood()">+ Add Food</button>`}
+    </div>
+
+    <div class="nut-card">
+      <div class="nut-card-title">Weight Log</div>
+      ${_wtOpen?`<div class="wt-entry">
+        <input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" autofocus>
+        <button class="wt-save" onclick="saveWeight('${date}')">Save</button>
+        <button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button>
+      </div>`:`<button class="wt-log-btn" onclick="_wtOpen=true;renderNutrition()">+ Log Weight</button>`}
+      ${sparkHtml}
+      ${wtKeys.length?`<div class="wt-arrival">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
+    </div>
+
+    <div class="nut-card">
+      <div class="nut-card-title">Apple Health</div>
+      <button class="hk-btn" onclick="showHK()">🍏 Setup iOS Shortcut Sync</button>
+    </div>
+
+    ${aiAccordionHtml}
+    <div style="height:20px"></div>
+  </div>`;
+}
+
+function editResting(date){
+  const lw=latestWeightLog()||USER.weightKg;
+  const bmrCalc=calcBMR(lw);
+  const cur=S.nutrition.days[date]?.restingOverride??bmrCalc;
+  const val=prompt("Resting calories for today (blank = reset to BMR "+bmrCalc+"):",cur);
+  if(val===null)return;
+  if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
+  if(val.trim()===""){delete S.nutrition.days[date].restingOverride;}
+  else{const n=parseInt(val);if(isNaN(n)||n<800||n>4000){showToast("Enter a value between 800–4000");return;}S.nutrition.days[date].restingOverride=n;}
+  save();renderNutrition();
+}
+
+function editActive(date){
+  const day=getDayData(date);
+  const val=prompt("Active calories for today (from Apple Watch or manual):",day.active||"");
+  if(val===null)return;
+  const n=parseInt(val);
+  if(isNaN(n)||n<0){showToast("Enter a valid number");return;}
+  day.active=n;save();renderNutrition();
+}
+
+function toggleShock(date){
+  const day=getDayData(date);
+  day.shockProtocol=!day.shockProtocol;
+  save();renderNutrition();
+}
+
+function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
+function closeFood(){_foodChatOpen=false;renderNutrition();}
+function redoFood(){_pendingFood=null;_foodChatOpen=true;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
+
+async function askFood(){
+  const ta=document.getElementById("foodTa");if(!ta)return;
+  const txt=ta.value.trim();if(!txt){showToast("Describe what you ate first");return;}
+  const out=document.getElementById("foodOut");
+  if(out){out.className="ai-out show";out.innerHTML='<span class="spin"></span>Estimating...';}
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:120,
+        system:'You are a nutrition estimator. Respond ONLY with valid JSON, no other text: {"name":"short name","kcal":N,"protein":N,"carbs":N,"fat":N}. Use Australian/UK portions. Be conservative.',
+        messages:[{role:"user",content:txt}]
+      })
+    });
+    const d=await r.json();
+    const text=d.content?.[0]?.text||"";
+    if(!text)throw new Error("no response");
+    const m=text.match(/\{[\s\S]*?\}/);
+    if(!m)throw new Error("no json");
+    const parsed=JSON.parse(m[0]);
+    if(!parsed.kcal&&parsed.kcal!==0)throw new Error("missing kcal");
+    _pendingFood={id:"n_"+Date.now(),name:parsed.name||txt,kcal:Math.round(parsed.kcal),protein:Math.round(parsed.protein||0),carbs:Math.round(parsed.carbs||0),fat:Math.round(parsed.fat||0),time:Date.now()};
+    if(out)out.className="ai-out";
+    _foodChatOpen=false;
+    renderNutrition();
+  }catch(e){
+    if(out){out.className="ai-out show";out.textContent="Could not estimate — try again or be more specific (e.g. '2 scrambled eggs on 1 slice toast').";}
+  }
+}
+
+function confirmFood(date){
+  if(!_pendingFood)return;
+  const day=getDayData(date);
+  day.items.push({..._pendingFood});
+  _pendingFood=null;
+  save();showToast("Food added ✓");renderNutrition();
+}
+
+function delFood(date,id){
+  const day=getDayData(date);
+  day.items=day.items.filter(i=>i.id!==id);
+  save();renderNutrition();
+}
+
+function saveWeight(date){
+  const inp=document.getElementById("wtInp");if(!inp)return;
+  const val=parseFloat(inp.value);
+  if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight (kg)");return;}
+  S.nutrition.weights[date]=val;
+  _wtOpen=false;
+  save();renderNutrition();
+  showToast("Weight logged ✓");
+}
+
+function buildSparkline(keys,wts){
+  if(keys.length<2)return"";
+  const vals=keys.map(k=>wts[k]);
+  const mn=Math.min(...vals),mx=Math.max(...vals);
+  const range=mx-mn||1;
+  const W=320,H=60,pad=6;
+  const pts=vals.map((v,i)=>{
+    const x=pad+(i/(vals.length-1))*(W-pad*2);
+    const y=H-pad-((v-mn)/range)*(H-pad*2);
+    return`${x.toFixed(1)},${y.toFixed(1)}`;
+  });
+  // target line at USER.targetKg if in range
+  let tLine="";
+  if(USER.targetKg>=mn&&USER.targetKg<=mx){
+    const ty=(H-pad-((USER.targetKg-mn)/range)*(H-pad*2)).toFixed(1);
+    tLine=`<line x1="${pad}" y1="${ty}" x2="${W-pad}" y2="${ty}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`;
+  }
+  return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
+    ${tLine}
+    <polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}
+  </svg></div>
+  <div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
+}
+
+function arrivalEst(){
+  const wts=S.nutrition.weights||{};
+  const keys=Object.keys(wts).sort();
+  if(keys.length<2)return`Estimated arrival: <b>need more data</b>`;
+  const recent=keys.slice(-Math.min(keys.length,28));
+  const n=recent.length;
+  const xs=recent.map((_,i)=>i);
+  const ys=recent.map(k=>wts[k]);
+  const mx=xs.reduce((a,b)=>a+b,0)/n;
+  const my=ys.reduce((a,b)=>a+b,0)/n;
+  const slope=xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/xs.reduce((a,x)=>a+(x-mx)**2,0);
+  if(slope>=0)return`Estimated arrival: <b>trend going up — check deficit</b>`;
+  const lastY=ys[n-1];
+  const daysNeeded=Math.ceil((lastY-USER.targetKg)/Math.abs(slope));
+  const arrival=new Date(recent[n-1]+"T12:00:00");
+  arrival.setDate(arrival.getDate()+daysNeeded);
+  const diff=Math.round((USER.goalDate-arrival)/(86400000));
+  const ahead=diff>0?` (${diff}d ahead of goal)`:diff<0?` (${Math.abs(diff)}d behind goal)`:" (on track)";
+  return`Estimated arrival: <b>${arrival.toLocaleDateString("en-AU",{month:"short",day:"numeric",year:"numeric"})}</b>${ahead}`;
+}
+
+function handleHKSync(){
+  const p=new URLSearchParams(location.search);
+  if(!p.get("hksync"))return;
+  const active=parseInt(p.get("active")||"0");
+  const date=p.get("date")||isoToday();
+  if(!isNaN(active)&&active>=0){
+    if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
+    S.nutrition.days[date].active=active;
+    save();
+    showToast(`⚡ Active calories synced (${active} kcal)`);
+  }
+  const url=new URL(location.href);url.searchParams.delete("hksync");url.searchParams.delete("active");url.searchParams.delete("date");
+  history.replaceState({},"",url);
+}
+
+function showHK(){document.getElementById("hkModal").classList.add("show");}
+function copyHkUrl(){
+  const txt=document.getElementById("hkUrl").textContent;
+  navigator.clipboard?.writeText(txt).then(()=>showToast("URL copied ✓")).catch(()=>showToast("Copy from modal manually"));
+}
+
+async function checkMondayAudit(){
+  const now=new Date();
+  if(now.getDay()!==1||now.getHours()<11)return;
+  const wk=getISOWeek();
+  if(S.nutrition.weeklyCoachNote&&S.nutrition._auditWeek===wk)return;
+  const days=Object.entries(S.nutrition.days||{}).slice(-7);
+  if(days.length<3)return;
+  const avgKcal=Math.round(days.reduce((s,[,d])=>s+(d.items||[]).reduce((a,i)=>a+i.kcal,0),0)/days.length);
+  const lw=latestWeightLog()||USER.weightKg;
+  const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+  const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+  try{
+    const r=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",max_tokens:120,
+        system:"You are a metabolic coach. Give a 2-3 sentence assessment. Be direct. Mention if on/off track. Suggest one concrete adjustment if needed. Plain text only.",
+        messages:[{role:"user",content:`Week data: avgKcal=${avgKcal}, requiredDeficit=${req}kcal/day, currentWeight=${lw}kg, targetWeight=${USER.targetKg}kg, daysRemaining=${daysLeft}`}]
+      })
+    });
+    const d=await r.json();
+    const note=d.content?.[0]?.text||"";
+    if(note){S.nutrition.weeklyCoachNote=note;S.nutrition._auditWeek=wk;save();}
+  }catch(e){}
+}
+
+function getISOWeek(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 </script>
 </body>
 </html>
