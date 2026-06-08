@@ -710,26 +710,15 @@ function rememberCustom(day,ex){
   if(!S.custom[day].some(e=>e.id===ex.id))S.custom[day].push(ex);
 }
 
-// ── UNITS ──
-const KG_TO_LBS=2.2046;
+// ── UNITS — label only, no conversion (user enters what they see on the machine) ──
 function getUnit(){return S.units||"kg";}
-function wtDisplay(kg){
-  const v=parseFloat(kg)||0;
-  if(!v&&v!==0)return"";
-  return getUnit()==="lbs"?Math.round(v*KG_TO_LBS*10)/10:v;
-}
-function wtStore(inputVal){
-  const v=parseFloat(inputVal)||0;
-  return getUnit()==="lbs"?Math.round(v/KG_TO_LBS*100)/100:v;
-}
 function hintDisp(hint){
   if(!hint)return"";
-  if(getUnit()==="kg")return hint;
-  return hint.replace(/(\d+(?:\.\d+)?)/g,n=>Math.round(parseFloat(n)*KG_TO_LBS)).replace(/\bkg\b/gi,"lbs");
+  return hint.replace(/\b(kg|lbs)\b/gi,"").trim()+" "+getUnit();
 }
 function toggleUnits(){
   S.units=getUnit()==="kg"?"lbs":"kg";
-  save();showToast("Switched to "+getUnit());renderW();renderST();
+  save();showToast("Unit label set to "+getUnit());renderW();renderST();
 }
 
 function esc(v){
@@ -1109,7 +1098,8 @@ function card(ex,sess,key,rdOnly=false){
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
-  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${wtDisplay(lastSess.weight)}${getUnit()} × ${esc(String(lastSess.reps))}</div>`:"";
+  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${parseFloat(lastSess.weight.toFixed(1))}${getUnit()} × ${esc(String(lastSess.reps))}</div>`:"";
+
 
 
   // Overload badge
@@ -1143,7 +1133,7 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint)||getUnit()}" value="${esc(String(wtDisplay(weightVal)||""))}" ${rdOnly?'disabled':''} onchange="saveW('${key}','${ex.id}',${i},this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
+        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint)||getUnit()}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onkeydown="onRpKey(event,'${key}','${ex.id}',${i})" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
@@ -1179,9 +1169,6 @@ function ensure(key,exId,i){
   while(S.sessions[key][exId].sets.length<=i)S.sessions[key][exId].sets.push({});
 }
 
-function saveW(key,exId,i,val){
-  saveF(key,exId,i,'weight',String(wtStore(val)));
-}
 function onWtKey(e,exId,i){if(e.key==="Enter"){e.preventDefault();const r=document.getElementById("ri-"+exId+"-"+i);if(r)r.focus();}}
 function onRpKey(e,key,exId,i){if(e.key==="Enter"){e.preventDefault();document.activeElement.blur();}}
 
