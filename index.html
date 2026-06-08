@@ -313,6 +313,8 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 .calf-btn.calf-warn{border-color:var(--red);color:var(--red);}
 .calf-badge{display:inline-block;background:var(--orange);color:#000;border-radius:99px;font-size:9px;font-weight:700;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 4px;margin-left:5px;vertical-align:middle;}
 .calf-btn.calf-warn .calf-badge{background:var(--red);}
+.calf-undo-btn{padding:6px 10px;background:transparent;border:1px solid var(--dim);border-radius:8px;font-size:12px;color:var(--dim);cursor:pointer;margin-left:4px;}
+.calf-undo-btn:active{background:var(--s2);}
 
 /* ── VOLUME BARS ── */
 .vol-bar-wrap{background:var(--s2);border-radius:99px;height:6px;flex:1;overflow:hidden;margin-left:8px;}
@@ -757,6 +759,27 @@ function lastSessionEx(exId){
   const avgW=weights.reduce((a,b)=>a+b,0)/weights.length;
   return{weight:avgW,reps,sets:best.sets};
 }
+// Current-week carry-forward only (for input pre-fill)
+function curWeekSessionEx(exId){
+  const curKey=sk(cDay);
+  const curWk=wk();
+  const sessions=S.sessions||{};
+  let best=null;
+  for(const[key,data] of Object.entries(sessions)){
+    if(key===curKey)continue;
+    if(!key.endsWith("_"+curWk))continue;
+    const ed=data[exId];
+    if(!ed||!ed.sets)continue;
+    const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps);
+    if(!doneSets.length)continue;
+    const dayOrder=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+    const dayName=key.split("_")[0];
+    const ord=dayOrder.indexOf(dayName);
+    if(!best||ord>best.ord){best={ord,sets:doneSets};}
+  }
+  if(!best)return null;
+  return{sets:best.sets};
+}
 
 // ── OVERLOAD DIRECTION ──
 function overloadDir(exId,sess){
@@ -783,18 +806,22 @@ function logCalfTwinge(){
   S.sessions[key]._calfTwinges.push(Date.now());
   save();
   const cnt=S.sessions[key]._calfTwinges.filter(ts=>Number.isFinite(ts)).length;
-  const btn=document.getElementById("calfBtn");
-  if(btn){
-    const badge=btn.querySelector(".calf-badge");
-    if(badge)badge.textContent=cnt;
-    if(cnt>=3){btn.classList.add("calf-warn");}
-  }
   if(cnt===3){
     showToast("⚠️ 3 twinges — consider stopping the session");
     if(navigator.vibrate)navigator.vibrate([100,50,100,50,100]);
   } else {
     showToast("Calf twinge logged");
   }
+  renderW();
+}
+function undoCalfTwinge(){
+  const key=sk(cDay);
+  const arr=S.sessions[key]?._calfTwinges;
+  if(!arr||!arr.length)return;
+  arr.pop();
+  save();
+  showToast("Twinge removed");
+  renderW();
 }
 
 // ── VOLUME DATA ──
@@ -988,7 +1015,8 @@ function renderW(){
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
-      const calfBtnHtml=workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>`:"";
+      const calfUndoHtml=(workoutOn&&twinges>0)?`<button class="calf-undo-btn" onclick="undoCalfTwinge()">↩</button>`:"";
+      const calfBtnHtml=workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>${calfUndoHtml}`:"";
       h+=`<div class="session-bar">
         <button class="btn-start${workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
         <button class="btn-stop${workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
@@ -1060,7 +1088,7 @@ function card(ex,sess,key,rdOnly=false){
   } else {
     const cnt=Math.max(ex.sets,(ed.sets||[]).length);
     let rows=`<div class="set-hdr"><div>Set</div><div>KG</div><div></div><div>Reps</div><div></div></div>`;
-    const lastSetsForCarry=lastSessionEx(ex.id);
+    const lastSetsForCarry=curWeekSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
       const hasD=sd.weight&&sd.reps;
@@ -1287,10 +1315,9 @@ function addCustom(key){
 // Session
 function startSess(){
   workoutOn=true;sessStart=Date.now();
-  document.getElementById("bStart").classList.add("hide");
-  document.getElementById("bStop").classList.add("show");
   showToast("Workout started ⚡");
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
+  renderW();
 }
 
 function stopSess(){

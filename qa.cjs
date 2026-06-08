@@ -237,20 +237,27 @@ async function screenshot(page, name) {
     const notesArea = await page.$('#sessNotes');
     if (!notesArea) throw new Error('Notes textarea not found');
     await notesArea.fill('Test session note 12345');
-    await page.waitForTimeout(700); // wait for debounce
+    await page.waitForTimeout(700); // wait for 500ms debounce + buffer
 
     await screenshot(page, '10a_notes_typed');
-    await page.evaluate(() => localStorage.setItem('forge_key', 'test-token'));
-    await page.reload({ waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(800);
+
+    // Verify localStorage was actually written by saveNotes()
+    const storedRaw = await page.evaluate(() => localStorage.getItem('f5'));
+    if (!storedRaw || !storedRaw.includes('Test session note 12345')) {
+      throw new Error(`Note not found in localStorage — got: "${storedRaw ? storedRaw.slice(0, 200) : 'null'}"`);
+    }
+
+    // Navigate away and back (same session, no page reload — tests renderW re-population)
+    await page.click('#p-Monday');
+    await page.waitForTimeout(300);
     await page.click('#p-Tuesday');
     await page.waitForTimeout(400);
-    await screenshot(page, '10b_notes_reloaded');
 
+    await screenshot(page, '10b_notes_after_nav');
     const notesArea2 = await page.$('#sessNotes');
-    if (!notesArea2) throw new Error('Notes textarea not found after reload');
+    if (!notesArea2) throw new Error('Notes textarea not found after navigating back');
     const val = await notesArea2.inputValue();
-    if (!val.includes('Test session note 12345')) throw new Error(`Notes not persisted — got: "${val}"`);
+    if (!val.includes('Test session note 12345')) throw new Error(`Notes not shown after nav — got: "${val}"`);
   }, page);
 
   // ── TEST 11: Rest timer appears after marking a set done ──
@@ -272,18 +279,28 @@ async function screenshot(page, name) {
       const inputs = await card.$$('input.si[type="number"]');
       if (inputs.length < 2) continue;
 
-      // Fill weight
-      await inputs[0].fill('30');
-      await inputs[0].dispatchEvent('change');
-      await page.waitForTimeout(150);
+      // Get card ID before any DOM replacement
+      const cardId = await card.evaluate(el => el.id);
 
-      // Fill reps
-      await inputs[1].fill('12');
-      await inputs[1].dispatchEvent('change');
-      await page.waitForTimeout(200);
+      // Set both values + dispatch both change events atomically to avoid reCard replacing DOM mid-fill
+      const filled = await page.evaluate((cid) => {
+        const c = document.getElementById(cid);
+        if (!c) return false;
+        const ins = c.querySelectorAll('input.si[type="number"]');
+        if (ins.length < 2) return false;
+        ins[0].value = '30';
+        ins[1].value = '12';
+        ins[0].dispatchEvent(new Event('change', { bubbles: true }));
+        ins[1].dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      }, cardId);
+      if (!filled) continue;
 
-      // Click done button (should no longer be locked)
-      const doneBtn = await card.$('.sdone:not(.locked)');
+      await page.waitForTimeout(300);
+
+      // Re-query done button after reCard
+      const freshCard = await page.$(`#${cardId}`);
+      const doneBtn = freshCard ? await freshCard.$('.sdone:not(.locked)') : null;
       if (doneBtn) {
         await doneBtn.click();
         setMarked = true;
