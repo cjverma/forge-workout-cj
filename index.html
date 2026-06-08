@@ -127,6 +127,9 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 /* ── SET ROWS ── */
 .sets-wrap{padding:0 14px 4px;}
 .set-hdr{display:grid;grid-template-columns:42px 1fr 16px 1fr 44px;gap:6px;padding:0 2px 6px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;text-align:center;}
+.unit-chip{background:transparent;border:1px solid var(--b1);border-radius:6px;font-size:9px;font-weight:700;letter-spacing:1px;color:var(--dim);padding:2px 5px;cursor:default;text-transform:uppercase;}
+.unit-chip.tappable{cursor:pointer;border-color:var(--orange);color:var(--orange);}
+.unit-chip.tappable:active{background:var(--orange-lo);}
 
 .set-row{
   display:grid;grid-template-columns:42px 1fr 16px 1fr 44px;
@@ -710,15 +713,18 @@ function rememberCustom(day,ex){
   if(!S.custom[day].some(e=>e.id===ex.id))S.custom[day].push(ex);
 }
 
-// ── UNITS — label only, no conversion (user enters what they see on the machine) ──
-function getUnit(){return S.units||"kg";}
-function hintDisp(hint){
-  if(!hint)return"";
-  return hint.replace(/\b(kg|lbs)\b/gi,"").trim()+" "+getUnit();
+// ── UNITS — per-exercise label (no conversion, you enter what you see) ──
+function getExUnit(key,exId){return S.sessions[key]?.[exId]?.unit||"kg";}
+function toggleExUnit(key,exId){
+  if(isPast())return;
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
+  save();reCard(key,exId);
 }
-function toggleUnits(){
-  S.units=getUnit()==="kg"?"lbs":"kg";
-  save();showToast("Unit label set to "+getUnit());renderW();renderST();
+function hintDisp(hint,unit){
+  if(!hint)return"";
+  return hint.replace(/\b(kg|lbs)\b/gi,"").trim()+" "+(unit||"kg");
 }
 
 function esc(v){
@@ -1098,7 +1104,8 @@ function card(ex,sess,key,rdOnly=false){
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
-  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${parseFloat(lastSess.weight.toFixed(1))}${getUnit()} × ${esc(String(lastSess.reps))}</div>`:"";
+  const exUnit=ed.unit||"kg";
+  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${parseFloat(lastSess.weight.toFixed(1))}${exUnit} × ${esc(String(lastSess.reps))}</div>`:"";
 
 
 
@@ -1119,7 +1126,8 @@ function card(ex,sess,key,rdOnly=false){
     <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}${rdOnly?" style='cursor:default'":""}"${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=Math.max(ex.sets,(ed.sets||[]).length);
-    let rows=`<div class="set-hdr"><div>Set</div><div>KG</div><div></div><div>Reps</div><div></div></div>`;
+    const exUnit=getExUnit(key,ex.id);
+    let rows=`<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button></div><div></div><div>Reps</div><div></div></div>`;
     const lastSetsForCarry=curWeekSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
@@ -1133,7 +1141,7 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint)||getUnit()}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
+        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"—"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onkeydown="onRpKey(event,'${key}','${ex.id}',${i})" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
@@ -1556,14 +1564,6 @@ function renderST(){
         vdata.map(({muscle,count})=>`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${Math.round(count/max*100)}%"></div></div><div class="vol-count">${count}</div></div>`).join("")+
       `</div>`;
     })()}
-    <div class="st-sec">Preferences</div>
-    <div class="st-group">
-      <div class="st-row" onclick="toggleUnits()">
-        <div class="st-icon">⚖️</div>
-        <div class="st-info"><div class="st-ttl">Weight Units</div><div class="st-sub">${getUnit()==="lbs"?"Pounds (lbs) — tap to switch to kg":"Kilograms (kg) — tap to switch to lbs"}</div></div>
-        <div class="st-toggle ${getUnit()==="lbs"?"on":""}"></div>
-      </div>
-    </div>
     <div class="st-sec">Permanent Spine Rules</div>
     <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
     <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
