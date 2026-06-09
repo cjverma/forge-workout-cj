@@ -949,6 +949,10 @@ function initApp(){
   setInterval(cycleQ,9000);
   handleHKSync();
   setInterval(checkMondayAudit,60000);
+  // Backup nudge: data exists but no backup in 14+ days
+  const hasData=Object.keys(S.sessions||{}).length>3;
+  const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;
+  if(hasData&&staleBackup)setTimeout(()=>showToast("💾 No recent backup — export one from Settings"),3000);
   const hkEl=document.getElementById("hkUrl");
   if(hkEl)hkEl.textContent=location.origin+location.pathname+"?hksync=1&active=[Energy]&date=[Date]";
   document.addEventListener("click",e=>{
@@ -1683,12 +1687,48 @@ function renderST(){
     </div>
     <div class="st-sec">Data</div>
     <div class="st-group">
+      <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download everything — sessions, nutrition, weights — as a JSON file</div></div></div>
+      <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file${S._lastBackup?` · last backup ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
+      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
       <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history copied to clipboard — paste into Claude</div></div></div>
       ${!window.FORGE_API_CFG?`<div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>`:""}
       <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
     </div>
     <div style="height:20px"></div>
   </div>`;
+}
+
+// ── BACKUP / RESTORE ──
+function exportBackup(){
+  S._lastBackup=Date.now();save();
+  const payload={app:"FORGE",version:1,exportedAt:new Date().toISOString(),state:S};
+  const blob=new Blob([JSON.stringify(payload,null,1)],{type:"application/json"});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement("a");
+  a.href=url;a.download="forge-backup-"+isoToday()+".json";
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),2000);
+  showToast("Backup downloaded 💾");renderST();
+}
+function importBackup(input){
+  const file=input.files&&input.files[0];
+  input.value="";
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=()=>{
+    let payload;
+    try{payload=JSON.parse(reader.result);}catch{showToast("Not a valid backup file");return;}
+    const state=payload&&payload.app==="FORGE"&&payload.state?payload.state:null;
+    if(!state||typeof state!=="object"||!state.sessions){showToast("Not a FORGE backup file");return;}
+    const sessCount=Object.keys(state.sessions||{}).length;
+    const exported=payload.exportedAt?new Date(payload.exportedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"unknown date";
+    if(!confirm(`Restore backup from ${exported} (${sessCount} sessions)?\n\nThis REPLACES all current data on this device.`))return;
+    S=state;save();
+    showToast("Backup restored ✓");
+    location.reload();
+  };
+  reader.onerror=()=>showToast("Could not read file");
+  reader.readAsText(file);
 }
 
 function genExp(){
