@@ -1008,6 +1008,7 @@ function selectDay(day){
 
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nextWk(){const d=new Date();d.setDate(d.getDate()+7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
 let _viewWk=null;
 function vwk(){return _viewWk||wk();}
@@ -1734,31 +1735,34 @@ function resetPlan(){
   location.reload();
 }
 
-function buildWeekSummary(){
-  const cur=wk();
-  const summary={};
-  for(const[day,dayData]of Object.entries(PROG)){
-    const key=day+"_"+cur;
-    const sessData=S.sessions[key];
-    if(!sessData)continue;
-    const exs=[];
-    for(const ex of(dayData.exercises||[])){
-      const ed=sessData[ex.id];
-      if(!ed)continue;
-      const setsDone=(ed.sets||[]).filter(s=>s.done).map(s=>({weight:s.weight,reps:s.reps}));
-      if(setsDone.length||ed.done||ed.skipped){
-        exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,completed:!!ed.done,skipped:!!ed.skipped});
+function buildSessionHistory(maxWeeks=4){
+  const history=[];
+  for(let w=0;w<maxWeeks;w++){
+    const weekKey=nthPrevWk(w);
+    const weekData={weekKey,weekLabel:weekLabel(weekKey),sessions:{},sessionDurationMin:{}};
+    let hasData=false;
+    for(const[day,dayData]of Object.entries(PROG)){
+      const key=day+"_"+weekKey;
+      const sessData=S.sessions[key];
+      if(!sessData)continue;
+      const exs=[];
+      for(const ex of(dayData.exercises||[])){
+        const ed=sessData[ex.id];
+        if(!ed)continue;
+        const setsDone=(ed.sets||[]).filter(s=>s.done).map(s=>({weight:s.weight,reps:s.reps}));
+        if(setsDone.length||ed.done||ed.skipped){
+          exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,completed:!!ed.done,skipped:!!ed.skipped});
+          hasData=true;
+        }
+      }
+      if(exs.length){
+        weekData.sessions[day]=exs;
+        if(sessData._duration)weekData.sessionDurationMin[day]=Math.round(sessData._duration/60);
       }
     }
-    if(exs.length){
-      summary[day]=exs;
-      if(sessData._duration){
-        if(!summary._session_duration_min)summary._session_duration_min={};
-        summary._session_duration_min[day]=Math.round(sessData._duration/60);
-      }
-    }
+    if(hasData)history.push(weekData);
   }
-  return summary;
+  return history;
 }
 
 function buildPlanSnapshot(){
@@ -1782,9 +1786,8 @@ async function genWeeklyPlan(){
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
-        weekSummary:buildWeekSummary(),
-        profile:{equipment:GYM,currentPlan:buildPlanSnapshot()},
-        rules:"Progressive overload: ONLY increase weight if completed=true AND sets_logged has actual weights. Skipped or unlogged → no change. You MAY add new exercises (action:'add') or remove stale ones (action:'remove') to add variety — swap a plateau exercise for a different movement hitting the same muscle group. For adds: provide id (e.g. 'ai_mon_cablerow'), name, cat, sets, reps, hint, cue, muscles array. Never touch physio (cat=physio) or cardio exercises. Max 4 gym exercises per body-part group per day. Each training day must cover exactly 2 distinct body-part groups."
+        sessionHistory:buildSessionHistory(4),
+        profile:{equipment:GYM,currentPlan:buildPlanSnapshot()}
       })
     });
     if(!r.ok)throw new Error("Request failed");

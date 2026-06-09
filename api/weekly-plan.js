@@ -1,6 +1,6 @@
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
 
-const MAX_BODY_BYTES = 32_000;
+const MAX_BODY_BYTES = 64_000;
 
 export default async function handler(req, res) {
   setCors(res);
@@ -13,37 +13,54 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Request body too large" });
   }
 
-  const { weekSummary = {}, profile = {}, rules = {} } = req.body || {};
+  const { sessionHistory = [], profile = {} } = req.body || {};
 
-  const system = `You are a careful strength coach. Review the user's session history and current program, then produce next week's updates with progressive overload. Obey these hard restrictions at all times: ${HARD_RULES}
+  const weeksProvided = sessionHistory.length;
 
-Return ONLY valid JSON with exactly these keys:
+  const system = `You are a careful strength coach analysing up to ${weeksProvided} weeks of training history to plan next week with intelligent progressive overload.
+
+Hard restrictions (non-negotiable): ${HARD_RULES}
+
+Your job:
+1. ANALYSE THE TREND across all provided weeks — not just the most recent one. Look for:
+   - Consistent completion vs repeated skips (skipping 2+ weeks = stall, consider swapping)
+   - Weight progression trajectory (is it stalling, improving, regressing?)
+   - Volume tolerance (session durations, sets completed)
+   - Any exercise that has been at the same weight for 3+ weeks despite full completion → time to increase or swap
+2. APPLY PROGRESSIVE OVERLOAD conservatively:
+   - Only increase weight hint if the exercise was completed=true with actual weights logged in the MOST RECENT week
+   - Increase by the smallest sensible increment (usually 2.5–5 kg for machines)
+   - If an exercise was skipped or unlogged in the most recent week → no change
+3. VARIETY: You MAY swap a stalled or repeatedly-skipped exercise for a different movement targeting the same muscle group
+4. FORMAT: Return ONLY valid JSON — no markdown, no explanation:
 {
   "week_plan": {
     "Monday": [
-      {"id":"ex_id","sets":3,"reps":12,"hint":"35-40 kg"},
+      {"id":"ex_id","sets":3,"reps":12,"hint":"37.5-42.5 kg"},
       {"action":"remove","id":"ex_id2"},
-      {"action":"add","id":"ai_mon_lowrow","name":"Low Cable Row","cat":"gym","sets":3,"reps":12,"hint":"35-45 kg","cue":"Sit tall. Row to belly button. Squeeze mid-back.","muscles":["mid back","biceps"]}
+      {"action":"add","id":"ai_mon_lowrow","name":"Low Cable Row","cat":"gym","sets":3,"reps":12,"hint":"35-45 kg","cue":"Sit tall. Row to belly button.","muscles":["mid back","biceps"]}
     ]
   },
-  "coaching_notes": "2-3 sentence summary of key changes and reasoning",
-  "flags": ["any safety warnings or observations"]
+  "coaching_notes": "3-4 sentence summary covering trend observations and key changes",
+  "flags": ["any safety warnings, plateaus detected, or observations"]
 }
 
 Rules:
-- Updates (no action field): use exact exercise IDs from profile.currentPlan. Only include if sets/reps/hint actually change.
-- Progressive overload: ONLY increase weight hint if completed=true AND sets_logged has actual weights recorded. Skipped or unlogged exercises → no changes at all.
-- Adds (action:"add"): you MAY introduce a new exercise to replace something stale or add variety for a muscle group. Provide a unique id prefixed with "ai_", name, cat, sets, reps, hint, cue, muscles array. Must respect all spine restrictions.
-- Removes (action:"remove"): you MAY remove an exercise that has been plateauing, is redundant, or is being replaced by an add. Only remove gym exercises — never physio or cardio.
-- Never modify physio (cat="physio") or cardio exercises.
-- Never add overhead, barbell, standing-loaded, or axial-compression movements.
+- Updates (no action field): use exact exercise IDs from profile.currentPlan. Only include if something actually changes.
+- Adds must have a unique id prefixed "ai_", name, cat, sets, reps, hint, cue, muscles. Must respect all spine restrictions.
+- Removes: only gym exercises — never physio or cardio.
 - Max 4 gym exercises per body-part group per day.
-- Every training day (Mon-Sat) must cover exactly 2 distinct body-part groups.
+- Every training day (Mon–Sat) must cover exactly 2 distinct body-part groups.
 - Omit days with no changes.`;
-  const user = JSON.stringify({ task: "Generate next week plan", weekSummary, profile, rules });
+
+  const user = JSON.stringify({
+    task: `Generate next week plan. ${weeksProvided} week(s) of history provided — analyse all of it before deciding.`,
+    sessionHistory,
+    profile
+  });
 
   try {
-    const text = await callOpenAI({ system, user, maxOutputTokens: 2000 });
+    const text = await callOpenAI({ system, user, maxOutputTokens: 3000 });
     return res.json({ text });
   } catch (e) {
     console.error("[weekly-plan]", e.message);
