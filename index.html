@@ -1908,7 +1908,7 @@ function renderNutrition(){
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
   const totalBurn=resting+Math.round(active*0.80);
-  const {target}=calcTarget(resting,active);
+  const {target}=calcTarget(resting,Math.round(active*0.80));
   const shock=day.shockProtocol;
   const finalTarget=shock?1500:target;
   const items=day.items||[];
