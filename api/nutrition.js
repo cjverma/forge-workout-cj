@@ -33,8 +33,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         model,
         messages: [
-          { role: "system", content: SYSTEM },
-          { role: "user", content: text }
+          { role: "user", content: SYSTEM + "\n\nFood: " + text }
         ],
         max_completion_tokens: 300
       })
@@ -46,16 +45,18 @@ export default async function handler(req, res) {
   }
 
   console.log("[nutrition] openai status:", apiRes.status);
+  console.log("[nutrition] full response:", JSON.stringify(data).slice(0, 1000));
   if (!apiRes.ok) {
     console.error("[nutrition] openai error:", JSON.stringify(data?.error));
     return res.status(502).json({ error: "AI service error" });
   }
 
-  const raw = data?.choices?.[0]?.message?.content || "";
-  console.log("[nutrition] raw:", raw);
+  const msg = data?.choices?.[0]?.message;
+  const raw = msg?.content || msg?.refusal || "";
+  console.log("[nutrition] raw:", raw, "finish_reason:", data?.choices?.[0]?.finish_reason);
 
   if (!raw) {
-    console.error("[nutrition] empty response from AI");
+    console.error("[nutrition] empty response from AI. choices:", JSON.stringify(data?.choices));
     return res.status(502).json({ error: "Empty AI response" });
   }
 
