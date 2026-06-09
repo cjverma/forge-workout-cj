@@ -1855,7 +1855,7 @@ function renderNutrition(){
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
-  const foodListHtml=items.length?items.map(it=>`<div class="food-item"><div><div class="food-name">${esc(it.name)}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center"><div class="food-kcal">${it.kcal} kcal</div><button class="food-del" onclick="delFood('${date}','${it.id}')">✕</button></div></div>`).join(""):"<div style='font-size:12px;color:var(--dim);padding:8px 0'>No food logged yet — tap + Add Food</div>";
+  const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div><button class="food-del" onclick="delFood('${date}','${it.id}')">✕</button></div></div>`;}).join(""):"";
   const weekNote=S.nutrition.weeklyCoachNote;
   const wts=S.nutrition.weights||{};
   const wtKeys=Object.keys(wts).sort().slice(-7);
@@ -1885,20 +1885,17 @@ function renderNutrition(){
         <div class="target-pill-g ${pillCls}">${pillTxt}</div>
       </div>
       <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
-      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">${consumed.toLocaleString()} / ${finalTarget.toLocaleString()} kcal consumed</div>
-      <div class="macro-row">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:12px">${consumed.toLocaleString()} / ${finalTarget.toLocaleString()} kcal consumed</div>
+      ${foodListHtml?`<div class="food-list" style="margin-bottom:10px">${foodListHtml}</div>`:""}
+      ${_pendingFood?`<div class="pending-food"><div class="pending-name">${esc(_pendingFood.name)}</div><div class="pending-macros">${_pendingFood.kcal} kcal · P ${_pendingFood.protein}g · C ${_pendingFood.carbs}g · F ${_pendingFood.fat}g</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`:""}
+      ${_foodChatOpen?`<div style="margin-top:10px"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div></div>`:`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
+      <div class="macro-row" style="margin-top:12px">
         <div class="macro-chip"><div class="macro-val">${protein}g</div><div class="macro-lbl">Protein</div></div>
         <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
         <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
       </div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal</div>
       <button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active — Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>
-    </div>
-    <div class="nut-card">
-      <div class="nut-card-title">Food Log</div>
-      <div class="food-list">${foodListHtml}</div>
-      ${_pendingFood?`<div class="pending-food"><div class="pending-name">${esc(_pendingFood.name)}</div><div class="pending-macros">${_pendingFood.kcal} kcal · P ${_pendingFood.protein}g · C ${_pendingFood.carbs}g · F ${_pendingFood.fat}g</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`:""}
-      ${_foodChatOpen?`<div style="margin-top:10px"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 scrambled eggs on 1 slice of toast" rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div></div>`:`<button class="add-food-btn" onclick="openFood()">+ Add Food</button>`}
     </div>
     <div class="nut-card">
       <div class="nut-card-title">Weight Log</div>
