@@ -1624,7 +1624,7 @@ function renderST(){
         const bmr=calcBMR(latestWeightLog()||USER.weightKg);
         const resting=nutDay.restingOverride!=null?nutDay.restingOverride:bmr;
         const active=nutDay.active||0;
-        const burn=resting+active;
+        const burn=resting+Math.round(active*0.80);
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
@@ -1634,7 +1634,7 @@ function renderST(){
       }
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
       const WEEKLY_TARGET=12760;
-      const adjusted=Math.round(runningTotal*0.80);
+      const adjusted=runningTotal;
       const pct=adjusted/WEEKLY_TARGET;
       const totalCol=pct>=1?"var(--green)":pct>=0.95?"var(--amber,#f5a623)":"var(--red,#e05)";
       const statusTxt=pct>=1?"On track ✓":pct>=0.95?"Within 5% of target":"Below target";
@@ -1644,7 +1644,7 @@ function renderST(){
         ${rows}
         <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(×0.80)</span></span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(active ×0.80)</span></span>
             <span style="font-size:22px;font-weight:700;color:${totalCol}">${adjusted.toLocaleString()} kcal</span>
           </div>
           <div class="prog-bar-wrap" style="margin-bottom:6px"><div class="prog-bar-fill" style="width:${pctBar}%;background:${barCol}"></div></div>
@@ -1907,7 +1907,7 @@ function renderNutrition(){
   const resting=day.restingOverride!=null?day.restingOverride:bmr;
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
-  const totalBurn=resting+active;
+  const totalBurn=resting+Math.round(active*0.80);
   const {target}=calcTarget(resting,active);
   const shock=day.shockProtocol;
   const finalTarget=shock?1500:target;
