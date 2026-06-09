@@ -1633,11 +1633,13 @@ function renderST(){
       let runningTotal=0;
       let rows="";
       let loggedDays=0;
+      let daysElapsed=0;
       for(let i=0;i<7;i++){
         const d=new Date(monday);
         d.setDate(monday.getDate()+i);
         const iso=d.toISOString().slice(0,10);
         if(iso>todayIso)break;
+        daysElapsed++;
         const nutDay=S.nutrition?.days?.[iso]||{};
         const items=nutDay.items||[];
         const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
@@ -1677,9 +1679,12 @@ function renderST(){
             <span style="color:var(--dim)">target ${WEEKLY_TARGET.toLocaleString()} kcal</span>
           </div>
         </div>
-        <div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:right">${loggedDays} day${loggedDays!==1?"s":""} logged · unlogged days excluded</div>
+        ${loggedDays<daysElapsed?`<div style="font-size:11px;color:var(--amber,#f5a623);margin-top:8px;text-align:right">⚠ ${loggedDays} of ${daysElapsed} days logged — total may be optimistic</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:right">All ${daysElapsed} day${daysElapsed!==1?"s":""} logged ✓</div>`}
       </div>`;
     })()}
+
+    <div class="st-sec">Weekly Review</div>
+    ${buildWeeklyReviewCard()}
 
     <div class="st-sec">Appearance</div>
     <div class="st-group">
@@ -1696,6 +1701,70 @@ function renderST(){
     </div>
     <div style="height:20px"></div>
   </div>`;
+}
+
+// ── WEEKLY REVIEW ──
+function weekStats(){
+  const cur=wk();
+  let sessions=0,setsDone=0;
+  for(const day of DAYS){
+    const sess=S.sessions[day+"_"+cur];
+    if(!sess)continue;
+    const sets=Object.values(sess).filter(e=>e&&typeof e==="object").reduce((a,e)=>a+((e.sets||[]).filter(s=>s.done).length),0);
+    if(sets>0||Object.values(sess).some(e=>e&&e.done)){sessions++;setsDone+=sets;}
+  }
+  const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();
+  let wtChange=null;
+  if(keys.length>=2){
+    const last=keys[keys.length-1];
+    const ref=keys.filter(k=>k<=new Date(new Date(last).getTime()-5*86400000).toISOString().slice(0,10)).pop()||keys[0];
+    if(ref!==last)wtChange={from:ws[ref],to:ws[last],delta:+(ws[last]-ws[ref]).toFixed(1)};
+  }
+  let defTotal=0,defDays=0;
+  const now=new Date(),dow=now.getDay(),monday=new Date(now);monday.setDate(now.getDate()+(dow===0?-6:1-dow));
+  for(let i=0;i<7;i++){
+    const d=new Date(monday);d.setDate(monday.getDate()+i);
+    const iso=d.toISOString().slice(0,10);if(iso>isoToday())break;
+    const nd=S.nutrition.days?.[iso];if(!nd)continue;
+    const consumed=(nd.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
+    const bmr=calcBMR(latestWeightLog()||USER.weightKg);
+    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*0.80)-consumed;defDays++;
+  }
+  return{sessions,setsDone,wtChange,avgDeficit:defDays?Math.round(defTotal/defDays):null,defDays};
+}
+function buildWeeklyReviewCard(){
+  const st=weekStats();
+  const isSunday=new Date().getDay()===0;
+  const verdict=S.nutrition.weeklyVerdict&&S.nutrition.weeklyVerdict.week===wk()?S.nutrition.weeklyVerdict.text:null;
+  const wtHtml=st.wtChange?`${st.wtChange.delta<=0?"":"+"}${st.wtChange.delta} kg <span style="font-size:10px;color:var(--dim)">(${st.wtChange.from}→${st.wtChange.to})</span>`:"—";
+  const wtCol=st.wtChange?(st.wtChange.delta<0?"var(--green)":"var(--red,#e05)"):"var(--dim)";
+  return`<div class="export-card"${isSunday?' style="border-left-color:var(--green)"':""}>
+    ${isSunday?`<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🗓 Sunday review time</div>`:""}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <div style="text-align:center"><div style="font-size:20px;font-weight:700">${st.sessions}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Sessions</div></div>
+      <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:${wtCol}">${wtHtml}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Weight</div></div>
+      <div style="text-align:center"><div style="font-size:20px;font-weight:700">${st.avgDeficit!=null?st.avgDeficit.toLocaleString():"—"}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Avg deficit</div></div>
+    </div>
+    <div style="font-size:12px;color:var(--mid);margin-bottom:10px">${arrivalEst()}</div>
+    ${verdict?`<div class="weekly-note" style="margin-bottom:10px"><div class="weekly-note-title">Coach's Verdict</div>${esc(verdict)}</div>`:""}
+    <button class="btn-o" id="wkRevBtn" onclick="aiWeeklyReview()">${verdict?"Regenerate Verdict":"Get AI Verdict — Am I on track?"}</button>
+  </div>`;
+}
+async function aiWeeklyReview(){
+  const btn=document.getElementById("wkRevBtn");
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>Analysing...';}
+  const st=weekStats();
+  const lw=latestWeightLog()||USER.weightKg;
+  const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt:`Weekly review. Sessions completed: ${st.sessions}, sets done: ${st.setsDone}, weight change: ${st.wtChange?st.wtChange.delta+"kg ("+st.wtChange.from+"→"+st.wtChange.to+")":"no data"}, avg daily deficit: ${st.avgDeficit!=null?st.avgDeficit+" kcal across "+st.defDays+" logged days":"no data"}. Current weight ${lw}kg, target ${USER.targetKg}kg, ${daysLeft} days remaining to goal date. In 3-4 plain sentences: is the December goal still realistic at this pace, what is the single most important thing to change next week, and one thing done well. No markdown.`})});
+    const d=await r.json();
+    if(!r.ok||!d.text)throw new Error(d.error||"failed");
+    S.nutrition.weeklyVerdict={week:wk(),text:d.text};save();renderST();
+  }catch(e){
+    showToast("AI unavailable — try again");
+    if(btn){btn.disabled=false;btn.textContent="Get AI Verdict — Am I on track?";}
+  }
 }
 
 // ── BACKUP / RESTORE ──
