@@ -711,7 +711,8 @@ if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 hydrateCustomExercises();
 applyPlanOverrides();
 document.documentElement.classList.toggle("light",S.theme==="light");
-function save(){localStorage.setItem("f5",JSON.stringify(S));}
+let _appReady=false,_syncTimer=null,_syncAvailable=null,_lastSyncAt=null,_syncBusy=false;
+function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));queueSync();}
 
 // Personal constants — never rendered in UI
 const USER={weightKg:136.6,targetKg:95,heightCm:190.5,age:30,sex:"M",goalDate:new Date(2026,11,1)};
@@ -777,7 +778,7 @@ function esc(v){
 // ── UNITS — per-exercise label (no conversion, you enter what you see) ──
 function getExUnit(key,exId){return S.sessions[key]?.[exId]?.unit||"kg";}
 function toggleExUnit(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
@@ -949,6 +950,8 @@ function initApp(){
   setInterval(cycleQ,9000);
   handleHKSync();
   setInterval(checkMondayAudit,60000);
+  _appReady=true;
+  pullSync();
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;
@@ -1018,6 +1021,7 @@ let _viewWk=null;
 function vwk(){return _viewWk||wk();}
 function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
 function isPast(){return !!_viewWk&&wkOrd(_viewWk)<wkOrd(wk());}
+function isReadOnly(key){return isPast()||(!workoutOn&&!!S.sessions[key]?._stopped);}
 function sk(day){return day+"_"+vwk();}
 function shiftWeek(delta){
   const base=vwk();
@@ -1063,7 +1067,10 @@ function renderW(){
   const prog=PROG[cDay],el=document.getElementById("tc");
   const past=isPast();
   const future=isFuture();
-  const readOnly=past||future;
+  const _key0=sk(cDay);
+  if(!past&&!future&&!S.sessions[_key0])S.sessions[_key0]={};
+  const stopped=!workoutOn&&!!(S.sessions[_key0]||{})._stopped;
+  const readOnly=past||future||stopped;
   const cwk=wk();
   const wkLbl=past?weekLabel(vwk()):future?'Next Week':'This Week';
   const canGoForward=wkOrd(vwk())<wkOrd(nextWk());
@@ -1076,8 +1083,7 @@ function renderW(){
     <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
   </div>`;
 
-  const key=sk(cDay);
-  if(!readOnly&&!S.sessions[key])S.sessions[key]={};
+  const key=_key0;
   const sess=S.sessions[key]||{};
   const dispExs=future?getPreviewExercises(cDay):prog.exercises;
   const total=dispExs.length;
@@ -1094,13 +1100,12 @@ function renderW(){
   }
   h+=`<div class="pg"><div class="pg-title">${prog.label} <span>·</span></div><div class="pg-sub">${prog.sub}${future?'':` &nbsp;·&nbsp; ${done} of ${total} complete`}</div></div>`;
   if(!future)h+=`<div class="prog-wrap"><div class="prog-fill" style="width:${pct}%"></div></div>`;
-  if(!readOnly){
+  if(!past&&!future){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
-    const wasStopped=!workoutOn&&!!sess._stopped;
-    if(allDone){
+    if(allDone&&!stopped){
       h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete</div></div>`;
-    } else if(wasStopped){
+    } else if(stopped){
       h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
     } else {
       // Build calf twinge button if workout is active
@@ -1230,7 +1235,7 @@ function ensure(key,exId,i){
 }
 
 function saveF(key,exId,i,field,val){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   ensure(key,exId,i);
   S.sessions[key][exId].sets[i][field]=val;
   S.sessions[key][exId].sets[i].attempted=true;
@@ -1252,7 +1257,7 @@ function updateExerciseDone(key,exId){
 }
 
 function toggleSet(key,exId,i){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   ensure(key,exId,i);
   const sd=S.sessions[key][exId].sets[i];
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
@@ -1269,7 +1274,7 @@ function toggleSet(key,exId,i){
 }
 
 function toggleCardio(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].done=!S.sessions[key][exId].done;
@@ -1279,7 +1284,7 @@ function toggleCardio(key,exId){
 }
 
 function skipEx(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].skipped=true;
@@ -1288,7 +1293,7 @@ function skipEx(key,exId){
 }
 
 function addSet(key,exId){
-  if(isPast())return;
+  if(isReadOnly(key))return;
   ensure(key,exId,0);
   S.sessions[key][exId].sets.push({});
   save();renderW();
@@ -1511,6 +1516,50 @@ function renderAI(){
 
 const API_CFG=window.FORGE_API_CFG||{baseUrl:"",token:localStorage.getItem("forge_key")||""};
 
+// ── CLOUD SYNC (last-write-wins across devices) ──
+function queueSync(){
+  if(!_appReady||_syncAvailable===false||!API_CFG.token)return;
+  clearTimeout(_syncTimer);
+  _syncTimer=setTimeout(pushSync,3000);
+}
+async function pushSync(){
+  if(!_appReady||_syncAvailable===false||!API_CFG.token||_syncBusy)return;
+  _syncBusy=true;
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/sync",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({state:S,updatedAt:S._syncTs||Date.now()})});
+    if(r.status===501){_syncAvailable=false;return;}
+    if(r.ok){_syncAvailable=true;_lastSyncAt=Date.now();}
+  }catch(e){}finally{_syncBusy=false;}
+}
+async function pullSync(){
+  if(_syncAvailable===false||!API_CFG.token)return;
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/sync",{headers:{"Authorization":"Bearer "+API_CFG.token}});
+    if(r.status===501){_syncAvailable=false;return;}
+    if(!r.ok)return;
+    _syncAvailable=true;
+    const d=await r.json();
+    if(d&&d.state&&d.state.sessions&&(d.updatedAt||0)>(S._syncTs||0)){
+      S=d.state;
+      localStorage.setItem("f5",JSON.stringify(S));
+      document.documentElement.classList.toggle("light",S.theme==="light");
+      if(cTab==="workout")renderW();
+      else if(cTab==="nutrition")renderNutrition();
+      else renderST();
+      showToast("☁️ Synced from your other device");
+      _lastSyncAt=Date.now();
+    }else if(d&&!d.state){
+      // Nothing in cloud yet — seed it with this device's data
+      queueSync();
+    }
+  }catch(e){}
+}
+document.addEventListener("visibilitychange",()=>{
+  if(!_appReady)return;
+  if(document.hidden){clearTimeout(_syncTimer);pushSync();}
+  else pullSync();
+});
+
 function submitLock(){
   const val=document.getElementById("lockInput").value.trim();
   if(!val){document.getElementById("lockErr").textContent="Enter your access token";return;}
@@ -1692,6 +1741,7 @@ function renderST(){
     </div>
     <div class="st-sec">Data</div>
     <div class="st-group">
+      <div class="st-row" onclick="pullSync();showToast('Checking cloud…')"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On — last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off — add Upstash Redis storage to the Vercel project to enable":"Tap to check sync status"}</div></div></div>
       <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download everything — sessions, nutrition, weights — as a JSON file</div></div></div>
       <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file${S._lastBackup?` · last backup ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
