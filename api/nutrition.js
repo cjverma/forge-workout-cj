@@ -35,7 +35,7 @@ export default async function handler(req, res) {
         messages: [
           { role: "user", content: SYSTEM + "\n\nFood: " + text }
         ],
-        max_completion_tokens: 300
+        max_completion_tokens: 2000
       })
     });
     data = await apiRes.json();
