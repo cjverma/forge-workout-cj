@@ -15,7 +15,11 @@ export default async function handler(req, res) {
   if (!checkAuth(req, res)) return;
 
   const kv = kvCfg();
-  if (!kv) return res.status(501).json({ error: "Sync storage not configured" });
+  if (!kv) {
+    const present = Object.keys(process.env).filter(k => /KV_|UPSTASH|REDIS/i.test(k));
+    console.error("[sync] storage not configured. Redis-related env vars present:", present.join(", ") || "none");
+    return res.status(501).json({ error: "Sync storage not configured" });
+  }
 
   try {
     if (req.method === "GET") {

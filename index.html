@@ -1559,6 +1559,29 @@ document.addEventListener("visibilitychange",()=>{
   if(document.hidden){clearTimeout(_syncTimer);pushSync();}
   else pullSync();
 });
+async function checkSyncNow(){
+  showToast("Checking cloud…");
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/sync",{headers:{"Authorization":"Bearer "+API_CFG.token}});
+    if(r.status===501){_syncAvailable=false;showToast("❌ Storage not configured — check Vercel env vars + redeploy");}
+    else if(r.status===401){_syncAvailable=null;showToast("❌ Auth failed — app token doesn't match FORGE_API_TOKEN");}
+    else if(r.ok){
+      _syncAvailable=true;
+      const d=await r.json();
+      if(d&&d.state&&d.state.sessions&&(d.updatedAt||0)>(S._syncTs||0)){
+        S=d.state;localStorage.setItem("f5",JSON.stringify(S));
+        document.documentElement.classList.toggle("light",S.theme==="light");
+        showToast("☁️ Pulled newer data from cloud");
+      }else{
+        await pushSync();
+        showToast("✓ Sync is on — this device pushed to cloud");
+      }
+      _lastSyncAt=Date.now();
+    }
+    else showToast("❌ Sync error (HTTP "+r.status+") — check Vercel logs");
+  }catch(e){showToast("❌ Network error — is the deployment live?");}
+  renderST();
+}
 
 function submitLock(){
   const val=document.getElementById("lockInput").value.trim();
@@ -1741,7 +1764,7 @@ function renderST(){
     </div>
     <div class="st-sec">Data</div>
     <div class="st-group">
-      <div class="st-row" onclick="pullSync();showToast('Checking cloud…')"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On — last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off — add Upstash Redis storage to the Vercel project to enable":"Tap to check sync status"}</div></div></div>
+      <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On — last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off — add Upstash Redis storage to the Vercel project, then redeploy":"Tap to check sync status"}</div></div></div>
       <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download everything — sessions, nutrition, weights — as a JSON file</div></div></div>
       <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file${S._lastBackup?` · last backup ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
       <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
