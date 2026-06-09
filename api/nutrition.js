@@ -36,8 +36,7 @@ export default async function handler(req, res) {
           { role: "system", content: SYSTEM },
           { role: "user", content: text }
         ],
-        max_completion_tokens: 300,
-        temperature: 0.1
+        max_completion_tokens: 300
       })
     });
     data = await apiRes.json();
