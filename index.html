@@ -225,6 +225,9 @@ body{font-family:'Space Grotesk',sans-serif;color:var(--white);max-width:430px;m
 .st-pg-sub{font-size:12px;color:var(--dim);margin-bottom:18px;}
 .st-sec{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin:16px 0 8px;}
 .export-card{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--orange);border-radius:0 12px 12px 0;padding:16px;margin-bottom:14px;}
+.wdef-row{display:flex;justify-content:space-between;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--b1);}
+.wdef-row:last-of-type{border-bottom:none;}
+.wdef-day{font-size:13px;font-weight:600;color:var(--lt);}
 .export-title{font-size:15px;font-weight:700;margin-bottom:4px;}
 .export-sub{font-size:12px;color:var(--mid);margin-bottom:12px;line-height:1.5;}
 .btn-row{display:flex;gap:8px;margin-bottom:10px;}
@@ -1593,6 +1596,55 @@ function renderST(){
     <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
     <div class="rule-item"><div class="rule-ttl">Nerve symptom — sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
     <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
+
+    <div class="st-sec">Weekly Calorie Deficit</div>
+    ${(()=>{
+      const todayIso=isoToday();
+      const now=new Date();
+      const dow=now.getDay();
+      const mondayOffset=dow===0?-6:1-dow;
+      const monday=new Date(now);
+      monday.setDate(now.getDate()+mondayOffset);
+      const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+      let runningTotal=0;
+      let rows="";
+      let loggedDays=0;
+      for(let i=0;i<7;i++){
+        const d=new Date(monday);
+        d.setDate(monday.getDate()+i);
+        const iso=d.toISOString().slice(0,10);
+        if(iso>todayIso)break;
+        const nutDay=S.nutrition?.days?.[iso]||{};
+        const items=nutDay.items||[];
+        const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
+        if(!consumed){
+          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
+          continue;
+        }
+        const bmr=calcBMR(latestWeightLog()||USER.weightKg);
+        const resting=nutDay.restingOverride!=null?nutDay.restingOverride:bmr;
+        const active=nutDay.active||0;
+        const burn=resting+active;
+        const deficit=burn-consumed;
+        runningTotal+=deficit;
+        loggedDays++;
+        const sign=deficit>=0?"":"+";
+        const col=deficit>=0?"var(--green)":"var(--red,#e05)";
+        rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:${col};font-weight:600">${sign}${deficit>=0?"-":""}${Math.abs(deficit).toLocaleString()} kcal</span></div>`;
+      }
+      if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
+      const adjusted=Math.round(runningTotal*0.80);
+      const totalCol=adjusted>=0?"var(--green)":"var(--red,#e05)";
+      const totalSign=adjusted>=0?"−":"+";
+      return`<div class="export-card">
+        ${rows}
+        <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px;display:flex;justify-content:space-between;align-items:baseline">
+          <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(×0.80)</span></span>
+          <span style="font-size:22px;font-weight:700;color:${totalCol}">${totalSign}${Math.abs(adjusted).toLocaleString()} kcal</span>
+        </div>
+        <div style="font-size:11px;color:var(--dim);margin-top:4px;text-align:right">${loggedDays} day${loggedDays!==1?"s":""} logged · unlogged days excluded</div>
+      </div>`;
+    })()}
 
     <div class="st-sec">Appearance</div>
     <div class="st-group">
