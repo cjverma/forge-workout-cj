@@ -1828,7 +1828,7 @@ async function genWeeklyPlan(){
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         sessionHistory:buildSessionHistory(4),
-        profile:{equipment:GYM,currentPlan:buildPlanSnapshot()}
+        profile:{equipment:GYM,currentPlan:buildPlanSnapshot(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:"2026-12-01"}}
       })
     });
     if(!r.ok)throw new Error("Request failed");
@@ -1981,6 +1981,16 @@ function renderNutrition(){
   const fat=items.reduce((s,i)=>s+(i.fat||0),0);
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
+  // Protein target: 2g × goal weight, +10% on days with training or logged active burn
+  const trained=(()=>{
+    const d=new Date(date+"T12:00:00");
+    const dayName=DAYS[d.getDay()===0?6:d.getDay()-1];
+    const j=new Date(d.getFullYear(),0,1);
+    const wkKey=d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+    const sess=S.sessions[dayName+"_"+wkKey];
+    return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)))||active>0;
+  })();
+  const pTarget=Math.round(USER.targetKg*2*(trained?1.1:1));
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
@@ -2016,10 +2026,19 @@ function renderNutrition(){
       <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
       <div style="font-size:12px;color:var(--dim);margin-bottom:12px">${consumed.toLocaleString()} / ${finalTarget.toLocaleString()} kcal consumed</div>
       ${foodListHtml?`<div class="food-list" style="margin-bottom:10px">${foodListHtml}</div>`:""}
-      ${_pendingFood?`<div class="pending-food"><div class="pending-name">${esc(_pendingFood.name)}</div><div class="pending-macros">${_pendingFood.kcal} kcal · P ${_pendingFood.protein}g · C ${_pendingFood.carbs}g · F ${_pendingFood.fat}g</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`:""}
-      ${_foodChatOpen?`<div style="margin-top:10px"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div></div>`:`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
+      ${_pendingFood?(()=>{
+        const arr=Array.isArray(_pendingFood)?_pendingFood:[_pendingFood];
+        const tot=arr.reduce((s,p)=>s+p.kcal,0);
+        const rows=arr.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)"><div><div style="font-size:13px;font-weight:600">${esc(p.name)}</div><div style="font-size:11px;color:var(--dim)">${p.kcal} kcal · P ${p.protein}g · C ${p.carbs}g · F ${p.fat}g</div></div>${arr.length>1?`<button class="food-del" onclick="dropPending('${p.id}')">✕</button>`:""}</div>`).join("");
+        return`<div class="pending-food">${rows}<div class="pending-macros" style="margin-top:8px">Total: ${tot} kcal</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add ${arr.length>1?"all "+arr.length:""}</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`;
+      })():""}
+      ${_foodChatOpen?(()=>{
+        const recents=recentFoods(date);
+        const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Space Grotesk',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
+        return`<div style="margin-top:10px"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
+      })():`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
       <div class="macro-row" style="margin-top:12px">
-        <div class="macro-chip"><div class="macro-val">${protein}g</div><div class="macro-lbl">Protein</div></div>
+        <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:var(--green)":""}">${protein}<span style="font-size:11px;color:var(--dim)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
         <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
         <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
       </div>
@@ -2077,17 +2096,44 @@ async function askFood(){
     const r=await fetch("/api/nutrition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:txt})});
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||"error");
-    _pendingFood={id:"n_"+Date.now(),name:d.name,kcal:d.kcal,protein:d.protein,carbs:d.carbs,fat:d.fat,time:Date.now()};
+    const arr=Array.isArray(d.items)?d.items:(d.name?[d]:[]);
+    if(!arr.length)throw new Error("empty");
+    _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:it.name,kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,time:Date.now()}));
     if(out)out.className="ai-out";
     _foodChatOpen=false;renderNutrition();
   }catch(e){
     if(out){out.className="ai-out show";out.textContent="Could not estimate — try again or be more specific.";}
   }
 }
+function dropPending(id){
+  if(!Array.isArray(_pendingFood))return;
+  _pendingFood=_pendingFood.filter(p=>p.id!==id);
+  if(!_pendingFood.length)_pendingFood=null;
+  renderNutrition();
+}
 function confirmFood(date){
   if(!_pendingFood)return;
-  getDayData(date).items.push({..._pendingFood});
-  _pendingFood=null;save();showToast("Food added ✓");renderNutrition();
+  const arr=Array.isArray(_pendingFood)?_pendingFood:[_pendingFood];
+  const day=getDayData(date);
+  arr.forEach(p=>day.items.push({...p}));
+  _pendingFood=null;save();showToast(arr.length>1?arr.length+" items added ✓":"Food added ✓");renderNutrition();
+}
+function quickAddRecent(date,name,kcal,protein,carbs,fat){
+  getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,time:Date.now()});
+  save();showToast("Added "+name+" ✓");renderNutrition();
+}
+function recentFoods(excludeDate,limit=6){
+  const seen={},out=[];
+  const dates=Object.keys(S.nutrition.days||{}).sort().reverse();
+  for(const d of dates){
+    for(const it of(S.nutrition.days[d].items||[])){
+      const k=(it.name||"").toLowerCase();
+      if(!k||seen[k])continue;
+      seen[k]=1;out.push(it);
+      if(out.length>=limit)return out;
+    }
+  }
+  return out;
 }
 function delFood(date,id){
   const day=getDayData(date);day.items=day.items.filter(i=>i.id!==id);save();renderNutrition();

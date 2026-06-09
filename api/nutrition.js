@@ -1,10 +1,9 @@
 import { setCors } from "./_shared.js";
 
 const SYSTEM = `You are a nutrition estimator. Respond ONLY with valid JSON — no markdown, no explanation, no code fences.
-Format: {"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>}
-All numbers are integers. Estimate realistic UK/Australian portion sizes if not specified.
-If the input is a full day of food, sum all items into a single JSON object with a name like "Today's meals".
-If you cannot estimate, respond: {"error":"could not estimate"}`;
+Format: {"items":[{"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>}]}
+Break the input into separate items — one entry per distinct food or drink (e.g. "2 roti with butter" and "chai with biscuits" are separate items). Keep names short (2-4 words). All numbers are integers. Estimate realistic portion sizes if not specified.
+If you cannot estimate anything, respond: {"error":"could not estimate"}`;
 
 export default async function handler(req, res) {
   setCors(res);
@@ -45,7 +44,6 @@ export default async function handler(req, res) {
   }
 
   console.log("[nutrition] openai status:", apiRes.status);
-  console.log("[nutrition] full response:", JSON.stringify(data).slice(0, 1000));
   if (!apiRes.ok) {
     console.error("[nutrition] openai error:", JSON.stringify(data?.error));
     return res.status(502).json({ error: "AI service error" });
@@ -74,18 +72,23 @@ export default async function handler(req, res) {
     return res.status(422).json({ error: parsed.error });
   }
 
-  const { name, kcal, protein, carbs, fat } = parsed;
-  if (!name || kcal == null) {
-    console.error("[nutrition] missing fields:", parsed);
+  // Accept both new array format and legacy single-object format
+  const rawItems = Array.isArray(parsed.items) ? parsed.items : (parsed.name ? [parsed] : []);
+  const items = rawItems
+    .filter(it => it && it.name && it.kcal != null)
+    .map(it => ({
+      name: String(it.name).slice(0, 60),
+      kcal: Math.round(Number(it.kcal)),
+      protein: Math.round(Number(it.protein || 0)),
+      carbs: Math.round(Number(it.carbs || 0)),
+      fat: Math.round(Number(it.fat || 0))
+    }));
+
+  if (!items.length) {
+    console.error("[nutrition] no valid items in:", JSON.stringify(parsed));
     return res.status(502).json({ error: "Incomplete nutrition data" });
   }
 
-  console.log("[nutrition] success:", { name, kcal, protein, carbs, fat });
-  return res.status(200).json({
-    name,
-    kcal: Math.round(Number(kcal)),
-    protein: Math.round(Number(protein || 0)),
-    carbs: Math.round(Number(carbs || 0)),
-    fat: Math.round(Number(fat || 0))
-  });
+  console.log("[nutrition] success:", items.length, "items");
+  return res.status(200).json({ items });
 }

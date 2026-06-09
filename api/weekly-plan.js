@@ -28,6 +28,7 @@ Your job:
    - Volume tolerance (session durations, sets completed)
    - Session notes from this week (keys ending in "_notes") — use these for context on how the user felt, any pain, fatigue, or standout performances
    - Any exercise that has been at the same weight for 3+ weeks despite full completion → time to increase or swap
+   - profile.weightLog shows recent body-weight readings: the user is in an aggressive cut (goal in profile.goal). Rapid weight loss reduces strength capacity — if body weight is dropping fast, favour holding weights and adding reps over adding load, and flag fatigue risk in coaching_notes
 2. APPLY PROGRESSIVE OVERLOAD conservatively:
    - Only increase weight hint if the exercise was completed=true with actual weights logged in the MOST RECENT week
    - Increase by the smallest sensible increment (usually 2.5–5 kg for machines)
