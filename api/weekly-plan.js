@@ -26,6 +26,7 @@ Your job:
    - Consistent completion vs repeated skips (skipping 2+ weeks = stall, consider swapping)
    - Weight progression trajectory (is it stalling, improving, regressing?)
    - Volume tolerance (session durations, sets completed)
+   - Session notes from this week (keys ending in "_notes") — use these for context on how the user felt, any pain, fatigue, or standout performances
    - Any exercise that has been at the same weight for 3+ weeks despite full completion → time to increase or swap
 2. APPLY PROGRESSIVE OVERLOAD conservatively:
    - Only increase weight hint if the exercise was completed=true with actual weights logged in the MOST RECENT week

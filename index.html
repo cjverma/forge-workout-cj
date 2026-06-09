@@ -1758,6 +1758,7 @@ function buildSessionHistory(maxWeeks=4){
       if(exs.length){
         weekData.sessions[day]=exs;
         if(sessData._duration)weekData.sessionDurationMin[day]=Math.round(sessData._duration/60);
+        if(w===0&&sessData._notes)weekData.sessions[day+"_notes"]=sessData._notes;
       }
     }
     if(hasData)history.push(weekData);
