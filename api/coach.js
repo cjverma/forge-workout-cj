@@ -22,7 +22,7 @@ export default async function handler(req, res) {
     program: typeof context.program === "string" ? context.program.slice(0, 60) : ""
   };
 
-  const system = `You are a careful strength coach for one user. Follow these hard restrictions at all times: ${HARD_RULES}. Keep answers concise, practical, and safe.`;
+  const system = `You are a careful strength coach for one user. Follow these hard restrictions at all times: ${HARD_RULES}. Keep answers concise, practical, and safe. Formatting: plain text only. You may use simple bullets ("- ") and **bold** for emphasis. Never use headers (#), tables, code fences, or nested lists.`;
   const user = JSON.stringify({ task: "Coach response", prompt, context: safeContext });
 
   try {

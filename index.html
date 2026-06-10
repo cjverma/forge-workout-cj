@@ -862,6 +862,17 @@ function esc(v){
   return String(v??"").replace(/[&<>"']/g,ch=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
 }
 
+// Light markdown renderer for AI output: bold/italic/headers/bullets, XSS-safe
+function mdLite(t){
+  let h=esc(t);
+  h=h.replace(/^#{1,3} (.+)$/gm,"<b>$1</b>");
+  h=h.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
+  h=h.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g,"$1<i>$2</i>");
+  h=h.replace(/^\s*[-*] /gm,"• ");
+  h=h.replace(/^\s*(\d+)\. /gm,"$1. ");
+  return h;
+}
+
 // ── UNITS · per-exercise label (no conversion, you enter what you see) ──
 function getExUnit(key,exId){return S.sessions[key]?.[exId]?.unit||"kg";}
 function toggleExUnit(key,exId){
@@ -1950,7 +1961,7 @@ async function aiRun(type){
     const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:cDay,program:PROG[cDay]?.title||""}})});
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||"Request failed");
-    out.textContent=d.text||"No response.";
+    out.innerHTML=d.text?mdLite(d.text):"No response.";
   }catch(e){out.textContent="AI error: "+(e.message||"request failed");}
 }
 
@@ -1958,7 +1969,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.0</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.1</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -2112,7 +2123,7 @@ function buildWeeklyReviewCard(){
       <div style="text-align:center"><div style="font-size:20px;font-weight:700">${st.avgDeficit!=null?st.avgDeficit.toLocaleString():"-"}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Avg deficit</div></div>
     </div>
     <div style="font-size:12px;color:var(--mid);margin-bottom:10px">${arrivalEst()}</div>
-    ${verdict?`<div class="weekly-note" style="margin-bottom:10px"><div class="weekly-note-title">Coach's Verdict</div>${esc(verdict)}</div>`:""}
+    ${verdict?`<div class="weekly-note" style="margin-bottom:10px"><div class="weekly-note-title">Coach's Verdict</div>${mdLite(verdict)}</div>`:""}
     <button class="btn-o" id="wkRevBtn" onclick="aiWeeklyReview()">${verdict?"Regenerate Verdict":"Get AI Verdict · Am I on track?"}</button>
   </div>`;
 }
@@ -2318,7 +2329,7 @@ function showPlanModal(parsed){
   modal.innerHTML=`
     <div class="pm-title">Next Week's Plan</div>
     <div class="pm-sub">Effective from week of ${esc(weekLabel(nextWk()))}. Review then apply.</div>
-    ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${esc(notes)}</div>`:""}
+    ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
     ${changesHtml||`<div class="pm-notes">No changes needed · program looks good for next week.</div>`}
@@ -2491,7 +2502,7 @@ function renderNutrition(){
     <details class="ai-accordion">
       <summary>💪 AI Coaching</summary>
       <div class="ai-acc-inner">
-        ${weekNote?`<div class="weekly-note"><div class="weekly-note-title">Weekly Audit</div>${esc(weekNote)}</div>`:""}
+        ${weekNote?`<div class="weekly-note"><div class="weekly-note-title">Weekly Audit</div>${mdLite(weekNote)}</div>`:""}
         <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
         <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
       </div>
