@@ -872,6 +872,14 @@ if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 if(!S.aiChat)S.aiChat=[];
+// One-time backfill of historical weigh-ins (requested 2026-06-10).
+// Only fills dates that have no entry; never overwrites logged data.
+if(!S._wtBackfill1){
+  const seed={"2026-05-25":138.0,"2026-06-02":141.4,"2026-06-07":138.8,"2026-06-08":136.6};
+  for(const[d,kg]of Object.entries(seed))if(S.nutrition.weights[d]==null)S.nutrition.weights[d]=kg;
+  S._wtBackfill1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 hydrateCustomExercises();
 applyPlanOverrides();
 function applyTheme(){
@@ -2769,14 +2777,16 @@ function handleHKSync(){
   history.replaceState({},"",url);
 }
 async function checkMondayAudit(){
-  const now=new Date();if(now.getDay()!==1||now.getHours()<11)return;
-  const wk=getISOWeek();if(S.nutrition.weeklyCoachNote&&S.nutrition._auditWeek===wk)return;
-  const days=Object.entries(S.nutrition.days||{}).slice(-7);if(days.length<3)return;
+  // Refresh once per ISO week, whenever the app is open. The old version
+  // only ran Monday 11am+, so a missed window left a stale note all week.
+  const wk=getISOWeek();if(S.nutrition._auditWeek===wk)return;
+  const days=Object.entries(S.nutrition.days||{}).sort(([a],[b])=>a.localeCompare(b)).slice(-7);if(days.length<3)return;
   const avgKcal=Math.round(days.reduce((s,[,d])=>s+(d.items||[]).reduce((a,i)=>a+i.kcal,0),0)/days.length);
   const lw=latestWeightLog()||USER.weightKg;const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+  const wts=Object.entries(S.nutrition.weights||{}).sort(([a],[b])=>a.localeCompare(b)).slice(-5).map(([d,kg])=>`${d}: ${kg}kg`).join(", ");
   try{
-    const r=await fetch("/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt:`Week data: avgKcal=${avgKcal}, requiredDeficit=${req}kcal/day, currentWeight=${lw}kg, targetWeight=${USER.targetKg}kg, daysRemaining=${daysLeft}. Give a 2-3 sentence metabolic assessment. Be direct. Plain text only.`})});
+    const r=await fetch("/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt:`Week data: avgDailyIntake=${avgKcal}kcal, requiredDeficit=${req}kcal/day, currentWeight=${lw}kg, targetWeight=${USER.targetKg}kg, daysRemaining=${daysLeft}, recentWeighIns=[${wts}]. Give a 2-3 sentence metabolic assessment citing the actual numbers (weight trend, intake vs required deficit). Be direct. Plain text only.`})});
     const d=await r.json();const note=d.text||"";
     if(note){S.nutrition.weeklyCoachNote=note;S.nutrition._auditWeek=wk;save();}
   }catch(e){}
