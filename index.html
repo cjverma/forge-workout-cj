@@ -1296,7 +1296,10 @@ async function probeBatches(cands){
   }
   return null;
 }
+let _localDemos=null; // demos/map.json — clips shipped with the app
+fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{_localDemos=m;}).catch(()=>{});
 function demoHtml(name){
+  if(_localDemos&&_localDemos[name])return`<div class="demo-wrap"><video src="${_localDemos[name]}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
   const cached=S.demoCache[name];
   if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
   if(_demoMiss[name])return"";
@@ -1871,7 +1874,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.3</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.4</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
