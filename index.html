@@ -392,6 +392,10 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 /* Accent buttons: readable text on graphite (light) / off-white (dark) */
 .ai-btn,.btn-o,.food-submit,.wt-save,.modal-copy,.cf-add,.sum-close,.lock-btn,.dd-add-btn{color:var(--on-accent);}
 
+/* ── PAST-DAY LOCK ── */
+.lock-banner{display:flex;align-items:center;justify-content:center;gap:10px;}
+.edit-pill{background:var(--white);color:var(--black);border:none;border-radius:999px;padding:5px 14px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;box-shadow:var(--shadow);}
+
 /* ── LOCK SCREEN ── */
 .lock-screen{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;max-width:430px;margin:0 auto;}
 .lock-logo{font-size:26px;font-weight:700;letter-spacing:8px;color:var(--orange);text-transform:uppercase;margin-bottom:6px;}
@@ -1117,7 +1121,20 @@ let _viewWk=null;
 function vwk(){return _viewWk||wk();}
 function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
 function isPast(){return !!_viewWk&&wkOrd(_viewWk)<wkOrd(wk());}
-function isReadOnly(key){return isPast()||(!workoutOn&&!!S.sessions[key]?._stopped);}
+// A "past day" = any earlier week, or an earlier day within the current week
+function isPastDay(){
+  if(isFuture())return false;
+  if(isPast())return true;
+  const ti=new Date().getDay()===0?6:new Date().getDay()-1;
+  return DAYS.indexOf(cDay)<ti;
+}
+let _unlocked={}; // session-only edit unlocks, keyed by day_week
+function unlockDay(){_unlocked[sk(cDay)]=true;renderW();showToast("Editing unlocked for this day");}
+function lockDay(){delete _unlocked[sk(cDay)];renderW();}
+function isReadOnly(key){
+  if(isPastDay())return !_unlocked[key];
+  return !workoutOn&&!!S.sessions[key]?._stopped;
+}
 function sk(day){return day+"_"+vwk();}
 function shiftWeek(delta){
   const base=vwk();
@@ -1165,7 +1182,8 @@ function renderW(){
   const _key0=sk(cDay);
   if(!past&&!future&&!S.sessions[_key0])S.sessions[_key0]={};
   const stopped=!workoutOn&&!!(S.sessions[_key0]||{})._stopped;
-  const readOnly=past||future||stopped;
+  const lockedPast=isPastDay()&&!_unlocked[_key0];
+  const readOnly=future||lockedPast||(stopped&&!isPastDay());
   const cwk=wk();
   const wkLbl=past?weekLabel(vwk()):future?'Next Week':'This Week';
   const canGoForward=wkOrd(vwk())<wkOrd(nextWk());
@@ -1188,7 +1206,11 @@ function renderW(){
   const physioExs=dispExs.filter(e=>e.cat==="physio");
 
   let h=wkNav;
-  if(past)h+=`<div class="past-banner">📅 Past week · View only</div>`;
+  if(isPastDay()){
+    h+=lockedPast
+      ?`<div class="past-banner lock-banner">🔒 Past day · read-only<button class="edit-pill" onclick="unlockDay()">Edit</button></div>`
+      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">✏️ Editing past day<button class="edit-pill" onclick="lockDay()">Lock</button></div>`;
+  }
   if(future){
     const hasPlan=!!((S.weekPlans||{})[vwk()]);
     h+=`<div class="past-banner" style="color:#f5a623;border-color:rgba(245,166,35,0.3)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
@@ -1199,7 +1221,7 @@ function renderW(){
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>`}
   </div>`;
-  if(!past&&!future){
+  if(!future&&!isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
     if(allDone&&!stopped){
@@ -1969,7 +1991,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.1</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.2</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -2408,8 +2430,13 @@ function getDayData(date){
   if(!d.items)d.items=[];
   return d;
 }
+let _nutUnlocked={}; // session-only edit unlocks per date
+function nutLocked(date){return date<isoToday()&&!_nutUnlocked[date];}
+function unlockNut(date){_nutUnlocked[date]=true;renderNutrition();showToast("Editing unlocked for this day");}
+function lockNut(date){delete _nutUnlocked[date];renderNutrition();}
 function renderNutrition(){
   const date=_nutDate;
+  const ro=nutLocked(date);
   const day=getDayData(date);
   const lw=latestWeightLog()||USER.weightKg;
   const bmr=calcBMR(lw);
@@ -2440,7 +2467,7 @@ function renderNutrition(){
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
-  const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div><button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button></div></div>`;}).join(""):"";
+  const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const weekNote=S.nutrition.weeklyCoachNote;
   const wts=S.nutrition.weights||{};
   const wtKeys=Object.keys(wts).sort().slice(-7);
@@ -2451,6 +2478,7 @@ function renderNutrition(){
     <div class="nut-head">
       <div><div class="nut-kicker">Nutrition</div><div class="nut-title">${nutDateLabel(date)}</div></div>
       <div class="nut-nav-btns">
+        ${date<isoToday()?`<button class="edit-pill" style="position:static" onclick="${ro?`unlockNut('${date}')`:`lockNut('${date}')`}">${ro?"🔒 Edit":"✏️ Lock"}</button>`:""}
         <button onclick="nutShift(-1)">‹</button>
         <button onclick="nutShift(1)" ${date>=isoToday()?"disabled style='opacity:.3'":""}>›</button>
       </div>
@@ -2470,7 +2498,7 @@ function renderNutrition(){
         const rows=arr.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)"><div><div style="font-size:13px;font-weight:600">${esc(p.name)}</div><div style="font-size:11px;color:var(--dim)">${p.kcal} kcal · P ${p.protein}g · C ${p.carbs}g · F ${p.fat}g</div></div>${arr.length>1?`<button class="food-del" onclick="dropPending('${p.id}')">✕</button>`:""}</div>`).join("");
         return`<div class="pending-food">${rows}<div class="pending-macros" style="margin-top:8px">Total: ${tot} kcal</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add ${arr.length>1?"all "+arr.length:""}</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`;
       })():""}
-      ${_foodChatOpen?(()=>{
+      ${ro?"":_foodChatOpen?(()=>{
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div style="margin-top:10px"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
@@ -2481,21 +2509,21 @@ function renderNutrition(){
         <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
       </div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal</div>
-      <button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>
+      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>`}
     </div>
     <div class="nut-card">
       <div class="nut-card-title">Burn</div>
       <div class="burn-row">
-        <div class="burn-col"><div class="burn-val tappable" onclick="editResting('${date}')" title="Tap to override">${resting}${restOvr!=null?"*":""}</div><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
+        <div class="burn-col"><div class="burn-val${ro?"":" tappable"}" onclick="editResting('${date}')" title="Tap to override">${resting}${restOvr!=null?"*":""}</div><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col"><div class="burn-val tappable" onclick="editActive('${date}')">${active||"-"}</div><div class="burn-lbl">Active</div></div>
+        <div class="burn-col"><div class="burn-val${ro?"":" tappable"}" onclick="editActive('${date}')">${active||"-"}</div><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
       </div>
     </div>
     <div class="nut-card">
       <div class="nut-card-title">Weight Log</div>
-      ${_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" autofocus><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="_wtOpen=true;renderNutrition()">+ Log Weight</button>`}
+      ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" autofocus><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="_wtOpen=true;renderNutrition()">+ Log Weight</button>`}
       ${sparkHtml}
       ${wtKeys.length?`<div class="wt-arrival">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
     </div>
@@ -2511,6 +2539,7 @@ function renderNutrition(){
   </div>`;
 }
 function editResting(date){
+  if(nutLocked(date))return;
   const lw=latestWeightLog()||USER.weightKg;const bmrCalc=calcBMR(lw);
   const cur=S.nutrition.days[date]?.restingOverride??bmrCalc;
   const val=prompt("Resting calories for today (blank = reset to BMR "+bmrCalc+"):",cur);
@@ -2521,13 +2550,15 @@ function editResting(date){
   save();renderNutrition();
 }
 function editActive(date){
+  if(nutLocked(date))return;
   const day=getDayData(date);
   const val=prompt("Active calories for today:",day.active||"");
   if(val===null)return;
   const n=parseInt(val);if(isNaN(n)||n<0){showToast("Enter a valid number");return;}
   day.active=n;save();renderNutrition();
 }
-function toggleShock(date){const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
+function toggleShock(date){
+  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;renderNutrition();}
 function redoFood(){_pendingFood=null;_foodChatOpen=true;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
@@ -2556,6 +2587,7 @@ function dropPending(id){
   renderNutrition();
 }
 function confirmFood(date){
+  if(nutLocked(date))return;
   if(!_pendingFood)return;
   const arr=Array.isArray(_pendingFood)?_pendingFood:[_pendingFood];
   const day=getDayData(date);
@@ -2563,6 +2595,7 @@ function confirmFood(date){
   _pendingFood=null;save();showToast(arr.length>1?arr.length+" items added ✓":"Food added ✓");renderNutrition();
 }
 function quickAddRecent(date,name,kcal,protein,carbs,fat){
+  if(nutLocked(date))return;
   getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,time:Date.now()});
   save();showToast("Added "+name+" ✓");renderNutrition();
 }
@@ -2580,9 +2613,11 @@ function recentFoods(excludeDate,limit=6){
   return out;
 }
 function delFood(date,id){
+  if(nutLocked(date))return;
   const day=getDayData(date);day.items=day.items.filter(i=>i.id!==id);save();renderNutrition();
 }
 function saveWeight(date){
+  if(nutLocked(date))return;
   const inp=document.getElementById("wtInp");if(!inp)return;
   const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
   S.nutrition.weights[date]=val;_wtOpen=false;save();showToast("Weight logged ✓");renderNutrition();
