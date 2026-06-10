@@ -1955,7 +1955,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.5</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.6</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -2021,11 +2021,14 @@ function renderST(){
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
       const WEEKLY_TARGET=12760;
       const adjusted=runningTotal;
-      const pct=adjusted/WEEKLY_TARGET;
-      const totalCol=pct>=1?"var(--green)":pct>=0.95?"var(--amber)":"var(--red)";
-      const statusTxt=pct>=1?"On track ✓":pct>=0.95?"Within 5% of target":"Below target";
-      const pctBar=Math.min(100,Math.round(pct*100));
-      const barCol=pct>=1?"var(--green)":pct>=0.95?"var(--amber)":"var(--red)";
+      // Pace-based status: compare against the target pro-rated for days elapsed,
+      // so Wednesday isn't judged against a full week's number
+      const paceTarget=Math.round(WEEKLY_TARGET/7*daysElapsed);
+      const pace=paceTarget?adjusted/paceTarget:0;
+      const totalCol=pace>=1?"var(--green)":pace>=0.95?"var(--amber)":"var(--red)";
+      const statusTxt=pace>=1.05?"Ahead of pace ✓":pace>=0.95?"On pace":"Behind pace";
+      const pctBar=Math.min(100,Math.round((adjusted/WEEKLY_TARGET)*100));
+      const barCol=totalCol;
       return`<div class="export-card">
         ${rows}
         <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
@@ -2035,8 +2038,8 @@ function renderST(){
           </div>
           <div class="prog-bar-wrap" style="margin-bottom:6px"><div class="prog-bar-fill" style="width:${pctBar}%;background:${barCol}"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:11px">
-            <span style="color:${totalCol};font-weight:600">${statusTxt}</span>
-            <span style="color:var(--dim)">target ${WEEKLY_TARGET.toLocaleString()} kcal</span>
+            <span style="color:${totalCol};font-weight:600">${statusTxt} <span style="font-weight:400;color:var(--dim)">· day ${daysElapsed} pace ${paceTarget.toLocaleString()}</span></span>
+            <span style="color:var(--dim)">week ${WEEKLY_TARGET.toLocaleString()} kcal</span>
           </div>
         </div>
         ${loggedDays<daysElapsed?`<div style="font-size:11px;color:var(--amber);margin-top:8px;text-align:right">⚠ ${loggedDays} of ${daysElapsed} days logged · total may be optimistic</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:right">All ${daysElapsed} day${daysElapsed!==1?"s":""} logged ✓</div>`}
