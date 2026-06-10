@@ -66,7 +66,10 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .target-pill{background:var(--s1);border:1px solid var(--b1);border-radius:999px;padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--mid);text-transform:uppercase;box-shadow:var(--shadow);}
 
 /* ── QUOTE ── */
-.quote{padding:2px 20px 8px;font-size:12px;color:var(--dim);text-align:left;letter-spacing:0.1px;flex-shrink:0;transition:opacity .5s;background:var(--black);}
+.quote{padding:6px 16px 10px;flex-shrink:0;background:var(--black);transition:opacity .4s ease;}
+.quote-card{background:var(--s1);border:1px solid var(--b1);border-left:3px solid var(--orange);border-radius:10px;padding:10px 14px;display:flex;align-items:flex-start;gap:10px;}
+.quote-icon{font-size:15px;flex-shrink:0;line-height:1.4;}
+.quote-body{font-size:13px;font-weight:600;color:var(--lt);line-height:1.4;letter-spacing:0.1px;}
 
 /* ── DAY NAV (date strip) ── */
 .days{display:flex;gap:4px;padding:10px 16px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--black);}
@@ -492,7 +495,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
   <div class="logo">FORGE</div>
   <div class="target-pill">PERSONAL</div>
 </div>
-<div class="quote" id="quoteEl"></div>
+<div class="quote" id="quoteEl"><div class="quote-card"><span class="quote-icon">💬</span><span class="quote-body" id="quoteBody"></span></div></div>
 <div class="days" id="dayNav" style="display:none"></div>
 <div class="scroll" id="mainScroll"><div id="tc"></div></div>
 
@@ -528,7 +531,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 <script src="config.local.js"></script>
 <script>
-const Q=["The only session you regret is the one you skipped.","Small wins compound. Show up.","Controlled. Intentional. Minimal.","The bike first. Always.","Strength is built one rep at a time.","Progress over perfection.","Show up. Lift. Recover. Repeat.","Every session counts.","Consistency beats intensity.","You are stronger than yesterday."];
+const Q=["The body keeps the score. Make every session count.","Discipline is just doing it when you don't feel like it.","41 kg to go. Every rep is a down payment.","The spine heals when you move smarter, not harder.","Small wins compounded daily beat big efforts occasionally.","You showed up. That already puts you ahead.","Control what you can: the weight, the food, the mindset.","The bike first. Always. Decompress before you load.","95 kg is not a dream. It's a deadline.","Pain is feedback. Listen to it, don't fight it.","Progress is invisible until suddenly it isn't.","Every deficit adds up. Every meal is a decision.","Strength built carefully lasts longer than strength built recklessly.","The calf is a signal. Respect it.","You are rebuilding, not just losing weight.","Consistency is the only cheat code that works.","Log it. Track it. Own it.","One solid session changes your week. One solid week changes your month.","The version of you at 95 kg is already doing the work today.","Slow is smooth. Smooth is strong."];
 
 const EX_DB=[
   // ── MACHINES ──
@@ -1139,9 +1142,11 @@ window.addEventListener("DOMContentLoaded",()=>{
 });
 
 function cycleQ(){
-  const el=document.getElementById("quoteEl");
-  el.style.opacity=0;
-  setTimeout(()=>{el.textContent=Q[qIdx++%Q.length];el.style.opacity=1;},400);
+  const wrap=document.getElementById("quoteEl");
+  const body=document.getElementById("quoteBody");
+  if(!wrap||!body)return;
+  wrap.style.opacity=0;
+  setTimeout(()=>{body.textContent=Q[qIdx++%Q.length];wrap.style.opacity=1;},400);
 }
 
 function go(tab){
