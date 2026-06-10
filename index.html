@@ -394,7 +394,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 /* ── PAST-DAY LOCK ── */
 .lock-banner{display:flex;align-items:center;justify-content:center;gap:10px;}
-.edit-pill{background:var(--white);color:var(--black);border:none;border-radius:999px;padding:5px 14px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:0.5px;cursor:pointer;box-shadow:var(--shadow);}
+.edit-pill{background:var(--s1);border:1px solid var(--b1);border-radius:50%;width:30px;height:30px;display:inline-flex;align-items:center;justify-content:center;font-size:14px;cursor:pointer;box-shadow:var(--shadow);padding:0;}
 
 /* ── LOCK SCREEN ── */
 .lock-screen{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;max-width:430px;margin:0 auto;}
@@ -1208,8 +1208,8 @@ function renderW(){
   let h=wkNav;
   if(isPastDay()){
     h+=lockedPast
-      ?`<div class="past-banner lock-banner">🔒 Past day · read-only<button class="edit-pill" onclick="unlockDay()">Edit</button></div>`
-      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">✏️ Editing past day<button class="edit-pill" onclick="lockDay()">Lock</button></div>`;
+      ?`<div class="past-banner lock-banner">🔒 Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">✏️</button></div>`
+      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">✏️ Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">🔓</button></div>`;
   }
   if(future){
     const hasPlan=!!((S.weekPlans||{})[vwk()]);
@@ -1991,7 +1991,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.2</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.3</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -2478,7 +2478,7 @@ function renderNutrition(){
     <div class="nut-head">
       <div><div class="nut-kicker">Nutrition</div><div class="nut-title">${nutDateLabel(date)}</div></div>
       <div class="nut-nav-btns">
-        ${date<isoToday()?`<button class="edit-pill" style="position:static" onclick="${ro?`unlockNut('${date}')`:`lockNut('${date}')`}">${ro?"🔒 Edit":"✏️ Lock"}</button>`:""}
+        ${date<isoToday()?`<button onclick="${ro?`unlockNut('${date}')`:`lockNut('${date}')`}" title="${ro?"Unlock editing":"Lock editing"}">${ro?"✏️":"🔓"}</button>`:""}
         <button onclick="nutShift(-1)">‹</button>
         <button onclick="nutShift(1)" ${date>=isoToday()?"disabled style='opacity:.3'":""}>›</button>
       </div>
