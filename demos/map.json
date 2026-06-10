@@ -138,5 +138,57 @@
  "Dead Bug": [
   "demos/dead-bug-0.jpg",
   "demos/dead-bug-1.jpg"
+ ],
+ "Cat-Cow": [
+  "demos/cat-cow-0.jpg",
+  "demos/cat-cow-1.jpg"
+ ],
+ "Pelvic Tilt": [
+  "demos/pelvic-tilt-0.jpg",
+  "demos/pelvic-tilt-1.jpg"
+ ],
+ "Supine Spinal Twist": [
+  "demos/supine-spinal-twist-0.jpg",
+  "demos/supine-spinal-twist-1.jpg"
+ ],
+ "Child's Pose": [
+  "demos/child-s-pose-0.jpg",
+  "demos/child-s-pose-1.jpg"
+ ],
+ "Piriformis Stretch": [
+  "demos/piriformis-stretch-0.jpg",
+  "demos/piriformis-stretch-1.jpg"
+ ],
+ "Calf Stretch (Seated)": [
+  "demos/calf-stretch-seated-0.jpg",
+  "demos/calf-stretch-seated-1.jpg"
+ ],
+ "Knee-to-Chest Stretch": [
+  "demos/knee-to-chest-stretch-0.jpg",
+  "demos/knee-to-chest-stretch-1.jpg"
+ ],
+ "Hip Flexor Stretch": [
+  "demos/hip-flexor-stretch-0.jpg",
+  "demos/hip-flexor-stretch-1.jpg"
+ ],
+ "Ankle Pumps": [
+  "demos/ankle-pumps-0.jpg",
+  "demos/ankle-pumps-1.jpg"
+ ],
+ "Recumbent Bike": [
+  "demos/recumbent-bike-0.jpg",
+  "demos/recumbent-bike-1.jpg"
+ ],
+ "Stationary Bike": [
+  "demos/stationary-bike-0.jpg",
+  "demos/stationary-bike-1.jpg"
+ ],
+ "Elliptical Machine": [
+  "demos/elliptical-machine-0.jpg",
+  "demos/elliptical-machine-1.jpg"
+ ],
+ "Treadmill Walk": [
+  "demos/treadmill-walk-0.jpg",
+  "demos/treadmill-walk-1.jpg"
  ]
 }

@@ -1302,11 +1302,29 @@ async function probeBatches(cands){
 }
 let _localDemos=null; // demos/map.json — clips shipped with the app
 fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{_localDemos=m;}).catch(()=>{});
+let _demoIndex=null;   // demos/index.json — 870-exercise name index for fuzzy-matching custom exercises
+fetch("demos/index.json").then(r=>r.ok?r.json():null).then(m=>{_demoIndex=m;}).catch(()=>{});
+const DEMO_GH="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
+function fuzzyDemo(name){
+  if(!_demoIndex)return null;
+  const toks=s=>s.toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(t=>t&&!["the","a","machine","with"].includes(t));
+  const q=toks(name);if(!q.length)return null;
+  let best=null,bestScore=0;
+  for(const[n,dir]of _demoIndex){
+    const c=toks(n);
+    const overlap=q.filter(t=>c.includes(t)).length;
+    const score=overlap/Math.max(q.length,c.length)+(overlap===q.length?0.3:0);
+    if(score>bestScore){bestScore=score;best=dir;}
+  }
+  if(bestScore<0.65)return null;
+  return[DEMO_GH+encodeURIComponent(best)+"/0.jpg",DEMO_GH+encodeURIComponent(best)+"/1.jpg"];
+}
 function demoHtml(name){
   const loc=_localDemos&&_localDemos[name];
   if(Array.isArray(loc))return`<div class="demo-wrap"><div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div></div>`;
   if(loc)return`<div class="demo-wrap"><video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
   const cached=S.demoCache[name];
+  if(Array.isArray(cached))return`<div class="demo-wrap"><div class="demo-flip"><img src="${cached[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${cached[1]}" loading="lazy"></div></div>`;
   if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
   if(_demoMiss[name])return"";
   return`<div class="demo-wrap" data-demo-name="${esc(name)}" style="display:none"></div>`; // unresolved — probed on expand
@@ -1315,6 +1333,13 @@ async function resolveDemo(wrap){
   const name=wrap.getAttribute("data-demo-name");
   if(!name)return;
   wrap.removeAttribute("data-demo-name");
+  const pair=fuzzyDemo(name);
+  if(pair){
+    S.demoCache[name]=pair;save();
+    wrap.innerHTML=`<div class="demo-flip"><img src="${pair[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${pair[1]}"></div>`;
+    wrap.style.display="";
+    return;
+  }
   const url=await probeBatches(demoCandidates(name));
   if(url){
     S.demoCache[name]=url;save();
@@ -1903,7 +1928,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.6</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.7</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
