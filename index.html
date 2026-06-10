@@ -478,7 +478,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .vol-bar{height:100%;background:var(--orange);border-radius:99px;transition:width .4s;}
 .vol-row{display:flex;align-items:center;padding:5px 0;font-size:12px;color:var(--lt);}
 .vol-muscle{min-width:90px;color:var(--mid);text-transform:capitalize;}
-.vol-count{font-size:11px;color:var(--dim);margin-left:8px;min-width:30px;text-align:right;}
+.vol-count{font-size:11px;color:var(--dim);margin-left:8px;min-width:42px;text-align:right;}
 
 /* ── SESSION NOTES ── */
 .notes-area{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px 13px;font-family:'Inter',sans-serif;font-size:13px;color:var(--lt);outline:none;resize:vertical;min-height:80px;box-sizing:border-box;margin:0 0 12px;}
@@ -1085,27 +1085,29 @@ function undoCalfTwinge(){
 }
 
 // ── VOLUME DATA ──
+// Planned sets come from PROG, which applyPlanOverrides() has already
+// mutated with this week's AI-generated plan - so planned volume tracks
+// the live weekly plan, not the static base program.
 function buildVolumeData(){
   const cur=wk();
-  const counts={};
+  const planned={},done={};
   for(const[day,dayData] of Object.entries(PROG)){
-    const key=day+"_"+cur;
-    const sessData=S.sessions[key];
-    if(!sessData)continue;
+    const sessData=S.sessions[day+"_"+cur];
     for(const ex of(dayData.exercises||[])){
-      const ed=sessData[ex.id];
+      if(ex.cat==="cardio")continue;
+      const n=typeof ex.sets==="number"?ex.sets:0;
+      for(const m of(ex.muscles||[]))planned[m]=(planned[m]||0)+n;
+      const ed=sessData&&sessData[ex.id];
       if(!ed||!ed.sets)continue;
       const doneCount=ed.sets.filter(s=>s.done).length;
       if(!doneCount)continue;
-      for(const m of(ex.muscles||[])){
-        counts[m]=(counts[m]||0)+doneCount;
-      }
+      for(const m of(ex.muscles||[]))done[m]=(done[m]||0)+doneCount;
     }
   }
-  return Object.entries(counts)
-    .filter(([,c])=>c>0)
-    .map(([muscle,count])=>({muscle,count}))
-    .sort((a,b)=>b.count-a.count);
+  return Object.keys(planned)
+    .map(muscle=>({muscle,planned:planned[muscle],done:done[muscle]||0}))
+    .filter(v=>v.planned>0||v.done>0)
+    .sort((a,b)=>b.planned-a.planned||b.done-a.done);
 }
 
 // ── SESSION NOTES DEBOUNCE ──
@@ -2036,10 +2038,14 @@ function renderST(){
     <div class="st-sec">This Week's Volume</div>
     ${(()=>{
       const vdata=buildVolumeData();
-      if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);margin-bottom:12px;padding:0 2px">No sets logged yet this week.</div>`;
-      const max=vdata[0].count;
+      if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);margin-bottom:12px;padding:0 2px">No exercises planned this week.</div>`;
       return`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:14px">`+
-        vdata.map(({muscle,count})=>`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${Math.round(count/max*100)}%"></div></div><div class="vol-count">${count}</div></div>`).join("")+
+        `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:0.5px">SETS DONE / PLANNED · follows this week's plan</div>`+
+        vdata.map(({muscle,planned,done})=>{
+          const pct=planned?Math.min(100,Math.round(done/planned*100)):0;
+          const full=planned&&done>=planned;
+          return`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${pct}%${full?";background:var(--green)":""}"></div></div><div class="vol-count">${done}/${planned}</div></div>`;
+        }).join("")+
       `</div>`;
     })()}
     <div class="st-sec">Permanent Spine Rules</div>
