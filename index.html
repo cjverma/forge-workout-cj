@@ -1220,34 +1220,55 @@ const HERO_PHOTOS={
   "hero-core":["https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=60","linear-gradient(135deg,#F59E0B,#92400E)"]
 };
 function heroStyleAttr(cls){
-  if(S.heroStyle!=="photo")return"";
+  if(S.heroStyle==="gradient")return"";
   const[photo,fallback]=HERO_PHOTOS[cls]||HERO_PHOTOS["hero-push"];
   return` style="background-image:linear-gradient(160deg,rgba(8,8,16,.30),rgba(8,8,16,.72)),url('${photo}'),${fallback};background-size:cover;background-position:center;"`;
 }
 
-// Exercise demo clips — resolved once via /api/demo (server probes MuscleWiki), cached in S.demoCache.
+// Exercise demo clips — candidates probed FROM THE BROWSER (MuscleWiki's CDN
+// blocks datacenter IPs, so server-side probing fails; the phone loads it fine).
+// Winner cached per exercise in S.demoCache and synced across devices.
+if(!S.demoCache||(S.demoCacheV||0)<2){S.demoCache={};S.demoCacheV=2;} // v2: clear entries poisoned by the server-side prober
+const DEMO_CDN="https://media.musclewiki.com/media/uploads/videos/branded/";
+function demoCandidates(name){
+  const n=name.toLowerCase().replace(/[()]/g,"").trim();
+  let base=n.replace(/\bmachine\b/g,"").replace(/\bcable\b/g,"").replace(/\bdumbbell\b/g,"").replace(/\s+/g," ").trim().replace(/ /g,"-");
+  const full=n.replace(/\s+/g,"-");
+  const slugs=[...new Set([base,full,base.replace(/^seated-/,""),"seated-"+base.replace(/^seated-/,"")])];
+  const eqs=n.includes("cable")?["cables","machine"]:n.includes("dumbbell")?["dumbbells","machine"]:["machine","cables","dumbbells"];
+  const out=[];
+  for(const eq of eqs)for(const sl of slugs){out.push(DEMO_CDN+"male-"+eq+"-"+sl+"-front.mp4");out.push(DEMO_CDN+"male-"+eq+"-"+sl+"-side.mp4");}
+  return[...new Set(out)].slice(0,14);
+}
 function demoHtml(name){
-  if(!S.demoCache)S.demoCache={};
   const cached=S.demoCache[name];
   if(cached===null)return"";   // known: no clip exists
   if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
-  return`<div class="demo-wrap" data-demo-name="${esc(name)}" style="display:none"></div>`; // unresolved — filled on expand
+  return`<div class="demo-wrap" data-demo-name="${esc(name)}" style="display:none"></div>`; // unresolved — probed on expand
 }
 async function resolveDemo(wrap){
   const name=wrap.getAttribute("data-demo-name");
   if(!name)return;
   wrap.removeAttribute("data-demo-name");
-  try{
-    const r=await fetch(API_CFG.baseUrl+"/api/demo?name="+encodeURIComponent(name));
-    const d=await r.json();
-    if(!S.demoCache)S.demoCache={};
-    S.demoCache[name]=d.url||null;
-    save();
-    if(d.url){
-      wrap.innerHTML=`<video src="${d.url}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
-      wrap.style.display="";
-    }
-  }catch(e){}
+  const url=await new Promise(res=>{
+    const cands=demoCandidates(name);
+    let pending=cands.length,settled=false;
+    const probes=[];
+    const finish=u=>{if(settled)return;settled=true;probes.forEach(v=>{v.onerror=null;v.onloadedmetadata=null;v.src="";});res(u);};
+    cands.forEach(u=>{
+      const v=document.createElement("video");
+      v.muted=true;v.preload="metadata";
+      v.onloadedmetadata=()=>finish(u);
+      v.onerror=()=>{if(--pending<=0)finish(null);};
+      v.src=u;probes.push(v);
+    });
+    setTimeout(()=>finish(null),9000);
+  });
+  S.demoCache[name]=url;save();
+  if(url){
+    wrap.innerHTML=`<video src="${url}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
+    wrap.style.display="";
+  }
 }
 
 function card(ex,sess,key,rdOnly=false){
@@ -1805,7 +1826,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.1</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.2</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -1899,7 +1920,7 @@ function renderST(){
     <div class="st-sec">Appearance</div>
     <div class="st-group">
       <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light — tap for dark":S.theme==="dark"?"Dark — tap for auto":"Auto — follows your device · tap for light"}</div></div></div>
-      <div class="st-row" onclick="S.heroStyle=S.heroStyle==='photo'?'gradient':'photo';save();renderST();showToast('Hero style: '+(S.heroStyle==='photo'?'Photo':'Gradient'))"><div class="st-icon">${S.heroStyle==="photo"?"🖼":"🎨"}</div><div class="st-info"><div class="st-ttl">Workout Hero Style</div><div class="st-sub">${S.heroStyle==="photo"?"Photo — tap for gradient":"Gradient — tap for photo"}</div></div></div>
+      <div class="st-row" onclick="S.heroStyle=S.heroStyle==='gradient'?'photo':'gradient';save();renderST();showToast('Hero style: '+(S.heroStyle==='photo'?'Photo':'Gradient'))"><div class="st-icon">${S.heroStyle==="gradient"?"🎨":"🖼"}</div><div class="st-info"><div class="st-ttl">Workout Hero Style</div><div class="st-sub">${S.heroStyle==="gradient"?"Gradient — tap for photo":"Photo — tap for gradient"}</div></div></div>
     </div>
     <div class="st-sec">Data</div>
     <div class="st-group">
