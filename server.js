@@ -18,7 +18,7 @@ app.use((req, res, next) => {
 const PORT = Number(process.env.PORT || 8787);
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
 const FORGE_API_TOKEN = process.env.FORGE_API_TOKEN || "";
-const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-5.5";
+const OPENAI_MODEL = process.env.OPENAI_MODEL || "gpt-4o";
 const OPENAI_RESPONSES_URL = "https://api.openai.com/v1/responses";
 
 const HARD_RULES = [
