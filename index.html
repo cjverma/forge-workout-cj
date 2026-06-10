@@ -2756,18 +2756,29 @@ function buildSparkline(keys,wts){
   return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tLine}<polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}</svg></div><div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
 }
 function arrivalEst(){
+  // Linear regression of weight against REAL days elapsed (not entry index),
+  // so irregular weigh-in gaps don't distort the slope. Projects from the
+  // smoothed trend-line value at the latest date, not the raw last reading,
+  // so a single water-weight dip doesn't swing the estimate.
   const wts=S.nutrition.weights||{};const keys=Object.keys(wts).sort();
   if(keys.length<2)return`Estimated arrival: <b>need more data</b>`;
-  const recent=keys.slice(-Math.min(keys.length,28));const n=recent.length;
-  const xs=recent.map((_,i)=>i),ys=recent.map(k=>wts[k]);
+  const recent=keys.slice(-28);const n=recent.length;
+  const t0=new Date(recent[0]+"T12:00:00").getTime();
+  const xs=recent.map(k=>(new Date(k+"T12:00:00").getTime()-t0)/86400000);
+  const ys=recent.map(k=>wts[k]);
+  const span=xs[n-1]-xs[0];
+  if(span<5)return`Estimated arrival: <b>need ~1 week of weigh-ins</b>`;
   const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;
-  const slope=xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/xs.reduce((a,x)=>a+(x-mx)**2,0);
-  if(slope>=0)return`Estimated arrival: <b>trend going up · check deficit</b>`;
-  const daysNeeded=Math.ceil((ys[n-1]-USER.targetKg)/Math.abs(slope));
+  const slope=xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/xs.reduce((a,x)=>a+(x-mx)**2,0); // kg per day
+  if(slope>=-0.01)return`Estimated arrival: <b>trend flat or rising · check deficit</b>`;
+  const smoothed=my+slope*(xs[n-1]-mx); // trend-line weight at latest date
+  const daysNeeded=Math.ceil((smoothed-USER.targetKg)/Math.abs(slope));
+  if(daysNeeded>730)return`Estimated arrival: <b>over 2 years at this pace · check deficit</b>`;
   const arrival=new Date(recent[n-1]+"T12:00:00");arrival.setDate(arrival.getDate()+daysNeeded);
   const diff=Math.round((USER.goalDate-arrival)/86400000);
   const ahead=diff>0?` (${diff}d ahead)`:diff<0?` (${Math.abs(diff)}d behind)`:" (on track)";
-  return`Estimated arrival: <b>${arrival.toLocaleDateString("en-AU",{month:"short",day:"numeric",year:"numeric"})}</b>${ahead}`;
+  const rate=Math.abs(slope*7).toFixed(1);
+  return`Estimated arrival: <b>${arrival.toLocaleDateString("en-AU",{month:"short",day:"numeric",year:"numeric"})}</b>${ahead} · losing ~${rate} kg/week`;
 }
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
