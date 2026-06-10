@@ -1,6 +1,6 @@
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
 
-const MAX_PROMPT = 2000;
+const MAX_PROMPT = 5000; // raised to accommodate AI-chat context injection (~2-3k) + user question
 
 export default async function handler(req, res) {
   setCors(res);
