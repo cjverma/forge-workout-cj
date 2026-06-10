@@ -66,7 +66,13 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .target-pill{background:var(--s1);border:1px solid var(--b1);border-radius:999px;padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--mid);text-transform:uppercase;box-shadow:var(--shadow);}
 
 /* ── QUOTE ── */
-.quote{padding:2px 20px 8px;font-size:12px;color:var(--dim);text-align:left;letter-spacing:0.1px;flex-shrink:0;transition:opacity .5s;background:var(--black);}
+.quote{padding:6px 16px 10px;flex-shrink:0;background:var(--black);transition:opacity .4s ease;}
+.quote-card{background:linear-gradient(150deg,#3E4350 0%,#2A2D36 55%,#1B1D23 100%);border:none;border-radius:16px;padding:13px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow-lift);}
+.quote-card::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(255,255,255,.18),transparent 55%);pointer-events:none;}
+.quote-card>*{position:relative;z-index:1;}
+.quote-icon{display:none;}
+.quote-body{display:block;font-size:13px;font-weight:600;color:#fff;line-height:1.45;letter-spacing:0.1px;}
+.quote-author{display:block;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.6);margin-top:5px;}
 
 /* ── DAY NAV (date strip) ── */
 .days{display:flex;gap:4px;padding:10px 16px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--black);}
@@ -336,7 +342,24 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .rest-timer-skip{margin-top:10px;background:transparent;border:1px solid var(--b2);border-radius:8px;padding:7px 16px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;}
 
 /* ── NUTRITION ── */
-.nut-wrap{padding:14px 18px 20px;}.nut-date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}.nut-date-nav button{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--mid);font-family:'Inter',sans-serif;font-size:18px;width:36px;height:36px;cursor:pointer;}.nut-date-lbl{font-size:13px;font-weight:600;color:var(--lt);}.nut-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-bottom:10px;}.nut-card-title{font-size:11px;font-weight:600;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}.burn-row{display:flex;gap:8px;}.burn-col{flex:1;text-align:center;}.burn-val{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-0.5px;}.burn-val.tappable{cursor:pointer;border-bottom:1px dashed var(--dim);}.burn-lbl{font-size:10px;color:var(--dim);margin-top:2px;}.burn-sep{width:1px;background:var(--b1);margin:4px 0;}.target-display{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}.target-num{font-size:28px;font-weight:700;letter-spacing:-0.5px;}.target-pill-g{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;}.tpill-green{background:var(--green-lo);color:var(--green);}.tpill-amber{background:var(--amber-lo);color:var(--amber);}.tpill-red{background:var(--red-lo);color:var(--red);}.prog-bar-wrap{height:6px;background:var(--b1);border-radius:99px;overflow:hidden;margin-bottom:8px;}.prog-bar-fill{height:100%;background:var(--orange);border-radius:99px;transition:width .4s ease;}.macro-row{display:flex;gap:6px;margin-top:6px;}.macro-chip{flex:1;background:var(--s2);border-radius:8px;padding:8px 6px;text-align:center;}.macro-val{font-size:16px;font-weight:700;color:var(--white);}.macro-lbl{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}.net-line{font-size:12px;margin-top:8px;text-align:center;font-weight:600;}.net-green{color:var(--green);}.net-red{color:var(--red);}.shock-btn{width:100%;margin-top:10px;padding:10px;background:transparent;border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--amber);cursor:pointer;text-transform:uppercase;}.shock-btn.active{background:var(--amber-lo);}.food-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b1);}.food-item:last-child{border:none;}.food-name{font-size:13px;font-weight:600;color:var(--white);}.food-macros{font-size:11px;color:var(--dim);margin-top:2px;}.food-kcal{font-size:15px;font-weight:700;color:var(--orange);margin-right:10px;white-space:nowrap;}.food-del{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;padding:5px 10px;}.add-food-btn{width:100%;padding:11px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase;}.food-ta{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px 13px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);outline:none;resize:none;min-height:70px;-webkit-appearance:none;}.food-ta:focus{border-color:var(--orange);}.food-ta::placeholder{color:var(--dim);}.food-chat-btns{display:flex;gap:8px;margin-top:8px;}.food-submit{flex:1;padding:12px;background:var(--orange);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.food-cancel{padding:12px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}.pending-food{background:var(--s2);border:1px solid var(--orange);border-radius:10px;padding:13px;margin-top:10px;}.pending-name{font-size:15px;font-weight:700;margin-bottom:4px;}.pending-macros{font-size:12px;color:var(--mid);margin-bottom:10px;}.pending-btns{display:flex;gap:8px;}.pf-add{flex:1;padding:11px;background:var(--green);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.pf-redo{padding:11px 14px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}.wt-inp{width:100px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}.wt-inp:focus{border-color:var(--orange);}.wt-save{padding:10px 18px;background:var(--orange);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.wt-log-btn{width:100%;padding:10px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase;margin-bottom:8px;}.sparkline-wrap{margin:10px 0;overflow:hidden;border-radius:6px;}.wt-recent{font-size:11px;color:var(--dim);line-height:1.9;}.wt-recent span{color:var(--lt);}.wt-arrival{font-size:13px;color:var(--mid);margin-top:8px;}.wt-arrival b{color:var(--white);}.wt-bmr{font-size:12px;color:var(--dim);margin-top:4px;}.hk-btn{width:100%;padding:11px;background:transparent;border:1px solid var(--blue);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--blue);cursor:pointer;text-transform:uppercase;}.ai-accordion{margin-top:10px;border:1px solid var(--b1);border-radius:12px;overflow:hidden;}.ai-accordion summary{padding:14px;font-size:13px;font-weight:700;color:var(--mid);cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;}.ai-accordion summary::-webkit-details-marker{display:none;}.ai-accordion[open] summary{border-bottom:1px solid var(--b1);}.ai-acc-inner{padding:12px;}.weekly-note{background:var(--s2);border-left:2px solid var(--orange);border-radius:0 8px 8px 0;padding:11px 13px;margin-bottom:10px;font-size:12px;color:var(--lt);line-height:1.7;}.weekly-note-title{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:5px;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center;}.modal-overlay.show{display:flex;}.modal-box{background:var(--s1);border-radius:20px 20px 0 0;padding:20px 18px 40px;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;}.modal-title{font-size:17px;font-weight:700;}.modal-sub{font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.6;}.modal-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;}.modal-step-num{width:22px;height:22px;border-radius:50%;background:var(--orange);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}.modal-step-text{font-size:13px;color:var(--lt);line-height:1.65;}.modal-url{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;color:var(--mid);word-break:break-all;margin-bottom:14px;}.modal-btns{display:flex;gap:8px;margin-top:16px;}.modal-copy{flex:1;padding:13px;background:var(--orange);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.modal-close-btn{padding:13px 18px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}
+.nut-wrap{padding:14px 18px 20px;}.nut-date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}.nut-date-nav button{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--mid);font-family:'Inter',sans-serif;font-size:18px;width:36px;height:36px;cursor:pointer;}.nut-date-lbl{font-size:13px;font-weight:600;color:var(--lt);}.nut-card{background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px;margin-bottom:10px;}.nut-card-title{font-size:11px;font-weight:600;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;}.burn-row{display:flex;gap:8px;}.burn-col{flex:1;text-align:center;}.burn-val{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-0.5px;}.burn-val.tappable{cursor:pointer;border-bottom:1px dashed var(--dim);}.burn-lbl{font-size:10px;color:var(--dim);margin-top:2px;}.burn-sep{width:1px;background:var(--b1);margin:4px 0;}.target-display{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}.target-num{font-size:28px;font-weight:700;letter-spacing:-0.5px;}.target-pill-g{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;}.tpill-green{background:var(--green-lo);color:var(--green);}.tpill-amber{background:var(--amber-lo);color:var(--amber);}.tpill-red{background:var(--red-lo);color:var(--red);}.prog-bar-wrap{height:6px;background:var(--b1);border-radius:99px;overflow:hidden;margin-bottom:8px;}.prog-bar-fill{height:100%;background:var(--orange);border-radius:99px;transition:width .4s ease;}.macro-row{display:flex;gap:6px;margin-top:6px;}.macro-chip{flex:1;background:var(--s2);border-radius:8px;padding:8px 6px;text-align:center;}.macro-val{font-size:16px;font-weight:700;color:var(--white);}.macro-lbl{font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase;margin-top:2px;}.net-line{font-size:12px;margin-top:8px;text-align:center;font-weight:600;}.net-green{color:var(--green);}.net-red{color:var(--red);}.shock-btn{width:100%;margin-top:10px;padding:10px;background:transparent;border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--amber);cursor:pointer;text-transform:uppercase;}.shock-btn.active{background:var(--amber-lo);}.food-item{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--b1);}.food-item:last-child{border:none;}.food-name{font-size:13px;font-weight:600;color:var(--white);}.food-macros{font-size:11px;color:var(--dim);margin-top:2px;}.food-kcal{font-size:15px;font-weight:700;color:var(--orange);margin-right:10px;white-space:nowrap;}.food-del{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--red);font-size:13px;font-weight:600;cursor:pointer;padding:5px 10px;}.add-food-btn{width:100%;padding:11px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase;}.food-ta{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px 13px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);outline:none;resize:none;min-height:70px;-webkit-appearance:none;}.food-ta:focus{border-color:var(--orange);}.food-ta::placeholder{color:var(--dim);}.food-chat-btns{display:flex;gap:8px;margin-top:8px;}.food-submit{flex:1;padding:12px;background:var(--orange);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.food-cancel{padding:12px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}.pending-food{background:var(--s2);border:1px solid var(--orange);border-radius:10px;padding:13px;margin-top:10px;}.pending-name{font-size:15px;font-weight:700;margin-bottom:4px;}.pending-macros{font-size:12px;color:var(--mid);margin-bottom:10px;}.pending-btns{display:flex;gap:8px;}.pf-add{flex:1;padding:11px;background:var(--green);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.pf-redo{padding:11px 14px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}.wt-inp{width:100px;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-size:17px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}.wt-inp:focus{border-color:var(--orange);}.wt-save{padding:10px 18px;background:var(--orange);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.wt-log-btn{width:100%;padding:10px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase;margin-bottom:8px;}.sparkline-wrap{margin:10px 0;overflow:hidden;border-radius:6px;}.wt-recent{font-size:11px;color:var(--dim);line-height:1.9;}.wt-recent span{color:var(--lt);}.wt-arrival{font-size:13px;color:var(--mid);margin-top:8px;}.wt-arrival b{color:var(--white);}.wt-bmr{font-size:12px;color:var(--dim);margin-top:4px;}.hk-btn{width:100%;padding:11px;background:transparent;border:1px solid var(--blue);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--blue);cursor:pointer;text-transform:uppercase;}/* ── AI CHAT PANEL ── */
+.ai-chat-panel{background:var(--s1);border:1px solid var(--b1);border-radius:16px;margin-bottom:12px;overflow:hidden;}
+.ai-chat-header{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--b1);}
+.ai-chat-title{font-size:13px;font-weight:700;color:var(--mid);}
+.ai-chat-clear{background:transparent;border:none;font-family:'Inter',sans-serif;font-size:11px;color:var(--dim);cursor:pointer;padding:4px 8px;}
+.ai-chat-messages{padding:10px 12px;max-height:300px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:52px;}
+.ai-chat-empty{font-size:12px;color:var(--dim);text-align:center;padding:12px 0;}
+.chat-bubble{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;}
+.chat-user{align-self:flex-end;background:var(--orange);color:var(--on-accent);font-weight:600;border-radius:12px 12px 2px 12px;}
+.chat-ai{align-self:flex-start;background:var(--s2);color:var(--lt);border:1px solid var(--b1);border-radius:12px 12px 12px 2px;}
+.chat-thinking{align-self:flex-start;background:var(--s2);color:var(--dim);border:1px solid var(--b1);border-radius:12px 12px 12px 2px;padding:9px 12px;font-size:12px;font-style:italic;}
+.ai-chat-bar{display:flex;gap:8px;padding:10px 12px;border-top:1px solid var(--b1);align-items:flex-end;}
+.ai-chat-inp{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);outline:none;resize:none;-webkit-appearance:none;}
+.ai-chat-inp:focus{border-color:var(--orange);}
+.ai-chat-inp::placeholder{color:var(--dim);}
+.ai-chat-send{padding:10px 16px;background:var(--white);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:var(--black);cursor:pointer;white-space:nowrap;}
+.ai-chat-send:disabled{opacity:.45;cursor:default;}
+.ai-accordion{margin-top:10px;border:1px solid var(--b1);border-radius:12px;overflow:hidden;}.ai-accordion summary{padding:14px;font-size:13px;font-weight:700;color:var(--mid);cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;}.ai-accordion summary::-webkit-details-marker{display:none;}.ai-accordion[open] summary{border-bottom:1px solid var(--b1);}.ai-acc-inner{padding:12px;}.weekly-note{background:var(--s2);border-left:2px solid var(--orange);border-radius:0 8px 8px 0;padding:11px 13px;margin-bottom:10px;font-size:12px;color:var(--lt);line-height:1.7;}.weekly-note-title{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:5px;}.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;align-items:flex-end;justify-content:center;}.modal-overlay.show{display:flex;}.modal-box{background:var(--s1);border-radius:20px 20px 0 0;padding:20px 18px 40px;width:100%;max-width:430px;max-height:88vh;overflow-y:auto;}.modal-title{font-size:17px;font-weight:700;}.modal-sub{font-size:12px;color:var(--dim);margin-bottom:16px;line-height:1.6;}.modal-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start;}.modal-step-num{width:22px;height:22px;border-radius:50%;background:var(--orange);color:#000;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:2px;}.modal-step-text{font-size:13px;color:var(--lt);line-height:1.65;}.modal-url{background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:10px 12px;font-family:monospace;font-size:11px;color:var(--mid);word-break:break-all;margin-bottom:14px;}.modal-btns{display:flex;gap:8px;margin-top:16px;}.modal-copy{flex:1;padding:13px;background:var(--orange);border:none;border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;color:#000;cursor:pointer;}.modal-close-btn{padding:13px 18px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer;}
 
 /* ── NUTRITION v2 ── */
 .nut-wrap{padding:16px 16px 24px;}
@@ -458,7 +481,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .vol-bar{height:100%;background:var(--orange);border-radius:99px;transition:width .4s;}
 .vol-row{display:flex;align-items:center;padding:5px 0;font-size:12px;color:var(--lt);}
 .vol-muscle{min-width:90px;color:var(--mid);text-transform:capitalize;}
-.vol-count{font-size:11px;color:var(--dim);margin-left:8px;min-width:30px;text-align:right;}
+.vol-count{font-size:11px;color:var(--dim);margin-left:8px;min-width:42px;text-align:right;}
 
 /* ── SESSION NOTES ── */
 .notes-area{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:12px 13px;font-family:'Inter',sans-serif;font-size:13px;color:var(--lt);outline:none;resize:vertical;min-height:80px;box-sizing:border-box;margin:0 0 12px;}
@@ -486,7 +509,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
   <div class="logo">FORGE<span class="sync-dot" id="syncDot" title="Cloud sync status"></span></div>
   <div class="target-pill">PERSONAL</div>
 </div>
-<div class="quote" id="quoteEl"></div>
+<div class="quote" id="quoteEl"><div class="quote-card"><span class="quote-body" id="quoteBody"></span><span class="quote-author" id="quoteAuthor"></span></div></div>
 <div class="days" id="dayNav" style="display:none"></div>
 <div class="scroll" id="mainScroll"><div id="tc"></div></div>
 
@@ -522,7 +545,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 <script src="config.local.js"></script>
 <script>
-const Q=["The only session you regret is the one you skipped.","Small wins compound. Show up.","Controlled. Intentional. Minimal.","The bike first. Always.","Strength is built one rep at a time.","Progress over perfection.","Show up. Lift. Recover. Repeat.","Every session counts.","Consistency beats intensity.","You are stronger than yesterday."];
+const Q=["The last three or four reps is what makes the muscle grow. - Arnold Schwarzenegger","Everybody wants to be a bodybuilder, but nobody wants to lift heavy weights. - Ronnie Coleman","I hated every minute of training, but I said, don't quit. Suffer now and live the rest of your life as a champion. - Muhammad Ali","Success usually comes to those who are too busy to be looking for it. - Henry David Thoreau","The pain you feel today will be the strength you feel tomorrow. - Arnold Schwarzenegger","Hard work beats talent when talent doesn't work hard. - Tim Notke","I've failed over and over and over again in my life. And that is why I succeed. - Michael Jordan","Champions aren't made in gyms. Champions are made from something deep inside them. - Muhammad Ali","If you think lifting is dangerous, try being weak. - Bret Contreras","The worst thing I can be is the same as everybody else. - Arnold Schwarzenegger","Strength does not come from winning. Your struggles develop your strengths. - Arnold Schwarzenegger","You miss 100% of the shots you don't take. - Wayne Gretzky","It's not about perfect. It's about effort. - Jillian Michaels","The iron never lies to you. The iron will always kick you the real deal. - Henry Rollins","Discipline is doing what you hate to do, but doing it like you love it. - Mike Tyson","A champion is someone who gets up when they can't. - Jack Dempsey","The resistance that you fight physically in the gym and the resistance that you fight in life can only build a strong character. - Arnold Schwarzenegger","Don't count the days, make the days count. - Muhammad Ali","Today I will do what others won't, so tomorrow I can accomplish what others can't. - Jerry Rice","The successful warrior is the average man, with laser-like focus. - Bruce Lee"];
 
 const EX_DB=[
   // ── MACHINES ──
@@ -550,7 +573,6 @@ const EX_DB=[
   {name:"Cable Tricep Pushdown (Rope)",cat:"Gym",hint:"20-30 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Flare rope at bottom. Full extension. Elbows fixed.",muscles:["triceps"],tags:["cable","push","tricep","rope"]},
   {name:"Cable Bicep Curl",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=cable+bicep+curl+form",cue:"Constant tension. Elbows fixed at sides.",muscles:["biceps"],tags:["cable","curl","bicep"]},
   {name:"Seated Cable Lateral Raise",cat:"Gym",hint:"5-12 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+cable+lateral+raise+form",cue:"Seated. Single arm. Cable from low pulley. Smooth arc to shoulder height.",muscles:["lateral delt"],tags:["cable","shoulder","lateral","raise"]},
-  {name:"Seated Cable Woodchop",cat:"Gym",hint:"10-20 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=seated+cable+woodchop+core",cue:"Seated. Rotate torso. Core controls movement. No lumbar flexion.",muscles:["obliques","core"],tags:["cable","core","rotation","woodchop"]},
   // ── DUMBBELLS ──
   {name:"Dumbbell Row",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=roCP6wCXPqo",cue:"Supported on bench. Pull elbow to hip. Core braced.",muscles:["back","biceps","lats"],tags:["dumbbell","pull","row","back"]},
   {name:"Seated Dumbbell Curl",cat:"Gym",hint:"10-15 kg",sets:3,reps:12,url:"https://www.youtube.com/watch?v=av7-8igSXTs",cue:"Elbows fixed. No torso swinging.",muscles:["biceps"],tags:["dumbbell","curl","bicep"]},
@@ -585,6 +607,47 @@ const EX_DB=[
   {name:"Clamshell with Band",cat:"Physio",hint:"Light band",sets:3,reps:"15 each side",url:"https://www.youtube.com/results?search_query=clamshell+resistance+band+glutes",cue:"Band just above knees. Same as clamshell but harder.",muscles:["glutes","hip abductors"],tags:["physio","glute","hip","band","clamshell"]},
   {name:"Ankle Pumps",cat:"Physio",hint:"Bodyweight",sets:2,reps:"20 reps",url:"https://www.youtube.com/results?search_query=ankle+pumps+exercise+circulation",cue:"Point and flex. Helps circulation after any session.",muscles:["calves","ankles"],tags:["physio","ankle","circulation","recovery"]},
   {name:"Heel Slides",cat:"Physio",hint:"Bodyweight",sets:3,reps:"12 each side",url:"https://www.youtube.com/results?search_query=heel+slides+exercise+rehab",cue:"Slide heel toward glutes. Keep back flat on floor.",muscles:["core","hip flexors","knees"],tags:["physio","knee","core","rehab"]},
+  // ── NEW MACHINES ──
+  {name:"Cable Pallof Press",cat:"Gym",hint:"8-18 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=cable+pallof+press+anti+rotation+seated",cue:"Seated sideways to cable. Press handles to chest height. Resist rotation  -  core fights to stay square.",muscles:["core","obliques"],tags:["cable","core","anti-rotation","pallof","stability"]},
+  {name:"Wide-Grip Seated Row Machine",cat:"Gym",hint:"30-45 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=wide+grip+seated+row+machine+form",cue:"Wide grip. Pull elbows back and wide. Squeeze upper back and rear delts.",muscles:["upper back","rear delt","rhomboids"],tags:["machine","pull","row","back","wide grip"]},
+  {name:"Underhand Lat Pulldown",cat:"Gym",hint:"35-55 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=underhand+lat+pulldown+supinated+form",cue:"Supinated grip shoulder-width. Pull to upper chest. Strong bicep involvement.",muscles:["lats","biceps","mid back"],tags:["cable","pull","lat","underhand","supinated","back"]},
+  {name:"V-Bar Seated Row",cat:"Gym",hint:"35-50 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=v+bar+seated+cable+row+form",cue:"V-handle close grip. Row to belly button. Pause and squeeze mid-back.",muscles:["mid back","biceps","lats"],tags:["cable","pull","row","back","v-bar","close grip"]},
+  {name:"Chest Decline Machine",cat:"Gym",hint:"30-45 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=decline+chest+press+machine+form",cue:"Lower chest focus. Back flat on pad. Full press and controlled return.",muscles:["lower chest","triceps","front delt"],tags:["machine","push","press","chest","decline"]},
+  {name:"Hip Extension Machine",cat:"Gym",hint:"15-30 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=hip+extension+machine+kneeling+glute",cue:"Kneeling or prone. Drive hip back. Squeeze glute at end range. No lower back arch.",muscles:["glutes","hamstrings"],tags:["machine","glute","hip","extension","lower body"]},
+  {name:"Assisted Dip Machine",cat:"Gym",hint:"Bodyweight minus 20-40 kg assist",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=assisted+dip+machine+tricep+form",cue:"Seated or kneeling on pad. Lean slightly forward for chest. Upright for tricep focus. Core braced.",muscles:["triceps","chest","front delt"],tags:["machine","push","tricep","dip","assisted"]},
+  {name:"Low Row Machine",cat:"Gym",hint:"30-50 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=low+row+machine+seated+form",cue:"Low handle position. Row to midsection. Full stretch at front, strong squeeze at back.",muscles:["mid back","lats","biceps"],tags:["machine","pull","row","back","low row"]},
+  {name:"Seated Hip Abduction Machine",cat:"Gym",hint:"25-45 kg",sets:3,reps:15,url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press. Pause at end range. Critical for spinal and pelvic stability.",muscles:["glutes","hip abductors","TFL"],tags:["machine","glute","hip","abduction","legs"]},
+  {name:"Seated Hip Adduction Machine",cat:"Gym",hint:"25-45 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly at full adduction. Balances hip abductors.",muscles:["inner thigh","adductors","groin"],tags:["machine","hip","adduction","inner thigh","legs"]},
+  // ── NEW CABLES ──
+  {name:"Seated Cable Fly",cat:"Gym",hint:"8-16 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=seated+cable+fly+chest+form",cue:"Seated, cables from both sides at chest height. Wide arc inward. Stop before handles touch. Squeeze chest.",muscles:["chest","front delt"],tags:["cable","fly","chest","isolation","seated"]},
+  {name:"Low Cable Chest Fly",cat:"Gym",hint:"8-15 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=low+cable+chest+fly+seated+upper+chest",cue:"Cables from low pulley. Seated. Arc upward and inward. Upper chest focus.",muscles:["upper chest","front delt"],tags:["cable","fly","chest","upper chest","low pulley"]},
+  {name:"Seated Unilateral Cable Row",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=single+arm+seated+cable+row+form",cue:"One arm at a time. Greater range of motion. Full stretch forward, squeeze at finish.",muscles:["mid back","biceps","rear delt"],tags:["cable","pull","row","back","single arm","unilateral"]},
+  {name:"Cable Hammer Curl",cat:"Gym",hint:"10-20 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=cable+rope+hammer+curl+form",cue:"Rope attachment. Neutral grip. Constant tension throughout the range.",muscles:["biceps","brachialis","forearms"],tags:["cable","curl","bicep","hammer","rope","neutral grip"]},
+  {name:"Cable Reverse Fly",cat:"Gym",hint:"8-15 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+cable+reverse+fly+rear+delt",cue:"Seated, cross the cables. Pull handles outward and back. Squeeze rear delts.",muscles:["rear delt","rhomboids","mid back"],tags:["cable","fly","shoulder","rear delt","reverse","seated"]},
+  {name:"Seated Cable Shrug",cat:"Gym",hint:"25-45 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=cable+shrug+seated+trap+form",cue:"Seated, cable from in front. Shrug straight up. No rolling. Slow and controlled.",muscles:["traps","upper back"],tags:["cable","shrug","trap","upper back","seated"]},
+  {name:"Cable Kickback",cat:"Gym",hint:"5-12 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=cable+glute+kickback+standing+or+kneeling+form",cue:"Ankle strap, cable from low pulley. Drive heel back. Squeeze glute at top.",muscles:["glutes"],tags:["cable","glute","kickback","legs","lower body"]},
+  {name:"Cable Wrist Curl",cat:"Gym",hint:"5-12 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=cable+wrist+curl+forearm+form",cue:"Seated, forearms on thighs. Wrists over knees. Curl up slowly and lower fully.",muscles:["forearms","wrist flexors"],tags:["cable","forearm","wrist","curl","grip"]},
+  {name:"Cable Wrist Extension",cat:"Gym",hint:"4-10 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=cable+wrist+extension+forearm+form",cue:"Overhand grip. Forearms on thighs. Extend wrist upward. Slower on the way down.",muscles:["forearms","wrist extensors"],tags:["cable","forearm","wrist","extension","grip"]},
+  {name:"Seated Single-Arm Face Pull",cat:"Gym",hint:"8-15 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=single+arm+face+pull+cable+form",cue:"Single rope or handle. Pull to side of face. Elbow flares high. Great rotator cuff work.",muscles:["rear delt","rotator cuff","traps"],tags:["cable","pull","shoulder","rear delt","face pull","unilateral"]},
+  // ── NEW DUMBBELLS ──
+  {name:"Seated DB Shrug",cat:"Gym",hint:"15-25 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+dumbbell+shrug+trap+form",cue:"Seated upright. Straight up, slow down. No rolling or jerking.",muscles:["traps","upper back"],tags:["dumbbell","shrug","trap","upper back","seated"]},
+  {name:"Seated DB Front Raise",cat:"Gym",hint:"5-10 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=seated+dumbbell+front+raise+shoulder+form",cue:"SEATED. Raise to shoulder height only. Slow controlled descent.",muscles:["front delt","lateral delt"],tags:["dumbbell","shoulder","front raise","anterior delt","seated"]},
+  {name:"Seated Incline DB Curl",cat:"Gym",hint:"8-12 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=incline+dumbbell+curl+seated+bicep+form",cue:"Incline bench, arms hang back. Full stretch at bottom. Supinate at top. Excellent peak contraction.",muscles:["biceps","long head"],tags:["dumbbell","curl","bicep","incline","stretch","long head"]},
+  {name:"Lying DB Chest Press",cat:"Gym",hint:"15-25 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=lying+dumbbell+chest+press+flat+bench+form",cue:"Flat bench. Back supported fully. Press straight up. Elbows at 45 degrees.",muscles:["chest","triceps","front delt"],tags:["dumbbell","push","press","chest","flat","lying"]},
+  {name:"Lying DB Fly",cat:"Gym",hint:"10-16 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=lying+dumbbell+fly+flat+bench+chest+form",cue:"Flat bench. Wide arc, slight bend at elbows. Stop at chest stretch. Never go heavy.",muscles:["chest","front delt"],tags:["dumbbell","fly","chest","isolation","flat","lying"]},
+  {name:"DB Zottman Curl",cat:"Gym",hint:"8-12 kg",sets:3,reps:10,url:"https://www.youtube.com/results?search_query=zottman+curl+dumbbell+form",cue:"Supinate on way up, pronate on way down. Trains both bicep and brachioradialis in one movement.",muscles:["biceps","brachioradialis","forearms"],tags:["dumbbell","curl","bicep","zottman","forearm","combination"]},
+  {name:"Lying DB Skull Crusher",cat:"Gym",hint:"8-14 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=lying+dumbbell+skull+crusher+tricep+form",cue:"Flat bench, back fully supported. Lower to temples. Press back up through triceps. Elbows in.",muscles:["triceps","long head"],tags:["dumbbell","tricep","skull+crusher","lying","extension"]},
+  {name:"Seated DB Tricep Kickback",cat:"Gym",hint:"6-12 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=seated+dumbbell+tricep+kickback+form",cue:"Lean forward, chest near thighs (not in air). Upper arm parallel to floor. Drive forearm back fully.",muscles:["triceps"],tags:["dumbbell","tricep","kickback","seated","isolation"]},
+  {name:"Seated Bent-Over Lateral Raise",cat:"Gym",hint:"5-10 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+bent+over+lateral+raise+rear+delt",cue:"Chest on thighs  -  spine supported. Raise elbows up and back. Rear delt and scapular health.",muscles:["rear delt","rhomboids","mid back"],tags:["dumbbell","shoulder","rear delt","bent+over","lateral","scapular"]},
+  {name:"DB Wrist Extension",cat:"Gym",hint:"4-8 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=dumbbell+wrist+extension+forearm+form",cue:"Overhand grip, wrists over knees. Extend up slowly. Full range of motion.",muscles:["forearms","wrist extensors"],tags:["dumbbell","forearm","wrist","extension","grip"]},
+  {name:"DB Pullover",cat:"Gym",hint:"12-18 kg",sets:3,reps:12,url:"https://www.youtube.com/results?search_query=dumbbell+pullover+lying+lat+chest+form",cue:"Lying on bench perpendicular, hips low. Short arc only  -  lower until arms parallel to floor, no further. Keep core tight. Stop immediately if any lumbar discomfort.",muscles:["lats","chest","serratus"],tags:["dumbbell","lat","chest","pullover","lying","stretch"]},
+  // ── NEW PHYSIO / REHAB ──
+  {name:"Band Pull-Apart",cat:"Physio",hint:"Light resistance band",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=band+pull+apart+exercise+posture",cue:"Arms straight at chest height. Pull band to chest level. Squeeze shoulder blades together. Essential postural exercise.",muscles:["rear delt","rhomboids","mid back"],tags:["physio","band","shoulder","posture","rehab","pull-apart"]},
+  {name:"Wall Slide",cat:"Physio",hint:"Bodyweight",sets:3,reps:10,url:"https://www.youtube.com/results?search_query=wall+slide+exercise+shoulder+scapular",cue:"Back and arms flat on wall. Slide arms up then down. Scapular control. Great shoulder rehab.",muscles:["rotator cuff","serratus","mid back"],tags:["physio","shoulder","scapular","wall","rehab","mobility"]},
+  {name:"Thoracic Extension",cat:"Physio",hint:"Foam roller / rolled towel",sets:2,reps:"30s each level",url:"https://www.youtube.com/results?search_query=thoracic+extension+foam+roller+spine+mobility",cue:"Roller perpendicular to spine. Work through mid-back only. Never force lumbar. Hands behind head.",muscles:["thoracic spine","erectors"],tags:["physio","spine","thoracic","mobility","foam+roller","extension"]},
+  {name:"Prone Hip Extension",cat:"Physio",hint:"Bodyweight",sets:3,reps:"12 each side",url:"https://www.youtube.com/results?search_query=prone+hip+extension+glute+activation+exercise",cue:"Lie face down. Lift one leg with glute  -  not lower back. Hold 2 seconds. Core braced throughout.",muscles:["glutes","hamstrings"],tags:["physio","glute","hip","prone","extension","activation"]},
+  {name:"Seated Hamstring Stretch",cat:"Physio",hint:"Bodyweight",sets:2,reps:"45s each",url:"https://www.youtube.com/results?search_query=seated+hamstring+stretch+chair+towel",cue:"Seated. Extend one leg and hinge slightly forward from hips. Stop before rounding the lower back. Hold.",muscles:["hamstrings","glutes"],tags:["physio","stretch","hamstring","seated","flexibility"]},
+  {name:"Side-Lying Hip Abduction",cat:"Physio",hint:"Bodyweight",sets:3,reps:"15 each side",url:"https://www.youtube.com/results?search_query=side+lying+hip+abduction+glute+exercise",cue:"Lie on side. Lift top leg to 45 degrees. Squeeze glute. Lower slowly. Hip not spine.",muscles:["glutes","hip abductors"],tags:["physio","glute","hip","side+lying","abduction","activation"]},
 ];
 // ── PROGRAM V1: active until May 31 2026 ──────────────────────────────────
 const PROG_V1={
@@ -702,6 +765,7 @@ const PROG_V2={
     {id:"m2_lr",name:"Seated Lateral Raise",cat:"gym",sets:3,reps:12,hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"SEATED only. Shoulder height max. No torso lean.",muscles:["lateral delt"]},
     {id:"m2_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:3,reps:15,hint:"15-20 kg",url:"https://www.youtube.com/results?search_query=rear+delt+fly+machine+form",cue:"Sit facing pad. Pull handles wide. Squeeze shoulder blades together.",muscles:["rear delt","rhomboids","mid back"]},
     {id:"m2_fp",name:"Cable Face Pull",cat:"gym",sets:3,reps:15,hint:"15-20 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Pull toward nose. Elbows flare wide.",muscles:["rear delt","rotator cuff","traps"]},
+    {id:"m2_tcp",name:"Cable Tricep Pushdown",cat:"gym",sets:3,reps:12,hint:"18-25 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+pushdown+form",cue:"Elbows pinned at sides. Full extension at bottom. Slow return.",muscles:["triceps"]},
     {id:"m2_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy pace. Slow down if calf twinges.",muscles:[]},
     {id:"m2_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
     {id:"m2_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes, not lower back. Hold 3 seconds at top.",muscles:[]},
@@ -728,7 +792,8 @@ const PROG_V2={
     {id:"w2_ha",name:"Hip Abduction Machine",cat:"gym",sets:3,reps:15,hint:"25-35 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Side glute critical for spinal stability.",muscles:["glutes","hip abductors"]},
     {id:"w2_le",name:"Leg Extension Machine",cat:"gym",sets:3,reps:15,hint:"30-45 kg",url:"https://www.youtube.com/results?search_query=leg+extension+machine+form",cue:"Seated. Full extension at top. Slow on the way down.",muscles:["quads"]},
     {id:"w2_sc",name:"Seated Calf Raise",cat:"gym",sets:3,reps:15,hint:"30-40 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Full range of motion.",muscles:["calves"]},
-    {id:"w2_cw",name:"Seated Cable Woodchop",cat:"gym",sets:3,reps:12,hint:"10-18 kg",url:"https://www.youtube.com/results?search_query=seated+cable+woodchop+core",cue:"Seated. Rotate torso. Core controls movement. No lumbar flexion.",muscles:["obliques","core"]},
+    {id:"w2_pp",name:"Cable Pallof Press",cat:"gym",sets:3,reps:12,hint:"8-15 kg",url:"https://www.youtube.com/results?search_query=cable+pallof+press+seated+anti+rotation",cue:"Seated sideways to cable. Press handles out to chest height. RESIST rotation  -  do not rotate. Core fights to stay square.",muscles:["core","obliques"]},
+    {id:"w2_hiad",name:"Hip Adduction Machine",cat:"gym",sets:3,reps:15,hint:"25-40 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow and controlled. Good for hip and pelvic stability.",muscles:["inner thigh","adductors"]},
     {id:"w2_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy pace. Monitor calf.",muscles:[]},
     {id:"w2_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
     {id:"w2_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds.",muscles:[]},
@@ -771,7 +836,8 @@ const PROG_V2={
     {id:"sa2_sc",name:"Seated Calf Raise",cat:"gym",sets:3,reps:15,hint:"30-40 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Full range of motion.",muscles:["calves"]},
     {id:"sa2_lc",name:"Seated Leg Curl",cat:"gym",sets:3,reps:12,hint:"32-42 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Hamstring strength reduces calf symptoms. Aim slightly heavier.",muscles:["hamstrings"]},
     {id:"sa2_ha",name:"Hip Abduction Machine",cat:"gym",sets:3,reps:15,hint:"27-37 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Side glute critical for spinal stability. Aim slightly heavier than Wednesday.",muscles:["glutes","hip abductors"]},
-    {id:"sa2_cw",name:"Seated Cable Woodchop",cat:"gym",sets:3,reps:12,hint:"12-20 kg",url:"https://www.youtube.com/results?search_query=seated+cable+woodchop+core",cue:"Seated. Core controls rotation. No lumbar flexion.",muscles:["obliques","core"]},
+    {id:"sa2_pp",name:"Cable Pallof Press",cat:"gym",sets:3,reps:12,hint:"10-18 kg",url:"https://www.youtube.com/results?search_query=cable+pallof+press+seated+anti+rotation",cue:"Seated sideways to cable. Press out and resist rotation. Core stays braced and square throughout.",muscles:["core","obliques"]},
+    {id:"sa2_hiad",name:"Hip Adduction Machine",cat:"gym",sets:3,reps:15,hint:"27-42 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slightly heavier than Wednesday. Slow and controlled. Pelvic stability.",muscles:["inner thigh","adductors"]},
     {id:"sa2_tw",name:"Treadmill Walk",cat:"cardio",sets:1,reps:"20 min",hint:"Incline 2-3%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Higher incline on Saturday. Lean slightly forward.",muscles:[]},
     {id:"sa2_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
     {id:"sa2_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Squeeze at top.",muscles:[]},
@@ -805,6 +871,7 @@ if(!S.nutrition.days)S.nutrition.days={};
 if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
+if(!S.aiChat)S.aiChat=[];
 hydrateCustomExercises();
 applyPlanOverrides();
 function applyTheme(){
@@ -817,8 +884,9 @@ let _appReady=false,_syncTimer=null,_syncAvailable=null,_lastSyncAt=null,_syncBu
 function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));queueSync();}
 
 // Personal constants · never rendered in UI
-const USER={weightKg:136.6,targetKg:95,heightCm:190.5,age:30,sex:"M",goalDate:new Date(2026,11,1)};
-function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*USER.age+5);}
+const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
+function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
+function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
 function latestWeightLog(){const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
 function calcTarget(bmr,active){
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
@@ -880,6 +948,7 @@ function esc(v){
 // Light markdown renderer for AI output: bold/italic/headers/bullets, XSS-safe
 function mdLite(t){
   let h=esc(t);
+  h=h.replace(/—|–/g," - "); // em/en dash -> hyphen
   h=h.replace(/^#{1,3} (.+)$/gm,"<b>$1</b>");
   h=h.replace(/\*\*([^*]+)\*\*/g,"<b>$1</b>");
   h=h.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g,"$1<i>$2</i>");
@@ -1019,27 +1088,29 @@ function undoCalfTwinge(){
 }
 
 // ── VOLUME DATA ──
+// Planned sets come from PROG, which applyPlanOverrides() has already
+// mutated with this week's AI-generated plan - so planned volume tracks
+// the live weekly plan, not the static base program.
 function buildVolumeData(){
   const cur=wk();
-  const counts={};
+  const planned={},done={};
   for(const[day,dayData] of Object.entries(PROG)){
-    const key=day+"_"+cur;
-    const sessData=S.sessions[key];
-    if(!sessData)continue;
+    const sessData=S.sessions[day+"_"+cur];
     for(const ex of(dayData.exercises||[])){
-      const ed=sessData[ex.id];
+      if(ex.cat==="cardio")continue;
+      const n=typeof ex.sets==="number"?ex.sets:0;
+      for(const m of(ex.muscles||[]))planned[m]=(planned[m]||0)+n;
+      const ed=sessData&&sessData[ex.id];
       if(!ed||!ed.sets)continue;
       const doneCount=ed.sets.filter(s=>s.done).length;
       if(!doneCount)continue;
-      for(const m of(ex.muscles||[])){
-        counts[m]=(counts[m]||0)+doneCount;
-      }
+      for(const m of(ex.muscles||[]))done[m]=(done[m]||0)+doneCount;
     }
   }
-  return Object.entries(counts)
-    .filter(([,c])=>c>0)
-    .map(([muscle,count])=>({muscle,count}))
-    .sort((a,b)=>b.count-a.count);
+  return Object.keys(planned)
+    .map(muscle=>({muscle,planned:planned[muscle],done:done[muscle]||0}))
+    .filter(v=>v.planned>0||v.done>0)
+    .sort((a,b)=>b.planned-a.planned||b.done-a.done);
 }
 
 // ── SESSION NOTES DEBOUNCE ──
@@ -1087,9 +1158,18 @@ window.addEventListener("DOMContentLoaded",()=>{
 });
 
 function cycleQ(){
-  const el=document.getElementById("quoteEl");
-  el.style.opacity=0;
-  setTimeout(()=>{el.textContent=Q[qIdx++%Q.length];el.style.opacity=1;},400);
+  const wrap=document.getElementById("quoteEl");
+  const body=document.getElementById("quoteBody");
+  const auth=document.getElementById("quoteAuthor");
+  if(!wrap||!body)return;
+  wrap.style.opacity=0;
+  setTimeout(()=>{
+    const q=Q[qIdx++%Q.length];
+    const sep=q.lastIndexOf(" - ");
+    if(sep>0&&auth){body.textContent="“"+q.slice(0,sep)+"”";auth.textContent=q.slice(sep+3);}
+    else{body.textContent=q;if(auth)auth.textContent="";}
+    wrap.style.opacity=1;
+  },400);
 }
 
 function go(tab){
@@ -1968,10 +2048,14 @@ function renderST(){
     <div class="st-sec">This Week's Volume</div>
     ${(()=>{
       const vdata=buildVolumeData();
-      if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);margin-bottom:12px;padding:0 2px">No sets logged yet this week.</div>`;
-      const max=vdata[0].count;
+      if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);margin-bottom:12px;padding:0 2px">No exercises planned this week.</div>`;
       return`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:14px">`+
-        vdata.map(({muscle,count})=>`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${Math.round(count/max*100)}%"></div></div><div class="vol-count">${count}</div></div>`).join("")+
+        `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:0.5px">SETS DONE / PLANNED · follows this week's plan</div>`+
+        vdata.map(({muscle,planned,done})=>{
+          const pct=planned?Math.min(100,Math.round(done/planned*100)):0;
+          const full=planned&&done>=planned;
+          return`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${pct}%${full?";background:var(--green)":""}"></div></div><div class="vol-count">${done}/${planned}</div></div>`;
+        }).join("")+
       `</div>`;
     })()}
     <div class="st-sec">Permanent Spine Rules</div>
@@ -1990,6 +2074,12 @@ function renderST(){
       const monday=new Date(now);
       monday.setDate(now.getDate()+mondayOffset);
       const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+      // Dynamic weekly target: dailyReq × 6.5 (6 full days + 0.5 for Sunday rest day)
+      const lw=latestWeightLog()||USER.weightKg;
+      const bmrBase=calcBMR(lw);
+      const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+      const dailyReq=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+      const WEEKLY_TARGET=Math.round(dailyReq*6.5);
       let runningTotal=0;
       let rows="";
       let loggedDays=0;
@@ -2006,26 +2096,27 @@ function renderST(){
         const items=nutDay.items||[];
         const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
         if(!consumed){
-          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
+          const isSun=i===6;
+          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]}${isSun?' <span style="font-size:9px;color:var(--dim)">(rest ×0.5)</span>':''} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
           continue;
         }
-        const bmr=calcBMR(latestWeightLog()||USER.weightKg);
+        const bmr=calcBMR(lw);
         const resting=nutDay.restingOverride!=null?nutDay.restingOverride:bmr;
         const active=nutDay.active||0;
         const burn=resting+Math.round(active*0.80);
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
+        const isSun=i===6;
         const sign=deficit>=0?"":"+";
         const col=deficit>=0?"var(--green)":"var(--red)";
         rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:${col};font-weight:600">${sign}${deficit>=0?"-":""}${Math.abs(deficit).toLocaleString()} kcal</span></div>`;
       }
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
-      const WEEKLY_TARGET=12760;
       const adjusted=runningTotal;
       // Pace-based status: pro-rate the weekly target by burn-weighted days,
       // not calendar days. Sunday is a rest day (no active burn) so it carries
-      // half a share; Mon-Sat carry full shares. Total still sums to 12,760.
+      // half a share; Mon-Sat carry full shares.
       const WEEK_WEIGHT=6.5;
       const paceTarget=Math.round(WEEKLY_TARGET*elapsedWeight/WEEK_WEIGHT);
       const pace=paceTarget?adjusted/paceTarget:0;
@@ -2038,7 +2129,7 @@ function renderST(){
         <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
             <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(active ×0.80)</span></span>
-            <span style="font-size:22px;font-weight:700;color:${totalCol}">${adjusted.toLocaleString()} kcal</span>
+            <span style="font-size:22px;font-weight:700;color:${totalCol}">${runningTotal.toLocaleString()} kcal</span>
           </div>
           <div class="prog-bar-wrap" style="margin-bottom:6px"><div class="prog-bar-fill" style="width:${pctBar}%;background:${barCol}"></div></div>
           <div style="display:flex;justify-content:space-between;font-size:11px">
@@ -2530,6 +2621,17 @@ function renderNutrition(){
       ${sparkHtml}
       ${wtKeys.length?`<div class="wt-arrival">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
     </div>
+    <div class="ai-chat-panel">
+      <div class="ai-chat-header">
+        <span class="ai-chat-title">Ask Forge</span>
+        <button class="ai-chat-clear" onclick="clearAiChat()">Clear</button>
+      </div>
+      <div class="ai-chat-messages" id="aiChatMessages">${renderAiChatBubbles()}</div>
+      <div class="ai-chat-bar">
+        <textarea class="ai-chat-inp" id="aiChatInp" placeholder="Ask anything  -  nutrition, exercises, progress, calf pain..." rows="2" maxlength="500" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiChat();}"></textarea>
+        <button class="ai-chat-send" id="aiChatSend" onclick="sendAiChat()">Send</button>
+      </div>
+    </div>
     <details class="ai-accordion">
       <summary>💪 AI Coaching</summary>
       <div class="ai-acc-inner">
@@ -2680,6 +2782,88 @@ async function checkMondayAudit(){
   }catch(e){}
 }
 function getISOWeek(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+
+// ── AI CHAT ──────────────────────────────────────────────────────────────────
+function sanitizeCtx(str,max=100){return String(str||"").slice(0,max).replace(/[<>{}\[\]]/g,"");}
+function buildChatContext(){
+  const today=isoToday();
+  const dayData=S.nutrition.days[today]||{};
+  const consumed=(dayData.items||[]).reduce((a,i)=>a+i.kcal,0);
+  const active=dayData.active||0;
+  const currentWeight=latestWeightLog()||USER.weightKg;
+  const bmr=calcBMR(currentWeight);
+  const{target,req:dailyDeficitReq}=calcTarget(bmr,Math.round(active*0.80));
+  const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+  // Explicit goal framing so AI knows this is a weight-loss context
+  const goal={
+    type:"weight loss",
+    currentKg:currentWeight,
+    targetKg:USER.targetKg,
+    remainingKg:Math.round((currentWeight-USER.targetKg)*10)/10,
+    goalDate:USER.goalDate.toISOString().slice(0,10),
+    daysLeft,
+    dailyDeficitRequired:dailyDeficitReq,
+    intakeTargetToday:target,
+    consumedToday:consumed,
+    remainingToday:target-consumed,
+    activeCaloriesToday:active,
+    bmr
+  };
+  const sessions=Object.entries(S.sessions||{})
+    .sort(([a],[b])=>b.localeCompare(a)).slice(0,7)
+    .map(([date,sess])=>({date,day:sanitizeCtx(sess.day,20),
+      setsLogged:sess.logs?Object.values(sess.logs).flat().length:0,
+      calfEvents:sess.calfCount||0,notes:sanitizeCtx(sess.notes,100)}));
+  const weights=Object.entries(S.nutrition.weights||{})
+    .sort(([a],[b])=>b.localeCompare(a)).slice(0,5)
+    .map(([date,kg])=>({date,kg}));
+  const todayItems=(dayData.items||[]).slice(0,10)
+    .map(i=>({name:sanitizeCtx(i.name,50),kcal:i.kcal,protein:i.protein||0}));
+  return{today,goal,sessions,weights,todayItems};
+}
+function renderAiChatBubbles(){
+  if(!S.aiChat||!S.aiChat.length)return`<div class="ai-chat-empty">Ask anything about your workouts, nutrition, or progress.</div>`;
+  return S.aiChat.slice(-10).map(m=>`<div class="chat-bubble ${m.role==="user"?"chat-user":"chat-ai"}">${m.role==="user"?esc(m.text):mdLite(m.text)}</div>`).join("");
+}
+function scrollChatBottom(){const el=document.getElementById("aiChatMessages");if(el)el.scrollTop=el.scrollHeight;}
+function clearAiChat(){S.aiChat=[];save();const el=document.getElementById("aiChatMessages");if(el)el.innerHTML=renderAiChatBubbles();}
+async function sendAiChat(){
+  const inp=document.getElementById("aiChatInp");
+  const btn=document.getElementById("aiChatSend");
+  if(!inp)return;
+  const text=inp.value.trim().slice(0,500);
+  if(!text)return;
+  inp.value="";
+  if(!S.aiChat)S.aiChat=[];
+  S.aiChat.push({role:"user",text,ts:Date.now()});
+  if(S.aiChat.length>20)S.aiChat=S.aiChat.slice(-20);
+  save();
+  const msgs=document.getElementById("aiChatMessages");
+  if(msgs){msgs.innerHTML=renderAiChatBubbles();const thinking=document.createElement("div");thinking.className="chat-thinking";thinking.id="chatThinking";thinking.textContent="Thinking…";msgs.appendChild(thinking);scrollChatBottom();}
+  if(btn)btn.disabled=true;
+  try{
+    const ctx=buildChatContext();
+    const r=await fetch(API_CFG.baseUrl+"/api/coach",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
+      body:JSON.stringify({
+        prompt:text,
+        context:{day:"",program:"",chatContext:JSON.stringify(ctx)}
+      })
+    });
+    const d=await r.json();
+    const reply=d.text||d.error||"No response";
+    S.aiChat.push({role:"ai",text:reply,ts:Date.now()});
+    if(S.aiChat.length>20)S.aiChat=S.aiChat.slice(-20);
+    save();
+  }catch(e){
+    S.aiChat.push({role:"ai",text:"Sorry, I couldn't connect right now. Try again.",ts:Date.now()});
+    save();
+  }finally{
+    if(btn)btn.disabled=false;
+    if(msgs){msgs.innerHTML=renderAiChatBubbles();scrollChatBottom();}
+  }
+}
 </script>
 </body>
 </html>
