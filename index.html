@@ -867,7 +867,7 @@ let _appReady=false,_syncTimer=null,_syncAvailable=null,_lastSyncAt=null,_syncBu
 function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));queueSync();}
 
 // Personal constants · never rendered in UI
-const USER={birthDate:new Date(1995,7,1),targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
+const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
 function latestWeightLog(){const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
@@ -2088,7 +2088,16 @@ function renderST(){
       const monday=new Date(now);
       monday.setDate(now.getDate()+mondayOffset);
       const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+      // Sun (index 6) counts as 0.5 — rest day has half the deficit requirement
+      const DAY_WEIGHTS=[1,1,1,1,1,1,0.5];
+      // Dynamic weekly target: dailyReq × 6.5 (6 full days + 0.5 for Sunday)
+      const lw=latestWeightLog()||USER.weightKg;
+      const bmrBase=calcBMR(lw);
+      const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+      const dailyReq=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+      const WEEKLY_TARGET=Math.round(dailyReq*6.5);
       let runningTotal=0;
+      let paceTarget=0; // accumulated quota for elapsed days (pace)
       let rows="";
       let loggedDays=0;
       let daysElapsed=0;
@@ -2098,43 +2107,55 @@ function renderST(){
         const iso=d.toISOString().slice(0,10);
         if(iso>todayIso)break;
         daysElapsed++;
+        const dayQuota=Math.round(dailyReq*DAY_WEIGHTS[i]);
+        paceTarget+=dayQuota;
         const nutDay=S.nutrition?.days?.[iso]||{};
         const items=nutDay.items||[];
         const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
         if(!consumed){
-          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
+          const isSun=i===6;
+          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]}${isSun?' <span style="font-size:9px;color:var(--dim)">(rest ×0.5)</span>':''} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
           continue;
         }
-        const bmr=calcBMR(latestWeightLog()||USER.weightKg);
+        const bmr=calcBMR(lw);
         const resting=nutDay.restingOverride!=null?nutDay.restingOverride:bmr;
         const active=nutDay.active||0;
         const burn=resting+Math.round(active*0.80);
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
+        const isSun=i===6;
         const sign=deficit>=0?"":"+";
         const col=deficit>=0?"var(--green)":"var(--red,#e05)";
-        rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:${col};font-weight:600">${sign}${deficit>=0?"-":""}${Math.abs(deficit).toLocaleString()} kcal</span></div>`;
+        const vsQuota=deficit-dayQuota;
+        const paceNote=isSun?` <span style="font-size:9px;color:var(--dim)">(rest ×0.5 · quota ${dayQuota.toLocaleString()})</span>`:`<span style="font-size:9px;color:${vsQuota>=0?"var(--green)":"var(--amber,#f5a623)"};margin-left:6px">${vsQuota>=0?"▲":"▼"}${Math.abs(vsQuota).toLocaleString()}</span>`;
+        rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:${col};font-weight:600">${sign}${deficit>=0?"-":""}${Math.abs(deficit).toLocaleString()} kcal${paceNote}</span></div>`;
       }
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
-      const WEEKLY_TARGET=12760;
-      const adjusted=runningTotal;
-      const pct=adjusted/WEEKLY_TARGET;
-      const totalCol=pct>=1?"var(--green)":pct>=0.95?"var(--amber,#f5a623)":"var(--red,#e05)";
-      const statusTxt=pct>=1?"On track ✓":pct>=0.95?"Within 5% of target":"Below target";
-      const pctBar=Math.min(100,Math.round(pct*100));
-      const barCol=pct>=1?"var(--green)":pct>=0.95?"var(--amber,#f5a623)":"var(--red,#e05)";
+      // Pace status: compare running deficit against accumulated pace target
+      const pacePct=paceTarget>0?runningTotal/paceTarget:0;
+      const weekPct=WEEKLY_TARGET>0?runningTotal/WEEKLY_TARGET:0;
+      const totalCol=pacePct>=1?"var(--green)":pacePct>=0.95?"var(--amber,#f5a623)":"var(--red,#e05)";
+      const statusTxt=pacePct>=1?"On pace ✓":pacePct>=0.95?"Within 5% of pace":"Behind pace";
+      const paceGap=runningTotal-paceTarget;
+      const paceGapTxt=paceGap>=0?`+${paceGap.toLocaleString()} ahead`:`${Math.abs(paceGap).toLocaleString()} behind`;
+      const pctBar=Math.min(100,Math.round(weekPct*100));
+      const barCol=pacePct>=1?"var(--green)":pacePct>=0.95?"var(--amber,#f5a623)":"var(--red,#e05)";
       return`<div class="export-card">
         ${rows}
         <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
             <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(active ×0.80)</span></span>
-            <span style="font-size:22px;font-weight:700;color:${totalCol}">${adjusted.toLocaleString()} kcal</span>
+            <span style="font-size:22px;font-weight:700;color:${totalCol}">${runningTotal.toLocaleString()} kcal</span>
           </div>
           <div class="prog-bar-wrap" style="margin-bottom:6px"><div class="prog-bar-fill" style="width:${pctBar}%;background:${barCol}"></div></div>
-          <div style="display:flex;justify-content:space-between;font-size:11px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
             <span style="color:${totalCol};font-weight:600">${statusTxt}</span>
-            <span style="color:var(--dim)">target ${WEEKLY_TARGET.toLocaleString()} kcal</span>
+            <span style="color:var(--dim)">weekly target ${WEEKLY_TARGET.toLocaleString()} kcal</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:11px">
+            <span style="color:var(--dim)">pace target today: <b style="color:var(--lt)">${paceTarget.toLocaleString()}</b></span>
+            <span style="color:${paceGap>=0?"var(--green)":"var(--amber,#f5a623)"};font-weight:600">${paceGapTxt}</span>
           </div>
         </div>
         ${loggedDays<daysElapsed?`<div style="font-size:11px;color:var(--amber,#f5a623);margin-top:8px;text-align:right">⚠ ${loggedDays} of ${daysElapsed} days logged · total may be optimistic</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:right">All ${daysElapsed} day${daysElapsed!==1?"s":""} logged ✓</div>`}

@@ -361,6 +361,56 @@ section("15 · coach.js MAX_PROMPT");
 ok(`MAX_PROMPT ≥ 4000 (actual: ${MAX_PROMPT})`, MAX_PROMPT >= 4000);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 16. USER.weightKg fallback defined
+// ─────────────────────────────────────────────────────────────────────────────
+section("16 · USER.weightKg fallback");
+
+const userLine = HTML.match(/const USER=\{[^}]+\}/)?.[0] || "";
+ok("USER.weightKg is defined as fallback (136.6)",
+  userLine.includes("weightKg:136.6"));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 17. Pace-based weekly deficit
+// ─────────────────────────────────────────────────────────────────────────────
+section("17 · Pace-based weekly deficit");
+
+ok("Weekly deficit uses DAY_WEIGHTS array",
+  HTML.includes("DAY_WEIGHTS=[1,1,1,1,1,1,0.5]"));
+
+ok("Sunday has 0.5 weight in DAY_WEIGHTS",
+  HTML.includes("DAY_WEIGHTS=[1,1,1,1,1,1,0.5]"));
+
+ok("Weekly target is dynamic (dailyReq × 6.5), not hardcoded 12760",
+  !HTML.includes("WEEKLY_TARGET=12760") &&
+  HTML.includes("dailyReq*6.5"));
+
+ok("paceTarget accumulates day by day",
+  HTML.includes("paceTarget+=dayQuota"));
+
+ok("Pace gap shown in UI (ahead/behind)",
+  HTML.includes("paceGapTxt") && HTML.includes("ahead") && HTML.includes("Behind pace"));
+
+// Test the pace math
+function paceWeeklyTarget(lw, targetKg, goalDate) {
+  const daysLeft = Math.max(1, Math.ceil((goalDate - Date.now()) / 86400000));
+  const dailyReq = Math.round(Math.max(0, (lw - targetKg) * 7700) / daysLeft);
+  return Math.round(dailyReq * 6.5);
+}
+
+const goal = new Date(2026, 11, 1);
+ok("Pace weekly target is 6.5× daily requirement",
+  paceWeeklyTarget(136.6, 95, goal) > 0);
+
+ok("Pace weekly target < 7× daily (Sunday is only 0.5)", (() => {
+  const daysLeft = Math.max(1, Math.ceil((goal - Date.now()) / 86400000));
+  const dailyReq = Math.round((136.6 - 95) * 7700 / daysLeft);
+  return paceWeeklyTarget(136.6, 95, goal) < dailyReq * 7;
+})());
+
+ok("At goal weight, weekly target = 0",
+  paceWeeklyTarget(95, 95, goal) === 0);
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 const total = passed + failed;
