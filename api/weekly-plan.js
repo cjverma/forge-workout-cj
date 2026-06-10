@@ -75,6 +75,32 @@ Rules:
       console.error("[weekly-plan] missing week_plan key:", text.slice(0, 300));
       return res.status(502).json({ error: "AI plan missing week_plan" });
     }
+    // Spine safety net: strip any AI "add" that violates the hard rules
+    const BANNED = [
+      /overhead/i, /military/i, /shoulder\s*press/i, /arnold/i, /push\s*press/i,
+      /\bsquat\b/i, /deadlift/i, /good\s*morning/i, /\blunge/i, /split\s*squat/i,
+      /step[\s-]?up/i, /stair/i, /box\s*jump/i, /\bjump/i, /burpee/i,
+      /\bstanding\b/i, /upright\s*row/i, /barbell\s*row/i, /bent[\s-]?over/i,
+      /\bclean\b/i, /snatch/i, /thruster/i, /farmer/i, /\bcarr(y|ies)\b/i, /\brunning?\b/i
+    ];
+    const banned = name => {
+      const n = String(name || "");
+      if (/lat\s*pulldown/i.test(n) && !/neutral|close/i.test(n)) return true;
+      return BANNED.some(rx => rx.test(n));
+    };
+    const stripped = [];
+    for (const [day, exs] of Object.entries(parsed.week_plan)) {
+      if (!Array.isArray(exs)) continue;
+      parsed.week_plan[day] = exs.filter(e => {
+        if (e && e.action === "add" && banned(e.name)) { stripped.push(e.name); return false; }
+        return true;
+      });
+    }
+    if (stripped.length) {
+      console.warn("[weekly-plan] blocked unsafe suggestions:", stripped.join(", "));
+      parsed.flags = parsed.flags || [];
+      parsed.flags.unshift("Blocked unsafe AI suggestions (spine rules): " + stripped.join(", "));
+    }
     return res.json({ text: JSON.stringify(parsed) });
   } catch (e) {
     console.error("[weekly-plan]", e.message);

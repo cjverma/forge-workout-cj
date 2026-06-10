@@ -1100,7 +1100,7 @@ function go(tab){
   document.getElementById("dayNav").style.display=tab==="workout"?"flex":"none";
   document.getElementById("mainScroll").scrollTop=0;
   if(tab==="workout")renderW();
-  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;_burnEdit=null;renderNutrition();}
+  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;renderNutrition();}
   else renderST();
 }
 
@@ -1505,9 +1505,9 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input class="si" type="number" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onfocus="this.select()">
+        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
         <div class="sx">×</div>
-        <input class="si" type="number" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onfocus="this.select()">
+        <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
       </div>`;
     }
@@ -1544,6 +1544,9 @@ function ensure(key,exId,i){
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   while(S.sessions[key][exId].sets.length<=i)S.sessions[key][exId].sets.push({});
 }
+
+function onWtKey(e,exId,i){if(e.key==="Enter"){e.preventDefault();const r=document.getElementById("ri-"+exId+"-"+i);if(r)r.focus();}}
+function onRpKey(e){if(e.key==="Enter"){e.preventDefault();document.activeElement.blur();}}
 
 function saveF(key,exId,i,field,val){
   if(isReadOnly(key))return;
@@ -1952,7 +1955,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.4</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.5</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -2246,6 +2249,37 @@ function buildPlanSnapshot(){
 
 let _pendingPlan=null;
 
+// Spine safety net: the AI is instructed not to suggest these, but never trust it.
+// Any "add" matching a banned pattern is stripped before preview and flagged.
+const BANNED_EX=[
+  /overhead/i,/military/i,/shoulder\s*press/i,/arnold/i,/push\s*press/i,
+  /\bsquat\b/i,/deadlift/i,/good\s*morning/i,/\blunge/i,/split\s*squat/i,
+  /step[\s-]?up/i,/stair/i,/box\s*jump/i,/\bjump/i,/burpee/i,
+  /\bstanding\b/i,/upright\s*row/i,/barbell\s*row/i,/bent[\s-]?over/i,
+  /\bclean\b/i,/snatch/i,/thruster/i,/farmer/i,/\bcarr(y|ies)\b/i,/\brunning?\b/i
+];
+function isBannedExercise(name){
+  const n=String(name||"");
+  if(/lat\s*pulldown/i.test(n)&&!/neutral|close/i.test(n))return true; // standard lat pulldown banned
+  return BANNED_EX.some(rx=>rx.test(n));
+}
+function sanitizePlan(parsed){
+  if(!parsed||!parsed.week_plan)return parsed;
+  const stripped=[];
+  for(const[day,exs]of Object.entries(parsed.week_plan)){
+    if(!Array.isArray(exs))continue;
+    parsed.week_plan[day]=exs.filter(e=>{
+      if(e&&e.action==="add"&&isBannedExercise(e.name)){stripped.push(e.name);return false;}
+      return true;
+    });
+  }
+  if(stripped.length){
+    parsed.flags=parsed.flags||[];
+    parsed.flags.unshift("⛔ Blocked unsafe AI suggestions (spine rules): "+stripped.join(", "));
+  }
+  return parsed;
+}
+
 async function genWeeklyPlan(){
   const btn=document.getElementById("genPlanBtn");
   if(!btn)return;
@@ -2265,6 +2299,7 @@ async function genWeeklyPlan(){
     let parsed;
     try{parsed=JSON.parse(data.text);}
     catch{const m=data.text?.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error("Invalid response");}
+    parsed=sanitizePlan(parsed);
     _pendingPlan=parsed;
     showPlanModal(parsed);
   }catch(e){
@@ -2377,7 +2412,7 @@ function nutShift(delta){
   const d=new Date(_nutDate+"T12:00:00");d.setDate(d.getDate()+delta);
   const next=d.toISOString().slice(0,10);
   if(next>isoToday())return;
-  _nutDate=next;_pendingFood=null;_foodChatOpen=false;_burnEdit=null;renderNutrition();
+  _nutDate=next;_pendingFood=null;_foodChatOpen=false;renderNutrition();
 }
 function nutDateLabel(iso){
   const today=isoToday();
@@ -2475,9 +2510,9 @@ function renderNutrition(){
     <div class="nut-card">
       <div class="nut-card-title">Burn</div>
       <div class="burn-row">
-        <div class="burn-col">${_burnEdit&&_burnEdit.field==="resting"?`<input class="burn-inp" id="burnInp" type="number" value="${resting}" onkeydown="if(event.key==='Enter')saveBurnEdit();if(event.key==='Escape')cancelBurnEdit()" onblur="saveBurnEdit()">`:`<div class="burn-val${ro?"":" tappable"}" onclick="editResting('${date}')" title="Tap to override">${resting}${restOvr!=null?"*":""}</div>`}<div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
+        <div class="burn-col"><div class="burn-val${ro?"":" tappable"}" id="bvRest" onclick="editBurn(this,'${date}','resting')" title="Tap to override">${resting}${restOvr!=null?"*":""}</div><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col">${_burnEdit&&_burnEdit.field==="active"?`<input class="burn-inp" id="burnInp" type="number" value="${active||""}" onkeydown="if(event.key==='Enter')saveBurnEdit();if(event.key==='Escape')cancelBurnEdit()" onblur="saveBurnEdit()">`:`<div class="burn-val${ro?"":" tappable"}" onclick="editActive('${date}')">${active||"&ndash;"}</div>`}<div class="burn-lbl">Active</div></div>
+        <div class="burn-col"><div class="burn-val${ro?"":" tappable"}" id="bvAct" onclick="editBurn(this,'${date}','active')">${active||"&ndash;"}</div><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
       </div>
@@ -2499,32 +2534,35 @@ function renderNutrition(){
     <div style="height:20px"></div>
   </div>`;
 }
-let _burnEdit=null; // {date,field:"resting"|"active"} when an inline burn edit is open
-function editResting(date){
+// Inline calorie editing. The input is swapped in synchronously inside the
+// tap gesture so iOS opens the keyboard (focus() after a re-render is ignored).
+function editBurn(el,date,field){
   if(nutLocked(date))return;
-  _burnEdit={date,field:"resting"};renderNutrition();
-  setTimeout(()=>{const i=document.getElementById("burnInp");if(i){i.focus();i.select();}},50);
+  const inp=document.createElement("input");
+  inp.className="burn-inp";inp.type="number";
+  inp.setAttribute("inputmode","numeric");inp.setAttribute("enterkeyhint","done");
+  inp.value=field==="resting"?(S.nutrition.days[date]?.restingOverride??calcBMR(latestWeightLog()||USER.weightKg)):(getDayData(date).active||"");
+  const finish=commit=>{
+    if(inp._done)return;inp._done=true;
+    if(commit){
+      const val=inp.value.trim();
+      if(field==="resting"){
+        if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
+        if(val===""){delete S.nutrition.days[date].restingOverride;}
+        else{const n=parseInt(val);if(isNaN(n)||n<800||n>4000){showToast("Enter 800-4000");renderNutrition();return;}S.nutrition.days[date].restingOverride=n;}
+      }else{
+        const n=parseInt(val||"0");if(isNaN(n)||n<0){showToast("Enter a valid number");renderNutrition();return;}
+        getDayData(date).active=n;
+      }
+      save();
+    }
+    renderNutrition();
+  };
+  inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();inp.blur();}if(e.key==="Escape")finish(false);};
+  inp.onblur=()=>finish(true);
+  el.replaceWith(inp);
+  inp.focus();inp.select();
 }
-function editActive(date){
-  if(nutLocked(date))return;
-  _burnEdit={date,field:"active"};renderNutrition();
-  setTimeout(()=>{const i=document.getElementById("burnInp");if(i){i.focus();i.select();}},50);
-}
-function saveBurnEdit(){
-  if(!_burnEdit)return;
-  const{date,field}=_burnEdit;
-  const val=(document.getElementById("burnInp")?.value||"").trim();
-  if(field==="resting"){
-    if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
-    if(val===""){delete S.nutrition.days[date].restingOverride;}
-    else{const n=parseInt(val);if(isNaN(n)||n<800||n>4000){showToast("Enter 800-4000");return;}S.nutrition.days[date].restingOverride=n;}
-  }else{
-    const n=parseInt(val||"0");if(isNaN(n)||n<0){showToast("Enter a valid number");return;}
-    getDayData(date).active=n;
-  }
-  _burnEdit=null;save();renderNutrition();
-}
-function cancelBurnEdit(){_burnEdit=null;renderNutrition();}
 function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
