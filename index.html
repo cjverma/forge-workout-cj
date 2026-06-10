@@ -1319,6 +1319,29 @@ async function resolveDemo(wrap){
   }
 }
 
+async function scanDemos(){
+  const sub=document.getElementById("demoScanSub");
+  const names=[...new Set(Object.values(PROG).flatMap(d=>(d.exercises||[]).filter(e=>(e.cat||"gym").toLowerCase()==="gym").map(e=>e.name)).concat(Object.keys(DEMO_ALIASES)))]
+    .filter(n=>!S.demoCache[n]);
+  if(!names.length){showToast("All exercises already scanned ✓");return;}
+  showToast("Scanning "+names.length+" exercises…");
+  let found=0,missed=[];
+  for(let i=0;i<names.length;i++){
+    if(sub)sub.textContent="Scanning "+(i+1)+"/"+names.length+": "+names[i];
+    const url=await probeBatches(demoCandidates(names[i]));
+    if(url){S.demoCache[names[i]]=url;found++;save();}
+    else missed.push(names[i]);
+  }
+  if(sub)sub.textContent=found+" found · "+missed.length+" missing";
+  showToast("Done — "+found+" clips found");
+  if(missed.length){
+    const txt="Missing demo clips:\n"+missed.join("\n");
+    if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>showToast("Missing list copied — paste it to Claude")).catch(()=>{});
+    console.log(txt);
+  }
+  renderST();
+}
+
 function card(ex,sess,key,rdOnly=false){
   const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
   const isDone=ed.done,isSkip=ed.skipped;
@@ -1874,7 +1897,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.4</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.5</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -1969,6 +1992,7 @@ function renderST(){
     <div class="st-group">
       <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light — tap for dark":S.theme==="dark"?"Dark — tap for auto":"Auto — follows your device · tap for light"}</div></div></div>
       <div class="st-row" onclick="S.heroStyle=S.heroStyle==='gradient'?'photo':'gradient';save();renderST();showToast('Hero style: '+(S.heroStyle==='photo'?'Photo':'Gradient'))"><div class="st-icon">${S.heroStyle==="gradient"?"🎨":"🖼"}</div><div class="st-info"><div class="st-ttl">Workout Hero Style</div><div class="st-sub">${S.heroStyle==="gradient"?"Gradient — tap for photo":"Photo — tap for gradient"}</div></div></div>
+      <div class="st-row" onclick="scanDemos()"><div class="st-icon">🎬</div><div class="st-info"><div class="st-ttl">Scan for Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found so far · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
     </div>
     <div class="st-sec">Data</div>
     <div class="st-group">
