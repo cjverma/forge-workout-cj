@@ -1,3 +1,142 @@
 {
-
+ "Seated Cable Row": [
+  "demos/seated-cable-row-0.jpg",
+  "demos/seated-cable-row-1.jpg"
+ ],
+ "Low Cable Row": [
+  "demos/low-cable-row-0.jpg",
+  "demos/low-cable-row-1.jpg"
+ ],
+ "Chest Press Machine": [
+  "demos/chest-press-machine-0.jpg",
+  "demos/chest-press-machine-1.jpg"
+ ],
+ "Incline Chest Press Machine": [
+  "demos/incline-chest-press-machine-0.jpg",
+  "demos/incline-chest-press-machine-1.jpg"
+ ],
+ "Pec Fly Machine": [
+  "demos/pec-fly-machine-0.jpg",
+  "demos/pec-fly-machine-1.jpg"
+ ],
+ "Rear Delt Fly Machine": [
+  "demos/rear-delt-fly-machine-0.jpg",
+  "demos/rear-delt-fly-machine-1.jpg"
+ ],
+ "Chest Supported Row": [
+  "demos/chest-supported-row-0.jpg",
+  "demos/chest-supported-row-1.jpg"
+ ],
+ "Tricep Extension Machine": [
+  "demos/tricep-extension-machine-0.jpg",
+  "demos/tricep-extension-machine-1.jpg"
+ ],
+ "Preacher Curl Machine": [
+  "demos/preacher-curl-machine-0.jpg",
+  "demos/preacher-curl-machine-1.jpg"
+ ],
+ "Leg Press Machine": [
+  "demos/leg-press-machine-0.jpg",
+  "demos/leg-press-machine-1.jpg"
+ ],
+ "Seated Leg Curl": [
+  "demos/seated-leg-curl-0.jpg",
+  "demos/seated-leg-curl-1.jpg"
+ ],
+ "Leg Extension Machine": [
+  "demos/leg-extension-machine-0.jpg",
+  "demos/leg-extension-machine-1.jpg"
+ ],
+ "Seated Calf Raise": [
+  "demos/seated-calf-raise-0.jpg",
+  "demos/seated-calf-raise-1.jpg"
+ ],
+ "Hip Abduction Machine": [
+  "demos/hip-abduction-machine-0.jpg",
+  "demos/hip-abduction-machine-1.jpg"
+ ],
+ "Hip Adduction Machine": [
+  "demos/hip-adduction-machine-0.jpg",
+  "demos/hip-adduction-machine-1.jpg"
+ ],
+ "Glute Kickback Machine": [
+  "demos/glute-kickback-machine-0.jpg",
+  "demos/glute-kickback-machine-1.jpg"
+ ],
+ "Neutral Grip Lat Pulldown": [
+  "demos/neutral-grip-lat-pulldown-0.jpg",
+  "demos/neutral-grip-lat-pulldown-1.jpg"
+ ],
+ "Straight Arm Pulldown": [
+  "demos/straight-arm-pulldown-0.jpg",
+  "demos/straight-arm-pulldown-1.jpg"
+ ],
+ "Cable Tricep Pushdown": [
+  "demos/cable-tricep-pushdown-0.jpg",
+  "demos/cable-tricep-pushdown-1.jpg"
+ ],
+ "Cable Tricep Pushdown (Rope)": [
+  "demos/cable-tricep-pushdown-rope-0.jpg",
+  "demos/cable-tricep-pushdown-rope-1.jpg"
+ ],
+ "Cable Bicep Curl": [
+  "demos/cable-bicep-curl-0.jpg",
+  "demos/cable-bicep-curl-1.jpg"
+ ],
+ "Dumbbell Row": [
+  "demos/dumbbell-row-0.jpg",
+  "demos/dumbbell-row-1.jpg"
+ ],
+ "Seated Dumbbell Curl": [
+  "demos/seated-dumbbell-curl-0.jpg",
+  "demos/seated-dumbbell-curl-1.jpg"
+ ],
+ "Hammer Curl": [
+  "demos/hammer-curl-0.jpg",
+  "demos/hammer-curl-1.jpg"
+ ],
+ "Concentration Curl": [
+  "demos/concentration-curl-0.jpg",
+  "demos/concentration-curl-1.jpg"
+ ],
+ "Reverse Curl": [
+  "demos/reverse-curl-0.jpg",
+  "demos/reverse-curl-1.jpg"
+ ],
+ "Incline Dumbbell Fly": [
+  "demos/incline-dumbbell-fly-0.jpg",
+  "demos/incline-dumbbell-fly-1.jpg"
+ ],
+ "Seated External Rotation": [
+  "demos/seated-external-rotation-0.jpg",
+  "demos/seated-external-rotation-1.jpg"
+ ],
+ "Seated Wrist Curl": [
+  "demos/seated-wrist-curl-0.jpg",
+  "demos/seated-wrist-curl-1.jpg"
+ ],
+ "Seated Lateral Raise": [
+  "demos/seated-lateral-raise-0.jpg",
+  "demos/seated-lateral-raise-1.jpg"
+ ],
+ "Cable Face Pull": [
+  "demos/cable-face-pull-0.jpg",
+  "demos/cable-face-pull-1.jpg"
+ ],
+ "Seated Cable Woodchop": [
+  "demos/seated-cable-woodchop-0.jpg",
+  "demos/seated-cable-woodchop-1.jpg"
+ ],
+ "Seated Cable Lateral Raise": [
+  "demos/seated-cable-lateral-raise-0.jpg",
+  "demos/seated-cable-lateral-raise-1.jpg"
+ ],
+ "Glute Bridge": [
+  "demos/glute-bridge-0.jpg",
+  "demos/glute-bridge-1.jpg"
+ ],
+ "Dead Bug": [
+  "demos/dead-bug-0.jpg",
+  "demos/dead-bug-1.jpg"
+ ]
 }

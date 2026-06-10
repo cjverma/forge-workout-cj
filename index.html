@@ -320,8 +320,12 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 @keyframes sp{to{transform:rotate(360deg);}}
 
 /* ── DEMO PLAYER ── */
-.demo-wrap{margin:12px 14px 0;border-radius:14px;overflow:hidden;background:var(--s2);}
-.demo-wrap video,.demo-wrap img{display:block;width:100%;max-height:230px;object-fit:cover;}
+.demo-wrap{margin:12px 14px 0;border-radius:14px;overflow:hidden;background:#fff;}
+.demo-wrap video,.demo-wrap img{display:block;width:100%;max-height:230px;object-fit:contain;}
+.demo-flip{position:relative;}
+.demo-flip img{width:100%;display:block;}
+.demo-flip img:last-child{position:absolute;inset:0;opacity:0;animation:demoflip 1.6s steps(1) infinite;}
+@keyframes demoflip{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
 
 /* ── REST TIMER (background-safe) ── */
 .rest-timer-overlay{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:200;background:var(--s1);border:1px solid var(--orange);border-radius:16px;padding:14px 24px;min-width:180px;text-align:center;box-shadow:0 4px 24px rgba(0,0,0,0.5);}
@@ -1299,7 +1303,9 @@ async function probeBatches(cands){
 let _localDemos=null; // demos/map.json — clips shipped with the app
 fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{_localDemos=m;}).catch(()=>{});
 function demoHtml(name){
-  if(_localDemos&&_localDemos[name])return`<div class="demo-wrap"><video src="${_localDemos[name]}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
+  const loc=_localDemos&&_localDemos[name];
+  if(Array.isArray(loc))return`<div class="demo-wrap"><div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div></div>`;
+  if(loc)return`<div class="demo-wrap"><video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
   const cached=S.demoCache[name];
   if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
   if(_demoMiss[name])return"";
@@ -1897,7 +1903,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.5</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.6</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
