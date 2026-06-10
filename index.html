@@ -22,9 +22,9 @@
   --mid:#5F5B53;
   --lt:#3A372F;
   --white:#16140F;
-  --orange:#E8541C;
-  --orange-lo:#FCEDE5;
-  --orange-mid:#B23E10;
+  --orange:#33302A;
+  --orange-lo:#ECEAE4;
+  --orange-mid:#6B6760;
   --green:#1B9E4B;
   --green-lo:#E6F4EA;
   --red:#D6453A;
@@ -38,7 +38,7 @@
 html[data-theme="dark"]{
   --black:#0C0C0E;--s0:#121214;--s1:#17171B;--s2:#1E1E23;--s3:#26262C;
   --b1:#26262C;--b2:#34343C;--dim:#71717C;--mid:#9C9CA6;--lt:#C8C8D0;--white:#F2F1EC;
-  --orange:#FF6B2C;--orange-lo:#2A150A;--orange-mid:#E8915F;
+  --orange:#D8D5CE;--orange-lo:#26262C;--orange-mid:#9C9CA6;
   --green:#34C46A;--green-lo:#0D2415;--red:#F26257;--red-lo:#2A1210;
   --amber:#E8A33C;--amber-lo:#26200F;--blue:#6FA2F2;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
@@ -48,7 +48,7 @@ html[data-theme="dark"]{
   html:not([data-theme="light"]):not([data-theme="dark"]){
     --black:#0C0C0E;--s0:#121214;--s1:#17171B;--s2:#1E1E23;--s3:#26262C;
     --b1:#26262C;--b2:#34343C;--dim:#71717C;--mid:#9C9CA6;--lt:#C8C8D0;--white:#F2F1EC;
-    --orange:#FF6B2C;--orange-lo:#2A150A;--orange-mid:#E8915F;
+    --orange:#D8D5CE;--orange-lo:#26262C;--orange-mid:#9C9CA6;
     --green:#34C46A;--green-lo:#0D2415;--red:#F26257;--red-lo:#2A1210;
     --amber:#E8A33C;--amber-lo:#26200F;--blue:#6FA2F2;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
@@ -347,7 +347,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .nut-card{border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:var(--shadow);}
 .nut-card-title{font-weight:800;letter-spacing:1.8px;}
 .burn-val{font-size:24px;}
-.nut-hero{background:linear-gradient(135deg,#FF6A3D 0%,#E8401C 55%,#B81E4B 100%);border:none;color:#fff;box-shadow:var(--shadow-lift);position:relative;overflow:hidden;}
+.nut-hero{background:linear-gradient(150deg,#3E4350 0%,#2A2D36 55%,#1B1D23 100%);border:none;color:#fff;box-shadow:var(--shadow-lift);position:relative;overflow:hidden;}
 .nut-hero::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(255,255,255,.2),transparent 55%);pointer-events:none;}
 .nut-hero>*{position:relative;z-index:1;}
 .nut-hero .nut-card-title{color:rgba(255,255,255,.8);}
@@ -375,7 +375,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .nut-hero .food-ta{background:rgba(255,255,255,.14);border-color:rgba(255,255,255,.35);color:#fff;}
 .nut-hero .food-ta::placeholder{color:rgba(255,255,255,.55);}
 .nut-hero .food-cancel{color:#fff;border-color:rgba(255,255,255,.45);}
-.nut-hero .food-submit{background:#fff;color:#B23E10;}
+.nut-hero .food-submit{background:#fff;color:#23262E;}
 .nut-hero .pending-food{background:rgba(0,0,0,.2);border-color:rgba(255,255,255,.45);}
 .nut-hero .pending-macros{color:rgba(255,255,255,.75);}
 .nut-hero .pf-redo{color:#fff;border-color:rgba(255,255,255,.45);}
@@ -1954,7 +1954,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.8</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.9</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
