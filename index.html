@@ -1955,7 +1955,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.6</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.7</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -1994,12 +1994,14 @@ function renderST(){
       let rows="";
       let loggedDays=0;
       let daysElapsed=0;
+      let elapsedWeight=0; // Mon-Sat = 1 share, Sunday (rest day, no active burn) = 0.5
       for(let i=0;i<7;i++){
         const d=new Date(monday);
         d.setDate(monday.getDate()+i);
         const iso=d.toISOString().slice(0,10);
         if(iso>todayIso)break;
         daysElapsed++;
+        elapsedWeight+=(i===6?0.5:1);
         const nutDay=S.nutrition?.days?.[iso]||{};
         const items=nutDay.items||[];
         const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
@@ -2021,9 +2023,11 @@ function renderST(){
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
       const WEEKLY_TARGET=12760;
       const adjusted=runningTotal;
-      // Pace-based status: compare against the target pro-rated for days elapsed,
-      // so Wednesday isn't judged against a full week's number
-      const paceTarget=Math.round(WEEKLY_TARGET/7*daysElapsed);
+      // Pace-based status: pro-rate the weekly target by burn-weighted days,
+      // not calendar days. Sunday is a rest day (no active burn) so it carries
+      // half a share; Mon-Sat carry full shares. Total still sums to 12,760.
+      const WEEK_WEIGHT=6.5;
+      const paceTarget=Math.round(WEEKLY_TARGET*elapsedWeight/WEEK_WEIGHT);
       const pace=paceTarget?adjusted/paceTarget:0;
       const totalCol=pace>=1?"var(--green)":pace>=0.95?"var(--amber)":"var(--red)";
       const statusTxt=pace>=1.05?"Ahead of pace ✓":pace>=0.95?"On pace":"Behind pace";
