@@ -25,6 +25,7 @@
   --orange:#33302A;
   --orange-lo:#ECEAE4;
   --orange-mid:#6B6760;
+  --on-accent:#fff;
   --green:#1B9E4B;
   --green-lo:#E6F4EA;
   --red:#D6453A;
@@ -38,7 +39,7 @@
 html[data-theme="dark"]{
   --black:#0C0C0E;--s0:#121214;--s1:#17171B;--s2:#1E1E23;--s3:#26262C;
   --b1:#26262C;--b2:#34343C;--dim:#71717C;--mid:#9C9CA6;--lt:#C8C8D0;--white:#F2F1EC;
-  --orange:#D8D5CE;--orange-lo:#26262C;--orange-mid:#9C9CA6;
+  --orange:#D8D5CE;--orange-lo:#26262C;--orange-mid:#9C9CA6;--on-accent:#16140F;
   --green:#34C46A;--green-lo:#0D2415;--red:#F26257;--red-lo:#2A1210;
   --amber:#E8A33C;--amber-lo:#26200F;--blue:#6FA2F2;
   --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
@@ -48,7 +49,7 @@ html[data-theme="dark"]{
   html:not([data-theme="light"]):not([data-theme="dark"]){
     --black:#0C0C0E;--s0:#121214;--s1:#17171B;--s2:#1E1E23;--s3:#26262C;
     --b1:#26262C;--b2:#34343C;--dim:#71717C;--mid:#9C9CA6;--lt:#C8C8D0;--white:#F2F1EC;
-    --orange:#D8D5CE;--orange-lo:#26262C;--orange-mid:#9C9CA6;
+    --orange:#D8D5CE;--orange-lo:#26262C;--orange-mid:#9C9CA6;--on-accent:#16140F;
     --green:#34C46A;--green-lo:#0D2415;--red:#F26257;--red-lo:#2A1210;
     --amber:#E8A33C;--amber-lo:#26200F;--blue:#6FA2F2;
     --shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px rgba(0,0,0,.35);
@@ -387,6 +388,9 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .rule-item{border-radius:14px;border-left:3px solid var(--red);box-shadow:var(--shadow);}
 .st-group{border-radius:18px;box-shadow:var(--shadow);}
 .weekly-note{border-radius:12px;border-left:3px solid var(--orange);}
+
+/* Accent buttons: readable text on graphite (light) / off-white (dark) */
+.ai-btn,.btn-o,.food-submit,.wt-save,.modal-copy,.cf-add,.sum-close,.lock-btn,.dd-add-btn{color:var(--on-accent);}
 
 /* ── LOCK SCREEN ── */
 .lock-screen{position:fixed;inset:0;background:var(--black);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 32px;max-width:430px;margin:0 auto;}
@@ -1954,7 +1958,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.9</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.0</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
