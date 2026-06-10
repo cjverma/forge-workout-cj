@@ -1147,7 +1147,7 @@ function renderW(){
     const hasPlan=!!((S.weekPlans||{})[vwk()]);
     h+=`<div class="past-banner" style="color:#f5a623;border-color:rgba(245,166,35,0.3)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
   }
-  h+=`<div class="hero ${heroCls(prog.label)}">
+  h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
@@ -1212,34 +1212,42 @@ function heroCls(label){
   if(/core|ab/.test(l))return"hero-core";
   return"hero-push";
 }
-
-// Exercise demo clips (MuscleWiki CDN). Broken/missing URLs silently hide the player.
-const DEMO={
-  "Seated Cable Row":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-seated-cable-row-front.mp4",
-  "Chest Press Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-chest-press-front.mp4",
-  "Pec Fly Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-pec-fly-front.mp4",
-  "Rear Delt Fly Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-reverse-fly-front.mp4",
-  "Tricep Extension Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-tricep-extension-front.mp4",
-  "Leg Press Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-leg-press-front.mp4",
-  "Seated Leg Curl":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-seated-leg-curl-front.mp4",
-  "Leg Extension Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-leg-extension-front.mp4",
-  "Seated Calf Raise":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-seated-calf-raise-front.mp4",
-  "Hip Abduction Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-hip-abduction-front.mp4",
-  "Hip Adduction Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-hip-adduction-front.mp4",
-  "Neutral Grip Lat Pulldown":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-lat-pulldown-front.mp4",
-  "Cable Tricep Pushdown":"https://media.musclewiki.com/media/uploads/videos/branded/male-cables-tricep-pushdown-front.mp4",
-  "Cable Bicep Curl":"https://media.musclewiki.com/media/uploads/videos/branded/male-cables-bicep-curl-front.mp4",
-  "Dumbbell Row":"https://media.musclewiki.com/media/uploads/videos/branded/male-dumbbell-row-unilateral-front.mp4",
-  "Seated Dumbbell Curl":"https://media.musclewiki.com/media/uploads/videos/branded/male-dumbbell-seated-bicep-curl-front.mp4",
-  "Hammer Curl":"https://media.musclewiki.com/media/uploads/videos/branded/male-dumbbell-hammer-curl-front.mp4",
-  "Preacher Curl Machine":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-preacher-curl-front.mp4",
-  "Chest Supported Row":"https://media.musclewiki.com/media/uploads/videos/branded/male-machine-chest-supported-row-front.mp4",
-  "Straight Arm Pulldown":"https://media.musclewiki.com/media/uploads/videos/branded/male-cables-straight-arm-pulldown-front.mp4"
+const HERO_PHOTOS={
+  "hero-push":["https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=900&q=60","linear-gradient(135deg,#FF6A3D,#B81E4B)"],
+  "hero-pull":["https://images.unsplash.com/photo-1571902943202-507ec2618e8f?w=900&q=60","linear-gradient(135deg,#4F46E5,#3B0764)"],
+  "hero-legs":["https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=900&q=60","linear-gradient(135deg,#0EA5A4,#064E3B)"],
+  "hero-rest":["https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=900&q=60","linear-gradient(135deg,#8B9DC3,#3B4A75)"],
+  "hero-core":["https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=900&q=60","linear-gradient(135deg,#F59E0B,#92400E)"]
 };
+function heroStyleAttr(cls){
+  if(S.heroStyle!=="photo")return"";
+  const[photo,fallback]=HERO_PHOTOS[cls]||HERO_PHOTOS["hero-push"];
+  return` style="background-image:linear-gradient(160deg,rgba(8,8,16,.30),rgba(8,8,16,.72)),url('${photo}'),${fallback};background-size:cover;background-position:center;"`;
+}
+
+// Exercise demo clips — resolved once via /api/demo (server probes MuscleWiki), cached in S.demoCache.
 function demoHtml(name){
-  const url=DEMO[name];
-  if(!url)return"";
-  return`<div class="demo-wrap"><video src="${url}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
+  if(!S.demoCache)S.demoCache={};
+  const cached=S.demoCache[name];
+  if(cached===null)return"";   // known: no clip exists
+  if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
+  return`<div class="demo-wrap" data-demo-name="${esc(name)}" style="display:none"></div>`; // unresolved — filled on expand
+}
+async function resolveDemo(wrap){
+  const name=wrap.getAttribute("data-demo-name");
+  if(!name)return;
+  wrap.removeAttribute("data-demo-name");
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/demo?name="+encodeURIComponent(name));
+    const d=await r.json();
+    if(!S.demoCache)S.demoCache={};
+    S.demoCache[name]=d.url||null;
+    save();
+    if(d.url){
+      wrap.innerHTML=`<video src="${d.url}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
+      wrap.style.display="";
+    }
+  }catch(e){}
 }
 
 function card(ex,sess,key,rdOnly=false){
@@ -1320,6 +1328,8 @@ function expand(id){
   const open=body.classList.toggle("open");
   chev.classList.toggle("open",open);
   card.classList.toggle("active-card",open&&!card.classList.contains("done")&&!card.classList.contains("skipped"));
+  const wrap=body.querySelector(".demo-wrap[data-demo-name]");
+  if(wrap&&open)resolveDemo(wrap);
   const vid=body.querySelector(".demo-wrap video");
   if(vid){if(open)vid.play().catch(()=>{});else vid.pause();}
 }
@@ -1795,7 +1805,7 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data</div>
+    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v2.1</div>
 
     <div class="st-sec">Weekly Plan</div>
     <div class="export-card" style="border-left-color:var(--green)">
@@ -1889,6 +1899,7 @@ function renderST(){
     <div class="st-sec">Appearance</div>
     <div class="st-group">
       <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light — tap for dark":S.theme==="dark"?"Dark — tap for auto":"Auto — follows your device · tap for light"}</div></div></div>
+      <div class="st-row" onclick="S.heroStyle=S.heroStyle==='photo'?'gradient':'photo';save();renderST();showToast('Hero style: '+(S.heroStyle==='photo'?'Photo':'Gradient'))"><div class="st-icon">${S.heroStyle==="photo"?"🖼":"🎨"}</div><div class="st-info"><div class="st-ttl">Workout Hero Style</div><div class="st-sub">${S.heroStyle==="photo"?"Photo — tap for gradient":"Gradient — tap for photo"}</div></div></div>
     </div>
     <div class="st-sec">Data</div>
     <div class="st-group">
