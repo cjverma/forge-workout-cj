@@ -63,7 +63,19 @@ Rules:
 
   try {
     const text = await callOpenAI({ system, user, maxOutputTokens: 3000 });
-    return res.json({ text });
+    // Validate the AI output server-side before handing it to the client
+    let parsed;
+    try {
+      parsed = JSON.parse(text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim());
+    } catch {
+      console.error("[weekly-plan] AI returned invalid JSON:", text.slice(0, 300));
+      return res.status(502).json({ error: "AI returned invalid plan JSON" });
+    }
+    if (!parsed.week_plan || typeof parsed.week_plan !== "object") {
+      console.error("[weekly-plan] missing week_plan key:", text.slice(0, 300));
+      return res.status(502).json({ error: "AI plan missing week_plan" });
+    }
+    return res.json({ text: JSON.stringify(parsed) });
   } catch (e) {
     console.error("[weekly-plan]", e.message);
     return res.status(502).json({ error: "AI service unavailable" });
