@@ -377,21 +377,21 @@ ok("USER.weightKg is defined as fallback (136.6)",
 // ─────────────────────────────────────────────────────────────────────────────
 section("17 · Pace-based weekly deficit");
 
-ok("Weekly deficit uses DAY_WEIGHTS array",
-  HTML.includes("DAY_WEIGHTS=[1,1,1,1,1,1,0.5]"));
+ok("Weekly deficit is burn-weighted (Sunday = 0.5 share)",
+  HTML.includes("elapsedWeight+=(i===6?0.5:1)"));
 
-ok("Sunday has 0.5 weight in DAY_WEIGHTS",
-  HTML.includes("DAY_WEIGHTS=[1,1,1,1,1,1,0.5]"));
+ok("Week weight totals 6.5 shares (6 full days + half Sunday)",
+  HTML.includes("WEEK_WEIGHT=6.5"));
 
 ok("Weekly target is dynamic (dailyReq × 6.5), not hardcoded 12760",
   !HTML.includes("WEEKLY_TARGET=12760") &&
   HTML.includes("dailyReq*6.5"));
 
-ok("paceTarget accumulates day by day",
-  HTML.includes("paceTarget+=dayQuota"));
+ok("paceTarget pro-rates the weekly target by elapsed weight",
+  HTML.includes("WEEKLY_TARGET*elapsedWeight/WEEK_WEIGHT"));
 
-ok("Pace gap shown in UI (ahead/behind)",
-  HTML.includes("paceGapTxt") && HTML.includes("ahead") && HTML.includes("Behind pace"));
+ok("Pace status shown in UI (ahead/on/behind)",
+  HTML.includes("Ahead of pace") && HTML.includes("Behind pace"));
 
 // Test the pace math
 function paceWeeklyTarget(lw, targetKg, goalDate) {
