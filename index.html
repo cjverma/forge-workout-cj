@@ -2705,7 +2705,6 @@ function renderDrawer(){
     <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
     <div class="st-sec">7-Day Trends</div>
     ${tbarChart("Protein g/day",t,d=>d.protein,(d,v)=>v>=pTarget?"var(--green)":"var(--b2)",`target ${pTarget}g`)}
-    ${tbarChart("Fibre g/day",t,d=>d.fibre,(d,v)=>v>=FIBRE_TARGET?"var(--green)":"var(--b2)",`target ${FIBRE_TARGET}g`)}
     ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained · <span style="color:var(--b2)">▮</span> rest`)}
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
@@ -2721,12 +2720,12 @@ function renderDrawer(){
 }
 function openDrawer(){renderDrawer();document.getElementById("drawer").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");}
 function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");}
-function macroPie(protein,carbs,fat){
-  const pK=Math.round(protein*4),cK=Math.round(carbs*4),fK=Math.round(fat*9);
-  const tot=pK+cK+fK;
+function macroPie(protein,carbs,fat,fibre){
+  const pK=Math.round(protein*4),cK=Math.round(carbs*4),fK=Math.round(fat*9),fiK=Math.round(fibre*2);
+  const tot=pK+cK+fK+fiK;
   if(!tot)return'';
-  const p=(pK/tot*100).toFixed(1),pc=((pK+cK)/tot*100).toFixed(1);
-  return`<div class="mpie-wrap"><div class="mpie-donut" style="background:conic-gradient(#4F8EF7 0% ${p}%,var(--amber) ${p}% ${pc}%,var(--green) ${pc}% 100%)"><div class="mpie-hole"></div></div><div class="mpie-legend"><div class="mpie-row"><span class="mpie-dot" style="background:#4F8EF7"></span>Protein<span class="mpie-val">${pK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--amber)"></span>Carbs<span class="mpie-val">${cK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--green)"></span>Fat<span class="mpie-val">${fK} kcal</span></div></div></div>`;
+  const p=(pK/tot*100).toFixed(1),pc=((pK+cK)/tot*100).toFixed(1),pcf=((pK+cK+fK)/tot*100).toFixed(1);
+  return`<div class="mpie-wrap"><div class="mpie-donut" style="background:conic-gradient(#4F8EF7 0% ${p}%,var(--amber) ${p}% ${pc}%,var(--green) ${pc}% ${pcf}%,#a78bfa ${pcf}% 100%)"><div class="mpie-hole"></div></div><div class="mpie-legend"><div class="mpie-row"><span class="mpie-dot" style="background:#4F8EF7"></span>Protein<span class="mpie-val">${pK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--amber)"></span>Carbs<span class="mpie-val">${cK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--green)"></span>Fat<span class="mpie-val">${fK} kcal</span></div>${fibre?`<div class="mpie-row"><span class="mpie-dot" style="background:#a78bfa"></span>Fibre<span class="mpie-val">${fibre}g</span></div>`:""}</div></div>`;
 }
 function renderNutrition(){
   const date=_nutDate;
@@ -2788,7 +2787,7 @@ function renderNutrition(){
       <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
       <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
-      ${macroPie(protein,carbs,fat)}
+      ${macroPie(protein,carbs,fat,fibre)}
       <div class="macro-row">
         <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:#CFFFE0":""}">${protein}<span style="font-size:11px;color:rgba(255,255,255,.5)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
         <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
