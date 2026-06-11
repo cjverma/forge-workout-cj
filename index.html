@@ -2636,7 +2636,9 @@ function buildTrendData(){
 }
 function tbarChart(title,data,getVal,getCol,legend){
   const vals=data.map(getVal);
-  const nonNull=vals.filter(v=>v!=null).map(v=>Math.abs(v));
+  // Zero means "nothing logged" - exclude from scale so real values spread out
+  const nonNull=vals.filter(v=>v!=null&&v!==0).map(v=>Math.abs(v));
+  if(!nonNull.length)nonNull.push(1);
   // Scale within the data's own range (floor just below min) so small
   // differences between similar values are clearly visible
   const lo=Math.min(...nonNull),hi=Math.max(...nonNull);
