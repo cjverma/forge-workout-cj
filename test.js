@@ -287,7 +287,7 @@ const features = [
   ["clearAiChat defined",               "function clearAiChat()"],
   ["USER uses birthDate not age",       "USER.birthDate"],
   ["USER no longer has hardcoded age",  true],   // checked below
-  ["ai-chat-panel CSS defined",         ".ai-chat-panel"],
+  ["ask-forge-btn CSS defined",         ".ask-forge-btn"],
   ["chat-bubble CSS defined",           ".chat-bubble"],
   ["Cable Pallof Press in PROG_V2 Wed", "w2_pp"],
   ["Cable Pallof Press in PROG_V2 Sat", "sa2_pp"],
