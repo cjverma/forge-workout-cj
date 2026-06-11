@@ -449,6 +449,24 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .plan-nudge-ttl{font-size:14px;font-weight:700;}
 .plan-nudge-sub{font-size:11px;color:var(--dim);margin-top:2px;}
 
+/* ── HAMBURGER DRAWER ── */
+.hdr-burger{background:transparent;border:none;color:var(--white);font-size:22px;cursor:pointer;padding:4px 2px 4px 12px;line-height:1;}
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s ease;}
+.drawer-overlay.open{opacity:1;pointer-events:auto;}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:86%;max-width:330px;background:var(--black);z-index:201;transform:translateX(102%);transition:transform .28s cubic-bezier(.3,.7,.3,1);overflow-y:auto;padding:18px 16px 40px;box-shadow:-12px 0 40px rgba(0,0,0,.4);}
+.drawer.open{transform:translateX(0);}
+.drawer-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.drawer-title{font-size:17px;font-weight:800;letter-spacing:-0.3px;}
+.drawer-close{background:var(--s1);border:1px solid var(--b1);border-radius:50%;width:34px;height:34px;color:var(--mid);font-size:16px;cursor:pointer;}
+.trend-card{background:var(--s1);border:1px solid var(--b1);border-radius:14px;padding:13px 14px;margin-bottom:10px;box-shadow:var(--shadow);}
+.trend-title{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--dim);text-transform:uppercase;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;}
+.trend-legend{font-size:9px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--dim);}
+.tbars{display:flex;align-items:flex-end;gap:6px;height:64px;}
+.tbar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;}
+.tbar{width:100%;border-radius:4px 4px 2px 2px;background:var(--b2);min-height:2px;transition:height .3s ease;}
+.tbar-lbl{font-size:8px;color:var(--dim);margin-top:4px;letter-spacing:0.5px;}
+.tbar-lbl.today{color:var(--orange);font-weight:700;}
+.tbar-val{font-size:8px;color:var(--dim);margin-bottom:2px;white-space:nowrap;}
 .sync-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--b2);margin-left:8px;vertical-align:middle;transition:background .3s;}
 .sync-dot.on{background:var(--green);}
 .sync-dot.off{background:var(--b2);}
@@ -535,8 +553,10 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 <div class="hdr">
   <div class="logo">FORGE<span class="sync-dot" id="syncDot" title="Cloud sync status"></span></div>
-  <div class="target-pill">PERSONAL</div>
+  <div style="display:flex;align-items:center"><div class="target-pill">PERSONAL</div><button class="hdr-burger" onclick="openDrawer()" aria-label="Menu">☰</button></div>
 </div>
+<div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer"><div id="drawerContent"></div></div>
 <div class="quote" id="quoteEl"><div class="quote-card"><span class="quote-body" id="quoteBody"></span><span class="quote-author" id="quoteAuthor"></span></div></div>
 <div class="days" id="dayNav" style="display:none"></div>
 <div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg></div>
@@ -931,6 +951,15 @@ const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
 function latestWeightLog(){const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
+// True when the session for that calendar date has at least one completed set
+function trainedOn(dateIso){
+  const d=new Date(dateIso+"T12:00:00");
+  const dayName=DAYS[d.getDay()===0?6:d.getDay()-1];
+  const j=new Date(d.getFullYear(),0,1);
+  const wkKey=d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+  const sess=S.sessions[dayName+"_"+wkKey];
+  return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)));
+}
 function calcTarget(bmr,active){
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const lw=latestWeightLog()||USER.weightKg;
@@ -2198,20 +2227,7 @@ function renderST(){
       </div>
     </details>
 
-    <!-- Group 3: Spine Rules (collapsed — reference only) -->
-    <details class="st-acc">
-      <summary><div><div>🏥 Spine Rules</div><div class="st-acc-sub">Permanent exercise restrictions</div></div></summary>
-      <div class="st-acc-inner">
-        <div class="st-sec">Restrictions</div>
-        <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
-        <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
-        <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
-        <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
-        <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
-      </div>
-    </details>
-
-    <!-- Group 4: App (appearance + data) -->
+    <!-- Group 3: App (appearance + data) -->
     <details class="st-acc" open>
       <summary><div><div>⚙️ App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
       <div class="st-acc-inner">
@@ -2602,6 +2618,59 @@ let _nutUnlocked={}; // session-only edit unlocks per date
 function nutLocked(date){return date<isoToday()&&!_nutUnlocked[date];}
 function unlockNut(date){_nutUnlocked[date]=true;renderNutrition();showToast("Editing unlocked for this day");}
 function lockNut(date){delete _nutUnlocked[date];renderNutrition();}
+// ── 7-DAY TRENDS + DRAWER ──
+function buildTrendData(){
+  const out=[];const lw=latestWeightLog()||USER.weightKg;
+  for(let i=6;i>=0;i--){
+    const d=new Date(isoToday()+"T12:00:00");d.setDate(d.getDate()-i);
+    const iso=isoDate(d);
+    const nd=S.nutrition.days?.[iso]||{};
+    const items=nd.items||[];
+    const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
+    const protein=items.reduce((s,it)=>s+(it.protein||0),0);
+    const active=nd.active||0;
+    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*0.80);
+    out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
+  }
+  return out;
+}
+function tbarChart(title,data,getVal,getCol,legend){
+  const vals=data.map(getVal);
+  const mx=Math.max(...vals.map(v=>Math.abs(v??0)),1);
+  return`<div class="trend-card"><div class="trend-title">${title}${legend?`<span class="trend-legend">${legend}</span>`:""}</div><div class="tbars">${data.map((d,i)=>{
+    const v=vals[i];
+    const h=v==null?0:Math.max(3,Math.round(Math.abs(v)/mx*54));
+    return`<div class="tbar-col"><div class="tbar-val">${v==null?"":Math.round(Math.abs(v))}</div><div class="tbar" style="height:${h}px;background:${getCol(d,v)}"></div><div class="tbar-lbl${d.isToday?" today":""}">${d.lbl}</div></div>`;
+  }).join("")}</div></div>`;
+}
+function weight30Chart(){
+  const wts=S.nutrition.weights||{};
+  const keys=Object.keys(wts).sort().slice(-30);
+  if(keys.length<2)return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div><div style="font-size:11px;color:var(--dim)">Need at least 2 weigh-ins.</div></div>`;
+  return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div>${buildSparkline(keys,wts)}</div>`;
+}
+function renderDrawer(){
+  const t=buildTrendData();
+  const pTarget=Math.round(USER.targetKg*2);
+  document.getElementById("drawerContent").innerHTML=`
+    <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
+    <div class="st-sec">7-Day Trends</div>
+    ${tbarChart("Protein g/day",t,d=>d.protein,(d,v)=>v>=pTarget?"var(--green)":"var(--b2)",`target ${pTarget}g`)}
+    ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)","▮ trained · ▮ rest")}
+    ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
+    ${weight30Chart()}
+    <div class="st-sec">AI Coaching</div>
+    <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
+    <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
+    <div class="st-sec">Spine Rules</div>
+    <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
+    <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
+    <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
+    <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
+    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>`;
+}
+function openDrawer(){renderDrawer();document.getElementById("drawer").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");}
+function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");}
 function macroPie(protein,carbs,fat){
   const pK=Math.round(protein*4),cK=Math.round(carbs*4),fK=Math.round(fat*9);
   const tot=pK+cK+fK;
@@ -2630,14 +2699,7 @@ function renderNutrition(){
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
   // Protein target: 2g × goal weight, +10% on days with training or logged active burn
-  const trained=(()=>{
-    const d=new Date(date+"T12:00:00");
-    const dayName=DAYS[d.getDay()===0?6:d.getDay()-1];
-    const j=new Date(d.getFullYear(),0,1);
-    const wkKey=d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
-    const sess=S.sessions[dayName+"_"+wkKey];
-    return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)))||active>0;
-  })();
+  const trained=trainedOn(date)||active>0;
   const pTarget=Math.round(USER.targetKg*2*(trained?1.1:1));
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
@@ -2719,6 +2781,7 @@ function renderNutrition(){
       ${wtKeys.length?`<div class="wt-arrival">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
     </div>
 
+    ${weekNote?`<div class="weekly-note" style="margin-bottom:12px"><div class="weekly-note-title">Weekly Audit</div>${mdLite(weekNote)}</div>`:""}
     <!-- Ask Forge -->
     <div class="ai-chat-panel">
       <div class="ai-chat-header">
@@ -2732,15 +2795,6 @@ function renderNutrition(){
       </div>
     </div>
 
-    <!-- AI Coaching accordion -->
-    <details class="ai-accordion">
-      <summary>💪 AI Coaching</summary>
-      <div class="ai-acc-inner">
-        ${weekNote?`<div class="weekly-note"><div class="weekly-note-title">Weekly Audit</div>${mdLite(weekNote)}</div>`:""}
-        <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
-        <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
-      </div>
-    </details>
     <div style="height:20px"></div>
   </div>`;
 }
@@ -2815,18 +2869,36 @@ function quickAddRecent(date,name,kcal,protein,carbs,fat){
   getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,time:Date.now()});
   save();showToast("Added "+name+" ✓");renderNutrition();
 }
+// Most-used meals across the last 60 days, ranked by how often they were
+// logged - not by recency. Excludes anything already on excludeDate's log.
 function recentFoods(excludeDate,limit=6){
-  const seen={},out=[];
-  const dates=Object.keys(S.nutrition.days||{}).sort().reverse();
-  for(const d of dates){
-    for(const it of(S.nutrition.days[d].items||[])){
+  const counts={};
+  const todayNames=new Set(((S.nutrition.days?.[excludeDate]||{}).items||[]).map(it=>(it.name||"").toLowerCase()));
+  const cutoff=(()=>{const d=new Date(excludeDate+"T12:00:00");d.setDate(d.getDate()-60);return isoDate(d);})();
+  for(const[d,day]of Object.entries(S.nutrition.days||{})){
+    if(d<cutoff||d===excludeDate)continue;
+    for(const it of(day.items||[])){
       const k=(it.name||"").toLowerCase();
-      if(!k||seen[k])continue;
-      seen[k]=1;out.push(it);
-      if(out.length>=limit)return out;
+      if(!k||todayNames.has(k))continue;
+      if(!counts[k])counts[k]={n:0,item:it,last:d};
+      counts[k].n++;
+      if(d>counts[k].last){counts[k].last=d;counts[k].item=it;}
     }
   }
-  return out;
+  const ranked=Object.values(counts).sort((a,b)=>b.n-a.n||b.last.localeCompare(a.last));
+  // Pin the daily protein oats coffee (or whatever was logged yesterday) as
+  // the first chip - it's consumed every day so it should always be one tap.
+  let pin=null;
+  const oats=ranked.find(e=>/protein.*(oats|coffee|collagen)|oats.*coffee|collagen/i.test(e.item.name||""));
+  if(oats)pin=oats;
+  else{
+    const yd=(()=>{const d=new Date(excludeDate+"T12:00:00");d.setDate(d.getDate()-1);return isoDate(d);})();
+    const yItems=(S.nutrition.days?.[yd]||{}).items||[];
+    const yMatch=yItems.find(it=>!todayNames.has((it.name||"").toLowerCase()));
+    if(yMatch)pin=ranked.find(e=>e.item.name===yMatch.name)||{item:yMatch};
+  }
+  const rest=ranked.filter(e=>e!==pin);
+  return(pin?[pin,...rest]:rest).slice(0,limit).map(e=>e.item);
 }
 function delFood(date,id){
   if(nutLocked(date))return;
