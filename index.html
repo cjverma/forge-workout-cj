@@ -2937,7 +2937,7 @@ function buildSparkline(keys,wts,summary){
       const col=perMonth<0?"var(--green)":"var(--red)";
       footer=`<div class="wt-recent">Avg: <span style="color:${col};font-weight:700">${perMonth<=0?"":"+"}${perMonth.toFixed(1)} kg/month</span> · ${vals[0]}kg → ${vals[vals.length-1]}kg over ${Math.round(days)} days</div>`;
     }else{
-      footer=`<div class="wt-recent">${vals[0]}kg → ${vals[vals.length-1]}kg · avg shows after 30 days of data (${Math.round(days)}/30)</div>`;
+      footer=`<div class="wt-recent">${vals[0]}kg → ${vals[vals.length-1]}kg · monthly avg unlocks in ${30-Math.round(days)} days</div>`;
     }
   }else{
     footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
