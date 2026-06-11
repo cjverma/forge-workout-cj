@@ -978,6 +978,7 @@ function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S)
 
 // Personal constants · never rendered in UI
 const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
+const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300;
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
 function latestWeightLog(){const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
@@ -2666,9 +2667,10 @@ function buildTrendData(){
     const items=nd.items||[];
     const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
     const protein=items.reduce((s,it)=>s+(it.protein||0),0);
+    const fibre=items.reduce((s,it)=>s+(it.fibre||0),0);
     const active=nd.active||0;
     const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*0.80);
-    out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
+    out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,fibre,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
   }
   return out;
 }
@@ -2703,6 +2705,7 @@ function renderDrawer(){
     <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
     <div class="st-sec">7-Day Trends</div>
     ${tbarChart("Protein g/day",t,d=>d.protein,(d,v)=>v>=pTarget?"var(--green)":"var(--b2)",`target ${pTarget}g`)}
+    ${tbarChart("Fibre g/day",t,d=>d.fibre,(d,v)=>v>=FIBRE_TARGET?"var(--green)":"var(--b2)",`target ${FIBRE_TARGET}g`)}
     ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained · <span style="color:var(--b2)">▮</span> rest`)}
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
@@ -2743,6 +2746,9 @@ function renderNutrition(){
   const protein=items.reduce((s,i)=>s+(i.protein||0),0);
   const carbs=items.reduce((s,i)=>s+(i.carbs||0),0);
   const fat=items.reduce((s,i)=>s+(i.fat||0),0);
+  const fibre=items.reduce((s,i)=>s+(i.fibre||0),0);
+  const sugar=items.reduce((s,i)=>s+(i.sugar||0),0);
+  const sodium=items.reduce((s,i)=>s+(i.sodium||0),0);
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
   // Protein target: 2g × goal weight, +10% on days with training or logged active burn
@@ -2788,6 +2794,11 @@ function renderNutrition(){
         <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
         <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
       </div>
+      <div class="macro-row">
+        <div class="macro-chip"><div class="macro-val" style="font-size:14px;${fibre>=FIBRE_TARGET?"color:#CFFFE0":""}">${fibre}<span style="font-size:10px;color:rgba(255,255,255,.5)">/${FIBRE_TARGET}g</span></div><div class="macro-lbl">Fibre</div></div>
+        <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sugar>SUGAR_LIMIT?"color:var(--amber)":""}">${sugar}g</div><div class="macro-lbl">Sugar</div></div>
+        <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sodium>SODIUM_LIMIT?"color:var(--amber)":""}">${sodium.toLocaleString()}<span style="font-size:10px;color:rgba(255,255,255,.5)">mg</span></div><div class="macro-lbl">Sodium</div></div>
+      </div>
       ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>`}
     </div>
 
@@ -2803,7 +2814,7 @@ function renderNutrition(){
       })():""}
       ${ro?"":_foodChatOpen?(()=>{
         const recents=recentFoods(date);
-        const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
+        const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
     </div>
@@ -2835,7 +2846,7 @@ function renderNutrition(){
         <span class="ask-forge-btn-icon">🤖</span>
         <span class="ask-forge-btn-label">
           <span class="ask-forge-btn-title">Ask Forge</span>
-          <span class="ask-forge-btn-sub">${S.aiChat&&S.aiChat.length?`${S.aiChat.length} message${S.aiChat.length===1?"":"s"}`:"Nutrition, exercises, progress…"}</span>
+          <span class="ask-forge-btn-sub">Nutrition, exercises, progress…</span>
         </span>
       </span>
       <span class="ask-forge-btn-arrow">›</span>
@@ -2889,7 +2900,7 @@ async function askFood(){
     if(!r.ok||d.error)throw new Error(d.error||"error");
     const arr=Array.isArray(d.items)?d.items:(d.name?[d]:[]);
     if(!arr.length)throw new Error("empty");
-    _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:it.name,kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,time:Date.now()}));
+    _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:it.name,kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,time:Date.now()}));
     if(out)out.className="ai-out";
     _foodChatOpen=false;renderNutrition();
   }catch(e){
@@ -2910,9 +2921,9 @@ function confirmFood(date){
   arr.forEach(p=>day.items.push({...p}));
   _pendingFood=null;save();showToast(arr.length>1?arr.length+" items added ✓":"Food added ✓");renderNutrition();
 }
-function quickAddRecent(date,name,kcal,protein,carbs,fat){
+function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   if(nutLocked(date))return;
-  getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,time:Date.now()});
+  getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,fibre:fibre||0,sugar:sugar||0,sodium:sodium||0,time:Date.now()});
   save();showToast("Added "+name+" ✓");renderNutrition();
 }
 // Most-used meals across the last 60 days, ranked by how often they were
@@ -3055,7 +3066,11 @@ function buildChatContext(){
     consumedToday:consumed,
     remainingToday:target-consumed,
     activeCaloriesToday:active,
-    bmr
+    bmr,
+    fibreToday:(dayData.items||[]).reduce((s,i)=>s+(i.fibre||0),0),
+    fibreTarget:FIBRE_TARGET,
+    sugarToday:(dayData.items||[]).reduce((s,i)=>s+(i.sugar||0),0),
+    sodiumTodayMg:(dayData.items||[]).reduce((s,i)=>s+(i.sodium||0),0)
   };
   const sessions=Object.entries(S.sessions||{})
     .sort(([a],[b])=>b.localeCompare(a)).slice(0,7)
@@ -3066,7 +3081,7 @@ function buildChatContext(){
     .sort(([a],[b])=>b.localeCompare(a)).slice(0,5)
     .map(([date,kg])=>({date,kg}));
   const todayItems=(dayData.items||[]).slice(0,10)
-    .map(i=>({name:sanitizeCtx(i.name,50),kcal:i.kcal,protein:i.protein||0}));
+    .map(i=>({name:sanitizeCtx(i.name,50),kcal:i.kcal,protein:i.protein||0,carbs:i.carbs||0,fat:i.fat||0,fibre:i.fibre||0,sugar:i.sugar||0,sodiumMg:i.sodium||0}));
   return{today,goal,sessions,weights,todayItems};
 }
 function renderAiChatBubbles(){
@@ -3074,7 +3089,6 @@ function renderAiChatBubbles(){
   return S.aiChat.slice(-20).map(m=>`<div class="chat-bubble ${m.role==="user"?"chat-user":"chat-ai"}">${m.role==="user"?esc(m.text):mdLite(m.text)}</div>`).join("");
 }
 function scrollChatBottom(){const el=document.getElementById("aiChatMessages");if(el)el.scrollTop=el.scrollHeight;}
-function updateForgeBtnSub(){const b=document.querySelector(".ask-forge-btn-sub");if(!b)return;b.textContent=S.aiChat&&S.aiChat.length?`${S.aiChat.length} message${S.aiChat.length===1?"":"s"}`:"Nutrition, exercises, progress…";}
 function openForgeChat(){
   const overlay=document.getElementById("forgeChatOverlay");
   const modal=document.getElementById("forgeChatModal");
@@ -3088,7 +3102,7 @@ function closeForgeChat(){
   document.getElementById("forgeChatOverlay")?.classList.remove("open");
   document.getElementById("forgeChatModal")?.classList.remove("open");
 }
-function clearAiChat(){S.aiChat=[];save();const el=document.getElementById("aiChatMessages");if(el)el.innerHTML='';updateForgeBtnSub();}
+function clearAiChat(){S.aiChat=[];save();const el=document.getElementById("aiChatMessages");if(el)el.innerHTML='';}
 function typewriterBubble(text,onDone){
   const msgs=document.getElementById("aiChatMessages");
   if(!msgs){onDone&&onDone();return;}
@@ -3136,7 +3150,7 @@ async function sendAiChat(){
     save();
     document.getElementById("chatThinking")?.remove();
     if(btn)btn.disabled=false;
-    updateForgeBtnSub();
+    
     typewriterBubble(reply);
     return;
   }catch(e){
@@ -3146,7 +3160,7 @@ async function sendAiChat(){
   if(btn)btn.disabled=false;
   document.getElementById("chatThinking")?.remove();
   if(msgs){msgs.innerHTML=renderAiChatBubbles();scrollChatBottom();}
-  updateForgeBtnSub();
+  
 }
 
 // ---- Pull-to-refresh ----

@@ -288,6 +288,9 @@ const features = [
   ["USER uses birthDate not age",       "USER.birthDate"],
   ["USER no longer has hardcoded age",  true],   // checked below
   ["ask-forge-btn CSS defined",         ".ask-forge-btn"],
+  ["FIBRE_TARGET defined",              "FIBRE_TARGET=38"],
+  ["quickAddRecent carries fibre",      "quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium)"],
+  ["fibre trend chart in drawer",       "Fibre g/day"],
   ["chat-bubble CSS defined",           ".chat-bubble"],
   ["Cable Pallof Press in PROG_V2 Wed", "w2_pp"],
   ["Cable Pallof Press in PROG_V2 Sat", "sa2_pp"],

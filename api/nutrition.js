@@ -1,8 +1,8 @@
 import { setCors } from "./_shared.js";
 
 const SYSTEM = `You are a nutrition estimator. Respond ONLY with valid JSON — no markdown, no explanation, no code fences.
-Format: {"items":[{"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>}]}
-Break the input into separate items — one entry per distinct food or drink (e.g. "2 roti with butter" and "chai with biscuits" are separate items). Keep names short (2-4 words). All numbers are integers. Estimate realistic portion sizes if not specified.
+Format: {"items":[{"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>,"fibre":<number>,"sugar":<number>,"sodium":<number>}]}
+Break the input into separate items — one entry per distinct food or drink (e.g. "2 roti with butter" and "chai with biscuits" are separate items). Keep names short (2-4 words). All numbers are integers. Estimate realistic portion sizes if not specified. fibre and sugar are grams; sodium is milligrams. Estimate them; use 0 if negligible.
 If you cannot estimate anything, respond: {"error":"could not estimate"}`;
 
 export default async function handler(req, res) {
@@ -81,7 +81,10 @@ export default async function handler(req, res) {
       kcal: Math.round(Number(it.kcal)),
       protein: Math.round(Number(it.protein || 0)),
       carbs: Math.round(Number(it.carbs || 0)),
-      fat: Math.round(Number(it.fat || 0))
+      fat: Math.round(Number(it.fat || 0)),
+      fibre: Math.round(Number(it.fibre || it.fiber || 0)),
+      sugar: Math.round(Number(it.sugar || 0)),
+      sodium: Math.round(Number(it.sodium || 0))
     }));
 
   if (!items.length) {
