@@ -70,7 +70,9 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .target-pill{background:var(--s1);border:1px solid var(--b1);border-radius:999px;padding:6px 14px;font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--mid);text-transform:uppercase;box-shadow:var(--shadow);}
 
 /* ── QUOTE ── */
-.quote{padding:6px 16px 10px;flex-shrink:0;background:var(--black);transition:opacity .4s ease;}
+.quote{padding:6px 16px 10px;flex-shrink:0;background:var(--black);}
+.quote-overlay{position:absolute;inset:0;padding:13px 16px;background:linear-gradient(150deg,#3E4350 0%,#2A2D36 55%,#1B1D23 100%);border-radius:16px;z-index:2;transition:opacity .8s ease;}
+.quote-overlay::after{content:"";position:absolute;inset:0;border-radius:16px;background:radial-gradient(120% 90% at 85% -10%,rgba(255,255,255,.18),transparent 55%);pointer-events:none;}
 .quote-card{background:linear-gradient(150deg,#3E4350 0%,#2A2D36 55%,#1B1D23 100%);border:none;border-radius:16px;padding:13px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow-lift);}
 .quote-card::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(255,255,255,.18),transparent 55%);pointer-events:none;}
 .quote-card>*{position:relative;z-index:1;}
@@ -1235,19 +1237,27 @@ window.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>document.getElementById("lockInput").focus(),100);
 });
 
+// Crossfade: snapshot the current quote as an overlay on top of the card,
+// swap the real text underneath, then fade the overlay out - the new quote
+// is revealed through the old one with no blank gap.
 function cycleQ(){
-  const wrap=document.getElementById("quoteEl");
   const body=document.getElementById("quoteBody");
   const auth=document.getElementById("quoteAuthor");
-  if(!wrap||!body)return;
-  wrap.style.opacity=0;
-  setTimeout(()=>{
-    const q=Q[qIdx++%Q.length];
-    const sep=q.lastIndexOf(" - ");
-    if(sep>0&&auth){body.textContent="“"+q.slice(0,sep)+"”";auth.textContent=q.slice(sep+3);}
-    else{body.textContent=q;if(auth)auth.textContent="";}
-    wrap.style.opacity=1;
-  },400);
+  if(!body)return;
+  const card=body.closest(".quote-card");
+  const q=Q[qIdx++%Q.length];
+  const sep=q.lastIndexOf(" - ");
+  const isFirst=!body.textContent;
+  if(card&&!isFirst){
+    const ov=document.createElement("div");
+    ov.className="quote-overlay";
+    ov.innerHTML=`<span class="quote-body">${body.innerHTML}</span><span class="quote-author">${auth?auth.innerHTML:""}</span>`;
+    card.appendChild(ov);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ov.style.opacity=0;}));
+    setTimeout(()=>ov.remove(),900);
+  }
+  if(sep>0&&auth){body.textContent="“"+q.slice(0,sep)+"”";auth.textContent=q.slice(sep+3);}
+  else{body.textContent=q;if(auth)auth.textContent="";}
 }
 
 function go(tab){
