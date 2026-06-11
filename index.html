@@ -1150,6 +1150,11 @@ function initApp(){
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
   selectDay(t);
   updateDayNavDates();
+  // Restore the tab the user was on before a refresh (sessionStorage:
+  // survives reload, resets on a fresh app launch)
+  let lastTab=null;
+  try{lastTab=sessionStorage.getItem("forge_tab");}catch(_){}
+  if(lastTab==="nutrition"||lastTab==="settings")go(lastTab);
   cycleQ();
   setInterval(cycleQ,9000);
   handleHKSync();
@@ -1194,6 +1199,7 @@ function cycleQ(){
 
 function go(tab){
   cTab=tab;
+  try{sessionStorage.setItem("forge_tab",tab);}catch(_){}
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   const navEl=document.getElementById("nav-"+tab);
   if(navEl)navEl.classList.add("active");
