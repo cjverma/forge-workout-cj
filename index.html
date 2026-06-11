@@ -409,8 +409,28 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .nut-hero .pf-redo{color:#fff;border-color:rgba(255,255,255,.45);}
 .nut-hero .ai-out{background:rgba(0,0,0,.2);border-color:rgba(255,255,255,.3);color:#fff;}
 
-/* ── SETTINGS v2 ── */
-.st-sec{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--mid);margin:20px 0 10px;}
+/* ── MACRO PIE ── */
+.mpie-wrap{display:flex;align-items:center;gap:16px;margin:12px 0 10px;}
+.mpie-donut{width:72px;height:72px;border-radius:50%;flex-shrink:0;position:relative;}
+.mpie-hole{position:absolute;inset:16px;border-radius:50%;background:var(--s1);}
+.nut-hero .mpie-hole{background:rgba(24,26,32,.85);}
+.mpie-legend{flex:1;display:flex;flex-direction:column;gap:7px;}
+.mpie-row{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--mid);}
+.mpie-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.mpie-val{margin-left:auto;font-size:11px;font-weight:600;color:var(--dim);}
+.nut-hero .mpie-row{color:rgba(255,255,255,.78);}
+.nut-hero .mpie-val{color:rgba(255,255,255,.5);}
+
+/* ── SETTINGS v3 — accordion groups ── */
+.st-acc{border-radius:18px;box-shadow:var(--shadow);background:var(--s1);border:1px solid var(--b1);margin-bottom:12px;overflow:hidden;}
+.st-acc>summary{padding:16px;font-size:14px;font-weight:700;color:var(--white);cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;user-select:none;}
+.st-acc>summary::-webkit-details-marker{display:none;}
+.st-acc>summary::after{content:"›";font-size:20px;color:var(--dim);transition:transform .2s;line-height:1;}
+.st-acc[open]>summary::after{transform:rotate(90deg);}
+.st-acc>summary .st-acc-sub{font-size:11px;font-weight:400;color:var(--dim);margin-top:1px;}
+.st-acc-inner{padding:0 16px 16px;border-top:1px solid var(--b1);}
+.st-sec{font-size:11px;font-weight:700;letter-spacing:2px;color:var(--mid);margin:16px 0 8px;}
+.st-sec:first-child{margin-top:14px;}
 .export-card{border-radius:18px;border:1px solid var(--b1);border-left:1px solid var(--b1);padding:18px;box-shadow:var(--shadow);}
 .rule-item{border-radius:14px;border-left:3px solid var(--red);box-shadow:var(--shadow);}
 .st-group{border-radius:18px;box-shadow:var(--shadow);}
@@ -2061,37 +2081,39 @@ async function aiRun(type){
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">Plan generation, spine rules, and data · Design v3.7</div>
+    <div class="st-pg-sub">FORGE · personal · private</div>
 
-    <div class="st-sec">Weekly Plan</div>
-    <div class="export-card" style="border-left-color:var(--green)">
-      <div class="export-title">📅 Generate Next Week</div>
-      <div class="export-sub">Based on this week's sessions, Claude applies progressive overload and updates your program automatically.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
-      <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()">Generate Next Week</button>
-      ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
-    </div>
+    <!-- Group 1: This Week -->
+    <details class="st-acc" open>
+      <summary><div><div>📅 This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
+      <div class="st-acc-inner">
+        <div class="st-sec">Weekly Plan</div>
+        <div class="export-card" style="border-left-color:var(--green)">
+          <div class="export-title">Generate Next Week</div>
+          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
+          <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()">Generate Next Week</button>
+          ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
+        </div>
+        <div class="st-sec">Volume This Week</div>
+        ${(()=>{
+          const vdata=buildVolumeData();
+          if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);padding:0 2px">No exercises planned this week.</div>`;
+          return`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;">`+
+            `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:0.5px">SETS DONE / PLANNED</div>`+
+            vdata.map(({muscle,planned,done})=>{
+              const pct=planned?Math.min(100,Math.round(done/planned*100)):0;
+              const full=planned&&done>=planned;
+              return`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${pct}%${full?";background:var(--green)":""}"></div></div><div class="vol-count">${done}/${planned}</div></div>`;
+            }).join("")+`</div>`;
+        })()}
+      </div>
+    </details>
 
-    <div class="st-sec">This Week's Volume</div>
-    ${(()=>{
-      const vdata=buildVolumeData();
-      if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);margin-bottom:12px;padding:0 2px">No exercises planned this week.</div>`;
-      return`<div style="background:var(--s1);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:14px">`+
-        `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:0.5px">SETS DONE / PLANNED · follows this week's plan</div>`+
-        vdata.map(({muscle,planned,done})=>{
-          const pct=planned?Math.min(100,Math.round(done/planned*100)):0;
-          const full=planned&&done>=planned;
-          return`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${pct}%${full?";background:var(--green)":""}"></div></div><div class="vol-count">${done}/${planned}</div></div>`;
-        }).join("")+
-      `</div>`;
-    })()}
-    <div class="st-sec">Permanent Spine Rules</div>
-    <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
-    <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
-
-    <div class="st-sec">Weekly Calorie Deficit</div>
+    <!-- Group 2: Progress -->
+    <details class="st-acc" open>
+      <summary><div><div>📊 Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
+      <div class="st-acc-inner">
+        <div class="st-sec">Weekly Calorie Deficit</div>
     ${(()=>{
       const todayIso=isoToday();
       const now=new Date();
@@ -2167,25 +2189,47 @@ function renderST(){
       </div>`;
     })()}
 
-    <div class="st-sec">Weekly Review</div>
-    ${buildWeeklyReviewCard()}
+        <div class="st-sec">Weekly Review</div>
+        ${buildWeeklyReviewCard()}
+      </div>
+    </details>
 
-    <div class="st-sec">Appearance</div>
-    <div class="st-group">
-      <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
-      <div class="st-row" onclick="scanDemos()"><div class="st-icon">🎬</div><div class="st-info"><div class="st-ttl">Scan for Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found so far · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
-    </div>
-    <div class="st-sec">Data</div>
-    <div class="st-group">
-      <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On · last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off · add Upstash Redis storage to the Vercel project, then redeploy":"Tap to check sync status"}</div></div></div>
-      ${localStorage.getItem("f5_prepull")?`<div class="st-row" onclick="if(confirm('Restore the data this device had BEFORE the last cloud sync?'))restorePrePull()"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">Undo Last Cloud Pull</div><div class="st-sub">Restore this device's data from before the last sync replaced it</div></div></div>`:""}
-      <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download everything · sessions, nutrition, weights · as a JSON file</div></div></div>
-      <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file${S._lastBackup?` · last backup ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
-      <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-      <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history copied to clipboard · paste into Claude</div></div></div>
-      ${!window.FORGE_API_CFG?`<div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>`:""}
-      <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
-    </div>
+    <!-- Group 3: Spine Rules (collapsed — reference only) -->
+    <details class="st-acc">
+      <summary><div><div>🏥 Spine Rules</div><div class="st-acc-sub">Permanent exercise restrictions</div></div></summary>
+      <div class="st-acc-inner">
+        <div class="st-sec">Restrictions</div>
+        <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
+        <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
+      </div>
+    </details>
+
+    <!-- Group 4: App (appearance + data) -->
+    <details class="st-acc" open>
+      <summary><div><div>⚙️ App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
+      <div class="st-acc-inner">
+        <div class="st-sec">Appearance</div>
+        <div class="st-group">
+          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
+          <div class="st-row" onclick="scanDemos()"><div class="st-icon">🎬</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
+        </div>
+        <div class="st-sec">Data</div>
+        <div class="st-group">
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On · last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off · add Upstash Redis storage to the Vercel project, then redeploy":"Tap to check sync status"}</div></div></div>
+          ${localStorage.getItem("f5_prepull")?`<div class="st-row" onclick="if(confirm('Restore the data this device had BEFORE the last cloud sync?'))restorePrePull()"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">Undo Last Cloud Pull</div><div class="st-sub">Restore this device's data from before the last sync replaced it</div></div></div>`:""}
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
+          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
+          <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
+          <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
+          ${!window.FORGE_API_CFG?`<div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>`:""}
+          <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Wipe all sessions and history</div></div></div>
+        </div>
+      </div>
+    </details>
+
     <div style="height:20px"></div>
   </div>`;
 }
@@ -2554,6 +2598,13 @@ let _nutUnlocked={}; // session-only edit unlocks per date
 function nutLocked(date){return date<isoToday()&&!_nutUnlocked[date];}
 function unlockNut(date){_nutUnlocked[date]=true;renderNutrition();showToast("Editing unlocked for this day");}
 function lockNut(date){delete _nutUnlocked[date];renderNutrition();}
+function macroPie(protein,carbs,fat){
+  const pK=Math.round(protein*4),cK=Math.round(carbs*4),fK=Math.round(fat*9);
+  const tot=pK+cK+fK;
+  if(!tot)return'';
+  const p=(pK/tot*100).toFixed(1),pc=((pK+cK)/tot*100).toFixed(1);
+  return`<div class="mpie-wrap"><div class="mpie-donut" style="background:conic-gradient(#4F8EF7 0% ${p}%,var(--amber) ${p}% ${pc}%,var(--green) ${pc}% 100%)"><div class="mpie-hole"></div></div><div class="mpie-legend"><div class="mpie-row"><span class="mpie-dot" style="background:#4F8EF7"></span>Protein<span class="mpie-val">${pK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--amber)"></span>Carbs<span class="mpie-val">${cK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--green)"></span>Fat<span class="mpie-val">${fK} kcal</span></div></div></div>`;
+}
 function renderNutrition(){
   const date=_nutDate;
   const ro=nutLocked(date);
@@ -2594,6 +2645,7 @@ function renderNutrition(){
   const sparkHtml=buildSparkline(wtKeys,wts);
   const arrHtml=arrivalEst();
   const liveBMR=calcBMR(latestWeightLog()||USER.weightKg);
+  const remaining=Math.max(0,finalTarget-consumed);
   document.getElementById("tc").innerHTML=`<div class="nut-wrap">
     <div class="nut-head">
       <div><div class="nut-kicker">Nutrition</div><div class="nut-title">${nutDateLabel(date)}</div></div>
@@ -2603,14 +2655,32 @@ function renderNutrition(){
         <button onclick="nutShift(1)" ${date>=isoToday()?"disabled style='opacity:.3'":""}>›</button>
       </div>
     </div>
+
+    <!-- Intake hero card -->
     <div class="nut-card nut-hero">
-      <div class="nut-card-title">Today's Target</div>
-      <div class="target-display">
-        <div class="target-num">${finalTarget.toLocaleString()} <span style="font-size:14px;font-weight:400;color:var(--dim)">kcal${shock?" (shock)":""}</span></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+        <div class="nut-card-title">Intake</div>
         <div class="target-pill-g ${pillCls}">${pillTxt}</div>
       </div>
+      <div style="display:flex;align-items:baseline;gap:6px;margin-bottom:6px">
+        <div style="font-size:44px;font-weight:800;color:#fff;line-height:1">${remaining.toLocaleString()}</div>
+        <div style="font-size:13px;color:rgba(255,255,255,.6);padding-bottom:4px">kcal remaining</div>
+      </div>
       <div class="prog-bar-wrap"><div class="prog-bar-fill" style="width:${pct}%"></div></div>
-      <div class="consumed-line" style="font-size:12px;color:var(--dim);margin-bottom:12px">${consumed.toLocaleString()} / ${finalTarget.toLocaleString()} kcal consumed</div>
+      <div style="font-size:11px;color:rgba(255,255,255,.6);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
+      <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
+      ${macroPie(protein,carbs,fat)}
+      <div class="macro-row">
+        <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:#CFFFE0":""}">${protein}<span style="font-size:11px;color:rgba(255,255,255,.5)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
+        <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
+        <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
+      </div>
+      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>`}
+    </div>
+
+    <!-- Food log card -->
+    <div class="nut-card">
+      <div class="nut-card-title">Food Log${items.length?` <span style="font-size:11px;font-weight:400;color:var(--dim)">${items.length} item${items.length!==1?"s":""} · ${consumed.toLocaleString()} kcal</span>`:""}</div>
       ${foodListHtml?`<div class="food-list" style="margin-bottom:10px">${foodListHtml}</div>`:""}
       ${_pendingFood?(()=>{
         const arr=Array.isArray(_pendingFood)?_pendingFood:[_pendingFood];
@@ -2621,16 +2691,11 @@ function renderNutrition(){
       ${ro?"":_foodChatOpen?(()=>{
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
-        return`<div style="margin-top:10px"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
+        return`<div><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
-      <div class="macro-row" style="margin-top:12px">
-        <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:#CFFFE0":""}">${protein}<span style="font-size:11px;color:var(--dim)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
-        <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
-        <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
-      </div>
-      <div class="net-line ${netDef<=0?"net-green":"net-red"}">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal</div>
-      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>`}
     </div>
+
+    <!-- Burn card -->
     <div class="nut-card">
       <div class="nut-card-title">Burn</div>
       <div class="burn-row">
@@ -2641,12 +2706,16 @@ function renderNutrition(){
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
       </div>
     </div>
+
+    <!-- Weight log card -->
     <div class="nut-card">
       <div class="nut-card-title">Weight Log</div>
       ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" autofocus><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="_wtOpen=true;renderNutrition()">+ Log Weight</button>`}
       ${sparkHtml}
       ${wtKeys.length?`<div class="wt-arrival">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
     </div>
+
+    <!-- Ask Forge -->
     <div class="ai-chat-panel">
       <div class="ai-chat-header">
         <span class="ai-chat-title">Ask Forge</span>
@@ -2658,6 +2727,8 @@ function renderNutrition(){
         <button class="ai-chat-send" id="aiChatSend" onclick="sendAiChat()">Send</button>
       </div>
     </div>
+
+    <!-- AI Coaching accordion -->
     <details class="ai-accordion">
       <summary>💪 AI Coaching</summary>
       <div class="ai-acc-inner">
