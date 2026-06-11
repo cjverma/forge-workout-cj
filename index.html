@@ -880,6 +880,12 @@ if(!S._wtBackfill1){
   S._wtBackfill1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// Remove May 25 outlier — 3-point trend (Jun 2, 7, 8) is more accurate without it.
+if(!S._wtBackfill2){
+  delete S.nutrition.weights["2026-05-25"];
+  S._wtBackfill2=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 hydrateCustomExercises();
 applyPlanOverrides();
 function applyTheme(){
@@ -903,7 +909,7 @@ function calcTarget(bmr,active){
   const mod=Math.max(-300,Math.min(300,S.nutrition.aiDeficitModifier||0));
   return{bmr,req,target:Math.max(1500,bmr+active-req+mod),daysLeft,lw};
 }
-function isoToday(){return new Date().toISOString().slice(0,10);}
+function isoToday(){const d=new Date();return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 
 function applyPlanOverrides(){
   // Migrate legacy S.plan → S.weekPlans keyed by ISO week
