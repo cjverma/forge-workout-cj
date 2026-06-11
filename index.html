@@ -2636,10 +2636,14 @@ function buildTrendData(){
 }
 function tbarChart(title,data,getVal,getCol,legend){
   const vals=data.map(getVal);
-  const mx=Math.max(...vals.map(v=>Math.abs(v??0)),1);
+  const nonNull=vals.filter(v=>v!=null);
+  // Scale from 0 (or min if all positive) so bars show relative differences clearly
+  const floor=nonNull.every(v=>v>=0)?0:Math.min(...nonNull.map(v=>Math.abs(v)));
+  const mx=Math.max(...nonNull.map(v=>Math.abs(v)),floor+1);
+  const range=mx-floor||1;
   return`<div class="trend-card"><div class="trend-title">${title}${legend?`<span class="trend-legend">${legend}</span>`:""}</div><div class="tbars">${data.map((d,i)=>{
     const v=vals[i];
-    const h=v==null?0:Math.max(3,Math.round(Math.abs(v)/mx*54));
+    const h=v==null?0:Math.max(3,Math.round((Math.abs(v)-floor)/range*54));
     return`<div class="tbar-col"><div class="tbar-val">${v==null?"":Math.round(Math.abs(v))}</div><div class="tbar" style="height:${h}px;background:${getCol(d,v)}"></div><div class="tbar-lbl${d.isToday?" today":""}">${d.lbl}</div></div>`;
   }).join("")}</div></div>`;
 }
