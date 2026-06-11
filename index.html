@@ -2933,7 +2933,7 @@ function buildChatContext(){
   return{today,goal,sessions,weights,todayItems};
 }
 function renderAiChatBubbles(){
-  if(!S.aiChat||!S.aiChat.length)return`<div class="ai-chat-empty">Ask anything about your workouts, nutrition, or progress.</div>`;
+  if(!S.aiChat||!S.aiChat.length)return'';
   return S.aiChat.slice(-10).map(m=>`<div class="chat-bubble ${m.role==="user"?"chat-user":"chat-ai"}">${m.role==="user"?esc(m.text):mdLite(m.text)}</div>`).join("");
 }
 function scrollChatBottom(){const el=document.getElementById("aiChatMessages");if(el)el.scrollTop=el.scrollHeight;}
