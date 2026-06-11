@@ -91,7 +91,11 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .past-banner{margin:0 18px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--dim);text-align:center;}
 
 /* ── SCROLL ── */
-.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:88px;}
+.scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:88px;overscroll-behavior-y:contain;}
+.ptr{position:fixed;top:0;left:50%;transform:translate(-50%,-48px);width:36px;height:36px;border-radius:50%;background:var(--s1);box-shadow:var(--shadow-lift);display:flex;align-items:center;justify-content:center;z-index:60;transition:transform .2s ease;pointer-events:none;}
+.ptr svg{width:18px;height:18px;stroke:var(--white);fill:none;stroke-width:2.2;stroke-linecap:round;}
+.ptr.spin svg{animation:ptrSpin .8s linear infinite;}
+@keyframes ptrSpin{to{transform:rotate(360deg)}}
 
 /* ── PAGE HEADER ── */
 .pg{padding:18px 18px 0;}
@@ -511,6 +515,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 </div>
 <div class="quote" id="quoteEl"><div class="quote-card"><span class="quote-body" id="quoteBody"></span><span class="quote-author" id="quoteAuthor"></span></div></div>
 <div class="days" id="dayNav" style="display:none"></div>
+<div class="ptr" id="ptr"><svg viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/></svg></div>
 <div class="scroll" id="mainScroll"><div id="tc"></div></div>
 
 <div class="bot-nav">
@@ -2892,6 +2897,36 @@ async function sendAiChat(){
     if(msgs){msgs.innerHTML=renderAiChatBubbles();scrollChatBottom();}
   }
 }
+
+// ---- Pull-to-refresh ----
+// Data lives in localStorage ("f5") and is saved on every mutation, so a
+// reload never loses anything; we save() once more before reloading anyway.
+(function(){
+  const scroll=document.getElementById("mainScroll"),ind=document.getElementById("ptr");
+  if(!scroll||!ind)return;
+  const THRESHOLD=80;let startY=0,pulling=false,dist=0;
+  scroll.addEventListener("touchstart",e=>{
+    if(scroll.scrollTop<=0){startY=e.touches[0].clientY;pulling=true;dist=0;}
+  },{passive:true});
+  scroll.addEventListener("touchmove",e=>{
+    if(!pulling)return;
+    dist=e.touches[0].clientY-startY;
+    if(dist<=0||scroll.scrollTop>0){ind.style.transform="translate(-50%,-48px)";return;}
+    const y=Math.min(dist*0.45,72);
+    ind.style.transform=`translate(-50%,${y-36}px) rotate(${dist*1.5}deg)`;
+  },{passive:true});
+  scroll.addEventListener("touchend",()=>{
+    if(!pulling)return;pulling=false;
+    if(dist>=THRESHOLD&&scroll.scrollTop<=0){
+      ind.classList.add("spin");
+      ind.style.transform="translate(-50%,14px)";
+      try{save();}catch(_){}
+      setTimeout(()=>location.reload(),300);
+    }else{
+      ind.style.transform="translate(-50%,-48px)";
+    }
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
