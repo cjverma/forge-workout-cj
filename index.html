@@ -914,7 +914,8 @@ function calcTarget(bmr,active){
   const mod=Math.max(-300,Math.min(300,S.nutrition.aiDeficitModifier||0));
   return{bmr,req,target:Math.max(1500,bmr+active-req+mod),daysLeft,lw};
 }
-function isoToday(){const d=new Date();return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
+function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
+function isoToday(){return isoDate(new Date());}
 
 function applyPlanOverrides(){
   // Migrate legacy S.plan → S.weekPlans keyed by ISO week
@@ -2107,7 +2108,7 @@ function renderST(){
       for(let i=0;i<7;i++){
         const d=new Date(monday);
         d.setDate(monday.getDate()+i);
-        const iso=d.toISOString().slice(0,10);
+        const iso=isoDate(d);
         if(iso>todayIso)break;
         daysElapsed++;
         elapsedWeight+=(i===6?0.5:1);
@@ -2204,7 +2205,7 @@ function weekStats(){
   const now=new Date(),dow=now.getDay(),monday=new Date(now);monday.setDate(now.getDate()+(dow===0?-6:1-dow));
   for(let i=0;i<7;i++){
     const d=new Date(monday);d.setDate(monday.getDate()+i);
-    const iso=d.toISOString().slice(0,10);if(iso>isoToday())break;
+    const iso=isoDate(d);if(iso>isoToday())break;
     const nd=S.nutrition.days?.[iso];if(!nd)continue;
     const consumed=(nd.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
