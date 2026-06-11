@@ -2656,7 +2656,7 @@ function weight30Chart(){
   const wts=S.nutrition.weights||{};
   const keys=Object.keys(wts).sort().slice(-30);
   if(keys.length<2)return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div><div style="font-size:11px;color:var(--dim)">Need at least 2 weigh-ins.</div></div>`;
-  return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div>${buildSparkline(keys,wts)}</div>`;
+  return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div>${buildSparkline(keys,wts,true)}</div>`;
 }
 function renderDrawer(){
   const t=buildTrendData();
@@ -2919,7 +2919,7 @@ function saveWeight(date){
   const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
   S.nutrition.weights[date]=val;_wtOpen=false;save();showToast("Weight logged ✓");renderNutrition();
 }
-function buildSparkline(keys,wts){
+function buildSparkline(keys,wts,summary){
   if(keys.length<2)return"";
   const vals=keys.map(k=>wts[k]);
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
@@ -2927,7 +2927,18 @@ function buildSparkline(keys,wts){
   const pts=vals.map((v,i)=>{const x=pad+(i/(vals.length-1))*(W-pad*2);const y=H-pad-((v-mn)/range)*(H-pad*2);return`${x.toFixed(1)},${y.toFixed(1)}`;});
   let tLine="";
   if(USER.targetKg>=mn&&USER.targetKg<=mx){const ty=(H-pad-((USER.targetKg-mn)/range)*(H-pad*2)).toFixed(1);tLine=`<line x1="${pad}" y1="${ty}" x2="${W-pad}" y2="${ty}" stroke="var(--green)" stroke-width="1" stroke-dasharray="4,3" opacity="0.5"/>`;}
-  return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tLine}<polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}</svg></div><div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
+  let footer;
+  if(summary){
+    // Average monthly loss from the window's real time span
+    const days=(new Date(keys[keys.length-1]+"T12:00:00")-new Date(keys[0]+"T12:00:00"))/86400000;
+    const delta=vals[vals.length-1]-vals[0];
+    const perMonth=days>0?delta/days*30:0;
+    const col=perMonth<0?"var(--green)":"var(--red)";
+    footer=`<div class="wt-recent">Avg: <span style="color:${col};font-weight:700">${perMonth<=0?"":"+"}${perMonth.toFixed(1)} kg/month</span> · ${vals[0]}kg → ${vals[vals.length-1]}kg over ${Math.round(days)} days</div>`;
+  }else{
+    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
+  }
+  return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tLine}<polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}</svg></div>${footer}`;
 }
 function arrivalEst(){
   // Linear regression of weight against REAL days elapsed (not entry index),
