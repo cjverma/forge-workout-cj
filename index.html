@@ -2766,8 +2766,9 @@ function renderNutrition(){
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const weekNote=S.nutrition.weeklyCoachNote;
   const wts=S.nutrition.weights||{};
-  const wtKeys=Object.keys(wts).sort().slice(-7);
-  const sparkHtml=buildSparkline(wtKeys,wts);
+  const allWtKeys=Object.keys(wts).sort();
+  const wtKeys=allWtKeys.slice(-7);
+  const sparkHtml=buildSparkline(allWtKeys.slice(-30),wts);
   const arrHtml=arrivalEst();
   const liveBMR=calcBMR(latestWeightLog()||USER.weightKg);
   const remaining=Math.max(0,finalTarget-consumed);
@@ -2842,7 +2843,7 @@ function renderNutrition(){
       <div class="nut-card-title">Weight Log</div>
       ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="openWtInput(this,'${date}')">+ Log Weight</button>`}
       ${sparkHtml}
-      ${wtKeys.length?`<div class="wt-arrival">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
+      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table><div class="wt-arrival" style="margin-top:2px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
     </div>
 
     ${weekNote?`<div class="weekly-note" style="margin-bottom:12px"><div class="weekly-note-title">Weekly Audit</div>${mdLite(weekNote)}</div>`:""}
@@ -3010,6 +3011,9 @@ function saveWeight(date){
   const inp=document.getElementById("wtInp");if(!inp)return;
   const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
   S.nutrition.weights[date]=val;_wtOpen=false;save();showToast("Weight logged ✓");renderNutrition();
+}
+function delWeight(date){
+  delete S.nutrition.weights[date];save();showToast("Entry removed");renderNutrition();
 }
 function buildSparkline(keys,wts,summary){
   if(keys.length<2)return"";
