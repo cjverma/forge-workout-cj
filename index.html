@@ -1290,6 +1290,7 @@ function cycleQ(){
 }
 
 function go(tab){
+  closeForgeChat();
   cTab=tab;
   try{sessionStorage.setItem("forge_tab",tab);}catch(_){}
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
@@ -1817,7 +1818,8 @@ function addSet(key,exId){
 }
 
 function reCard(key,exId){
-  if(document.getElementById("ex-"+exId)?.contains(document.activeElement))return;
+  const active=document.activeElement;
+  if(active&&(active.tagName==="INPUT"||active.tagName==="TEXTAREA")&&document.getElementById("ex-"+exId)?.contains(active))return;
   const prog=PROG[cDay];
   const ex=prog.exercises.find(e=>e.id===exId);
   if(!ex){renderW();return;}
@@ -2967,6 +2969,7 @@ function delFood(date,id){
 }
 function openWtInput(btn,date){
   if(nutLocked(date))return;
+  _wtOpen=true;
   const wrap=document.createElement("div");
   wrap.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:10px";
   const inp=document.createElement("input");
