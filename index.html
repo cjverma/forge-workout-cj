@@ -2932,32 +2932,41 @@ function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,fibre:fibre||0,sugar:sugar||0,sodium:sodium||0,time:Date.now()});
   save();showToast("Added "+name+" ✓");renderNutrition();
 }
-// Most-used meals across the last 60 days, ranked by how often they were
-// logged - not by recency. Excludes anything already on excludeDate's log.
+// Most-used meals across the last 60 days, ranked by frequency + recency.
+// Groups near-identical AI-parsed names by a normalised key (first 3 words,
+// stripped of filler) so "Chicken rice" and "Chicken rice bowl" accumulate
+// into the same bucket. Recency boost means items eaten in the last 7 days
+// always surface near the top even when counts are equal.
 function recentFoods(excludeDate,limit=6){
+  const norm=n=>n.toLowerCase().replace(/\b(with|and|the|a|an|of|in|on|&)\b/g,' ').replace(/\s+/g,' ').trim().split(' ').slice(0,3).join(' ');
   const counts={};
-  const todayNames=new Set(((S.nutrition.days?.[excludeDate]||{}).items||[]).map(it=>(it.name||"").toLowerCase()));
+  const todayNames=new Set(((S.nutrition.days?.[excludeDate]||{}).items||[]).map(it=>norm(it.name||"")));
   const cutoff=(()=>{const d=new Date(excludeDate+"T12:00:00");d.setDate(d.getDate()-60);return isoDate(d);})();
   for(const[d,day]of Object.entries(S.nutrition.days||{})){
     if(d<cutoff||d===excludeDate)continue;
     for(const it of(day.items||[])){
-      const k=(it.name||"").toLowerCase();
+      const k=norm(it.name||"");
       if(!k||todayNames.has(k))continue;
       if(!counts[k])counts[k]={n:0,item:it,last:d};
       counts[k].n++;
       if(d>counts[k].last){counts[k].last=d;counts[k].item=it;}
     }
   }
-  const ranked=Object.values(counts).sort((a,b)=>b.n-a.n||b.last.localeCompare(a.last));
-  // Pin the daily protein oats coffee (or whatever was logged yesterday) as
-  // the first chip - it's consumed every day so it should always be one tap.
+  const today=excludeDate;
+  const ranked=Object.values(counts).sort((a,b)=>{
+    const daysSince=x=>Math.round((new Date(today+"T12:00:00")-new Date(x+"T12:00:00"))/86400000);
+    const boost=x=>daysSince(x)<=3?4:daysSince(x)<=7?2:daysSince(x)<=14?1:0;
+    const sa=a.n+boost(a.last), sb=b.n+boost(b.last);
+    return sb-sa||b.last.localeCompare(a.last);
+  });
+  // Pin the daily protein oats/coffee if it exists and isn't logged today
   let pin=null;
   const oats=ranked.find(e=>/protein.*(oats|coffee|collagen)|oats.*coffee|collagen/i.test(e.item.name||""));
   if(oats)pin=oats;
   else{
     const yd=(()=>{const d=new Date(excludeDate+"T12:00:00");d.setDate(d.getDate()-1);return isoDate(d);})();
     const yItems=(S.nutrition.days?.[yd]||{}).items||[];
-    const yMatch=yItems.find(it=>!todayNames.has((it.name||"").toLowerCase()));
+    const yMatch=yItems.find(it=>!todayNames.has(norm(it.name||"")));
     if(yMatch)pin=ranked.find(e=>e.item.name===yMatch.name)||{item:yMatch};
   }
   const rest=ranked.filter(e=>e!==pin);
