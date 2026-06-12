@@ -2909,7 +2909,17 @@ async function askFood(){
     if(!arr.length)throw new Error("empty");
     const mealName=(document.getElementById("foodMealName")?.value||"").trim().slice(0,60);
     const canonical=mealName?mealName.toLowerCase():null;
-    _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:mealName&&arr.length===1?mealName:it.name,canonical:canonical||it.name.toLowerCase(),kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,time:Date.now()}));
+    // If a name is given with multiple items, merge into one combined entry
+    if(mealName&&arr.length>1){
+      const merged={id:"n_"+Date.now(),name:mealName,canonical,
+        kcal:arr.reduce((s,i)=>s+i.kcal,0),protein:arr.reduce((s,i)=>s+(i.protein||0),0),
+        carbs:arr.reduce((s,i)=>s+(i.carbs||0),0),fat:arr.reduce((s,i)=>s+(i.fat||0),0),
+        fibre:arr.reduce((s,i)=>s+(i.fibre||0),0),sugar:arr.reduce((s,i)=>s+(i.sugar||0),0),
+        sodium:arr.reduce((s,i)=>s+(i.sodium||0),0),time:Date.now()};
+      _pendingFood=[merged];
+    }else{
+      _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:mealName&&arr.length===1?mealName:it.name,canonical:canonical||it.name.toLowerCase(),kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,time:Date.now()}));
+    }
     if(out)out.className="ai-out";
     _foodChatOpen=false;renderNutrition();
   }catch(e){
