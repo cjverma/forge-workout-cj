@@ -2972,9 +2972,9 @@ function openWtInput(btn,date){
   const inp=document.createElement("input");
   inp.className="wt-inp";inp.type="number";inp.step="0.1";inp.placeholder="kg";
   inp.setAttribute("inputmode","decimal");inp.setAttribute("enterkeyhint","done");
-  const save=document.createElement("button");save.className="wt-save";save.textContent="Save";
+  const saveBtn=document.createElement("button");saveBtn.className="wt-save";saveBtn.textContent="Save";
   const cancel=document.createElement("button");cancel.className="food-cancel";cancel.textContent="✕";
-  wrap.append(inp,save,cancel);
+  wrap.append(inp,saveBtn,cancel);
   btn.replaceWith(wrap);
   inp.focus();inp.select();
   const commit=ok=>{
@@ -2986,7 +2986,7 @@ function openWtInput(btn,date){
     }
     _wtOpen=false;renderNutrition();
   };
-  save.onclick=()=>commit(true);
+  saveBtn.onclick=()=>commit(true);
   cancel.onclick=()=>commit(false);
   inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit(true);}if(e.key==="Escape")commit(false);});
 }
