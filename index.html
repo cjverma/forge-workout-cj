@@ -1817,6 +1817,7 @@ function addSet(key,exId){
 }
 
 function reCard(key,exId){
+  if(document.getElementById("ex-"+exId)?.contains(document.activeElement))return;
   const prog=PROG[cDay];
   const ex=prog.exercises.find(e=>e.id===exId);
   if(!ex){renderW();return;}
