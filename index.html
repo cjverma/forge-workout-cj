@@ -2821,7 +2821,7 @@ function renderNutrition(){
       ${ro?"":_foodChatOpen?(()=>{
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
-        return`<div><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
+        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional — e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
     </div>
 
@@ -2906,7 +2906,9 @@ async function askFood(){
     if(!r.ok||d.error)throw new Error(d.error||"error");
     const arr=Array.isArray(d.items)?d.items:(d.name?[d]:[]);
     if(!arr.length)throw new Error("empty");
-    _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:it.name,kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,time:Date.now()}));
+    const mealName=(document.getElementById("foodMealName")?.value||"").trim().slice(0,60);
+    const canonical=mealName?mealName.toLowerCase():null;
+    _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:mealName&&arr.length===1?mealName:it.name,canonical:canonical||it.name.toLowerCase(),kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,time:Date.now()}));
     if(out)out.className="ai-out";
     _foodChatOpen=false;renderNutrition();
   }catch(e){
@@ -2939,13 +2941,14 @@ function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
 // always surface near the top even when counts are equal.
 function recentFoods(excludeDate,limit=6){
   const norm=n=>n.toLowerCase().replace(/\b(with|and|the|a|an|of|in|on|&)\b/g,' ').replace(/\s+/g,' ').trim().split(' ').slice(0,3).join(' ');
+  const itemKey=it=>it.canonical||norm(it.name||"");
   const counts={};
-  const todayNames=new Set(((S.nutrition.days?.[excludeDate]||{}).items||[]).map(it=>norm(it.name||"")));
+  const todayNames=new Set(((S.nutrition.days?.[excludeDate]||{}).items||[]).map(it=>itemKey(it)));
   const cutoff=(()=>{const d=new Date(excludeDate+"T12:00:00");d.setDate(d.getDate()-60);return isoDate(d);})();
   for(const[d,day]of Object.entries(S.nutrition.days||{})){
     if(d<cutoff||d===excludeDate)continue;
     for(const it of(day.items||[])){
-      const k=norm(it.name||"");
+      const k=itemKey(it);
       if(!k||todayNames.has(k))continue;
       if(!counts[k])counts[k]={n:0,item:it,last:d};
       counts[k].n++;
@@ -2966,7 +2969,7 @@ function recentFoods(excludeDate,limit=6){
   else{
     const yd=(()=>{const d=new Date(excludeDate+"T12:00:00");d.setDate(d.getDate()-1);return isoDate(d);})();
     const yItems=(S.nutrition.days?.[yd]||{}).items||[];
-    const yMatch=yItems.find(it=>!todayNames.has(norm(it.name||"")));
+    const yMatch=yItems.find(it=>!todayNames.has(itemKey(it)));
     if(yMatch)pin=ranked.find(e=>e.item.name===yMatch.name)||{item:yMatch};
   }
   const rest=ranked.filter(e=>e!==pin);
