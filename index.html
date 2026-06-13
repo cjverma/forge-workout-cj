@@ -1087,6 +1087,7 @@ function hintDisp(hint,unit){
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false;
+let _lastFoodText="",_lastMealName="";
 
 // ── REST TIMER (background-safe, 30s) ──
 const REST_DURATION=30;
@@ -2957,10 +2958,11 @@ function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;renderNutrition();}
-function redoFood(){_pendingFood=null;_foodChatOpen=true;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
+function redoFood(){_pendingFood=null;_foodChatOpen=true;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta){ta.value=_lastFoodText;ta.focus();}const mn=document.getElementById("foodMealName");if(mn&&_lastMealName)mn.value=_lastMealName;},50);}
 async function askFood(){
   const ta=document.getElementById("foodTa");if(!ta)return;
   const txt=ta.value.trim();if(!txt){showToast("Describe what you ate first");return;}
+  _lastFoodText=txt;_lastMealName=(document.getElementById("foodMealName")?.value||"").trim();
   const out=document.getElementById("foodOut");
   if(out){out.className="ai-out show";out.innerHTML='<span class="spin"></span>Estimating...';}
   try{
