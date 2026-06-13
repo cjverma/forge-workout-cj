@@ -1252,7 +1252,7 @@ function initApp(){
   cycleQ();
   setInterval(cycleQ,9000);
   handleHKSync();
-  setInterval(checkMondayAudit,60000);
+  checkMondayAudit();setInterval(checkMondayAudit,60000);
   _appReady=true;
   pullSync();
   // Backup nudge: data exists but no backup in 14+ days
@@ -3159,7 +3159,7 @@ async function checkMondayAudit(){
     if(note){S.nutrition.weeklyCoachNote=note;S.nutrition._auditWeek=wk;save();}
   }catch(e){}
 }
-function getISOWeek(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function getISOWeek(){const d=new Date();const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));const y=t.getUTCFullYear();const wn=Math.ceil(((t-new Date(Date.UTC(y,0,1)))/86400000+1)/7);return y+"W"+wn;}
 
 // ── AI CHAT ──────────────────────────────────────────────────────────────────
 function sanitizeCtx(str,max=100){return String(str||"").slice(0,max).replace(/[<>{}\[\]]/g,"");}
