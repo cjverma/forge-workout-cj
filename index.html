@@ -988,7 +988,7 @@ function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S)
 
 // Personal constants · never rendered in UI
 const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
-const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300;
+const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300,ACTIVE_MULT=0.75;
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
 function latestWeightLog(){const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
@@ -2240,7 +2240,7 @@ function renderST(){
         const bmr=calcBMR(lw);
         const resting=nutDay.restingOverride!=null?nutDay.restingOverride:bmr;
         const active=nutDay.active||0;
-        const burn=resting+Math.round(active*0.80);
+        const burn=resting+Math.round(active*ACTIVE_MULT);
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
@@ -2265,7 +2265,7 @@ function renderST(){
         ${rows}
         <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
           <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">
-            <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(active ×0.80)</span></span>
+            <span style="font-size:11px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase">Week total <span style="font-weight:400">(active ×${ACTIVE_MULT})</span></span>
             <span style="font-size:22px;font-weight:700;color:${totalCol}">${runningTotal.toLocaleString()} kcal</span>
           </div>
           <div class="prog-bar-wrap" style="margin-bottom:6px"><div class="prog-bar-fill" style="width:${pctBar}%;background:${barCol}"></div></div>
@@ -2335,7 +2335,7 @@ function weekStats(){
     const nd=S.nutrition.days?.[iso];if(!nd)continue;
     const consumed=(nd.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
-    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*0.80)-consumed;defDays++;
+    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*ACTIVE_MULT)-consumed;defDays++;
   }
   return{sessions,setsDone,wtChange,avgDeficit:defDays?Math.round(defTotal/defDays):null,defDays};
 }
@@ -2738,7 +2738,7 @@ function buildTrendData(){
     const protein=items.reduce((s,it)=>s+(it.protein||0),0);
     const fibre=items.reduce((s,it)=>s+(it.fibre||0),0);
     const active=nd.active||0;
-    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*0.80);
+    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*ACTIVE_MULT);
     out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,fibre,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
   }
   return out;
@@ -2805,8 +2805,8 @@ function renderNutrition(){
   const resting=day.restingOverride!=null?day.restingOverride:bmr;
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
-  const totalBurn=resting+Math.round(active*0.80);
-  const {target}=calcTarget(resting,Math.round(active*0.80));
+  const totalBurn=resting+Math.round(active*ACTIVE_MULT);
+  const {target}=calcTarget(resting,Math.round(active*ACTIVE_MULT));
   const shock=day.shockProtocol;
   const finalTarget=shock?1500:target;
   const items=day.items||[];
@@ -3171,7 +3171,7 @@ function buildChatContext(){
   const currentWeight=latestWeightLog()||USER.weightKg;
   // Respect the day's custom resting-calorie override (tap-to-edit), else formula BMR
   const bmr=dayData.restingOverride!=null?dayData.restingOverride:calcBMR(currentWeight);
-  const{target,req:dailyDeficitReq}=calcTarget(bmr,Math.round(active*0.80));
+  const{target,req:dailyDeficitReq}=calcTarget(bmr,Math.round(active*ACTIVE_MULT));
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const goal={
