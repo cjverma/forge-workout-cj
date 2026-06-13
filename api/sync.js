@@ -1,6 +1,6 @@
 import { setCors, checkAuth } from "./_shared.js";
 
-const KEY = "forge:state";
+const KEY = process.env.SYNC_KEY || "forge:state";
 const MAX_BYTES = 900_000;
 
 function kvCfg() {
