@@ -2686,14 +2686,14 @@ function checkMilestones(){
     const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=160;}).every(Boolean);
     if(allHit){S.milestones.shownProtein7.push(wkKey);save();showMilestone("🥩","7 Days of 160g+ Protein","Consistent fuelling = consistent results.");}
   }
-  // ── Every 5 kg weight drop (modal) ──
-  const allVals=Object.values(S.nutrition.weights||{}).map(Number).filter(v=>!isNaN(v));
-  if(allVals.length){
-    const current=Math.min(...allVals);
+  // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
+  const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
+  if(wtEntries.length){
+    const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
     for(const t of [135,130,125,120,115,110,105,100,95]){
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();
-        showMilestone("⚖️",`${t} kg Reached`,`Down to ${current.toFixed(1)} kg. Every kg counts.`);
+        showMilestone("📉",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
         break;
       }
     }
