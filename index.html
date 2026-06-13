@@ -2693,7 +2693,7 @@ function checkMilestones(){
     for(const t of [135,130,125,120,115,110,105,100,95]){
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();
-        showMilestone("📉",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
+        showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
         break;
       }
     }
