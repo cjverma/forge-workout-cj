@@ -2366,17 +2366,49 @@ function buildWeeklyReviewCard(){
 async function aiWeeklyReview(){
   const btn=document.getElementById("wkRevBtn");
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>Analysing...';}
-  const st=weekStats();
+  // Build rich prompt (same data as checkMondayAudit)
+  const days=Object.entries(S.nutrition.days||{}).sort(([a],[b])=>a.localeCompare(b)).slice(-7);
+  let totalKcal=0,totalProtein=0,totalFibre=0,totalActive=0,totalBurn=0,totalDeficit=0,loggedDays=0;
+  const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const foodLines=[];
+  for(const [iso,d] of days){
+    const consumed=(d.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
+    const bmr=calcBMR(latestWeightLog()||USER.weightKg);
+    const resting=d.restingOverride!=null?d.restingOverride:bmr;
+    const burn=resting+Math.round((d.active||0)*ACTIVE_MULT);
+    totalKcal+=consumed;totalProtein+=(d.items||[]).reduce((s,it)=>s+(it.protein||0),0);
+    totalFibre+=(d.items||[]).reduce((s,it)=>s+(it.fibre||0),0);
+    totalActive+=(d.active||0);totalBurn+=burn;totalDeficit+=burn-consumed;loggedDays++;
+    const label=DAY_LABELS[new Date(iso+"T12:00:00").getDay()]+" "+iso.slice(5);
+    for(const it of (d.items||[])){foodLines.push(`${label}: ${it.name} (${it.kcal} kcal, ${it.protein||0}g P)`);}
+  }
+  const avgKcal=loggedDays?Math.round(totalKcal/loggedDays):0;
+  const avgProtein=loggedDays?Math.round(totalProtein/loggedDays):0;
+  const avgFibre=loggedDays?Math.round(totalFibre/loggedDays):0;
+  const avgActive=loggedDays?Math.round(totalActive/loggedDays):0;
+  const avgBurn=loggedDays?Math.round(totalBurn/loggedDays):0;
+  const avgDeficit=loggedDays?Math.round(totalDeficit/loggedDays):0;
+  const today=isoToday();let sessCount=0;
+  for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))sessCount++;}
+  const wtEntries=days.length?Object.entries(S.nutrition.weights||{}).filter(([k])=>k>=days[0][0]).sort(([a],[b])=>a.localeCompare(b)):[];
+  let wtLine="No weight logged this week";
+  if(wtEntries.length>=2){const[d0,w0]=wtEntries[0],[d1,w1]=wtEntries[wtEntries.length-1];const delta=(+w1-+w0).toFixed(1);wtLine=`${w0}kg (${d0}) → ${w1}kg (${d1}), change: ${delta>0?"+":""}${delta}kg`;}
+  else if(wtEntries.length===1){wtLine=`${wtEntries[0][1]}kg (${wtEntries[0][0]}), only one weigh-in`;}
   const lw=latestWeightLog()||USER.weightKg;
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+  const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+  const prompt=`Weekly summary (last 7 days):\nWorkouts: ${sessCount} sessions\nAvg intake: ${avgKcal} kcal/day | Avg protein: ${avgProtein}g | Avg fibre: ${avgFibre}g\nAvg active burn: ${avgActive} kcal | Avg total burn: ${avgBurn} kcal | Avg deficit: ${avgDeficit} kcal/day\nRequired deficit to hit goal: ${req} kcal/day\nWeight: ${wtLine}\nCurrent: ${lw}kg → Target: ${USER.targetKg}kg | ${daysLeft} days left\n\nFood log (last 7 days):\n${foodLines.slice(0,60).join("\n")}\n\nAssess in 4-5 sentences: (1) is the actual deficit on track vs the required ${req} kcal/day? (2) is the weight change likely water weight or real fat — explain why given the deficit numbers. (3) workout consistency. (4) food habit patterns from the log — anything to improve. (5) one specific action for next week. Cite actual numbers. Plain text only.`;
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt:`Weekly review. Sessions completed: ${st.sessions}, sets done: ${st.setsDone}, weight change: ${st.wtChange?st.wtChange.delta+"kg ("+st.wtChange.from+"→"+st.wtChange.to+")":"no data"}, avg daily deficit: ${st.avgDeficit!=null?st.avgDeficit+" kcal across "+st.defDays+" logged days":"no data"}. Current weight ${lw}kg, target ${USER.targetKg}kg, ${daysLeft} days remaining to goal date. In 3-4 plain sentences: is the December goal still realistic at this pace, what is the single most important thing to change next week, and one thing done well. No markdown.`})});
+    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})});
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
-    S.nutrition.weeklyVerdict={week:wk(),text:d.text};save();renderST();
+    S.nutrition.weeklyVerdict={week:wk(),text:d.text};
+    // Also update the auto-audit note so both displays stay in sync
+    S.nutrition.weeklyCoachNote=d.text;S.nutrition._auditWeek=getISOWeek();
+    save();renderST();
   }catch(e){
     showToast("AI unavailable · try again");
-    if(btn){btn.disabled=false;btn.textContent="Get AI Verdict · Am I on track?";}
+    if(btn){btn.disabled=false;btn.textContent="Regenerate Verdict";}
   }
 }
 
