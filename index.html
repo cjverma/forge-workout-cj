@@ -3315,5 +3315,19 @@ async function sendAiChat(){
   },{passive:true});
 })();
 </script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("/sw.js").then(reg=>{
+    reg.addEventListener("updatefound",()=>{
+      const sw=reg.installing;
+      sw.addEventListener("statechange",()=>{
+        if(sw.state==="installed"&&navigator.serviceWorker.controller){
+          navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());
+        }
+      });
+    });
+  });
+}
+</script>
 </body>
 </html>
