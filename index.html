@@ -954,7 +954,7 @@ const GYM="Stationary bike, treadmill, seated cable machine, chest press machine
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
 if(!S.sessions)S.sessions={};
 if(!S.custom)S.custom={};
-if(!S.nutrition)S.nutrition={days:{},weights:{},aiDeficitModifier:0,weeklyCoachNote:"",weeklySnapshots:[]};
+if(!S.nutrition)S.nutrition={days:{},weights:{},aiDeficitModifier:0,weeklySnapshots:[]};
 if(!S.nutrition.days)S.nutrition.days={};
 if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
@@ -1253,7 +1253,6 @@ function initApp(){
   cycleQ();
   setInterval(cycleQ,9000);
   handleHKSync();
-  checkMondayAudit();setInterval(checkMondayAudit,60000);
   _appReady=true;
   pullSync();
   // Backup nudge: data exists but no backup in 14+ days
@@ -2313,13 +2312,19 @@ function renderST(){
 
 // ── WEEKLY REVIEW ──
 function weekStats(){
-  const cur=wk();
+  // Count sessions via trainedOn() — avoids fragile key-lookup mismatch
+  const now=new Date(),dow=now.getDay(),monday=new Date(now);monday.setDate(now.getDate()+(dow===0?-6:1-dow));
   let sessions=0,setsDone=0;
+  for(let i=0;i<7;i++){
+    const d=new Date(monday);d.setDate(monday.getDate()+i);
+    const iso=isoDate(d);if(iso>isoToday())break;
+    if(trainedOn(iso))sessions++;
+  }
+  // Sets done: scan all session keys that fall within this week
+  const cur=wk();
   for(const day of DAYS){
-    const sess=S.sessions[day+"_"+cur];
-    if(!sess)continue;
-    const sets=Object.values(sess).filter(e=>e&&typeof e==="object").reduce((a,e)=>a+((e.sets||[]).filter(s=>s.done).length),0);
-    if(sets>0||Object.values(sess).some(e=>e&&e.done)){sessions++;setsDone+=sets;}
+    const sess=S.sessions[day+"_"+cur];if(!sess)continue;
+    setsDone+=Object.values(sess).filter(e=>e&&typeof e==="object").reduce((a,e)=>a+((e.sets||[]).filter(s=>s.done).length),0);
   }
   const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();
   let wtChange=null;
@@ -2329,7 +2334,6 @@ function weekStats(){
     if(ref!==last)wtChange={from:ws[ref],to:ws[last],delta:+(ws[last]-ws[ref]).toFixed(1)};
   }
   let defTotal=0,defDays=0;
-  const now=new Date(),dow=now.getDay(),monday=new Date(now);monday.setDate(now.getDate()+(dow===0?-6:1-dow));
   for(let i=0;i<7;i++){
     const d=new Date(monday);d.setDate(monday.getDate()+i);
     const iso=isoDate(d);if(iso>isoToday())break;
@@ -2361,17 +2365,47 @@ function buildWeeklyReviewCard(){
 async function aiWeeklyReview(){
   const btn=document.getElementById("wkRevBtn");
   if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span>Analysing...';}
-  const st=weekStats();
+  // Build rich prompt (same data as checkMondayAudit)
+  const days=Object.entries(S.nutrition.days||{}).sort(([a],[b])=>a.localeCompare(b)).slice(-7);
+  let totalKcal=0,totalProtein=0,totalFibre=0,totalActive=0,totalBurn=0,totalDeficit=0,loggedDays=0;
+  const DAY_LABELS=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const foodLines=[];
+  for(const [iso,d] of days){
+    const consumed=(d.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
+    const bmr=calcBMR(latestWeightLog()||USER.weightKg);
+    const resting=d.restingOverride!=null?d.restingOverride:bmr;
+    const burn=resting+Math.round((d.active||0)*ACTIVE_MULT);
+    totalKcal+=consumed;totalProtein+=(d.items||[]).reduce((s,it)=>s+(it.protein||0),0);
+    totalFibre+=(d.items||[]).reduce((s,it)=>s+(it.fibre||0),0);
+    totalActive+=(d.active||0);totalBurn+=burn;totalDeficit+=burn-consumed;loggedDays++;
+    const label=DAY_LABELS[new Date(iso+"T12:00:00").getDay()]+" "+iso.slice(5);
+    for(const it of (d.items||[])){foodLines.push(`${label}: ${it.name} (${it.kcal} kcal, ${it.protein||0}g P)`);}
+  }
+  const avgKcal=loggedDays?Math.round(totalKcal/loggedDays):0;
+  const avgProtein=loggedDays?Math.round(totalProtein/loggedDays):0;
+  const avgFibre=loggedDays?Math.round(totalFibre/loggedDays):0;
+  const avgActive=loggedDays?Math.round(totalActive/loggedDays):0;
+  const avgBurn=loggedDays?Math.round(totalBurn/loggedDays):0;
+  const avgDeficit=loggedDays?Math.round(totalDeficit/loggedDays):0;
+  const today=isoToday();let sessCount=0;
+  for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))sessCount++;}
+  const wtEntries=days.length?Object.entries(S.nutrition.weights||{}).filter(([k])=>k>=days[0][0]).sort(([a],[b])=>a.localeCompare(b)):[];
+  let wtLine="No weight logged this week";
+  if(wtEntries.length>=2){const[d0,w0]=wtEntries[0],[d1,w1]=wtEntries[wtEntries.length-1];const delta=(+w1-+w0).toFixed(1);wtLine=`${w0}kg (${d0}) → ${w1}kg (${d1}), change: ${delta>0?"+":""}${delta}kg`;}
+  else if(wtEntries.length===1){wtLine=`${wtEntries[0][1]}kg (${wtEntries[0][0]}), only one weigh-in`;}
   const lw=latestWeightLog()||USER.weightKg;
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+  const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+  const prompt=`Weekly summary (last 7 days):\nWorkouts: ${sessCount} sessions\nAvg intake: ${avgKcal} kcal/day | Avg protein: ${avgProtein}g | Avg fibre: ${avgFibre}g\nAvg active burn: ${avgActive} kcal | Avg total burn: ${avgBurn} kcal | Avg deficit: ${avgDeficit} kcal/day\nRequired deficit to hit goal: ${req} kcal/day\nWeight: ${wtLine}\nCurrent: ${lw}kg → Target: ${USER.targetKg}kg | ${daysLeft} days left\n\nFood log (last 7 days):\n${foodLines.slice(0,60).join("\n")}\n\nAssess in 4-5 sentences: (1) is the actual deficit on track vs the required ${req} kcal/day? (2) given the deficit numbers, explain whether the weight change is water retention (assume this first — glycogen, sodium, hormonal shifts are common causes, especially with training) or genuine fat gain; do NOT question logging accuracy. (3) workout consistency. (4) one food habit observation from the log. (5) one specific action for next week. Cite actual numbers. Plain text only.`;
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt:`Weekly review. Sessions completed: ${st.sessions}, sets done: ${st.setsDone}, weight change: ${st.wtChange?st.wtChange.delta+"kg ("+st.wtChange.from+"→"+st.wtChange.to+")":"no data"}, avg daily deficit: ${st.avgDeficit!=null?st.avgDeficit+" kcal across "+st.defDays+" logged days":"no data"}. Current weight ${lw}kg, target ${USER.targetKg}kg, ${daysLeft} days remaining to goal date. In 3-4 plain sentences: is the December goal still realistic at this pace, what is the single most important thing to change next week, and one thing done well. No markdown.`})});
+    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})});
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
-    S.nutrition.weeklyVerdict={week:wk(),text:d.text};save();renderST();
+    S.nutrition.weeklyVerdict={week:wk(),text:d.text};
+    save();renderST();
   }catch(e){
     showToast("AI unavailable · try again");
-    if(btn){btn.disabled=false;btn.textContent="Get AI Verdict · Am I on track?";}
+    if(btn){btn.disabled=false;btn.textContent="Regenerate Verdict";}
   }
 }
 
@@ -2827,7 +2861,6 @@ function renderNutrition(){
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
-  const weekNote=S.nutrition.weeklyCoachNote;
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
   const wtKeys=allWtKeys.slice(-7);
@@ -2909,7 +2942,6 @@ function renderNutrition(){
       ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table><div class="wt-arrival" style="margin-top:2px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
     </div>
 
-    ${weekNote?`<div class="weekly-note" style="margin-bottom:12px"><div class="weekly-note-title">Weekly Audit</div>${mdLite(weekNote)}</div>`:""}
     <!-- Ask Forge -->
     <button class="ask-forge-btn" onclick="openForgeChat()">
       <span class="ask-forge-btn-left">
@@ -3146,21 +3178,6 @@ function handleHKSync(){
   const url=new URL(location.href);url.searchParams.delete("hksync");url.searchParams.delete("active");url.searchParams.delete("date");
   history.replaceState({},"",url);
 }
-async function checkMondayAudit(){
-  // Refresh once per ISO week, whenever the app is open. The old version
-  // only ran Monday 11am+, so a missed window left a stale note all week.
-  const wk=getISOWeek();if(S.nutrition._auditWeek===wk)return;
-  const days=Object.entries(S.nutrition.days||{}).sort(([a],[b])=>a.localeCompare(b)).slice(-7);if(days.length<3)return;
-  const avgKcal=Math.round(days.reduce((s,[,d])=>s+(d.items||[]).reduce((a,i)=>a+i.kcal,0),0)/days.length);
-  const lw=latestWeightLog()||USER.weightKg;const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
-  const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
-  const wts=Object.entries(S.nutrition.weights||{}).sort(([a],[b])=>a.localeCompare(b)).slice(-5).map(([d,kg])=>`${d}: ${kg}kg`).join(", ");
-  try{
-    const r=await fetch("/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt:`Week data: avgDailyIntake=${avgKcal}kcal, requiredDeficit=${req}kcal/day, currentWeight=${lw}kg, targetWeight=${USER.targetKg}kg, daysRemaining=${daysLeft}, recentWeighIns=[${wts}]. Give a 2-3 sentence metabolic assessment citing the actual numbers (weight trend, intake vs required deficit). Be direct. Plain text only.`})});
-    const d=await r.json();const note=d.text||"";
-    if(note){S.nutrition.weeklyCoachNote=note;S.nutrition._auditWeek=wk;save();}
-  }catch(e){}
-}
 function getISOWeek(){const d=new Date();const t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));t.setUTCDate(t.getUTCDate()+4-(t.getUTCDay()||7));const y=t.getUTCFullYear();const wn=Math.ceil(((t-new Date(Date.UTC(y,0,1)))/86400000+1)/7);return y+"W"+wn;}
 
 // ── AI CHAT ──────────────────────────────────────────────────────────────────
@@ -3314,6 +3331,20 @@ async function sendAiChat(){
     }
   },{passive:true});
 })();
+</script>
+<script>
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("/sw.js").then(reg=>{
+    reg.addEventListener("updatefound",()=>{
+      const sw=reg.installing;
+      sw.addEventListener("statechange",()=>{
+        if(sw.state==="installed"&&navigator.serviceWorker.controller){
+          navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());
+        }
+      });
+    });
+  });
+}
 </script>
 </body>
 </html>
