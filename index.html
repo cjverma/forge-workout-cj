@@ -2335,7 +2335,6 @@ function weekStats(){
     if(ref!==last)wtChange={from:ws[ref],to:ws[last],delta:+(ws[last]-ws[ref]).toFixed(1)};
   }
   let defTotal=0,defDays=0;
-  const now=new Date(),dow=now.getDay(),monday=new Date(now);monday.setDate(now.getDate()+(dow===0?-6:1-dow));
   for(let i=0;i<7;i++){
     const d=new Date(monday);d.setDate(monday.getDate()+i);
     const iso=isoDate(d);if(iso>isoToday())break;
