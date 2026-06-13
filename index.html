@@ -318,6 +318,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 /* ── TOAST ── */
 .toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--s1);border:1px solid var(--orange);border-radius:8px;color:var(--white);font-weight:600;font-size:13px;letter-spacing:0.2px;padding:10px 20px;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
 .toast.show{opacity:1;}
+.toast.toast-big{font-size:15px;padding:14px 24px;border-radius:12px;top:24px;white-space:normal;text-align:center;max-width:280px;}
 
 /* ── SUMMARY ── */
 .summary{display:none;position:fixed;inset:0;background:rgba(0,0,0,.96);z-index:400;align-items:center;justify-content:center;padding:24px;}
@@ -619,6 +620,14 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
       <div class="sum-stat"><div class="sum-val" id="sumSets">-</div><div class="sum-lbl">Sets Done</div></div>
     </div>
     <button class="sum-close" onclick="closeSummary()">Back to Forge</button>
+  </div>
+</div>
+<div class="summary" id="milestoneModal">
+  <div class="sum-inner">
+    <div class="sum-icon" id="msIcon"></div>
+    <div class="sum-title" id="msTitle"></div>
+    <div class="sum-sub" id="msSub"></div>
+    <button class="sum-close" onclick="closeMilestone()">Keep Going →</button>
   </div>
 </div>
 
@@ -950,6 +959,7 @@ if(!S.nutrition.days)S.nutrition.days={};
 if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
+if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]};
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.
@@ -1787,7 +1797,7 @@ function toggleSet(key,exId,i){
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   if(sd.done)startRest();
-  save();reCard(key,exId);
+  save();if(sd.done)checkMilestones();reCard(key,exId);
 }
 
 function toggleCardio(key,exId){
@@ -2634,8 +2644,60 @@ function applyPendingPlan(){
 
 function showToast(msg){
   const t=document.getElementById("toast");
-  t.textContent=msg;t.classList.add("show");
+  t.textContent=msg;t.classList.remove("toast-big");t.classList.add("show");
   setTimeout(()=>t.classList.remove("show"),2200);
+}
+function showToastBig(msg){
+  const t=document.getElementById("toast");
+  t.textContent=msg;t.classList.add("toast-big","show");
+  setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.classList.remove("toast-big"),300);},3500);
+}
+function showMilestone(icon,title,sub){
+  document.getElementById("msIcon").textContent=icon;
+  document.getElementById("msTitle").textContent=title;
+  document.getElementById("msSub").textContent=sub;
+  document.getElementById("milestoneModal").classList.add("show");
+}
+function closeMilestone(){
+  document.getElementById("milestoneModal").classList.remove("show");
+}
+function mondayOf(isoDateStr){
+  const d=new Date(isoDateStr+"T12:00:00");
+  const dow=d.getDay();
+  d.setDate(d.getDate()+(dow===0?-6:1-dow));
+  return isoDate(d);
+}
+function checkMilestones(){
+  const today=isoToday();
+  const wkKey=wk();
+  // ── 3-day workout streak (tall toast, fires exactly on day 3) ──
+  let streak=0;
+  for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))streak++;else break;}
+  if(streak===3)showToastBig("🔥 3 days in a row — you're on a streak!");
+  // ── 6 workouts this week (modal) ──
+  if(!S.milestones.shownWeek6.includes(wkKey)){
+    const mon=mondayOf(today);
+    let weekTrains=0;
+    for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const iso=isoDate(d);if(iso>=mon&&trainedOn(iso))weekTrains++;}
+    if(weekTrains>=6){S.milestones.shownWeek6.push(wkKey);save();showMilestone("💪","6 Workouts This Week","Elite consistency. Your body is adapting.");}
+  }
+  // ── Protein 160g+ for 7 consecutive days (modal) ──
+  if(!S.milestones.shownProtein7.includes(wkKey)){
+    const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=160;}).every(Boolean);
+    if(allHit){S.milestones.shownProtein7.push(wkKey);save();showMilestone("🥩","7 Days of 160g+ Protein","Consistent fuelling = consistent results.");}
+  }
+  // ── Every 5 kg weight drop (modal) ──
+  const allVals=Object.values(S.nutrition.weights||{}).map(Number).filter(v=>!isNaN(v));
+  if(allVals.length){
+    const current=Math.min(...allVals);
+    for(const t of [135,130,125,120,115,110,105,100,95]){
+      if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
+        S.milestones.shownWeight5kg.push(t);save();
+        showMilestone("⚖️",`${t} kg Reached`,`Down to ${current.toFixed(1)} kg. Every kg counts.`);
+        break;
+      }
+    }
+  }
 }
 
 function toggleTheme(){S.theme=S.theme==="light"?"dark":S.theme==="dark"?"auto":"light";save();applyTheme();renderST();}
@@ -2938,12 +3000,12 @@ function confirmFood(date){
   const arr=Array.isArray(_pendingFood)?_pendingFood:[_pendingFood];
   const day=getDayData(date);
   arr.forEach(p=>day.items.push({...p}));
-  _pendingFood=null;save();showToast(arr.length>1?arr.length+" items added ✓":"Food added ✓");renderNutrition();
+  _pendingFood=null;save();checkMilestones();showToast(arr.length>1?arr.length+" items added ✓":"Food added ✓");renderNutrition();
 }
 function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   if(nutLocked(date))return;
   getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,fibre:fibre||0,sugar:sugar||0,sodium:sodium||0,time:Date.now()});
-  save();showToast("Added "+name+" ✓");renderNutrition();
+  save();checkMilestones();showToast("Added "+name+" ✓");renderNutrition();
 }
 // Most-used meals across the last 60 days, ranked by frequency + recency.
 // Groups near-identical AI-parsed names by a normalised key (first 3 words,
@@ -3008,7 +3070,7 @@ function openWtInput(btn,date){
     if(ok){
       const val=parseFloat(inp.value);
       if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");inp._done=false;inp.focus();return;}
-      S.nutrition.weights[date]=val;save();showToast("Weight logged ✓");
+      S.nutrition.weights[date]=val;save();checkMilestones();showToast("Weight logged ✓");
     }
     _wtOpen=false;renderNutrition();
   };
@@ -3020,7 +3082,7 @@ function saveWeight(date){
   if(nutLocked(date))return;
   const inp=document.getElementById("wtInp");if(!inp)return;
   const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
-  S.nutrition.weights[date]=val;_wtOpen=false;save();showToast("Weight logged ✓");renderNutrition();
+  S.nutrition.weights[date]=val;_wtOpen=false;save();checkMilestones();showToast("Weight logged ✓");renderNutrition();
 }
 function delWeight(date){
   delete S.nutrition.weights[date];save();showToast("Entry removed");renderNutrition();
