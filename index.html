@@ -3175,9 +3175,10 @@ function renderDrawer(){
       ].map(({id,name})=>{
         const pr=bestPR(id);
         const prEntries=S.prs[id]||[];
-        const sparkKeys=prEntries.map(e=>e.date);
-        const sparkVals=Object.fromEntries(prEntries.map(e=>[e.date,e.est]));
-        const sparkHtml=prEntries.length>=2?buildSparkline(sparkKeys,sparkVals,false):"";
+        const dateMap={};
+        prEntries.forEach(e=>{if(!dateMap[e.date]||e.est>dateMap[e.date])dateMap[e.date]=e.est;});
+        const sparkKeys=Object.keys(dateMap).sort();
+        const sparkHtml=sparkKeys.length>=2?buildSparkline(sparkKeys,dateMap,false):"";
         return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
           <div class="rule-ttl">${name}</div>
           <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${pr.date}`:"No PR recorded yet"}</div>
