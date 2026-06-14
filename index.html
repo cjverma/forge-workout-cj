@@ -123,6 +123,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .hero-prog{margin-top:16px;height:5px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden;}
 .hero-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s ease;}
 .hero-count{font-size:11px;font-weight:600;opacity:.85;margin-top:7px;}
+.hero-streak{font-size:11px;font-weight:600;opacity:.9;margin-top:4px;color:#FFD580;}
 
 /* ── PROGRESS ── */
 .prog-wrap{margin:14px 18px 0;height:3px;background:var(--b1);border-radius:99px;overflow:hidden;}
@@ -968,6 +969,7 @@ if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]};
+if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.
@@ -1446,7 +1448,8 @@ function renderW(){
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
-    <div class="hero-count">${done} of ${total} complete</div>`}
+    <div class="hero-count">${done} of ${total} complete</div>
+    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">🔥 ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
   </div>`;
   if(!future&&!isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -2976,12 +2979,18 @@ function mondayOf(isoDateStr){
   d.setDate(d.getDate()+(dow===0?-6:1-dow));
   return isoDate(d);
 }
+function currentStreak(){
+  const today=isoToday();
+  let n=0;
+  for(let i=0;i<365;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}
+  return n;
+}
 function checkMilestones(){
   const today=isoToday();
   const wkKey=wk();
-  // ── 3-day workout streak (tall toast, fires exactly on day 3) ──
-  let streak=0;
-  for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))streak++;else break;}
+  // ── streak: update longest + fire 3-day toast ──
+  const streak=currentStreak();
+  if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();}
   if(streak===3)showToastBig("🔥 3 days in a row — you're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
