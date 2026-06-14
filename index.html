@@ -1218,11 +1218,28 @@ function undoCalfTwinge(){
 // Planned sets come from PROG, which applyPlanOverrides() has already
 // mutated with this week's AI-generated plan - so planned volume tracks
 // the live weekly plan, not the static base program.
+function wkForDate(d){
+  // Compute the same week key that wk() would return for a given Date object.
+  const j=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+}
 function buildVolumeData(){
-  const cur=wk();
+  // Sunday = week reset: show empty so the counter reads 0 for the new week.
+  if(new Date().getDay()===0)return[];
+  const today=isoToday();
+  const now=new Date(today+"T12:00:00");
+  const dow=now.getDay();
+  const monOffset=dow===0?-6:1-dow;
+  const DAY_ORDER=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
   const planned={},done={};
   for(const[day,dayData] of Object.entries(PROG)){
-    const sessData=S.sessions[day+"_"+cur];
+    const idx=DAY_ORDER.indexOf(day);
+    if(idx<0)continue;
+    const dayDate=new Date(today+"T12:00:00");
+    dayDate.setDate(dayDate.getDate()+monOffset+idx);
+    if(dayDate>now)continue; // skip future days
+    const weekKey=wkForDate(dayDate);
+    const sessData=S.sessions[day+"_"+weekKey];
     for(const ex of(dayData.exercises||[])){
       if(ex.cat==="cardio")continue;
       const n=typeof ex.sets==="number"?ex.sets:0;
