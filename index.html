@@ -2191,7 +2191,9 @@ function renderST(){
           <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()">Generate Next Week</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
         </div>
-        <div class="st-sec">Volume This Week</div>
+        <details class="st-acc">
+          <summary><div><div>💪 Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
+          <div class="st-acc-inner">
         ${(()=>{
           const vdata=buildVolumeData();
           if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);padding:0 2px">No exercises planned this week.</div>`;
@@ -2203,6 +2205,8 @@ function renderST(){
               return`<div class="vol-row"><div class="vol-muscle">${esc(muscle)}</div><div class="vol-bar-wrap"><div class="vol-bar" style="width:${pct}%${full?";background:var(--green)":""}"></div></div><div class="vol-count">${done}/${planned}</div></div>`;
             }).join("")+`</div>`;
         })()}
+          </div>
+        </details>
       </div>
     </details>
 
@@ -2562,18 +2566,32 @@ function buildPDFReport(){
     const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
     return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${best.date}</td></tr>`;
   }).join("");
-  // Recent workouts (last 7 sessions)
-  const recentSessions=Object.entries(S.sessions||{}).sort(([a],[b])=>b.localeCompare(a)).slice(0,7);
-  const workoutRows=recentSessions.flatMap(([dayKey,sessMap])=>{
+  // Recent workouts + notes + calf twinges (last 14 sessions)
+  const recentSessions=Object.entries(S.sessions||{}).sort(([a],[b])=>b.localeCompare(a)).slice(0,14);
+  function sessDate(dayKey){
     const [dayName,...rest]=dayKey.split("_");
     const wkMatch=rest.join("_").match(/(\d{4})W(\d+)/);
-    let date="";
-    if(wkMatch){const[,yr,wk]=wkMatch;const jan4=new Date(Date.UTC(Number(yr),0,4));const mon=new Date(jan4);mon.setUTCDate(jan4.getUTCDate()-((jan4.getUTCDay()+6)%7)+(Number(wk)-1)*7);const idx=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(dayName);if(idx>=0){mon.setUTCDate(mon.getUTCDate()+idx);date=mon.toISOString().slice(0,10);}}
-    return Object.entries(sessMap).filter(([,ed])=>ed?.sets?.some(s=>s.done)).map(([exId,ed])=>{
+    if(!wkMatch)return"";
+    const[,yr,wk]=wkMatch;const jan4=new Date(Date.UTC(Number(yr),0,4));const mon=new Date(jan4);
+    mon.setUTCDate(jan4.getUTCDate()-((jan4.getUTCDay()+6)%7)+(Number(wk)-1)*7);
+    const idx=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(dayName);
+    if(idx<0)return"";mon.setUTCDate(mon.getUTCDate()+idx);return mon.toISOString().slice(0,10);
+  }
+  const workoutRows=recentSessions.flatMap(([dayKey,sessMap])=>{
+    const date=sessDate(dayKey);
+    return Object.entries(sessMap).filter(([k,ed])=>k[0]!=="_"&&ed?.sets?.some(s=>s.done)).map(([exId,ed])=>{
       const doneSets=ed.sets.filter(s=>s.done);
       const maxW=Math.max(...doneSets.map(s=>s.weight||0));
       return`<tr><td>${date}</td><td>${esc(exName(exId))}</td><td>${doneSets.length} sets</td><td>${maxW>0?maxW+"kg":"—"}</td></tr>`;
     });
+  }).join("");
+  // Session notes and calf twinges
+  const sessionLogRows=recentSessions.filter(([,sessMap])=>sessMap._notes||(sessMap._calfTwinges||[]).length>0).map(([dayKey,sessMap])=>{
+    const date=sessDate(dayKey);
+    const twinges=(sessMap._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
+    const notes=sessMap._notes||"";
+    const twingeBadge=twinges>0?`<span style="display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:6px">⚡ ${twinges} calf twinge${twinges!==1?"s":""}</span>`:"";
+    return`<tr><td style="white-space:nowrap">${date}</td><td>${twingeBadge}${notes?`<span style="color:#374151">${esc(notes)}</span>`:""}</td></tr>`;
   }).join("");
 
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>FORGE Report · ${isoToday()}</title><style>
@@ -2620,6 +2638,7 @@ function buildPDFReport(){
     </div>
     ${prRows?`<div class="section"><div class="section-title">Personal Records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best Set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
     ${workoutRows?`<div class="section"><div class="section-title">Recent Workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets Done</th><th>Top Weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
+    ${sessionLogRows?`<div class="section"><div class="section-title">Session Notes &amp; Calf Twinges</div><table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>${sessionLogRows}</tbody></table></div>`:""}
     <div style="margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Generated by FORGE · ${new Date().toISOString()} · Print this page to save as PDF</div>
   </body></html>`;
   return html;
