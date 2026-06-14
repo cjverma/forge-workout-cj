@@ -2540,22 +2540,22 @@ function buildSVGBarChart(title,data,getVal,getCol,legend,pTarget){
   return`<div class="pdf-chart"><div class="pdf-chart-title">${title}</div><svg viewBox="0 0 ${W} ${H+14}" width="100%" style="max-height:100px">${bars}${legendHtml}</svg></div>`;
 }
 function buildSVGMacrosChart(t){
-  // Grouped bar: protein (blue), carbs (amber), fat (green) per day
-  const W=280,H=90,barW=8,grpGap=18,grpW=barW*3+6,padL=10;
-  const maxMacro=Math.max(1,...t.flatMap(d=>[d.protein||0,(d.carbs||0),(d.fat||0)]));
-  const scale=v=>Math.max(0,Math.round(v/maxMacro*(H-28)));
-  const bars=t.map((d,i)=>{
-    const x=padL+i*(grpW+grpGap);
-    const pH=scale(d.protein||0),cH=scale(d.carbs||0),fH=scale(d.fat||0);
-    return`<g>
-      <rect x="${x}" y="${H-14-pH}" width="${barW}" height="${pH}" rx="2" fill="#4F8EF7" opacity="${d.isToday?1:0.75}"/>
-      <rect x="${x+barW+3}" y="${H-14-cH}" width="${barW}" height="${cH}" rx="2" fill="#f59e0b" opacity="${d.isToday?1:0.75}"/>
-      <rect x="${x+barW*2+6}" y="${H-14-fH}" width="${barW}" height="${fH}" rx="2" fill="#22c55e" opacity="${d.isToday?1:0.75}"/>
-      <text x="${x+grpW/2}" y="${H-2}" text-anchor="middle" font-size="9" fill="${d.isToday?"#f97316":"#6b7280"}" font-weight="${d.isToday?"700":"400"}">${d.lbl}</text>
-    </g>`;
-  }).join("");
-  const legend=`<text x="4" y="${H+12}" font-size="8" fill="#4F8EF7">▮ Protein</text><text x="60" y="${H+12}" font-size="8" fill="#f59e0b">▮ Carbs</text><text x="110" y="${H+12}" font-size="8" fill="#22c55e">▮ Fat</text><text text-anchor="end" x="${W}" y="${H+12}" font-size="8" fill="#9ca3af">(grams)</text>`;
-  return`<div class="pdf-chart"><div class="pdf-chart-title">Daily Macros</div><svg viewBox="0 0 ${W} ${H+16}" width="100%" style="max-height:110px">${bars}${legend}</svg></div>`;
+  // Table: rows = macros, cols = days
+  const days=t.map(d=>({lbl:d.lbl,iso:d.iso.slice(5),p:Math.round(d.protein||0),c:Math.round(d.carbs||0),f:Math.round(d.fat||0),today:d.isToday}));
+  const cols=days.map(d=>`<th style="text-align:center;padding:5px 6px;font-size:10px;background:#f3f4f6;color:${d.today?"#f97316":"#6b7280"};font-weight:${d.today?"700":"500"}">${d.lbl}<br><span style="font-weight:400;font-size:9px">${d.iso}</span></th>`).join("");
+  const pRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#4F8EF7;font-weight:600">${d.p||"—"}</td>`).join("");
+  const cRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#d97706;font-weight:600">${d.c||"—"}</td>`).join("");
+  const fRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#16a34a;font-weight:600">${d.f||"—"}</td>`).join("");
+  return`<div class="pdf-chart pdf-chart-full" style="grid-column:1/-1"><div class="pdf-chart-title">Daily Macros (grams)</div>
+    <table style="width:100%;border-collapse:collapse;font-size:11px">
+      <thead><tr><th style="text-align:left;padding:5px 6px;background:#f3f4f6;font-size:10px;color:#6b7280"></th>${cols}</tr></thead>
+      <tbody>
+        <tr><td style="padding:5px 6px;font-size:10px;color:#4F8EF7;font-weight:700">● Protein</td>${pRow}</tr>
+        <tr style="background:#fafafa"><td style="padding:5px 6px;font-size:10px;color:#d97706;font-weight:700">● Carbs</td>${cRow}</tr>
+        <tr><td style="padding:5px 6px;font-size:10px;color:#16a34a;font-weight:700">● Fat</td>${fRow}</tr>
+      </tbody>
+    </table>
+  </div>`;
 }
 function buildSVGSparkline(keys,wts){
   if(keys.length<2)return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days</div><p style="color:#6b7280;font-size:12px">Need at least 2 weigh-ins.</p></div>`;
