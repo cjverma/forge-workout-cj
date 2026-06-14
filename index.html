@@ -2468,9 +2468,9 @@ async function emailExport(){
   if(btn){btn.disabled=true;btn.textContent="Sending…";}
   try{
     const csv=buildFullCSV();
-    const res=await fetch("/api/email",{
+    const res=await fetch(API_CFG.baseUrl+"/api/email",{
       method:"POST",
-      headers:{"Content-Type":"application/json"},
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({filename:`forge-export-${isoToday()}.csv`,content:btoa(unescape(encodeURIComponent(csv)))})
     });
     if(res.ok)showToast("Export emailed to you 📧");
