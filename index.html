@@ -3012,7 +3012,7 @@ function prHint(exId,i){
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.textContent=prev?(est>prev.est?"🏆 "+est+"kg — new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  el.textContent=prev?(est>prev.est?"🏆 Est. 1RM: "+est+"kg — new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps){
