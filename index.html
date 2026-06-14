@@ -2429,7 +2429,7 @@ async function aiWeeklyReview(){
 function buildFullCSV(){
   const rows=[];
   // Workouts
-  rows.push("=== WORKOUTS ===","Date,Exercise,Set,Weight(kg),Reps");
+  rows.push("WORKOUTS","Date,Exercise,Set,Weight(kg),Reps");
   for(const [dayKey,exMap] of Object.entries(S.sessions||{})){
     const date=dayKey.replace(/^[A-Za-z]+_/,"").replace(/W(\d+)$/,"").slice(0,10);
     for(const [exId,ed] of Object.entries(exMap)){
@@ -2442,7 +2442,7 @@ function buildFullCSV(){
   }
   rows.push("");
   // Nutrition
-  rows.push("=== NUTRITION ===","Date,Item,kcal,Protein(g),Carbs(g),Fat(g),Fibre(g),Sugar(g),Sodium(mg)");
+  rows.push("NUTRITION","Date,Item,kcal,Protein(g),Carbs(g),Fat(g),Fibre(g),Sugar(g),Sodium(mg)");
   for(const [date,day] of Object.entries(S.nutrition?.days||{})){
     for(const item of (day.items||[])){
       rows.push(`${date},${String(item.name||"").replace(/,/g," ")},${item.kcal||0},${item.protein||0},${item.carbs||0},${item.fat||0},${item.fibre||0},${item.sugar||0},${item.sodium||0}`);
@@ -2450,11 +2450,11 @@ function buildFullCSV(){
   }
   rows.push("");
   // Weight log
-  rows.push("=== WEIGHT ===","Date,Weight(kg)");
+  rows.push("WEIGHT","Date,Weight(kg)");
   for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg}`);
   rows.push("");
   // PRs
-  rows.push("=== PERSONAL RECORDS ===","Exercise,Weight(kg),Reps,Est1RM(kg),Date");
+  rows.push("PERSONAL RECORDS","Exercise,Weight(kg),Reps,Est1RM(kg),Date");
   for(const [exId,entries] of Object.entries(S.prs||{})){
     const allEx=[...Object.values(PROG_V1),...Object.values(PROG_V2)].flatMap(p=>p.exercises||[]);
     const ex=allEx.find(e=>e.id===exId);

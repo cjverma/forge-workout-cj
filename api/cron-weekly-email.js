@@ -29,7 +29,7 @@ async function fetchState() {
 function buildCSV(S) {
   const rows = [];
 
-  rows.push("=== WORKOUTS ===", "Date,Exercise,Set,Weight(kg),Reps");
+  rows.push("WORKOUTS", "Date,Exercise,Set,Weight(kg),Reps");
   for (const [dayKey, exMap] of Object.entries(S.sessions || {})) {
     // dayKey format: "Monday_2026W24" — extract date from week key
     const wkMatch = dayKey.match(/(\d{4})W(\d{2})$/);
@@ -53,7 +53,7 @@ function buildCSV(S) {
   }
   rows.push("");
 
-  rows.push("=== NUTRITION ===", "Date,Item,kcal,Protein(g),Carbs(g),Fat(g),Fibre(g),Sugar(g),Sodium(mg)");
+  rows.push("NUTRITION", "Date,Item,kcal,Protein(g),Carbs(g),Fat(g),Fibre(g),Sugar(g),Sodium(mg)");
   for (const [date, day] of Object.entries(S.nutrition?.days || {})) {
     for (const item of (day.items || [])) {
       rows.push(`${date},${String(item.name || "").replace(/,/g, " ")},${item.kcal || 0},${item.protein || 0},${item.carbs || 0},${item.fat || 0},${item.fibre || 0},${item.sugar || 0},${item.sodium || 0}`);
@@ -61,11 +61,11 @@ function buildCSV(S) {
   }
   rows.push("");
 
-  rows.push("=== WEIGHT ===", "Date,Weight(kg)");
+  rows.push("WEIGHT", "Date,Weight(kg)");
   for (const [date, kg] of Object.entries(S.nutrition?.weights || {}).sort()) rows.push(`${date},${kg}`);
   rows.push("");
 
-  rows.push("=== PERSONAL RECORDS ===", "ExerciseId,Weight(kg),Reps,Est1RM(kg),Date");
+  rows.push("PERSONAL RECORDS", "ExerciseId,Weight(kg),Reps,Est1RM(kg),Date");
   for (const [exId, entries] of Object.entries(S.prs || {})) {
     for (const e of entries) rows.push(`${exId},${e.weight},${e.reps},${e.est},${e.date}`);
   }
