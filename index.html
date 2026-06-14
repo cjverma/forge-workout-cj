@@ -1378,18 +1378,23 @@ function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFul
 function nextWk(){const d=new Date();d.setDate(d.getDate()+7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
-// Returns the Monday Date of the week containing d (Mon-Sun weeks)
+// Returns the Monday Date for the Mon-Sun week containing d
 function mondayOf(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;}
-// Monday-time of the week a wkStr points to (same formula as updateDayNavDates)
-function mondayOfWk(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return new Date(0);const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7;return new Date(yr,0,1+(wn-1)*7-(dow-1));}
-let _viewWk=null;
-function vwk(){return _viewWk||wk();}
-function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
-// Use Monday-date comparison so Sun is in the same week as the preceding Mon
-function _viewMonday(){return _viewWk?mondayOfWk(_viewWk):null;}
 function _todayMonday(){return mondayOf(new Date());}
-function isPast(){if(!_viewWk)return false;return _viewMonday()<_todayMonday();}
-function isFuture(){if(!_viewWk)return false;return _viewMonday()>_todayMonday();}
+// Navigation state: Date of Monday being viewed, null = current week
+let _viewMon=null;
+// vwk() must return a wkStr whose session key matches what was stored this week.
+// wk() uses a formula that may put Sunday in the NEXT week, so for non-current weeks
+// we apply wk()'s formula to Wednesday of the viewed week (safely mid-week).
+function _wkFromDate(d){const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function vwk(){
+  if(!_viewMon)return wk();
+  const wed=new Date(_viewMon);wed.setDate(_viewMon.getDate()+2);
+  return _wkFromDate(wed);
+}
+function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
+function isPast(){return !!_viewMon&&_viewMon<_todayMonday();}
+function isFuture(){return !!_viewMon&&_viewMon>_todayMonday();}
 // A "past day" = any earlier week, or an earlier day within the current week
 function isPastDay(){
   if(isFuture())return false;
@@ -1406,21 +1411,15 @@ function isReadOnly(key){
 }
 function sk(day){return day+"_"+vwk();}
 function shiftWeek(delta){
-  const base=vwk();
-  const m=base.match(/(\d{4})W(\d+)/);if(!m)return;
-  const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7;
-  const mon=new Date(yr,0,1+(wn-1)*7-(dow-1));
-  mon.setDate(mon.getDate()+delta*7);
-  const j=new Date(mon.getFullYear(),0,1);
-  const nw=mon.getFullYear()+"W"+Math.ceil(((mon-j)/86400000+j.getDay()+1)/7);
-  // Cap at next week's Monday
+  const curMon=_viewMon||_todayMonday();
+  const newMon=new Date(curMon);newMon.setDate(curMon.getDate()+delta*7);
+  // Cap: cannot navigate past next week's Monday
   const nextMon=new Date(_todayMonday());nextMon.setDate(nextMon.getDate()+7);
-  if(mon>nextMon)return;
-  // Use Monday-date equality so Sun stays in the same week as the preceding Mon
-  _viewWk=mon.getTime()===_todayMonday().getTime()?null:nw;
+  if(newMon>nextMon)return;
+  _viewMon=newMon.getTime()===_todayMonday().getTime()?null:newMon;
   updateDayNavDates();renderW();
 }
-function goCurrentWeek(){_viewWk=null;updateDayNavDates();renderW();}
+function goCurrentWeek(){_viewMon=null;updateDayNavDates();renderW();}
 
 // Returns exercises for next week with any queued plan overrides applied (preview only)
 function getPreviewExercises(day){
@@ -1435,9 +1434,7 @@ function getPreviewExercises(day){
   return exs;
 }
 function updateDayNavDates(){
-  const m=vwk().match(/(\d{4})W(\d+)/);if(!m)return;
-  const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7;
-  const mon=new Date(yr,0,1+(wn-1)*7-(dow-1));
+  const mon=_viewMon||_todayMonday();
   DAYS.forEach((d,i)=>{
     const btn=document.getElementById("p-"+d);if(!btn)return;
     const dd=new Date(mon);dd.setDate(mon.getDate()+i);
@@ -1455,8 +1452,9 @@ function renderW(){
   const lockedPast=isPastDay()&&!_unlocked[_key0];
   const readOnly=future||lockedPast||(stopped&&!isPastDay());
   const cwk=wk();
-  const wkLbl=past?weekLabel(vwk()):future?'Next Week':'This Week';
-  const canGoForward=((_viewWk?mondayOfWk(vwk()):_todayMonday())<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})());
+  const _vm=_viewMon||_todayMonday();
+  const wkLbl=past?`Week of ${_vm.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:future?'Next Week':'This Week';
+  const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
     <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
     <div class="wk-nav-lbl">${esc(wkLbl)}${(past||future)
