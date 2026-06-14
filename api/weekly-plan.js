@@ -34,7 +34,7 @@ Your job:
    - Increase by the smallest sensible increment (usually 2.5–5 kg for machines)
    - If an exercise was skipped or unlogged in the most recent week → no change
    - If logged weights are consistently below the bottom of the hint range across 2+ weeks, lower the hint to match actual performance — don't leave an aspirational range the user isn't reaching
-3. VARIETY: You MAY swap a stalled or repeatedly-skipped exercise for a different movement targeting the same muscle group
+3. VARIETY: You MAY swap a stalled or repeatedly-skipped exercise for a different movement targeting the same muscle group. When using action:"add", you MUST only use exercises from profile.approvedExercises — do not invent movements outside this list. Pick the closest muscle-group match from the approved list.
 4. FORMAT: Return ONLY valid JSON — no markdown, no explanation:
 {
   "week_plan": {
