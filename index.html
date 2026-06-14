@@ -529,8 +529,6 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 /* ── LAST GHOST ── */
 .last-ghost{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:0.2px;}
-.pr-badge{font-size:10px;color:#f5a623;margin-top:2px;letter-spacing:0.2px;font-weight:600;}
-.hero-streak{font-size:11px;color:#f5a623;margin-top:5px;font-weight:600;opacity:.9;}
 
 /* ── CALF BUTTON ── */
 .calf-btn{padding:8px 14px;background:transparent;border:1px solid var(--orange);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--orange);cursor:pointer;white-space:nowrap;position:relative;transition:all .15s;}
@@ -962,8 +960,6 @@ if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]};
-if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
-if(!S.prs)S.prs={};
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.
@@ -1438,14 +1434,11 @@ function renderW(){
     const hasPlan=!!((S.weekPlans||{})[vwk()]);
     h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
   }
-  const streak=currentStreak();
-  const longest=S.milestones.longestStreak||0;
-  const streakHtml=streak>=1?`<div class="hero-streak">🔥 ${streak} day streak${longest>streak?` · best ${longest}`:''}</div>`:'';
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
-    <div class="hero-count">${done} of ${total} complete</div>${streakHtml}`}
+    <div class="hero-count">${done} of ${total} complete</div>`}
   </div>`;
   if(!future&&!isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -1688,10 +1681,6 @@ function card(ex,sess,key,rdOnly=false){
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
   const exUnit=ed.unit||"kg";
   const ghostHtml=lastSess?`<div class="last-ghost">Last: ${parseFloat(lastSess.weight.toFixed(1))}${exUnit} × ${esc(String(lastSess.reps))}</div>`:"";
-  // PR badge
-  const prBest=ex.cat==="gym"?bestPR(ex.id):null;
-  const prHtml=prBest?`<div class="pr-badge">🏆 PR: ${prBest.est}kg est. 1RM</div>`:``;
-
 
   // Overload badge
   let olBadge="";
@@ -1739,7 +1728,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}${prHtml}</div>
+      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}</div>
       <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -1804,11 +1793,7 @@ function toggleSet(key,exId,i){
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done&&sd.weight&&sd.reps&&ex.cat==="gym"){
-    const newPR=checkAndStorePR(exId,Number(sd.weight),Number(sd.reps));
-    if(newPR)showToastBig("🏆 New PR! "+epley1RM(Number(sd.weight),Number(sd.reps))+"kg est. 1RM");
-    else showToast("Set logged ✓");
-  } else if(sd.done){showToast("Set logged ✓");}
+  if(sd.done)showToast("Set logged ✓");
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   if(sd.done)startRest();
@@ -2427,14 +2412,10 @@ async function aiWeeklyReview(){
 
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
-  const rows=[];
-  // Build a flat id→name map from all program versions + custom exercises
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||id;
-
-  // Helper: convert weekKey like "2026W22" + dayName to ISO date
   function weekKeyToDate(dayName,weekKey){
     const m=weekKey.match(/(\d{4})W(\d+)/);
     if(!m)return "";
@@ -2447,13 +2428,11 @@ function buildFullCSV(){
     mon.setUTCDate(mon.getUTCDate()+idx);
     return mon.toISOString().slice(0,10);
   }
-
-  // Workouts
+  const rows=[];
   rows.push("WORKOUTS","Date,Exercise,Set,Weight(kg),Reps");
   for(const [dayKey,sessMap] of Object.entries(S.sessions||{})){
     const [dayName,...rest]=dayKey.split("_");
-    const weekKey=rest.join("_");
-    const date=weekKeyToDate(dayName,weekKey);
+    const date=weekKeyToDate(dayName,rest.join("_"));
     for(const [exId,ed] of Object.entries(sessMap)){
       if(!ed||!ed.sets)continue;
       const name=exName(exId);
@@ -2461,7 +2440,6 @@ function buildFullCSV(){
     }
   }
   rows.push("");
-  // Nutrition
   rows.push("NUTRITION","Date,Item,kcal,Protein(g),Carbs(g),Fat(g),Fibre(g),Sugar(g),Sodium(mg)");
   for(const [date,day] of Object.entries(S.nutrition?.days||{})){
     for(const item of (day.items||[])){
@@ -2469,11 +2447,9 @@ function buildFullCSV(){
     }
   }
   rows.push("");
-  // Weight log
   rows.push("WEIGHT","Date,Weight(kg)");
   for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg}`);
   rows.push("");
-  // PRs
   rows.push("PERSONAL RECORDS","Exercise,Weight(kg),Reps,Est1RM(kg),Date");
   for(const [exId,entries] of Object.entries(S.prs||{})){
     for(const e of entries)rows.push(`${exName(exId)},${e.weight},${e.reps},${e.est},${e.date}`);
@@ -2789,34 +2765,12 @@ function mondayOf(isoDateStr){
   d.setDate(d.getDate()+(dow===0?-6:1-dow));
   return isoDate(d);
 }
-function currentStreak(){
-  const today=isoToday();
-  let n=0;
-  for(let i=0;i<365;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}
-  return n;
-}
-function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
-function bestPR(exId){
-  const entries=S.prs[exId];
-  if(!entries||!entries.length)return null;
-  return entries.reduce((best,e)=>e.est>best.est?e:best,entries[0]);
-}
-function checkAndStorePR(exId,weight,reps){
-  const est=epley1RM(weight,reps);
-  const prev=bestPR(exId);
-  if(!prev||est>prev.est){
-    if(!S.prs[exId])S.prs[exId]=[];
-    S.prs[exId].push({date:isoToday(),weight,reps,est});
-    return true;
-  }
-  return false;
-}
 function checkMilestones(){
   const today=isoToday();
   const wkKey=wk();
-  // ── streak tracking ──
-  const streak=currentStreak();
-  if(streak>S.milestones.longestStreak){S.milestones.longestStreak=streak;save();}
+  // ── 3-day workout streak (tall toast, fires exactly on day 3) ──
+  let streak=0;
+  for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))streak++;else break;}
   if(streak===3)showToastBig("🔥 3 days in a row — you're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
@@ -2924,30 +2878,6 @@ function renderDrawer(){
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
-    <div class="st-sec">🏆 Personal Records</div>
-    ${(()=>{
-      const KEY_EXERCISES=[
-        {id:"m_cp",name:"Chest Press"},
-        {id:"m2_cp",name:"Chest Press"},
-        {id:"m2_icp",name:"Incline Chest Press"},
-        {id:"m_pf",name:"Pec Fly"},
-        {id:"m_cr",name:"Seated Cable Row"},
-        {id:"t2_csr",name:"Chest Supported Row"},
-        {id:"m_te",name:"Tricep Extension"},
-        {id:"t_lp",name:"Leg Press"},
-        {id:"t_lc",name:"Seated Leg Curl"},
-        {id:"t_ha",name:"Hip Abduction"},
-        {id:"t_sc",name:"Seated Calf Raise"},
-        {id:"t2_hc",name:"Hammer Curl"},
-      ];
-      // Deduplicate by name (chest press appears in v1 and v2)
-      const seen=new Set();
-      return KEY_EXERCISES.filter(e=>{if(seen.has(e.name))return false;seen.add(e.name);return true;})
-        .map(e=>{
-          const pr=bestPR(e.id);
-          return`<div class="rule-item"><div class="rule-ttl">${esc(e.name)}</div><div class="rule-desc">${pr?`${pr.est}kg est. 1RM · ${pr.reps===1?`${pr.weight}kg tested`:`${pr.weight}kg × ${pr.reps}`} · ${pr.date}`:'No PR logged yet'}</div></div>`;
-        }).join('');
-    })()}
     <div class="st-sec">Spine Rules</div>
     <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
     <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
