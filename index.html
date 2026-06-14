@@ -2462,6 +2462,16 @@ function buildFullCSV(){
   rows.push("WEIGHT","Date,Weight(kg)");
   for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg}`);
   rows.push("");
+  rows.push("SESSION NOTES & CALF TWINGES","Date,Day,Twinges,Notes");
+  for(const [dayKey,sessMap] of Object.entries(S.sessions||{})){
+    const twinges=(sessMap._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
+    const notes=sessMap._notes||"";
+    if(!twinges&&!notes)continue;
+    const [dayName,...rest]=dayKey.split("_");
+    const date=weekKeyToDate(dayName,rest.join("_"));
+    rows.push(`${date},${dayName},${twinges},"${notes.replace(/"/g,'""')}"`);
+  }
+  rows.push("");
   rows.push("PERSONAL RECORDS","Exercise,Weight(kg),Reps,Est1RM(kg),Date");
   for(const [exId,entries] of Object.entries(S.prs||{})){
     for(const e of entries)rows.push(`${exName(exId)},${e.weight},${e.reps},${e.est},${e.date}`);
@@ -2529,6 +2539,24 @@ function buildSVGBarChart(title,data,getVal,getCol,legend,pTarget){
   const legendHtml=legend?`<text x="${W/2}" y="${H+10}" text-anchor="middle" font-size="8" fill="#6b7280">${legend.replace(/<[^>]+>/g,"")}</text>`:"";
   return`<div class="pdf-chart"><div class="pdf-chart-title">${title}</div><svg viewBox="0 0 ${W} ${H+14}" width="100%" style="max-height:100px">${bars}${legendHtml}</svg></div>`;
 }
+function buildSVGMacrosChart(t){
+  // Grouped bar: protein (blue), carbs (amber), fat (green) per day
+  const W=280,H=90,barW=8,grpGap=18,grpW=barW*3+6,padL=10;
+  const maxMacro=Math.max(1,...t.flatMap(d=>[d.protein||0,(d.carbs||0),(d.fat||0)]));
+  const scale=v=>Math.max(0,Math.round(v/maxMacro*(H-28)));
+  const bars=t.map((d,i)=>{
+    const x=padL+i*(grpW+grpGap);
+    const pH=scale(d.protein||0),cH=scale(d.carbs||0),fH=scale(d.fat||0);
+    return`<g>
+      <rect x="${x}" y="${H-14-pH}" width="${barW}" height="${pH}" rx="2" fill="#4F8EF7" opacity="${d.isToday?1:0.75}"/>
+      <rect x="${x+barW+3}" y="${H-14-cH}" width="${barW}" height="${cH}" rx="2" fill="#f59e0b" opacity="${d.isToday?1:0.75}"/>
+      <rect x="${x+barW*2+6}" y="${H-14-fH}" width="${barW}" height="${fH}" rx="2" fill="#22c55e" opacity="${d.isToday?1:0.75}"/>
+      <text x="${x+grpW/2}" y="${H-2}" text-anchor="middle" font-size="9" fill="${d.isToday?"#f97316":"#6b7280"}" font-weight="${d.isToday?"700":"400"}">${d.lbl}</text>
+    </g>`;
+  }).join("");
+  const legend=`<text x="4" y="${H+12}" font-size="8" fill="#4F8EF7">▮ Protein</text><text x="60" y="${H+12}" font-size="8" fill="#f59e0b">▮ Carbs</text><text x="110" y="${H+12}" font-size="8" fill="#22c55e">▮ Fat</text><text text-anchor="end" x="${W}" y="${H+12}" font-size="8" fill="#9ca3af">(grams)</text>`;
+  return`<div class="pdf-chart"><div class="pdf-chart-title">Daily Macros</div><svg viewBox="0 0 ${W} ${H+16}" width="100%" style="max-height:110px">${bars}${legend}</svg></div>`;
+}
 function buildSVGSparkline(keys,wts){
   if(keys.length<2)return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days</div><p style="color:#6b7280;font-size:12px">Need at least 2 weigh-ins.</p></div>`;
   const vals=keys.map(k=>wts[k]);
@@ -2548,7 +2576,10 @@ function buildSVGSparkline(keys,wts){
   return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days <span style="color:${delta<=0?"#22c55e":"#ef4444"};font-size:11px;font-weight:600">${trend}</span></div><svg viewBox="0 0 ${W} ${H+14}" width="100%" style="max-height:90px">${tLine}<polyline points="${polyPts}" fill="none" stroke="#f97316" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${circles}${startLbl}${endLbl}</svg></div>`;
 }
 function buildPDFReport(){
-  const t=buildTrendData();
+  const t=buildTrendData().map(d=>{
+    const items=(S.nutrition?.days?.[d.iso]||{}).items||[];
+    return {...d,carbs:items.reduce((s,it)=>s+(it.carbs||0),0),fat:items.reduce((s,it)=>s+(it.fat||0),0)};
+  });
   const pTarget=Math.round(USER.targetKg*2);
   const lw=latestWeightLog()||USER.weightKg;
   const streak=(()=>{let n=0;for(let i=0;i<365;i++){const d=new Date(isoToday()+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}return n;})();
@@ -2633,6 +2664,7 @@ function buildPDFReport(){
         ${buildSVGBarChart("Protein g/day",t,d=>d.protein,(d,v)=>v>=pTarget?"var(--green)":"var(--b2)",`target ${pTarget}g`)}
         ${buildSVGBarChart("Calorie Burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)","orange = trained day")}
         ${buildSVGBarChart("Daily Deficit (kcal)",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
+        ${buildSVGMacrosChart(t)}
         <div class="pdf-chart">${buildSVGSparkline(wtKeys,wts).replace('<div class="pdf-chart">','').replace('</div>','')}</div>
       </div>
     </div>
