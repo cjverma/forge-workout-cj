@@ -74,12 +74,6 @@ function buildCSV(S) {
 }
 
 export default async function handler(req, res) {
-  // Vercel cron requests arrive as GET with the CRON_SECRET header
-  const secret = process.env.CRON_SECRET;
-  if (secret && req.headers["authorization"] !== `Bearer ${secret}`) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return res.status(503).json({ error: "RESEND_API_KEY not set" });
 
