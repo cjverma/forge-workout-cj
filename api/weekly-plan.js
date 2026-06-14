@@ -39,14 +39,16 @@ Your job:
 {
   "week_plan": {
     "Monday": [
-      {"id":"ex_id","sets":3,"reps":12,"hint":"37.5-42.5 kg"},
-      {"action":"remove","id":"ex_id2"},
-      {"action":"add","id":"ai_mon_lowrow","name":"Low Cable Row","cat":"gym","sets":3,"reps":12,"hint":"35-45 kg","cue":"Sit tall. Row to belly button.","muscles":["mid back","biceps"]}
+      {"id":"ex_id","sets":3,"reps":12,"hint":"37.5-42.5 kg","reason":"Completed all 3 sets at 40kg last week — small step up"},
+      {"action":"remove","id":"ex_id2","reason":"Skipped 3 weeks in a row — removing to reduce friction"},
+      {"action":"add","id":"ai_mon_lowrow","name":"Low Cable Row","cat":"gym","sets":3,"reps":12,"hint":"35-45 kg","cue":"Sit tall. Row to belly button.","muscles":["mid back","biceps"],"reason":"Adding variety for mid-back after Cable Row plateau"}
     ]
   },
   "coaching_notes": "3-4 sentence summary covering trend observations and key changes",
   "flags": ["any safety warnings, plateaus detected, or observations"]
 }
+
+Every entry in week_plan MUST include a "reason" field — one concise sentence explaining why this change was made based on the data.
 
 Rules:
 - Updates (no action field): use exact exercise IDs from profile.currentPlan. Only include if something actually changes.

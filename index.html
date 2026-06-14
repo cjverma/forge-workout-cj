@@ -510,7 +510,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .pm-section{font-size:10px;font-weight:600;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin:16px 0 8px;}
 .pm-notes{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--orange);border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:var(--lt);line-height:1.7;margin-bottom:6px;}
 .pm-flag{background:var(--s1);border:1px solid var(--b1);border-left:2px solid var(--red);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:var(--mid);line-height:1.5;margin-bottom:6px;}
-.pm-change{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:6px;}
+.pm-change{background:var(--s1);border:1px solid var(--b1);border-radius:8px;padding:10px 12px;margin-bottom:6px;}.pm-change-reason{font-size:11px;color:var(--dim);margin-top:4px;font-style:italic;}
 .pm-change-day{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--orange);text-transform:uppercase;margin-bottom:3px;}
 .pm-change-ex{font-size:13px;font-weight:600;}
 .pm-change-val{font-size:11px;color:var(--mid);margin-top:2px;}
@@ -2913,10 +2913,10 @@ function showPlanModal(parsed){
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">🗑 ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div></div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">🗑 ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else if(upd.action==="add"){
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">➕ ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div></div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">➕ ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else {
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;
@@ -2927,7 +2927,7 @@ function showPlanModal(parsed){
         changeCount++;
         const from=[cur.hint,`${cur.sets}×${cur.reps}`].filter(Boolean).join(" · ");
         const to=[upd.hint||(hintChanged?"":cur.hint),(setsChanged||repsChanged)?`${upd.sets||cur.sets}×${upd.reps||cur.reps}`:null].filter(Boolean).join(" · ");
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex">${esc(cur.name)}</div><div class="pm-change-val">${esc(from)} → ${esc(to)}</div></div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex">${esc(cur.name)}</div><div class="pm-change-val">${esc(from)} → ${esc(to)}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       }
     }
   }
