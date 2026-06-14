@@ -973,8 +973,8 @@ if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]}
 if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
 if(!S.prs)S.prs={};
 // Build exId→name-slug canonical map from PROG (robust across V1/V2 ID inconsistencies)
-const _prCanonMap={};
-(function(){for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");}})();
+const _prCanonMap={},_prNameMap={};
+(function(){for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const slug=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
 // One-time migration: consolidate all day-keyed PR entries → name-slug keys
 if(!S._prCanonMigrated2){
   const merged={};
@@ -2462,7 +2462,7 @@ function buildFullCSV(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||id;
+  const exName=id=>exMap[id]||_prNameMap[id]||id;
   function weekKeyToDate(dayName,weekKey){
     const m=weekKey.match(/(\d{4})W(\d+)/);
     if(!m)return "";
@@ -2627,7 +2627,7 @@ function buildPDFReport(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||id;
+  const exName=id=>exMap[id]||_prNameMap[id]||id;
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
     const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
     return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${best.date}</td></tr>`;
