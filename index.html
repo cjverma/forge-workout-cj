@@ -123,8 +123,6 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .hero-prog{margin-top:16px;height:5px;background:rgba(255,255,255,.25);border-radius:99px;overflow:hidden;}
 .hero-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s ease;}
 .hero-count{font-size:11px;font-weight:600;opacity:.85;margin-top:7px;}
-.hero-streak{font-size:11px;font-weight:600;opacity:.9;margin-top:4px;color:#FFD580;}
-.pr-badge{font-size:10px;font-weight:600;color:var(--amber);margin-top:3px;}
 
 /* ── PROGRESS ── */
 .prog-wrap{margin:14px 18px 0;height:3px;background:var(--b1);border-radius:99px;overflow:hidden;}
@@ -970,8 +968,6 @@ if(!S.nutrition.weights)S.nutrition.weights={};
 if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]};
-if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
-if(!S.prs)S.prs={};
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.
@@ -1450,8 +1446,7 @@ function renderW(){
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
-    <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">🔥 ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
+    <div class="hero-count">${done} of ${total} complete</div>`}
   </div>`;
   if(!future&&!isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -1741,7 +1736,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
+      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}</div>
       <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -1806,7 +1801,7 @@ function toggleSet(key,exId,i){
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps));}
+  if(sd.done)showToast("Set logged ✓");
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   if(sd.done)startRest();
@@ -2981,36 +2976,12 @@ function mondayOf(isoDateStr){
   d.setDate(d.getDate()+(dow===0?-6:1-dow));
   return isoDate(d);
 }
-function currentStreak(){
-  const today=isoToday();
-  let n=0;
-  for(let i=0;i<365;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}
-  return n;
-}
-function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
-function bestPR(exId){
-  const entries=S.prs[exId]||[];
-  if(!entries.length)return null;
-  return entries.reduce((best,e)=>e.est>best.est?e:best,entries[0]);
-}
-function checkAndStorePR(exId,weight,reps){
-  if(!weight||!reps||reps>30)return;
-  const est=epley1RM(weight,reps);
-  const prev=bestPR(exId);
-  if(!prev||est>prev.est){
-    if(!S.prs[exId])S.prs[exId]=[];
-    S.prs[exId].push({date:isoToday(),weight,reps,est});
-    save();
-    showToastBig("🏆 New PR! "+est+"kg est. 1RM");
-  }
-}
 function checkMilestones(){
   const today=isoToday();
   const wkKey=wk();
-  // ── update longest streak ──
-  const streak=currentStreak();
-  if(streak>=(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();}
   // ── 3-day workout streak (tall toast, fires exactly on day 3) ──
+  let streak=0;
+  for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))streak++;else break;}
   if(streak===3)showToastBig("🔥 3 days in a row — you're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
@@ -3123,25 +3094,7 @@ function renderDrawer(){
     <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
     <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
     <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
-    <div class="st-sec">🏆 Personal Records</div>
-    ${(()=>{
-      const KEY_EX=[
-        {id:"m_cp",name:"Chest Press Machine"},{id:"m2_icp",name:"Incline Chest Press"},
-        {id:"m_pf",name:"Pec Fly Machine"},{id:"m_cr",name:"Seated Cable Row"},
-        {id:"t2_csr",name:"Chest Supported Row"},{id:"m_te",name:"Tricep Extension Machine"},
-        {id:"t_lp",name:"Leg Press Machine"},{id:"t_lc",name:"Seated Leg Curl"},
-        {id:"t_ha",name:"Hip Abduction Machine"},{id:"t_sc",name:"Seated Calf Raise"},
-        {id:"t2_hc",name:"Hammer Curl"}
-      ];
-      return KEY_EX.map(({id,name})=>{
-        const pr=bestPR(id);
-        return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el){el.scrollIntoView({behavior:'smooth',block:'center'});}},200)" style="cursor:pointer">
-          <div class="rule-ttl">${name}</div>
-          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${pr.date}`:"No PR recorded yet"}</div>
-        </div>`;
-      }).join("");
-    })()}`;
+    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>`;
 }
 function openDrawer(){renderDrawer();document.getElementById("drawer").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");}
 function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");}
