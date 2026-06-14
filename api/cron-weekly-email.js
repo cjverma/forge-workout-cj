@@ -27,6 +27,15 @@ function kvCfg() {
   return url && token ? { url, token } : null;
 }
 
+function customName(S, exId) {
+  for (const arr of Object.values(S.custom || {})) {
+    if (!Array.isArray(arr)) continue;
+    const ex = arr.find(e => e.id === exId);
+    if (ex) return ex.name;
+  }
+  return null;
+}
+
 async function fetchState() {
   const kv = kvCfg();
   if (!kv) return null;
@@ -63,7 +72,7 @@ function buildCSV(S) {
     }
     for (const [exId, ed] of Object.entries(exMap)) {
       if (!ed || !ed.sets) continue;
-      const name = EX_NAMES[exId] || (S.custom?.[exId]?.name) || exId;
+      const name = EX_NAMES[exId] || customName(S, exId) || exId;
       (ed.sets || []).forEach((s, i) => {
         if (s.weight || s.reps) rows.push(`${date},${name},${i + 1},${s.weight || ""},${s.reps || ""}`);
       });

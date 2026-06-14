@@ -2431,7 +2431,7 @@ function buildFullCSV(){
   // Build a flat id→name map from all program versions + custom exercises
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
-  Object.values(S.custom||{}).forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});
+  Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||id;
 
   // Helper: convert weekKey like "2026W22" + dayName to ISO date
