@@ -2428,15 +2428,35 @@ async function aiWeeklyReview(){
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
   const rows=[];
+  // Build a flat id→name map from all program versions + custom exercises
+  const exMap={};
+  [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  Object.values(S.custom||{}).forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});
+  const exName=id=>exMap[id]||id;
+
+  // Helper: convert weekKey like "2026W22" + dayName to ISO date
+  function weekKeyToDate(dayName,weekKey){
+    const m=weekKey.match(/(\d{4})W(\d+)/);
+    if(!m)return "";
+    const [,yr,wk]=m;
+    const jan4=new Date(Date.UTC(Number(yr),0,4));
+    const mon=new Date(jan4);
+    mon.setUTCDate(jan4.getUTCDate()-((jan4.getUTCDay()+6)%7)+(Number(wk)-1)*7);
+    const idx=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(dayName);
+    if(idx<0)return "";
+    mon.setUTCDate(mon.getUTCDate()+idx);
+    return mon.toISOString().slice(0,10);
+  }
+
   // Workouts
   rows.push("WORKOUTS","Date,Exercise,Set,Weight(kg),Reps");
-  for(const [dayKey,exMap] of Object.entries(S.sessions||{})){
-    const date=dayKey.replace(/^[A-Za-z]+_/,"").replace(/W(\d+)$/,"").slice(0,10);
-    for(const [exId,ed] of Object.entries(exMap)){
+  for(const [dayKey,sessMap] of Object.entries(S.sessions||{})){
+    const [dayName,...rest]=dayKey.split("_");
+    const weekKey=rest.join("_");
+    const date=weekKeyToDate(dayName,weekKey);
+    for(const [exId,ed] of Object.entries(sessMap)){
       if(!ed||!ed.sets)continue;
-      const allEx=[...Object.values(PROG_V1),...Object.values(PROG_V2)].flatMap(p=>p.exercises||[]);
-      const ex=allEx.find(e=>e.id===exId);
-      const name=ex?ex.name:exId;
+      const name=exName(exId);
       ed.sets.forEach((s,i)=>{if(s.weight||s.reps)rows.push(`${date},${name},${i+1},${s.weight||""},${s.reps||""}`);});
     }
   }
@@ -2456,10 +2476,7 @@ function buildFullCSV(){
   // PRs
   rows.push("PERSONAL RECORDS","Exercise,Weight(kg),Reps,Est1RM(kg),Date");
   for(const [exId,entries] of Object.entries(S.prs||{})){
-    const allEx=[...Object.values(PROG_V1),...Object.values(PROG_V2)].flatMap(p=>p.exercises||[]);
-    const ex=allEx.find(e=>e.id===exId);
-    const name=ex?ex.name:exId;
-    for(const e of entries)rows.push(`${name},${e.weight},${e.reps},${e.est},${e.date}`);
+    for(const e of entries)rows.push(`${exName(exId)},${e.weight},${e.reps},${e.est},${e.date}`);
   }
   return rows.join("\n");
 }
