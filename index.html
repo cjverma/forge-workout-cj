@@ -3145,13 +3145,9 @@ function renderDrawer(){
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
-    <div class="st-sec">Spine Rules</div>
-    <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
-    <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
-    <div class="st-sec">🏆 Personal Records</div>
+    <details class="st-acc">
+      <summary><div><div>🏆 Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
+      <div class="st-acc-inner">
     ${(()=>{
       // Build EX_NAMES from PROG for leaderboard labels
       const EX_NAMES={};
@@ -3189,7 +3185,19 @@ function renderDrawer(){
         </div>`;
       }).join("");
       return leaderHtml+exRows;
-    })()}`;
+    })()}
+      </div>
+    </details>
+    <details class="st-acc">
+      <summary><div><div>🦴 Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
+      <div class="st-acc-inner">
+        <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
+        <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
+      </div>
+    </details>`;
 }
 function openDrawer(){renderDrawer();document.getElementById("drawer").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");}
 function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");}
