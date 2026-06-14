@@ -124,6 +124,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .hero-prog-fill{height:100%;background:#fff;border-radius:99px;transition:width .5s ease;}
 .hero-count{font-size:11px;font-weight:600;opacity:.85;margin-top:7px;}
 .hero-streak{font-size:11px;font-weight:600;opacity:.9;margin-top:4px;color:#FFD580;}
+.pr-badge{font-size:10px;font-weight:600;color:var(--amber);margin-top:3px;}
 
 /* ── PROGRESS ── */
 .prog-wrap{margin:14px 18px 0;height:3px;background:var(--b1);border-radius:99px;overflow:hidden;}
@@ -970,6 +971,20 @@ if(S.nutrition.aiDeficitModifier===undefined)S.nutrition.aiDeficitModifier=0;
 if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]};
 if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
+if(!S.prs)S.prs={};
+// Build exId→name-slug canonical map from PROG (robust across V1/V2 ID inconsistencies)
+const _prCanonMap={},_prNameMap={};
+(function(){for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const slug=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
+// One-time migration: consolidate all day-keyed PR entries → name-slug keys
+if(!S._prCanonMigrated2){
+  const merged={};
+  Object.entries(S.prs).forEach(([id,entries])=>{
+    const cid=_prCanonMap[id]||id.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");
+    if(!merged[cid])merged[cid]=[];
+    merged[cid].push(...entries);
+  });
+  S.prs=merged;S._prCanonMigrated=true;S._prCanonMigrated2=true;save();
+}
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.
@@ -1216,11 +1231,28 @@ function undoCalfTwinge(){
 // Planned sets come from PROG, which applyPlanOverrides() has already
 // mutated with this week's AI-generated plan - so planned volume tracks
 // the live weekly plan, not the static base program.
+function wkForDate(d){
+  // Compute the same week key that wk() would return for a given Date object.
+  const j=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+}
 function buildVolumeData(){
-  const cur=wk();
+  // Sunday = week reset: show empty so the counter reads 0 for the new week.
+  if(new Date().getDay()===0)return[];
+  const today=isoToday();
+  const now=new Date(today+"T12:00:00");
+  const dow=now.getDay();
+  const monOffset=dow===0?-6:1-dow;
+  const DAY_ORDER=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
   const planned={},done={};
   for(const[day,dayData] of Object.entries(PROG)){
-    const sessData=S.sessions[day+"_"+cur];
+    const idx=DAY_ORDER.indexOf(day);
+    if(idx<0)continue;
+    const dayDate=new Date(today+"T12:00:00");
+    dayDate.setDate(dayDate.getDate()+monOffset+idx);
+    if(dayDate>now)continue; // skip future days
+    const weekKey=wkForDate(dayDate);
+    const sessData=S.sessions[day+"_"+weekKey];
     for(const ex of(dayData.exercises||[])){
       if(ex.cat==="cardio")continue;
       const n=typeof ex.sets==="number"?ex.sets:0;
@@ -1477,15 +1509,15 @@ function renderW(){
 
   // Late-week planning nudge: Sat/Sun, current week, no plan queued yet
   const _dowNow=new Date().getDay();
-  if(!isPastDay()&&!isFuture()&&(_dowNow===6||_dowNow===0)&&!(S.weekPlans||{})[nextWk()]){
+  if(!isPastDay()&&!isFuture()&&_dowNow===0&&!(S.weekPlans||{})[nextWk()]){
     h+=`<div class="plan-nudge">
       <div><div class="plan-nudge-ttl">📅 Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
       <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
-  if(gymExs.length){h+=`<div class="sec">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</div>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});}
-  if(physioExs.length){h+=`<div class="sec">🟢 Physio · Yoga Mat</div>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});}
+  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">🟢 Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
 
   // Session notes
   if(!readOnly){
@@ -1725,11 +1757,11 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
+        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
         <div class="sx">×</div>
-        <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onkeydown="onRpKey(event)" onfocus="this.select()">
+        <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
-      </div>`;
+      </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
@@ -1739,7 +1771,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}</div>
+      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
       <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -1804,7 +1836,7 @@ function toggleSet(key,exId,i){
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done)showToast("Set logged ✓");
+  if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps));}
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   if(sd.done)startRest();
@@ -2430,7 +2462,7 @@ function buildFullCSV(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||id;
+  const exName=id=>exMap[id]||_prNameMap[id]||id;
   function weekKeyToDate(dayName,weekKey){
     const m=weekKey.match(/(\d{4})W(\d+)/);
     if(!m)return "";
@@ -2595,7 +2627,7 @@ function buildPDFReport(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||id;
+  const exName=id=>exMap[id]||_prNameMap[id]||id;
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
     const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
     return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${best.date}</td></tr>`;
@@ -2979,6 +3011,37 @@ function mondayOf(isoDateStr){
   d.setDate(d.getDate()+(dow===0?-6:1-dow));
   return isoDate(d);
 }
+function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
+function canonicalId(exId){return _prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
+function bestPR(exId){
+  const cid=canonicalId(exId);
+  const entries=S.prs[cid]||[];
+  if(!entries.length)return null;
+  return entries.reduce((best,e)=>e.est>best.est?e:best,entries[0]);
+}
+function prHint(exId,i){
+  const w=parseFloat(document.getElementById("wi-"+exId+"-"+i)?.value);
+  const r=parseFloat(document.getElementById("ri-"+exId+"-"+i)?.value);
+  const el=document.getElementById("pr-hint-"+exId+"-"+i);
+  if(!el)return;
+  if(!w||!r||r>30){el.textContent="";return;}
+  const est=epley1RM(w,r);
+  const prev=bestPR(exId);
+  el.textContent=prev?(est>prev.est?"🏆 Est. 1RM: "+est+"kg — new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
+}
+function checkAndStorePR(exId,weight,reps){
+  if(!weight||!reps||reps>30)return;
+  const cid=canonicalId(exId);
+  const est=epley1RM(weight,reps);
+  const prev=bestPR(cid);
+  if(!prev||est>prev.est){
+    if(!S.prs[cid])S.prs[cid]=[];
+    S.prs[cid].push({date:isoToday(),weight,reps,est});
+    save();
+    showToastBig("🏆 New PR! "+est+"kg est. 1RM");
+  }
+}
 function currentStreak(){
   const today=isoToday();
   let n=0;
@@ -3098,12 +3161,62 @@ function renderDrawer(){
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
-    <div class="st-sec">Spine Rules</div>
-    <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
-    <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
-    <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>`;
+    <details class="st-acc">
+      <summary><div><div>🏆 Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
+      <div class="st-acc-inner">
+    ${(()=>{
+      // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
+      const EX_NAMES={};
+      for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
+      // Leaderboard card (top 5 by est 1RM across all PRs)
+      const allPRs=Object.entries(S.prs||{});
+      let leaderHtml="";
+      if(allPRs.length){
+        const rows=allPRs
+          .map(([id,entries])=>{const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);return{id,best};})
+          .sort((a,b)=>b.best.est-a.best.est)
+          .slice(0,5)
+          .map(({id,best},idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px"><span style="color:var(--dim);width:14px">${idx+1}</span><span style="flex:1;color:var(--mid)">${EX_NAMES[id]||id}</span><span style="font-weight:700;color:var(--white)">${best.est}kg</span></div>`)
+          .join("");
+        leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
+      }
+      // Per-exercise rows: all exercises with PRs first, then key exercises without
+      const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];
+      const withPR=Object.keys(S.prs||{});
+      // Merge: PRd exercises + key exercises not yet PR'd (dedupe by name)
+      const seenNames=new Set();
+      const exList=[];
+      // First: all exercises that have PRs
+      withPR.forEach(id=>{const name=EX_NAMES[id]||id;if(!seenNames.has(name)){seenNames.add(name);exList.push({id,name});}});
+      // Then: key exercises without PRs yet (skip if same name already added)
+      KEY_IDS.forEach(id=>{const name=EX_NAMES[id]||id;if(!seenNames.has(name)&&!withPR.includes(id)){seenNames.add(name);exList.push({id,name});}});
+      const exRows=exList.map(({id,name})=>{
+        const pr=bestPR(id);
+        const prEntries=S.prs[id]||[];
+        const dateMap={};
+        prEntries.forEach(e=>{if(!dateMap[e.date]||e.est>dateMap[e.date])dateMap[e.date]=e.est;});
+        const sparkKeys=Object.keys(dateMap).sort();
+        const sparkHtml=sparkKeys.length>=2?buildSparkline(sparkKeys,dateMap,false):"";
+        return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
+          <div class="rule-ttl">${name}</div>
+          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${pr.date}`:"No PR recorded yet"}</div>
+          ${sparkHtml}
+        </div>`;
+      }).join("");
+      return leaderHtml+exRows;
+    })()}
+      </div>
+    </details>
+    <details class="st-acc">
+      <summary><div><div>🦴 Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
+      <div class="st-acc-inner">
+        <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
+        <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
+      </div>
+    </details>`;
 }
 function openDrawer(){renderDrawer();document.getElementById("drawer").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");}
 function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");}
@@ -3146,7 +3259,12 @@ function renderNutrition(){
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
-  const wtKeys=allWtKeys.slice(-7);
+  const WT_PAGE=5;
+  const wtTotalPages=Math.max(1,Math.ceil(allWtKeys.length/WT_PAGE));
+  if(_wtPage>=wtTotalPages)_wtPage=wtTotalPages-1;
+  const wtPageStart=Math.max(0,allWtKeys.length-WT_PAGE*(_wtPage+1));
+  const wtPageEnd=allWtKeys.length-WT_PAGE*_wtPage;
+  const wtKeys=allWtKeys.slice(wtPageStart,wtPageEnd||undefined);
   const sparkHtml=buildSparkline(allWtKeys.slice(-30),wts);
   const arrHtml=arrivalEst();
   const liveBMR=calcBMR(latestWeightLog()||USER.weightKg);
@@ -3218,12 +3336,14 @@ function renderNutrition(){
     </div>
 
     <!-- Weight log card -->
-    <div class="nut-card">
-      <div class="nut-card-title">Weight Log</div>
+    <details class="st-acc">
+      <summary><div><div>⚖️ Weight Log</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · latest ${wts[allWtKeys[allWtKeys.length-1]]} kg`:"No entries yet"}</div></div></summary>
+      <div class="st-acc-inner">
       ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="openWtInput(this,'${date}')">+ Log Weight</button>`}
       ${sparkHtml}
-      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table><div class="wt-arrival" style="margin-top:2px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
-    </div>
+      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Older</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Newer →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
+      </div>
+    </details>
 
     <!-- Ask Forge -->
     <button class="ask-forge-btn" onclick="openForgeChat()">
@@ -3395,14 +3515,16 @@ function openWtInput(btn,date){
   cancel.onclick=()=>commit(false);
   inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit(true);}if(e.key==="Escape")commit(false);});
 }
+let _wtPage=0;
+function wtPage(n){_wtPage=n;renderNutrition();}
 function saveWeight(date){
   if(nutLocked(date))return;
   const inp=document.getElementById("wtInp");if(!inp)return;
   const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
-  S.nutrition.weights[date]=val;_wtOpen=false;save();checkMilestones();showToast("Weight logged ✓");renderNutrition();
+  _wtPage=0;S.nutrition.weights[date]=val;_wtOpen=false;save();checkMilestones();showToast("Weight logged ✓");renderNutrition();
 }
 function delWeight(date){
-  delete S.nutrition.weights[date];save();showToast("Entry removed");renderNutrition();
+  _wtPage=0;delete S.nutrition.weights[date];save();showToast("Entry removed");renderNutrition();
 }
 function buildSparkline(keys,wts,summary){
   if(keys.length<2)return"";
