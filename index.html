@@ -2826,6 +2826,21 @@ function buildSessionHistory(maxWeeks=4){
   return history;
 }
 
+function buildApprovedExercises(){
+  const seen=new Set();
+  const list=[];
+  for(const[,dayData]of Object.entries(PROG)){
+    for(const ex of(dayData.exercises||[])){
+      if(ex.cat==="cardio"||ex.cat==="physio")continue;
+      const key=ex.name.toLowerCase().trim();
+      if(seen.has(key))continue;
+      seen.add(key);
+      list.push({name:ex.name,muscles:ex.muscles||[],hint:ex.hint||""});
+    }
+  }
+  return list;
+}
+
 function buildPlanSnapshot(){
   const snap={};
   for(const[day,dayData]of Object.entries(PROG)){
@@ -2879,7 +2894,7 @@ async function genWeeklyPlan(){
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         sessionHistory:buildSessionHistory(4),
-        profile:{equipment:GYM,currentPlan:buildPlanSnapshot(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:"2026-12-01"}}
+        profile:{equipment:GYM,currentPlan:buildPlanSnapshot(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:"2026-12-01"}}
       })
     });
     if(!r.ok)throw new Error("Request failed");
