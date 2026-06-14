@@ -529,6 +529,14 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 /* ── LAST GHOST ── */
 .last-ghost{font-size:10px;color:var(--dim);margin-top:2px;letter-spacing:0.2px;}
+.export-sheet{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:flex-end;opacity:0;pointer-events:none;transition:opacity .2s;}
+.export-sheet.open{opacity:1;pointer-events:all;}
+.export-sheet-inner{background:var(--card);border-radius:18px 18px 0 0;padding:20px 16px 32px;width:100%;transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.export-sheet.open .export-sheet-inner{transform:translateY(0);}
+.export-sheet-title{font-size:14px;font-weight:700;color:var(--dim);text-align:center;margin-bottom:16px;text-transform:uppercase;letter-spacing:.5px;}
+.export-opt{display:flex;flex-direction:column;align-items:flex-start;width:100%;background:var(--b2);border:none;border-radius:12px;padding:14px 16px;margin-bottom:10px;color:var(--white);font-size:15px;font-weight:600;cursor:pointer;text-align:left;}
+.export-opt-sub{font-size:11px;font-weight:400;color:var(--dim);margin-top:3px;}
+.export-cancel{width:100%;background:none;border:none;padding:12px;color:var(--dim);font-size:15px;cursor:pointer;}
 
 /* ── CALF BUTTON ── */
 .calf-btn{padding:8px 14px;background:transparent;border:1px solid var(--orange);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--orange);cursor:pointer;white-space:nowrap;position:relative;transition:all .15s;}
@@ -2297,7 +2305,7 @@ function renderST(){
           <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On · last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off · add Upstash Redis storage to the Vercel project, then redeploy":"Tap to check sync status"}</div></div></div>
           ${localStorage.getItem("f5_prepull")?`<div class="st-row" onclick="if(confirm('Restore the data this device had BEFORE the last cloud sync?'))restorePrePull()"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">Undo Last Cloud Pull</div><div class="st-sub">Restore this device's data from before the last sync replaced it</div></div></div>`:""}
           <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
-          <div class="st-row" onclick="emailExport()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">Sends workouts, nutrition, weight & PRs as CSV to your inbox</div></div></div>
+          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
           <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
           <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
@@ -2456,7 +2464,25 @@ function buildFullCSV(){
   }
   return rows.join("\n");
 }
-async function emailExport(){
+function showExportSheet(){
+  const el=document.getElementById("exportSheet");
+  if(el){el.classList.add("open");return;}
+  const sheet=document.createElement("div");
+  sheet.id="exportSheet";
+  sheet.className="export-sheet";
+  sheet.innerHTML=`
+    <div class="export-sheet-inner">
+      <div class="export-sheet-title">Export My Data</div>
+      <button class="export-opt" onclick="emailCSV()">📄 Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
+      <button class="export-opt" onclick="openPDFReport()">📊 View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
+      <button class="export-cancel" onclick="document.getElementById('exportSheet').classList.remove('open')">Cancel</button>
+    </div>`;
+  document.body.appendChild(sheet);
+  requestAnimationFrame(()=>sheet.classList.add("open"));
+  sheet.addEventListener("click",e=>{if(e.target===sheet)sheet.classList.remove("open");});
+}
+async function emailCSV(){
+  document.getElementById("exportSheet")?.classList.remove("open");
   const btn=document.getElementById("emailExportBtn");
   if(btn){btn.disabled=true;btn.textContent="Sending…";}
   try{
@@ -2466,10 +2492,144 @@ async function emailExport(){
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({filename:`forge-export-${isoToday()}.csv`,content:btoa(unescape(encodeURIComponent(csv)))})
     });
-    if(res.ok)showToast("Export emailed to you 📧");
+    if(res.ok)showToast("CSV emailed to you 📧");
     else showToast("Email failed — use backup download");
   }catch(e){showToast("Email failed — use backup download");}
   finally{if(btn){btn.disabled=false;btn.textContent="Email My Data";}}
+}
+function buildSVGBarChart(title,data,getVal,getCol,legend,pTarget){
+  const vals=data.map(getVal);
+  const nonNull=vals.filter(v=>v!=null&&v!==0).map(v=>Math.abs(v));
+  if(!nonNull.length)nonNull.push(1);
+  const hi=Math.max(...nonNull);
+  const significant=nonNull.filter(v=>v>hi*0.4);
+  const lo=significant.length?Math.min(...significant):0;
+  const spread=hi-lo;
+  const floor=Math.max(0,lo-spread*1.2);
+  const range=hi-floor||1;
+  const W=280,H=90,barW=28,gap=12,padL=10;
+  const bars=data.map((d,i)=>{
+    const v=vals[i];
+    const barH=v==null?0:Math.max(3,Math.round((Math.abs(v)-floor)/range*(H-30)));
+    const x=padL+i*(barW+gap);
+    const y=H-14-barH;
+    const col=getCol(d,v);
+    const colMap={"var(--green)":"#22c55e","var(--orange)":"#f97316","var(--red)":"#ef4444","var(--b2)":"#374151"};
+    const fill=colMap[col]||col;
+    const lbl=d.lbl;
+    const valLbl=v==null?"":Math.round(Math.abs(v));
+    return`<g><rect x="${x}" y="${y}" width="${barW}" height="${barH}" rx="3" fill="${fill}" opacity="${d.isToday?1:0.75}"/>
+      <text x="${x+barW/2}" y="${y-3}" text-anchor="middle" font-size="8" fill="#9ca3af">${valLbl}</text>
+      <text x="${x+barW/2}" y="${H-2}" text-anchor="middle" font-size="9" fill="${d.isToday?"#f97316":"#6b7280"}" font-weight="${d.isToday?"700":"400"}">${lbl}</text></g>`;
+  }).join("");
+  const legendHtml=legend?`<text x="${W/2}" y="${H+10}" text-anchor="middle" font-size="8" fill="#6b7280">${legend.replace(/<[^>]+>/g,"")}</text>`:"";
+  return`<div class="pdf-chart"><div class="pdf-chart-title">${title}</div><svg viewBox="0 0 ${W} ${H+14}" width="100%" style="max-height:100px">${bars}${legendHtml}</svg></div>`;
+}
+function buildSVGSparkline(keys,wts){
+  if(keys.length<2)return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days</div><p style="color:#6b7280;font-size:12px">Need at least 2 weigh-ins.</p></div>`;
+  const vals=keys.map(k=>wts[k]);
+  const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
+  const W=320,H=70,pad=8;
+  const pts=vals.map((v,i)=>{const x=pad+(i/(vals.length-1))*(W-pad*2);const y=H-pad-((v-mn)/range)*(H-pad*2);return[x.toFixed(1),y.toFixed(1)];});
+  let tLine="";
+  if(USER.targetKg>=mn&&USER.targetKg<=mx){const ty=(H-pad-((USER.targetKg-mn)/range)*(H-pad*2)).toFixed(1);tLine=`<line x1="${pad}" y1="${ty}" x2="${W-pad}" y2="${ty}" stroke="#22c55e" stroke-width="1" stroke-dasharray="4,3" opacity="0.6"/><text x="${W-pad-2}" y="${Number(ty)-3}" text-anchor="end" font-size="8" fill="#22c55e">goal ${USER.targetKg}kg</text>`;}
+  const polyPts=pts.map(p=>p.join(",")).join(" ");
+  const circles=pts.map(([x,y],i)=>`<circle cx="${x}" cy="${y}" r="${i===pts.length-1?4:2.5}" fill="#f97316"/>`).join("");
+  // start/end labels
+  const startLbl=`<text x="${pad}" y="${H+10}" font-size="8" fill="#9ca3af">${keys[0].slice(5)} ${vals[0]}kg</text>`;
+  const endLbl=`<text x="${W-pad}" y="${H+10}" text-anchor="end" font-size="8" fill="#f97316" font-weight="700">${keys[keys.length-1].slice(5)} ${vals[vals.length-1]}kg</text>`;
+  const days=(new Date(keys[keys.length-1]+"T12:00:00")-new Date(keys[0]+"T12:00:00"))/86400000;
+  const delta=vals[vals.length-1]-vals[0];
+  const trend=days>=14?`${delta<=0?"▼":"▲"} ${Math.abs(delta).toFixed(1)}kg over ${Math.round(days)} days`:`${Math.round(days)} days logged`;
+  return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days <span style="color:${delta<=0?"#22c55e":"#ef4444"};font-size:11px;font-weight:600">${trend}</span></div><svg viewBox="0 0 ${W} ${H+14}" width="100%" style="max-height:90px">${tLine}<polyline points="${polyPts}" fill="none" stroke="#f97316" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${circles}${startLbl}${endLbl}</svg></div>`;
+}
+function buildPDFReport(){
+  const t=buildTrendData();
+  const pTarget=Math.round(USER.targetKg*2);
+  const lw=latestWeightLog()||USER.weightKg;
+  const streak=(()=>{let n=0;for(let i=0;i<365;i++){const d=new Date(isoToday()+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}return n;})();
+  const wts=S.nutrition?.weights||{};
+  const wtKeys=Object.keys(wts).sort().slice(-30);
+  // Weekly sessions count
+  const now=new Date(),mon=new Date(now);mon.setDate(now.getDate()-((now.getDay()+6)%7));
+  let weeklySessions=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(isoDate(d)<=isoToday()&&trainedOn(isoDate(d)))weeklySessions++;}
+  // PRs
+  const exMap={};
+  [...Object.values(PROG_V1),...Object.values(PROG_V2)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
+  const exName=id=>exMap[id]||id;
+  const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
+    const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
+    return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${best.date}</td></tr>`;
+  }).join("");
+  // Recent workouts (last 7 sessions)
+  const recentSessions=Object.entries(S.sessions||{}).sort(([a],[b])=>b.localeCompare(a)).slice(0,7);
+  const workoutRows=recentSessions.flatMap(([dayKey,sessMap])=>{
+    const [dayName,...rest]=dayKey.split("_");
+    const wkMatch=rest.join("_").match(/(\d{4})W(\d+)/);
+    let date="";
+    if(wkMatch){const[,yr,wk]=wkMatch;const jan4=new Date(Date.UTC(Number(yr),0,4));const mon=new Date(jan4);mon.setUTCDate(jan4.getUTCDate()-((jan4.getUTCDay()+6)%7)+(Number(wk)-1)*7);const idx=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"].indexOf(dayName);if(idx>=0){mon.setUTCDate(mon.getUTCDate()+idx);date=mon.toISOString().slice(0,10);}}
+    return Object.entries(sessMap).filter(([,ed])=>ed?.sets?.some(s=>s.done)).map(([exId,ed])=>{
+      const doneSets=ed.sets.filter(s=>s.done);
+      const maxW=Math.max(...doneSets.map(s=>s.weight||0));
+      return`<tr><td>${date}</td><td>${esc(exName(exId))}</td><td>${doneSets.length} sets</td><td>${maxW>0?maxW+"kg":"—"}</td></tr>`;
+    });
+  }).join("");
+
+  return`<!DOCTYPE html><html><head><meta charset="utf-8"><title>FORGE Report · ${isoToday()}</title><style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#fff;color:#111;padding:32px;max-width:800px;margin:0 auto;}
+    .header{display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #f97316;padding-bottom:16px;margin-bottom:24px;}
+    .header-title{font-size:28px;font-weight:900;letter-spacing:-1px;color:#f97316;}
+    .header-sub{font-size:13px;color:#6b7280;}
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+    .stat-box{background:#f9fafb;border-radius:10px;padding:14px;text-align:center;}
+    .stat-val{font-size:24px;font-weight:800;color:#111;}
+    .stat-lbl{font-size:10px;color:#6b7280;margin-top:2px;text-transform:uppercase;letter-spacing:.5px;}
+    .section{margin-bottom:28px;}
+    .section-title{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#6b7280;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:14px;}
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    .pdf-chart{background:#f9fafb;border-radius:10px;padding:14px;}
+    .pdf-chart-title{font-size:11px;font-weight:600;color:#374151;margin-bottom:8px;}
+    .pdf-chart-full{grid-column:1/-1;}
+    table{width:100%;border-collapse:collapse;font-size:12px;}
+    th{text-align:left;padding:7px 10px;background:#f3f4f6;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#6b7280;}
+    td{padding:7px 10px;border-bottom:1px solid #f3f4f6;color:#374151;}
+    tr:last-child td{border-bottom:none;}
+    .badge{display:inline-block;background:#fff7ed;color:#f97316;border:1px solid #fed7aa;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:600;}
+    @media print{body{padding:16px;}@page{margin:16mm;}}
+  </style></head><body>
+    <div class="header">
+      <div><div class="header-title">⚡ FORGE</div><div class="header-sub">Weekly Report · ${new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div></div>
+      <div style="text-align:right"><div style="font-size:13px;font-weight:600">${esc(USER.targetKg?`Goal: ${USER.targetKg}kg`:"")}</div><div style="font-size:12px;color:#6b7280">Current: ${lw}kg</div></div>
+    </div>
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-val" style="color:#f97316">🔥 ${streak}</div><div class="stat-lbl">Day Streak</div></div>
+      <div class="stat-box"><div class="stat-val">${weeklySessions}</div><div class="stat-lbl">Sessions This Week</div></div>
+      <div class="stat-box"><div class="stat-val">${lw}kg</div><div class="stat-lbl">Current Weight</div></div>
+      <div class="stat-box"><div class="stat-val">${Object.keys(S.prs||{}).length}</div><div class="stat-lbl">Exercises PR'd</div></div>
+    </div>
+    <div class="section">
+      <div class="section-title">7-Day Trends</div>
+      <div class="charts-grid">
+        ${buildSVGBarChart("Protein g/day",t,d=>d.protein,(d,v)=>v>=pTarget?"var(--green)":"var(--b2)",`target ${pTarget}g`)}
+        ${buildSVGBarChart("Calorie Burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)","orange = trained day")}
+        ${buildSVGBarChart("Daily Deficit (kcal)",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
+        <div class="pdf-chart">${buildSVGSparkline(wtKeys,wts).replace('<div class="pdf-chart">','').replace('</div>','')}</div>
+      </div>
+    </div>
+    ${prRows?`<div class="section"><div class="section-title">Personal Records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best Set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
+    ${workoutRows?`<div class="section"><div class="section-title">Recent Workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets Done</th><th>Top Weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
+    <div style="margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Generated by FORGE · ${new Date().toISOString()} · Print this page to save as PDF</div>
+    <script>window.onload=()=>window.print();</script>
+  </body></html>`;
+}
+function openPDFReport(){
+  document.getElementById("exportSheet")?.classList.remove("open");
+  const html=buildPDFReport();
+  const win=window.open("","_blank");
+  if(win){win.document.write(html);win.document.close();}
+  else showToast("Allow popups to open the report");
 }
 
 // ── BACKUP / RESTORE ──
