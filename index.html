@@ -3466,7 +3466,7 @@ function recentFoods(excludeDate,limit=6){
     }
   }
   const today=excludeDate;
-  const ranked=Object.values(counts).sort((a,b)=>{
+  const ranked=Object.values(counts).filter(e=>e.n>=2).sort((a,b)=>{
     const daysSince=x=>Math.round((new Date(today+"T12:00:00")-new Date(x+"T12:00:00"))/86400000);
     const boost=x=>daysSince(x)<=3?4:daysSince(x)<=7?2:daysSince(x)<=14?1:0;
     const sa=a.n+boost(a.last), sb=b.n+boost(b.last);
