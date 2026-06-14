@@ -1744,11 +1744,11 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
+        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
         <div class="sx">×</div>
-        <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" onkeydown="onRpKey(event)" onfocus="this.select()">
+        <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
-      </div>`;
+      </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
@@ -3004,6 +3004,17 @@ function bestPR(exId){
   if(!entries.length)return null;
   return entries.reduce((best,e)=>e.est>best.est?e:best,entries[0]);
 }
+function prHint(exId,i){
+  const w=parseFloat(document.getElementById("wi-"+exId+"-"+i)?.value);
+  const r=parseFloat(document.getElementById("ri-"+exId+"-"+i)?.value);
+  const el=document.getElementById("pr-hint-"+exId+"-"+i);
+  if(!el)return;
+  if(!w||!r||r>30){el.textContent="";return;}
+  const est=epley1RM(w,r);
+  const prev=bestPR(exId);
+  el.textContent=prev?(est>prev.est?"🏆 "+est+"kg — new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
+}
 function checkAndStorePR(exId,weight,reps){
   if(!weight||!reps||reps>30)return;
   const est=epley1RM(weight,reps);
@@ -3141,20 +3152,44 @@ function renderDrawer(){
     <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
     <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
     <div class="st-sec">🏆 Personal Records</div>
-    ${[
-      {id:"m_cp",name:"Chest Press Machine"},{id:"m2_icp",name:"Incline Chest Press"},
-      {id:"m_pf",name:"Pec Fly Machine"},{id:"m_cr",name:"Seated Cable Row"},
-      {id:"t2_csr",name:"Chest Supported Row"},{id:"m_te",name:"Tricep Extension Machine"},
-      {id:"t_lp",name:"Leg Press Machine"},{id:"t_lc",name:"Seated Leg Curl"},
-      {id:"t_ha",name:"Hip Abduction Machine"},{id:"t_sc",name:"Seated Calf Raise"},
-      {id:"t2_hc",name:"Hammer Curl"}
-    ].map(({id,name})=>{
-      const pr=bestPR(id);
-      return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
-        <div class="rule-ttl">${name}</div>
-        <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${pr.date}`:"No PR recorded yet"}</div>
-      </div>`;
-    }).join("")}`;
+    ${(()=>{
+      // Build EX_NAMES from PROG for leaderboard labels
+      const EX_NAMES={};
+      for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[]))EX_NAMES[ex.id]=ex.name;
+      // Leaderboard card (top 5 by est 1RM across all PRs)
+      const allPRs=Object.entries(S.prs||{});
+      let leaderHtml="";
+      if(allPRs.length){
+        const rows=allPRs
+          .map(([id,entries])=>{const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);return{id,best};})
+          .sort((a,b)=>b.best.est-a.best.est)
+          .slice(0,5)
+          .map(({id,best},idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px"><span style="color:var(--dim);width:14px">${idx+1}</span><span style="flex:1;color:var(--mid)">${EX_NAMES[id]||id}</span><span style="font-weight:700;color:var(--white)">${best.est}kg</span></div>`)
+          .join("");
+        leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
+      }
+      // Per-exercise rows with sparkline
+      const exRows=[
+        {id:"m_cp",name:"Chest Press Machine"},{id:"m2_icp",name:"Incline Chest Press"},
+        {id:"m_pf",name:"Pec Fly Machine"},{id:"m_cr",name:"Seated Cable Row"},
+        {id:"t2_csr",name:"Chest Supported Row"},{id:"m_te",name:"Tricep Extension Machine"},
+        {id:"t_lp",name:"Leg Press Machine"},{id:"t_lc",name:"Seated Leg Curl"},
+        {id:"t_ha",name:"Hip Abduction Machine"},{id:"t_sc",name:"Seated Calf Raise"},
+        {id:"t2_hc",name:"Hammer Curl"}
+      ].map(({id,name})=>{
+        const pr=bestPR(id);
+        const prEntries=S.prs[id]||[];
+        const sparkKeys=prEntries.map(e=>e.date);
+        const sparkVals=Object.fromEntries(prEntries.map(e=>[e.date,e.est]));
+        const sparkHtml=prEntries.length>=2?buildSparkline(sparkKeys,sparkVals,false):"";
+        return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
+          <div class="rule-ttl">${name}</div>
+          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${pr.date}`:"No PR recorded yet"}</div>
+          ${sparkHtml}
+        </div>`;
+      }).join("");
+      return leaderHtml+exRows;
+    })()}`;
 }
 function openDrawer(){renderDrawer();document.getElementById("drawer").classList.add("open");document.getElementById("drawerOverlay").classList.add("open");}
 function closeDrawer(){document.getElementById("drawer").classList.remove("open");document.getElementById("drawerOverlay").classList.remove("open");}
