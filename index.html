@@ -972,15 +972,18 @@ if(!S.nutrition.weeklySnapshots)S.nutrition.weeklySnapshots=[];
 if(!S.milestones)S.milestones={shownProtein7:[],shownWeight5kg:[],shownWeek6:[]};
 if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
 if(!S.prs)S.prs={};
-// One-time migration: consolidate day-prefixed PR keys (t_lp, sa_lp…) → canonical (lp)
-if(!S._prCanonMigrated){
+// Build exId→name-slug canonical map from PROG (robust across V1/V2 ID inconsistencies)
+const _prCanonMap={};
+(function(){for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");}})();
+// One-time migration: consolidate all day-keyed PR entries → name-slug keys
+if(!S._prCanonMigrated2){
   const merged={};
   Object.entries(S.prs).forEach(([id,entries])=>{
-    const cid=id.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");
+    const cid=_prCanonMap[id]||id.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");
     if(!merged[cid])merged[cid]=[];
     merged[cid].push(...entries);
   });
-  S.prs=merged;S._prCanonMigrated=true;save();
+  S.prs=merged;S._prCanonMigrated=true;S._prCanonMigrated2=true;save();
 }
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
@@ -3009,7 +3012,7 @@ function mondayOf(isoDateStr){
   return isoDate(d);
 }
 function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
-function canonicalId(exId){return exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
+function canonicalId(exId){return _prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
 function bestPR(exId){
   const cid=canonicalId(exId);
   const entries=S.prs[cid]||[];
@@ -3162,9 +3165,9 @@ function renderDrawer(){
       <summary><div><div>🏆 Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
-      // Build EX_NAMES keyed by canonical ID
+      // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
       const EX_NAMES={};
-      for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[]))EX_NAMES[canonicalId(ex.id)]=ex.name;
+      for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
       // Leaderboard card (top 5 by est 1RM across all PRs)
       const allPRs=Object.entries(S.prs||{});
       let leaderHtml="";
@@ -3178,7 +3181,7 @@ function renderDrawer(){
         leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
-      const KEY_IDS=["cp","icp","pf","cr","csr","te","lp","lc","ha","sc","hc"];
+      const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];
       const withPR=Object.keys(S.prs||{});
       // Merge: PRd exercises + key exercises not yet PR'd (dedupe by name)
       const seenNames=new Set();
