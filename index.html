@@ -983,7 +983,9 @@ if(!S._prCanonMigrated2){
     if(!merged[cid])merged[cid]=[];
     merged[cid].push(...entries);
   });
-  S.prs=merged;S._prCanonMigrated=true;S._prCanonMigrated2=true;save();
+  S.prs=merged;S._prCanonMigrated=true;S._prCanonMigrated2=true;
+  // Direct write — save() isn't safe yet (_appReady/queueSync not initialised at this point)
+  localStorage.setItem("f5",JSON.stringify(S));
 }
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
@@ -1378,9 +1380,10 @@ function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFul
 function nextWk(){const d=new Date();d.setDate(d.getDate()+7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
-// Returns the Monday Date for the Mon-Sun week containing d
-function mondayOf(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;}
-function _todayMonday(){return mondayOf(new Date());}
+// Returns the Monday Date object for the Mon-Sun week containing Date d.
+// Named distinctly from the ISO-string mondayOf() defined later in this file.
+function mondayDateOf(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;}
+function _todayMonday(){return mondayDateOf(new Date());}
 // Navigation state: Date of Monday being viewed, null = current week
 let _viewMon=null;
 // vwk() must return a wkStr whose session key matches what was stored this week.
@@ -1451,15 +1454,15 @@ function renderW(){
   const stopped=!workoutOn&&!!(S.sessions[_key0]||{})._stopped;
   const lockedPast=isPastDay()&&!_unlocked[_key0];
   const readOnly=future||lockedPast||(stopped&&!isPastDay());
-  const cwk=wk();
   const _vm=_viewMon||_todayMonday();
+  const _curMonLbl=_todayMonday().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
   const wkLbl=past?`Week of ${_vm.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:future?'Next Week':'This Week';
   const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
     <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
     <div class="wk-nav-lbl">${esc(wkLbl)}${(past||future)
       ?`<span class="wk-nav-back" onclick="goCurrentWeek()">↩ Back to this week</span>`
-      :`<span class="wk-nav-cur">${esc(weekLabel(cwk))}</span>`}
+      :`<span class="wk-nav-cur">${esc(_curMonLbl)}</span>`}
     </div>
     <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
   </div>`;
@@ -1480,7 +1483,8 @@ function renderW(){
       :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">✏️ Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">🔓</button></div>`;
   }
   if(future){
-    const hasPlan=!!((S.weekPlans||{})[vwk()]);
+    // Plans are stored under nextWk(); read the same key (vwk() can differ near the Sunday boundary)
+    const hasPlan=!!((S.weekPlans||{})[nextWk()]);
     h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
