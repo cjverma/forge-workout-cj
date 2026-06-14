@@ -3164,15 +3164,17 @@ function renderDrawer(){
           .join("");
         leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
       }
-      // Per-exercise rows with sparkline
-      const exRows=[
-        {id:"m_cp",name:"Chest Press Machine"},{id:"m2_icp",name:"Incline Chest Press"},
-        {id:"m_pf",name:"Pec Fly Machine"},{id:"m_cr",name:"Seated Cable Row"},
-        {id:"t2_csr",name:"Chest Supported Row"},{id:"m_te",name:"Tricep Extension Machine"},
-        {id:"t_lp",name:"Leg Press Machine"},{id:"t_lc",name:"Seated Leg Curl"},
-        {id:"t_ha",name:"Hip Abduction Machine"},{id:"t_sc",name:"Seated Calf Raise"},
-        {id:"t2_hc",name:"Hammer Curl"}
-      ].map(({id,name})=>{
+      // Per-exercise rows: all exercises with PRs first, then key exercises without
+      const KEY_IDS=["m_cp","m2_icp","m_pf","m_cr","t2_csr","m_te","t_lp","w_lp","f_lp","sa_lp","w2_lp","sa2_lp","t_lc","t_ha","t_sc","t2_hc"];
+      const withPR=Object.keys(S.prs||{});
+      // Merge: PRd exercises + key exercises not yet PR'd (dedupe by name)
+      const seenNames=new Set();
+      const exList=[];
+      // First: all exercises that have PRs
+      withPR.forEach(id=>{const name=EX_NAMES[id]||id;if(!seenNames.has(name)){seenNames.add(name);exList.push({id,name});}});
+      // Then: key exercises without PRs yet (skip if same name already added)
+      KEY_IDS.forEach(id=>{const name=EX_NAMES[id]||id;if(!seenNames.has(name)&&!withPR.includes(id)){seenNames.add(name);exList.push({id,name});}});
+      const exRows=exList.map(({id,name})=>{
         const pr=bestPR(id);
         const prEntries=S.prs[id]||[];
         const dateMap={};
