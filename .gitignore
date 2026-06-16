@@ -11,3 +11,7 @@ config.local.js
 # Dependencies
 node_modules/
 .claude/worktrees/
+
+# Icon build scripts
+gen-icons.cjs
+icon.svg
