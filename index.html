@@ -3356,7 +3356,7 @@ function renderNutrition(){
           return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ=''" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.n>1?` · logged ${f.n}×`:""}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.kcal>0?` · <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?` · ${f.n}×`:""}</div>
             </div>
             <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
           </div>`;
@@ -3511,7 +3511,9 @@ function buildFoodHistory(excludeDate){
       if(d>map[k].last){map[k].last=d;map[k].name=it.name;map[k].kcal=it.kcal||0;map[k].protein=it.protein||0;map[k].carbs=it.carbs||0;map[k].fat=it.fat||0;map[k].fibre=it.fibre||0;map[k].sugar=it.sugar||0;map[k].sodium=it.sodium||0;}
     }
   }
-  return Object.values(map).sort((a,b)=>b.n-a.n||b.last.localeCompare(a.last));
+  // Sort by protein efficiency (protein kcal / total kcal), frequency as tiebreaker
+  const protRatio=e=>e.kcal>0?(e.protein*4)/e.kcal:0;
+  return Object.values(map).sort((a,b)=>protRatio(b)-protRatio(a)||b.n-a.n||b.last.localeCompare(a.last));
 }
 function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   if(nutLocked(date))return;
