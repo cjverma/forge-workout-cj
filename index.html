@@ -1113,7 +1113,7 @@ function hintDisp(hint,unit){
 }
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
-let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false;
+let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false,_foodSearchOpen=false,_foodSearchQ="";
 let _lastFoodText="",_lastMealName="";
 
 // ── REST TIMER (background-safe, 30s) ──
@@ -1353,7 +1353,7 @@ function go(tab){
   document.getElementById("dayNav").style.display=tab==="workout"?"flex":"none";
   document.getElementById("mainScroll").scrollTop=0;
   if(tab==="workout")renderW();
-  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;renderNutrition();}
+  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;_foodSearchOpen=false;_foodSearchQ="";renderNutrition();}
   else renderST();
 }
 
@@ -3120,7 +3120,7 @@ function nutShift(delta){
   const d=new Date(_nutDate+"T12:00:00");d.setDate(d.getDate()+delta);
   const next=d.toISOString().slice(0,10);
   if(next>isoToday())return;
-  _nutDate=next;_pendingFood=null;_foodChatOpen=false;renderNutrition();
+  _nutDate=next;_pendingFood=null;_foodChatOpen=false;_foodSearchOpen=false;_foodSearchQ="";renderNutrition();
 }
 function nutDateLabel(iso){
   const today=isoToday();
@@ -3347,11 +3347,35 @@ function renderNutrition(){
         const rows=arr.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)"><div><div style="font-size:13px;font-weight:600">${esc(p.name)}</div><div style="font-size:11px;color:var(--dim)">${p.kcal} kcal · P ${p.protein}g · C ${p.carbs}g · F ${p.fat}g</div></div>${arr.length>1?`<button class="food-del" onclick="dropPending('${p.id}')">✕</button>`:""}</div>`).join("");
         return`<div class="pending-food">${rows}<div class="pending-macros" style="margin-top:8px">Total: ${tot} kcal</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add ${arr.length>1?"all "+arr.length:""}</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`;
       })():""}
-      ${ro?"":_foodChatOpen?(()=>{
+      ${ro?"":_foodSearchOpen?(()=>{
+        const allFoods=buildFoodHistory(date);
+        const q=_foodSearchQ.toLowerCase().trim();
+        const filtered=q?allFoods.filter(f=>f.name.toLowerCase().includes(q)):allFoods;
+        const rows=filtered.slice(0,40).map(f=>{
+          const args=`'${date}','${(f.name||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0}`;
+          return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ=''" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.n>1?` · logged ${f.n}×`:""}</div>
+            </div>
+            <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+          </div>`;
+        }).join("");
+        return`<div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <input id="foodSearchInp" type="search" placeholder="Search past foods…" value="${esc(_foodSearchQ)}"
+              oninput="_foodSearchQ=this.value;renderNutrition()"
+              style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 13px;font-size:14px;color:var(--white);font-family:'Inter',sans-serif;outline:none"
+              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+            <button onclick="_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="background:transparent;border:none;color:var(--dim);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+          </div>
+          <div style="max-height:340px;overflow-y:auto">${rows||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`}</div>
+        </div>`;
+      })():_foodChatOpen?(()=>{
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional — e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
-      })():`<button class="add-food-btn" onclick="openFood()">+ Log a Meal</button>`}
+      })():`<div style="display:flex;gap:8px"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button class="add-food-btn" style="flex:0 0 auto;background:var(--s2);border-color:var(--b2)" onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs">🔍</button></div>`}
     </div>
 
     <!-- Burn card -->
@@ -3469,6 +3493,25 @@ function confirmFood(date){
   const day=getDayData(date);
   arr.forEach(p=>day.items.push({...p}));
   _pendingFood=null;save();checkMilestones();showToast(arr.length>1?arr.length+" items added ✓":"Food added ✓");renderNutrition();
+}
+// Full searchable food history for the "Search past logs" panel.
+// Returns all unique foods ever logged (by canonical key), sorted by
+// frequency desc then most-recently-logged desc. Excludes today.
+function buildFoodHistory(excludeDate){
+  const norm=n=>n.toLowerCase().replace(/\b(with|and|the|a|an|of|in|on|&)\b/g,' ').replace(/\s+/g,' ').trim().split(' ').slice(0,3).join(' ');
+  const itemKey=it=>it.canonical||norm(it.name||"");
+  const map={};
+  for(const[d,day]of Object.entries(S.nutrition.days||{})){
+    if(d===excludeDate)continue;
+    for(const it of(day.items||[])){
+      const k=itemKey(it);
+      if(!k)continue;
+      if(!map[k]){map[k]={name:it.name,kcal:it.kcal||0,protein:it.protein||0,carbs:it.carbs||0,fat:it.fat||0,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,n:0,last:d};}
+      map[k].n++;
+      if(d>map[k].last){map[k].last=d;map[k].name=it.name;map[k].kcal=it.kcal||0;map[k].protein=it.protein||0;map[k].carbs=it.carbs||0;map[k].fat=it.fat||0;map[k].fibre=it.fibre||0;map[k].sugar=it.sugar||0;map[k].sodium=it.sodium||0;}
+    }
+  }
+  return Object.values(map).sort((a,b)=>b.n-a.n||b.last.localeCompare(a.last));
 }
 function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   if(nutLocked(date))return;
