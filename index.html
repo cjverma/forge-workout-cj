@@ -3364,12 +3364,12 @@ function renderNutrition(){
         return`<div>
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <input id="foodSearchInp" type="search" placeholder="Search past foods…" value="${esc(_foodSearchQ)}"
-              oninput="_foodSearchQ=this.value;renderNutrition()"
+              oninput="filterFoodSearch(this.value,'${date}')"
               style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 13px;font-size:14px;color:var(--white);font-family:'Inter',sans-serif;outline:none"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button onclick="_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="background:transparent;border:none;color:var(--dim);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
           </div>
-          <div style="max-height:340px;overflow-y:auto">${rows||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`}</div>
+          <div id="foodSearchResults" style="max-height:340px;overflow-y:auto">${rows||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`}</div>
         </div>`;
       })():_foodChatOpen?(()=>{
         const recents=recentFoods(date);
@@ -3391,12 +3391,12 @@ function renderNutrition(){
     </div>
 
     <!-- Weight log card -->
-    <details class="st-acc">
+    <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
       <summary><div><div>⚖️ Weight Log</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · latest ${wts[allWtKeys[allWtKeys.length-1]]} kg`:"No entries yet"}</div></div></summary>
       <div class="st-acc-inner">
       ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="openWtInput(this,'${date}')">+ Log Weight</button>`}
       ${sparkHtml}
-      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Older</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Newer →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
+      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
       </div>
     </details>
 
@@ -3515,6 +3515,24 @@ function buildFoodHistory(excludeDate){
   const protRatio=e=>e.kcal>0?(e.protein*4)/e.kcal:0;
   return Object.values(map).sort((a,b)=>protRatio(b)-protRatio(a)||b.n-a.n||b.last.localeCompare(a.last));
 }
+function filterFoodSearch(q,date){
+  _foodSearchQ=q;
+  const container=document.getElementById("foodSearchResults");
+  if(!container)return;
+  const allFoods=buildFoodHistory(date);
+  const lq=q.toLowerCase().trim();
+  const filtered=lq?allFoods.filter(f=>f.name.toLowerCase().includes(lq)):allFoods;
+  container.innerHTML=filtered.slice(0,40).map(f=>{
+    const args=`'${date}','${(f.name||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0}`;
+    return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.kcal>0?` · <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?` · ${f.n}×`:""}</div>
+      </div>
+      <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+    </div>`;
+  }).join("")||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`;
+}
 function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   if(nutLocked(date))return;
   getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,fibre:fibre||0,sugar:sugar||0,sodium:sodium||0,time:Date.now()});
@@ -3596,8 +3614,8 @@ function openWtInput(btn,date){
   cancel.onclick=()=>commit(false);
   inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit(true);}if(e.key==="Escape")commit(false);});
 }
-let _wtPage=0;
-function wtPage(n){_wtPage=n;renderNutrition();}
+let _wtPage=0,_wtExpanded=false;
+function wtPage(n){_wtPage=n;_wtExpanded=true;renderNutrition();}
 function saveWeight(date){
   if(nutLocked(date))return;
   const inp=document.getElementById("wtInp");if(!inp)return;
