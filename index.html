@@ -3497,12 +3497,17 @@ function recentFoods(excludeDate,limit=6){
     }
   }
   const today=excludeDate;
-  const ranked=Object.values(counts).filter(e=>e.n>=2).sort((a,b)=>{
-    const daysSince=x=>Math.round((new Date(today+"T12:00:00")-new Date(x+"T12:00:00"))/86400000);
-    const boost=x=>daysSince(x)<=3?4:daysSince(x)<=7?2:daysSince(x)<=14?1:0;
-    const sa=a.n+boost(a.last), sb=b.n+boost(b.last);
-    return sb-sa||b.last.localeCompare(a.last);
-  });
+  const daysSince=x=>Math.round((new Date(today+"T12:00:00")-new Date(x+"T12:00:00"))/86400000);
+  const ranked=Object.values(counts)
+    // Hide condiments/toppings: items under 60 kcal are rarely worth quick-logging
+    .filter(e=>(e.item.kcal||0)>=60)
+    // Require 2+ logs OR logged within 5 days (so a food appears the 2nd time without manual re-entry)
+    .filter(e=>e.n>=2||daysSince(e.last)<=5)
+    .sort((a,b)=>{
+      const boost=x=>daysSince(x)<=3?4:daysSince(x)<=7?2:daysSince(x)<=14?1:0;
+      const sa=a.n+boost(a.last), sb=b.n+boost(b.last);
+      return sb-sa||b.last.localeCompare(a.last);
+    });
   // Pin the daily protein oats/coffee if it exists and isn't logged today
   let pin=null;
   const oats=ranked.find(e=>/protein.*(oats|coffee|collagen)|oats.*coffee|collagen/i.test(e.item.name||""));
