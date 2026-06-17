@@ -3353,7 +3353,7 @@ function renderNutrition(){
         const filtered=q?allFoods.filter(f=>f.name.toLowerCase().includes(q)):allFoods;
         const rows=filtered.slice(0,40).map(f=>{
           const args=`'${date}','${(f.name||"").replace(/\\/g,"\\\\").replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0}`;
-          return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ=''" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
+          return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
               <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.kcal>0?` · <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?` · ${f.n}×`:""}</div>
