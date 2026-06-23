@@ -502,32 +502,27 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .lock-btn{width:100%;background:var(--orange);color:#000;border:none;border-radius:10px;padding:15px;font-size:13px;font-weight:700;font-family:inherit;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:4px;}
 .lock-err{font-size:12px;color:var(--red);text-align:center;margin-top:10px;min-height:16px;}
 
-/* ── PLAN MODAL — always dark, self-contained, never inherits light theme ── */
+/* ── PLAN MODAL — light background, dark cards ── */
 .plan-modal{
   display:none;position:fixed;inset:0;z-index:1000;overflow-y:auto;box-sizing:border-box;
-  /* hardcoded dark background — never a CSS var that light mode can override */
-  background:#111113;
-  /* scoped dark palette so all child pm-* classes are immune to light theme */
-  --pm-bg:#111113;--pm-card:#1C1C20;--pm-border:#2A2A30;
-  --pm-white:#F2F1EC;--pm-lt:#C8C8D0;--pm-mid:#9C9CA6;--pm-dim:#71717C;
-  --pm-amber:#E8A33C;--pm-green:#34C46A;--pm-red:#F26257;
-  /* safe-area + nav clearance: 60px nav + 16px breathing room */
+  background:#F5F4F0;
   padding:calc(env(safe-area-inset-top,0px) + 76px) 20px 60px;
 }
 .plan-modal.show{display:block;}
-.pm-title{font-size:28px;font-weight:800;letter-spacing:-0.5px;color:var(--pm-white);margin-bottom:4px;}
-.pm-sub{font-size:12px;color:var(--pm-mid);margin-bottom:20px;line-height:1.6;}
-.pm-section{font-size:10px;font-weight:700;letter-spacing:2px;color:var(--pm-amber);text-transform:uppercase;margin:18px 0 8px;}
-.pm-notes{background:var(--pm-card);border:1px solid var(--pm-border);border-left:3px solid var(--pm-amber);border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:var(--pm-lt);line-height:1.7;margin-bottom:6px;}
-.pm-flag{background:var(--pm-card);border:1px solid var(--pm-border);border-left:3px solid var(--pm-amber);border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:var(--pm-mid);line-height:1.5;margin-bottom:6px;}
-.pm-change{background:var(--pm-card);border:1px solid var(--pm-border);border-radius:8px;padding:10px 12px;margin-bottom:6px;}
-.pm-change-reason{font-size:11px;color:var(--pm-dim);margin-top:4px;font-style:italic;}
-.pm-change-day{font-size:10px;font-weight:700;letter-spacing:1.5px;color:var(--pm-amber);text-transform:uppercase;margin-bottom:3px;}
-.pm-change-ex{font-size:14px;font-weight:700;color:var(--pm-white);}
-.pm-change-val{font-size:12px;color:var(--pm-lt);margin-top:3px;font-weight:600;}
+.pm-title{font-size:28px;font-weight:800;letter-spacing:-0.5px;color:#111113;margin-bottom:4px;}
+.pm-sub{font-size:12px;color:#6B6B72;margin-bottom:20px;line-height:1.6;}
+.pm-section{font-size:10px;font-weight:700;letter-spacing:2px;color:#C77B14;text-transform:uppercase;margin:18px 0 8px;}
+/* cards: always black with light text — the contrast inversion */
+.pm-notes{background:#111113;border-left:3px solid #E8A33C;border-radius:0 8px 8px 0;padding:12px 14px;font-size:13px;color:#C8C8D0;line-height:1.7;margin-bottom:6px;}
+.pm-flag{background:#111113;border-left:3px solid #E8A33C;border-radius:0 8px 8px 0;padding:10px 14px;font-size:12px;color:#9C9CA6;line-height:1.5;margin-bottom:6px;}
+.pm-change{background:#111113;border-radius:8px;padding:10px 12px;margin-bottom:6px;}
+.pm-change-reason{font-size:11px;color:#71717C;margin-top:4px;font-style:italic;}
+.pm-change-day{font-size:10px;font-weight:700;letter-spacing:1.5px;color:#E8A33C;text-transform:uppercase;margin-bottom:3px;}
+.pm-change-ex{font-size:14px;font-weight:700;color:#F2F1EC;}
+.pm-change-val{font-size:12px;color:#C8C8D0;margin-top:3px;font-weight:600;}
 .pm-btns{display:flex;gap:10px;margin-top:24px;}
-.pm-apply{flex:1;padding:15px;background:var(--pm-amber);border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:#000;cursor:pointer;text-transform:uppercase;}
-.pm-cancel{flex:1;padding:15px;background:transparent;border:1px solid var(--pm-border);border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--pm-mid);cursor:pointer;}
+.pm-apply{flex:1;padding:15px;background:#C77B14;border:none;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;letter-spacing:1px;color:#fff;cursor:pointer;text-transform:uppercase;}
+.pm-cancel{flex:1;padding:15px;background:transparent;border:1px solid #D0CFC8;border-radius:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:#6B6B72;cursor:pointer;}
 
 /* ── REST TIMER ── */
 .rest-timer{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);max-width:300px;width:90%;background:#111;border:2px solid var(--orange);border-radius:16px;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px;cursor:pointer;box-shadow:0 4px 24px rgba(255,107,26,0.25);}
