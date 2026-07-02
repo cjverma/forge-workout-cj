@@ -146,7 +146,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .hero-prog-fill{height:100%;background:var(--hero-accent);border-radius:99px;transition:width .5s ease;}
 .hero-count{font-size:11px;font-weight:600;color:var(--hero-fg-dim);margin-top:7px;}
 .hero-streak{font-size:11px;font-weight:600;margin-top:4px;color:var(--hero-accent);}
-.pr-badge{font-size:10px;font-weight:600;color:var(--hero-accent);margin-top:3px;}
+.pr-badge{font-size:10px;font-weight:600;color:var(--accent-text);margin-top:3px;}
 
 /* ── PROGRESS ── */
 .prog-wrap{margin:14px 18px 0;height:3px;background:var(--b1);border-radius:99px;overflow:hidden;}
@@ -1555,7 +1555,7 @@ function renderW(){
   if(!isPastDay()&&!isFuture()&&_dowNow===0&&!(S.weekPlans||{})[nextWk()]){
     h+=`<div class="plan-nudge">
       <div><div class="plan-nudge-ttl">📅 Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
-      <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
+      <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
@@ -2258,7 +2258,7 @@ function renderST(){
         <div class="export-card" style="border-left-color:var(--green)">
           <div class="export-title">Generate Next Week</div>
           <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
-          <button class="btn-o" id="genPlanBtn" onclick="genWeeklyPlan()">Generate Next Week</button>
+          <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="width:100%;margin-bottom:8px">Generate Next Week</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
         </div>
         <details class="st-acc">
@@ -2919,10 +2919,10 @@ function sanitizePlan(parsed){
 }
 
 async function genWeeklyPlan(){
-  const btn=document.getElementById("genPlanBtn");
-  if(!btn)return;
-  btn.disabled=true;
-  btn.innerHTML='<span class="spin"></span>Generating...';
+  // Busy state applied to every generate button (plan nudge + settings copy)
+  const btns=[...document.querySelectorAll(".gen-plan-btn")];
+  if(!btns.length)return;
+  btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
   // Guard against a hung request (e.g. slow model) leaving the spinner stuck forever
   const ctrl=new AbortController();
   const timer=setTimeout(()=>ctrl.abort(),60000);
@@ -2948,8 +2948,7 @@ async function genWeeklyPlan(){
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
     clearTimeout(timer);
-    btn.disabled=false;
-    btn.textContent="Generate Next Week";
+    btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
   }
 }
 
@@ -3230,15 +3229,20 @@ function renderDrawer(){
       // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
       const EX_NAMES={};
       for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
+      // Custom exercises live in S.custom (not PROG) — seed their names too so
+      // PR entries stored under "c_<ts>" ids resolve to real names
+      for(const arr of Object.values(S.custom||{}))for(const ex of(arr||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
+      const exName=id=>EX_NAMES[id]||(id.startsWith("c_")?"Custom exercise":id);
       // Leaderboard card (top 5 by est 1RM across all PRs)
       const allPRs=Object.entries(S.prs||{});
       let leaderHtml="";
       if(allPRs.length){
         const rows=allPRs
-          .map(([id,entries])=>{const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);return{id,best};})
+          .map(([id,entries])=>{if(!entries||!entries.length)return null;const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);return{id,best};})
+          .filter(Boolean)
           .sort((a,b)=>b.best.est-a.best.est)
           .slice(0,5)
-          .map(({id,best},idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px"><span style="color:var(--dim);width:14px">${idx+1}</span><span style="flex:1;color:var(--mid)">${EX_NAMES[id]||id}</span><span style="font-weight:700;color:var(--white)">${best.est}kg</span></div>`)
+          .map(({id,best},idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px"><span style="color:var(--dim);width:14px">${idx+1}</span><span style="flex:1;color:var(--mid)">${exName(id)}</span><span style="font-weight:700;color:var(--white)">${best.est}kg</span></div>`)
           .join("");
         leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
       }
@@ -3249,9 +3253,9 @@ function renderDrawer(){
       const seenNames=new Set();
       const exList=[];
       // First: all exercises that have PRs
-      withPR.forEach(id=>{const name=EX_NAMES[id]||id;if(!seenNames.has(name)){seenNames.add(name);exList.push({id,name});}});
+      withPR.forEach(id=>{const name=exName(id);if(!seenNames.has(name)){seenNames.add(name);exList.push({id,name});}});
       // Then: key exercises without PRs yet (skip if same name already added)
-      KEY_IDS.forEach(id=>{const name=EX_NAMES[id]||id;if(!seenNames.has(name)&&!withPR.includes(id)){seenNames.add(name);exList.push({id,name});}});
+      KEY_IDS.forEach(id=>{const name=exName(id);if(!seenNames.has(name)&&!withPR.includes(id)){seenNames.add(name);exList.push({id,name});}});
       const exRows=exList.map(({id,name})=>{
         const pr=bestPR(id);
         const prEntries=S.prs[id]||[];
