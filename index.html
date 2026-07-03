@@ -3603,7 +3603,16 @@ function saveBurn(date,field,val){
   save();
   const dm=S.nutrition.days[date]||{};
   queueMutation("nutrition_day_meta",{date,active:dm.active??null,restingOverride:dm.restingOverride??null},"nutrition_day_meta:"+date);
-  renderNutrition();
+  // Surgical: don't rebuild the DOM if the user is tapping straight from one
+  // burn field into the other — replacing the card mid-tap destroys the
+  // target input before focus lands on it, dismissing the iOS keyboard
+  // (same issue documented in saveF() for the workout tab's weight/reps
+  // inputs). Only re-render once focus has actually left both fields, so
+  // the Total/target/progress numbers still refresh once editing is done.
+  setTimeout(()=>{
+    const a=document.activeElement;
+    if(!a||(a.id!=="bvRest"&&a.id!=="bvAct"))renderNutrition();
+  },0);
 }
 function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
