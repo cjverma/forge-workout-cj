@@ -19,6 +19,13 @@
  *  13. PROG_V2 Woodchop removed — neither session contains the banned exercise
  *  14. EX_DB Woodchop removed — not present in search library
  *  15. Coach.js MAX_PROMPT — value is large enough for chat context
+ *  18. Postgres numeric-column guardrail — every `numeric` schema column is
+ *      Number()-wrapped everywhere it's read from a query row, and the
+ *      epoch-millis `time` text column is Number()-wrapped too. Catches the
+ *      exact class of bug that shipped 2026-07: numeric columns come back
+ *      as strings from the Neon driver (to avoid float precision loss), so
+ *      an unwrapped read silently does string concatenation instead of
+ *      addition, and an unwrapped text-stored timestamp fails Date parsing.
  */
 
 import { readFileSync } from "fs";
@@ -26,6 +33,9 @@ import { execSync } from "child_process";
 
 const HTML = readFileSync("index.html", "utf8");
 const COACH = readFileSync("api/coach.js", "utf8");
+const DB = readFileSync("api/db.js", "utf8");
+const STATE = readFileSync("api/state.js", "utf8");
+const MUTATE = readFileSync("api/mutate.js", "utf8");
 
 let passed = 0;
 let failed = 0;
@@ -418,6 +428,67 @@ ok("Pace weekly target < 7× daily (Sunday is only 0.5)", (() => {
 
 ok("At goal weight, weekly target = 0",
   paceWeeklyTarget(95, 95, goal) === 0);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 18. Postgres numeric-column guardrail
+// ─────────────────────────────────────────────────────────────────────────────
+section("18 · Postgres numeric-column guardrail");
+
+// Extract every column declared `numeric` across all CREATE TABLE blocks in
+// db.js. The Neon driver returns `numeric` columns as strings (to avoid float
+// precision loss) — any read of r.<col> that isn't wrapped in Number(...)
+// will silently do string concatenation instead of arithmetic.
+const numericCols = [...new Set(
+  [...DB.matchAll(/(\w+)\s+numeric\b/g)].map(m => m[1])
+)];
+
+ok(`Found numeric columns in schema (${numericCols.join(", ")})`, numericCols.length > 0);
+
+// Row variables used across the different result sets in assembleState()
+// (query results are destructured into r for most tables, s for app_settings).
+const ROW_VARS = ["r", "s"];
+
+// A read is "safe" if it's inside Number(...), or if it's a plain null-guard
+// (`x.col != null` / `x.col == null`) — comparing to null doesn't do string
+// concatenation, so it's fine left unwrapped.
+function unsafeNumericReads(source, col) {
+  let count = 0;
+  for (const v of ROW_VARS) {
+    const all = source.match(new RegExp(`${v}\\.${col}\\b`, "g")) || [];
+    const wrapped = source.match(new RegExp(`Number\\(${v}\\.${col}\\)`, "g")) || [];
+    const nullGuards = source.match(new RegExp(`${v}\\.${col}\\s*[!=]=\\s*null`, "g")) || [];
+    count += all.length - wrapped.length - nullGuards.length;
+  }
+  return count;
+}
+
+for (const col of numericCols) {
+  const unsafe = unsafeNumericReads(STATE, col);
+  const hasAnyUsage = ROW_VARS.some(v => new RegExp(`${v}\\.${col}\\b`).test(STATE));
+  ok(`state.js: every read of *.${col} is Number()-wrapped or a null-guard`,
+    hasAnyUsage && unsafe === 0,
+    unsafe > 0
+      ? `found ${unsafe} unwrapped read(s) of .${col} — a numeric column is being read without Number(), which will string-concatenate instead of sum`
+      : `column .${col} is declared numeric in the schema but never read in state.js — dead code, or assembleState is missing this field`);
+}
+
+// The `time` column is declared `text` (stores an epoch-millis number as a
+// string) — new Date("1783040000000") fails to parse, so any read must also
+// go through Number() before being used as a timestamp.
+const timeUnsafe = unsafeNumericReads(STATE, "time");
+ok("state.js: every read of r.time (epoch-millis stored as text) is Number()-wrapped or a null-guard",
+  /r\.time\b/.test(STATE) && timeUnsafe === 0,
+  "the text-stored time column must be converted to a number before new Date() can parse it");
+
+// Guard against a wrapped-but-not-numeric mistake going the other way too:
+// mutate.js should insert raw JS values (not JSON-stringify) for numeric columns.
+// Word-boundary matched so e.g. "weight" doesn't false-match inside "shown_weight5kg".
+const stringifiedNumericCol = numericCols.find(c =>
+  new RegExp(`JSON\\.stringify\\([^)]*\\b${c}\\b[^)]*\\)`).test(MUTATE)
+);
+ok("mutate.js does not JSON.stringify numeric fields before inserting",
+  !stringifiedNumericCol,
+  stringifiedNumericCol ? `found JSON.stringify(...${stringifiedNumericCol}...) — numeric columns should be inserted as raw values` : "");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Summary
