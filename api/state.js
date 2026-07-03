@@ -33,8 +33,10 @@ export async function assembleState() {
   for (const r of itemRows) {
     const d = r.date.toISOString ? r.date.toISOString().slice(0, 10) : r.date;
     (days[d] ??= { items: [] }).items.push({
-      id: r.client_id || String(r.id), name: r.name, kcal: r.kcal, protein: r.protein, carbs: r.carbs,
-      fat: r.fat, fibre: r.fibre, sugar: r.sugar, sodium: r.sodium, time: r.time, canonical: r.canonical
+      id: r.client_id || String(r.id), name: r.name,
+      kcal: Number(r.kcal) || 0, protein: Number(r.protein) || 0, carbs: Number(r.carbs) || 0,
+      fat: Number(r.fat) || 0, fibre: Number(r.fibre) || 0, sugar: Number(r.sugar) || 0, sodium: Number(r.sodium) || 0,
+      time: r.time != null ? Number(r.time) : undefined, canonical: r.canonical
     });
   }
   for (const r of dayMetaRows) {
