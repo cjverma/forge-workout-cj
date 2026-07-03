@@ -1,10 +1,33 @@
 import { neon } from "@neondatabase/serverless";
 
+// Vercel sets VERCEL_ENV to "production" | "preview" | "development" on its
+// platform; it's undefined when running locally (node server.js).
+// Preview deployments — every feature branch, including keen-ritchie — must
+// NEVER fall back to the production DATABASE_URL. That would mean testing on
+// a branch silently reads/writes real production data. A dedicated
+// DATABASE_URL_PREVIEW is required for preview/dev; if it's missing, this
+// throws instead of guessing, so misconfiguration fails loudly instead of
+// quietly corrupting production data.
+function resolveDatabaseUrl() {
+  const env = process.env.VERCEL_ENV;
+  if (env === "preview" || env === "development") {
+    return process.env.DATABASE_URL_PREVIEW || null;
+  }
+  return process.env.DATABASE_URL || null; // production, or local dev
+}
+
 let _sql = null;
 export function sql() {
   if (!_sql) {
-    const url = process.env.DATABASE_URL;
-    if (!url) throw new Error("DATABASE_URL not configured");
+    const url = resolveDatabaseUrl();
+    if (!url) {
+      const env = process.env.VERCEL_ENV;
+      throw new Error(
+        env === "preview" || env === "development"
+          ? "DATABASE_URL_PREVIEW not configured — refusing to fall back to the production DATABASE_URL on a non-production deployment"
+          : "DATABASE_URL not configured"
+      );
+    }
     _sql = neon(url);
   }
   return _sql;
