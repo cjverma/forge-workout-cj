@@ -89,7 +89,7 @@ html,body{height:100%;overflow:hidden;background:var(--black);}
 body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 auto;display:flex;flex-direction:column;height:100dvh;}
 
 /* ── HEADER ── */
-.hdr{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--black);}
+.hdr{padding:calc(16px + env(safe-area-inset-top,0px)) 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--black);}
 .logo{font-family:'Inter',sans-serif;font-size:19px;font-weight:800;letter-spacing:4px;color:var(--white);text-transform:uppercase;}
 .target-pill{background:var(--s1);border:1px solid var(--b1);border-radius:999px;padding:6px 14px;font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);color:var(--mid);text-transform:uppercase;box-shadow:var(--shadow);}
 
