@@ -57,6 +57,7 @@ const apiFiles = [
   "api/db.js",
   "api/state.js",
   "api/mutate.js",
+  "api/suggest-alt.js",
   "api/cron-weekly-email.js",
   "api/weekly-plan.js",
   "api/health.js",

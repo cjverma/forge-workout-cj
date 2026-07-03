@@ -267,6 +267,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .dd-name{font-size:14px;font-weight:500;}
 .dd-cat{font-size:11px;color:var(--dim);margin-top:3px;}
 .dd-warn{font-size:11px;color:var(--amber);margin-top:3px;font-weight:600;}
+.dd-alt-btn{background:transparent;border:1px solid var(--amber);color:var(--amber);}
 .dd-add-btn{background:var(--accent);border:none;border-radius:6px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--accent-ink);cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .num-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
 .cf-num{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px;font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}
@@ -1379,9 +1380,11 @@ function initApp(){
   document.addEventListener("click",e=>{
     const btn=e.target.closest("[data-action]");
     if(!btn)return;
-    const{action,day,q,idx}=btn.dataset;
+    const{action,day,q,idx,kind}=btn.dataset;
     if(action==="freeform")addFreeform(day,q);
     else if(action==="fromdb")addFromDB(Number(idx),day);
+    else if(action==="suggestalt")suggestSafeAlt(kind,day,idx!==undefined?Number(idx):undefined);
+    else if(action==="fromalt")addFromAlt(day);
   });
 }
 
@@ -2015,25 +2018,67 @@ function searchEx(q,day){
     .sort((a,b)=>b.score-a.score)
     .slice(0,8);
   if(!results.length){
-    const warn=isBannedExercise(q)?`<div class="dd-warn">⚠️ May not be spine-safe for your condition — check with your program first</div>`:"";
-    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches · tap below to add "${esc(q)}" anyway</div>${warn}</div><button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button></div>`;
+    const banned=isBannedExercise(q);
+    const warn=banned?`<div class="dd-warn">⚠️ Not spine-safe — tap for an AI-suggested safe swap</div>`:"";
+    const btn=banned
+      ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="free" data-day="${d}">AI Alt</button>`
+      :`<button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button>`;
+    dd.innerHTML=`<div class="dd-item" id="dd-row-free"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches · tap below to add "${esc(q)}" anyway</div>${warn}</div>${btn}</div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
   }
-  dd.innerHTML=results.map(({e},idx)=>`<div class="dd-item">
+  dd.innerHTML=results.map(({e},idx)=>{
+    const banned=isBannedExercise(e.name);
+    const btn=banned
+      ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="db" data-idx="${idx}" data-day="${d}">AI Alt</button>`
+      :`<button class="dd-add-btn" data-action="fromdb" data-idx="${idx}" data-day="${d}">+</button>`;
+    return`<div class="dd-item" id="dd-row-${idx}">
     <div class="dd-item-left">
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)}${e.muscles?.length?" · "+esc(e.muscles.slice(0,2).join(", ")):""}</div>
-      ${isBannedExercise(e.name)?`<div class="dd-warn">⚠️ May not be spine-safe for your condition</div>`:""}
+      ${banned?`<div class="dd-warn">⚠️ Not spine-safe — tap for an AI-suggested safe swap</div>`:""}
     </div>
-    <button class="dd-add-btn" data-action="fromdb" data-idx="${idx}" data-day="${d}">+</button>
-  </div>`).join("");
+    ${btn}
+  </div>`;}).join("");
   dd.dataset.r=JSON.stringify(results.map(({e})=>e));dd.classList.add("show");
+}
+
+// AI-suggested safe swap when a search hit is blocked by spine-safety rules.
+// Single-slot pending state is fine — only one suggestion flow is ever active
+// in the dropdown at a time.
+let _pendingAlt=null;
+async function suggestSafeAlt(kind,day,idx){
+  const rowId=kind==="db"?"dd-row-"+idx:"dd-row-free";
+  const row=document.getElementById(rowId);
+  let exerciseName,muscles=[],cat="gym";
+  if(kind==="db"){
+    const res=JSON.parse(document.getElementById("cfDD").dataset.r||"[]");
+    const base=res[idx];
+    if(!base)return;
+    exerciseName=base.name;muscles=base.muscles||[];cat=base.cat?.toLowerCase()||"gym";
+  }else{
+    exerciseName=(document.getElementById("cfSearch")?.value||"").trim();
+    if(!exerciseName)return;
+  }
+  if(row)row.innerHTML=`<div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">Finding a safe alternative…</div></div>`;
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/suggest-alt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({exerciseName,muscles,cat})});
+    const d=await r.json();
+    if(!r.ok||!d.name){
+      if(row)row.innerHTML=`<div class="dd-item-left"><div class="dd-name" style="color:var(--red)">Couldn't find a safe alternative · try a different search</div></div>`;
+      return;
+    }
+    _pendingAlt={...d,day};
+    if(row)row.innerHTML=`<div class="dd-item-left"><div class="dd-name">✓ ${esc(d.name)}</div><div class="dd-cat">${esc(d.cat)}${d.muscles?.length?" · "+esc(d.muscles.slice(0,2).join(", ")):""} · AI-suggested safe swap</div></div><button class="dd-add-btn" data-action="fromalt" data-day="${esc(day)}">+</button>`;
+  }catch(e){
+    if(row)row.innerHTML=`<div class="dd-item-left"><div class="dd-name" style="color:var(--red)">Network error · try again</div></div>`;
+  }
 }
 
 function addFromDB(i,day){
   const res=JSON.parse(document.getElementById("cfDD").dataset.r||"[]");
   const base=res[i];
   if(!base||!PROG[day])return;
+  if(isBannedExercise(base.name)){suggestSafeAlt("db",day,i);return;}
   const sessKey=day+"_"+wk();
   const ex={id:"c_"+Date.now(),name:base.name,cat:base.cat?.toLowerCase()||"gym",sets:base.sets||3,reps:base.reps||12,hint:base.hint||"",url:base.url||"",cue:base.cue||"Focus on controlled movement.",custom:true};
   PROG[day].exercises.push(ex);
@@ -2047,14 +2092,30 @@ function addFromDB(i,day){
 
 function addFreeform(day,name){
   if(!PROG[day])return;
-  const sessKey=day+"_"+wk();
   name=String(name||"").trim();
   if(!name)return;
+  if(isBannedExercise(name)){suggestSafeAlt("free",day);return;}
+  const sessKey=day+"_"+wk();
   const ex={id:"c_"+Date.now(),name,cat:"gym",sets:3,reps:12,hint:"kg",url:"",cue:"Focus on controlled movement. Core braced throughout.",custom:true};
   PROG[day].exercises.push(ex);
   rememberCustom(day,ex);
   if(!S.sessions[sessKey])S.sessions[sessKey]={};
   save();showToast(name+" added ✓");
+  document.getElementById("cfSearch").value="";
+  document.getElementById("cfDD").classList.remove("show");
+  renderW();
+}
+
+function addFromAlt(day){
+  const alt=_pendingAlt;
+  if(!alt||!PROG[day])return;
+  const sessKey=day+"_"+wk();
+  const ex={id:"c_"+Date.now(),name:alt.name,cat:alt.cat||"gym",sets:alt.sets||3,reps:alt.reps||12,hint:alt.hint||"",url:"",cue:alt.cue||"Focus on controlled movement.",muscles:alt.muscles||[],custom:true};
+  PROG[day].exercises.push(ex);
+  rememberCustom(day,ex);
+  if(!S.sessions[sessKey])S.sessions[sessKey]={};
+  save();showToast(ex.name+" added ✓");
+  _pendingAlt=null;
   document.getElementById("cfSearch").value="";
   document.getElementById("cfDD").classList.remove("show");
   renderW();
