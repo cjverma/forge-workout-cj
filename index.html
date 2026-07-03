@@ -401,17 +401,25 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .ask-forge-btn-arrow{font-size:16px;color:var(--dim);}
 .forge-chat-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:250;opacity:0;pointer-events:none;transition:opacity .25s ease;}
 .forge-chat-overlay.open{opacity:1;pointer-events:auto;}
-.forge-chat-modal{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:var(--black);border-radius:22px 22px 0 0;z-index:251;transform:translateY(100%);transition:transform .3s cubic-bezier(.3,.7,.3,1);display:flex;flex-direction:column;max-height:90vh;}
+.forge-chat-modal{position:fixed;bottom:0;left:0;right:0;max-width:430px;margin:0 auto;background:var(--black);border-radius:22px 22px 0 0;z-index:251;transform:translateY(100%);transition:transform .3s cubic-bezier(.3,.7,.3,1);display:flex;flex-direction:column;height:72vh;max-height:640px;box-shadow:0 -8px 40px rgba(0,0,0,.35);}
 .forge-chat-modal.open{transform:translateY(0);}
 .forge-chat-drag{width:40px;height:4px;background:var(--b2);border-radius:99px;margin:12px auto 0;}
 .ai-chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--b1);}
-.ai-chat-title{font-size:15px;font-weight:800;color:var(--white);letter-spacing:-0.3px;}
-.ai-chat-clear{background:transparent;border:none;font-family:'Inter',sans-serif;font-size:11px;color:var(--dim);cursor:pointer;padding:4px 8px;}
-.ai-chat-messages{padding:10px 14px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;flex:1;min-height:120px;}
+.ai-chat-title-wrap{display:flex;align-items:center;gap:8px;}
+.ai-chat-title-icon{font-size:18px;line-height:1;}
+.ai-chat-title{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--white);letter-spacing:.3px;text-transform:uppercase;}
+.ai-chat-clear{background:var(--s2);border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;padding:6px 10px;}
+.ai-chat-messages{padding:14px;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;flex:1;}
+.ai-chat-empty{margin:auto 0;text-align:center;padding:20px 16px;color:var(--dim);}
+.ai-chat-empty-icon{font-size:32px;margin-bottom:10px;}
+.ai-chat-empty-ttl{font-size:14px;font-weight:700;color:var(--lt);margin-bottom:4px;}
+.ai-chat-empty-sub{font-size:12px;line-height:1.5;max-width:260px;margin:0 auto;}
 .ai-chat-empty{font-size:12px;color:var(--dim);text-align:center;padding:20px 0;}
-.chat-bubble{max-width:85%;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.55;}
-.chat-user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:12px 12px 2px 12px;}
-.chat-ai{align-self:flex-start;background:var(--s2);color:var(--lt);border:1px solid var(--b1);border-radius:12px 12px 12px 2px;}
+.chat-bubble{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.55;}
+.chat-user{align-self:flex-end;background:var(--accent);color:var(--accent-ink);font-weight:600;border-radius:14px 14px 3px 14px;}
+.chat-ai-row{display:flex;align-items:flex-end;gap:6px;align-self:flex-start;max-width:90%;}
+.chat-ai-avatar{width:22px;height:22px;border-radius:50%;background:var(--accent-lo);color:var(--accent-text);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;margin-bottom:1px;}
+.chat-ai{background:var(--s2);color:var(--lt);border:1px solid var(--b1);border-radius:3px 14px 14px 14px;}
 .chat-thinking{align-self:flex-start;background:var(--s2);color:var(--dim);border:1px solid var(--b1);border-radius:12px 12px 12px 2px;padding:9px 12px;font-size:12px;font-style:italic;}
 .ai-chat-bar{display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--b1);align-items:flex-end;}
 .ai-chat-inp{flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);outline:none;resize:none;-webkit-appearance:none;}
@@ -642,10 +650,10 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 <div class="forge-chat-modal" id="forgeChatModal">
   <div class="forge-chat-drag"></div>
   <div class="ai-chat-header">
-    <span class="ai-chat-title">Ask Forge</span>
+    <span class="ai-chat-title-wrap"><span class="ai-chat-title-icon">🤖</span><span class="ai-chat-title">Ask Forge</span></span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="ai-chat-clear" onclick="clearAiChat()">Clear</button>
-      <button class="ai-chat-clear" onclick="closeForgeChat()" style="font-size:18px;padding:2px 6px;">✕</button>
+      <button class="ai-chat-clear" onclick="closeForgeChat()" style="font-size:16px;padding:6px 9px;">✕</button>
     </div>
   </div>
   <div class="ai-chat-messages" id="aiChatMessages"></div>
@@ -3995,8 +4003,13 @@ function buildChatContext(){
   return{today,goal,sessions,weights,todayItems};
 }
 function renderAiChatBubbles(){
-  if(!S.aiChat||!S.aiChat.length)return'';
-  return S.aiChat.slice(-20).map(m=>`<div class="chat-bubble ${m.role==="user"?"chat-user":"chat-ai"}">${m.role==="user"?esc(m.text):mdLite(m.text)}</div>`).join("");
+  if(!S.aiChat||!S.aiChat.length){
+    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">🤖</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain — I've got context on your training and logs.</div></div>`;
+  }
+  return S.aiChat.slice(-20).map(m=>m.role==="user"
+    ?`<div class="chat-bubble chat-user">${esc(m.text)}</div>`
+    :`<div class="chat-ai-row"><div class="chat-ai-avatar">🤖</div><div class="chat-bubble chat-ai">${mdLite(m.text)}</div></div>`
+  ).join("");
 }
 function scrollChatBottom(){const el=document.getElementById("aiChatMessages");if(el)el.scrollTop=el.scrollHeight;}
 function openForgeChat(){
@@ -4012,13 +4025,19 @@ function closeForgeChat(){
   document.getElementById("forgeChatOverlay")?.classList.remove("open");
   document.getElementById("forgeChatModal")?.classList.remove("open");
 }
-function clearAiChat(){S.aiChat=[];save();const el=document.getElementById("aiChatMessages");if(el)el.innerHTML='';}
+function clearAiChat(){S.aiChat=[];save();const el=document.getElementById("aiChatMessages");if(el)el.innerHTML=renderAiChatBubbles();}
 function typewriterBubble(text,onDone){
   const msgs=document.getElementById("aiChatMessages");
   if(!msgs){onDone&&onDone();return;}
+  const empty=msgs.querySelector(".ai-chat-empty");
+  if(empty)empty.remove();
+  const row=document.createElement("div");
+  row.className="chat-ai-row";
+  row.innerHTML='<div class="chat-ai-avatar">🤖</div>';
   const bubble=document.createElement("div");
   bubble.className="chat-bubble chat-ai";
-  msgs.appendChild(bubble);
+  row.appendChild(bubble);
+  msgs.appendChild(row);
   scrollChatBottom();
   let i=0;
   const CHUNK=3;
