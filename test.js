@@ -173,37 +173,28 @@ ok("calcBMR decreases as weight drops (95 kg)",
   calcBMR(95, 190.5, 30) < calcBMR(136.6, 190.5, 30));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. calcTarget
+// 6. calcTarget — fixed daily standard (2026-07)
 // ─────────────────────────────────────────────────────────────────────────────
-section("6 · calcTarget (1500 kcal floor)");
+section("6 · calcTarget (fixed 1500/1800 standard)");
 
-function calcTarget(bmr, active, weightKg, targetKg, goalDate, aiDeficitModifier = 0) {
-  const daysLeft = Math.max(1, Math.ceil((goalDate - Date.now()) / 86400000));
-  const req = Math.round(Math.max(0, (weightKg - targetKg) * 7700) / daysLeft);
-  const mod = Math.max(-300, Math.min(300, aiDeficitModifier));
-  return { target: Math.max(1500, bmr + active - req + mod), daysLeft, req };
-}
+// The goal-date-driven formula (weight-to-lose × 7700 / days-left) was
+// demanding a ~2100-2300 kcal/day deficit given the actual pace needed to
+// hit the goal date, pushing the raw target to ~100-300 kcal before the old
+// "floor" silently overrode it to 1500 every single day — the floor was
+// masking an unrealistic underlying calculation, not occasionally kicking
+// in. Replaced with an explicit fixed standard: 1500 kcal intake, 1800 kcal
+// deficit, regardless of BMR/active calories/goal-date math.
+ok("STANDARD_INTAKE_TARGET is defined as 1500",
+  HTML.includes("STANDARD_INTAKE_TARGET=1500"));
 
-const goalDate = new Date(2026, 11, 1);
+ok("STANDARD_DAILY_DEFICIT is defined as 1800",
+  HTML.includes("STANDARD_DAILY_DEFICIT=1800"));
 
-const r1 = calcTarget(2412, 0, 136.6, 95, goalDate);
-ok("calcTarget floor ≥ 1500 on rest day", r1.target >= 1500);
+ok("calcTarget returns the fixed standard, not a goal-date-driven formula",
+  HTML.includes("return{bmr,req:STANDARD_DAILY_DEFICIT,target:STANDARD_INTAKE_TARGET,daysLeft,lw}"));
 
-const r2 = calcTarget(2412, 400, 136.6, 95, goalDate);
-ok("calcTarget floor ≥ 1500 on active day", r2.target >= 1500);
-
-const r3 = calcTarget(2412, 0, 95, 95, goalDate);
-ok("calcTarget at goal weight: target = BMR + active − 0 − deficit = BMR", r3.target >= 1500);
-
-// Use a near-goal scenario (100kg → 95kg) where deficit is small enough
-// that modifier shifts the target above the 1500 floor
-ok("calcTarget with aiDeficitModifier +300 increases target (near-goal scenario)",
-  calcTarget(2300, 0, 100, 95, goalDate, 300).target >
-  calcTarget(2300, 0, 100, 95, goalDate, 0).target);
-
-ok("calcTarget clamps aiDeficitModifier at ±300",
-  calcTarget(2412, 0, 136.6, 95, goalDate, 500).target ===
-  calcTarget(2412, 0, 136.6, 95, goalDate, 300).target);
+ok("calcTarget no longer applies the old bmr+active-req+mod formula",
+  !/target:Math\.max\(1500,bmr\+active-req\+mod\)/.test(HTML));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx

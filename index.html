@@ -1122,12 +1122,18 @@ function trainedOn(dateIso){
   const sess=S.sessions[dayName+"_"+wkKey];
   return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)));
 }
+const STANDARD_INTAKE_TARGET=1500,STANDARD_DAILY_DEFICIT=1800;
 function calcTarget(bmr,active){
+  // Fixed daily standard (2026-07): the goal-date-driven formula this used to
+  // run (bmr+active-req+mod, where req = weight-to-lose × 7700 / days-left)
+  // was demanding a required deficit of ~2100-2300 kcal/day given the actual
+  // pace needed to hit the goal date — pushing raw target down to ~100-300
+  // kcal before the old 1500 floor silently overrode it every single day.
+  // Replaced with a flat, explicit standard instead of a floor that was
+  // masking an unrealistic underlying calculation.
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const lw=latestWeightLog()||USER.weightKg;
-  const req=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
-  const mod=Math.max(-300,Math.min(300,S.nutrition.aiDeficitModifier||0));
-  return{bmr,req,target:Math.max(1500,bmr+active-req+mod),daysLeft,lw};
+  return{bmr,req:STANDARD_DAILY_DEFICIT,target:STANDARD_INTAKE_TARGET,daysLeft,lw};
 }
 function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 function isoToday(){return isoDate(new Date());}
@@ -1211,6 +1217,7 @@ function hintDisp(hint,unit){
 
 let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false,_foodSearchOpen=false,_foodSearchQ="";
+let _foodDraftText="",_foodDraftMealName=""; // survives tab switches — see openFood()/askFood() for lifecycle
 let _lastFoodText="",_lastMealName="";
 
 // ── REST TIMER (background-safe, 30s) ──
@@ -1453,7 +1460,7 @@ function go(tab){
   document.getElementById("dayNav").style.display=tab==="workout"?"flex":"none";
   document.getElementById("mainScroll").scrollTop=0;
   if(tab==="workout")renderW();
-  else if(tab==="nutrition"){_nutDate=isoToday();_pendingFood=null;_foodChatOpen=false;_foodSearchOpen=false;_foodSearchQ="";renderNutrition();}
+  else if(tab==="nutrition"){_nutDate=isoToday();renderNutrition();}
   else renderST();
 }
 
@@ -3616,7 +3623,7 @@ function renderNutrition(){
       })():_foodChatOpen?(()=>{
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
-        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional — e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3"></textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
+        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional — e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
     </div>
 
@@ -3690,8 +3697,8 @@ function saveBurn(date,field,val){
 function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
-function closeFood(){_foodChatOpen=false;renderNutrition();}
-function redoFood(){_pendingFood=null;_foodChatOpen=true;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta){ta.value=_lastFoodText;ta.focus();}const mn=document.getElementById("foodMealName");if(mn&&_lastMealName)mn.value=_lastMealName;},50);}
+function closeFood(){_foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();}
+function redoFood(){_pendingFood=null;_foodChatOpen=true;_foodDraftText=_lastFoodText||"";_foodDraftMealName=_lastMealName||"";renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 async function askFood(){
   const ta=document.getElementById("foodTa");if(!ta)return;
   const txt=ta.value.trim();if(!txt){showToast("Describe what you ate first");return;}
@@ -3718,7 +3725,7 @@ async function askFood(){
       _pendingFood=arr.map((it,i)=>({id:"n_"+Date.now()+"_"+i,name:mealName&&arr.length===1?mealName:it.name,canonical:canonical||it.name.toLowerCase(),kcal:it.kcal,protein:it.protein,carbs:it.carbs,fat:it.fat,fibre:it.fibre||0,sugar:it.sugar||0,sodium:it.sodium||0,time:Date.now()}));
     }
     if(out)out.className="ai-out";
-    _foodChatOpen=false;renderNutrition();
+    _foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();
   }catch(e){
     if(out){out.className="ai-out show";out.textContent="Could not estimate · try again or be more specific.";}
   }
