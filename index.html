@@ -1108,7 +1108,13 @@ function restoreDailyBackup(dateStr){
 }
 
 // Personal constants · never rendered in UI
-const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
+const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:85,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
+// Pace-driven, not date-driven (2026-07): goal is 85kg "however long it takes"
+// at a fixed 1.5 kg/week rate — no deadline pressure, no goal-date math in the
+// calorie target. USER.goalDate is kept only as a display/AI-context reference,
+// it no longer drives calcTarget() or the Weekly Calorie Deficit card.
+const WEIGHT_LOSS_RATE_KG_PER_WEEK=1.5;
+const DAILY_DEFICIT_FOR_RATE=Math.round(WEIGHT_LOSS_RATE_KG_PER_WEEK*7700/7);
 const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300,ACTIVE_MULT=0.75;
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
@@ -1122,18 +1128,15 @@ function trainedOn(dateIso){
   const sess=S.sessions[dayName+"_"+wkKey];
   return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)));
 }
-const STANDARD_INTAKE_TARGET=1500,STANDARD_DAILY_DEFICIT=1800;
 function calcTarget(bmr,active){
-  // Fixed daily standard (2026-07): the goal-date-driven formula this used to
-  // run (bmr+active-req+mod, where req = weight-to-lose × 7700 / days-left)
-  // was demanding a required deficit of ~2100-2300 kcal/day given the actual
-  // pace needed to hit the goal date — pushing raw target down to ~100-300
-  // kcal before the old 1500 floor silently overrode it every single day.
-  // Replaced with a flat, explicit standard instead of a floor that was
-  // masking an unrealistic underlying calculation.
+  // Pace-driven (2026-07): fixed 1.5 kg/week deficit, no goal-date math.
+  // "85kg however long it takes" — the deficit is a constant rate, not
+  // derived from weight-to-lose ÷ days-left, so it never depends on how
+  // much progress has or hasn't happened. daysLeft/lw are kept for
+  // display/AI-context purposes only.
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const lw=latestWeightLog()||USER.weightKg;
-  return{bmr,req:STANDARD_DAILY_DEFICIT,target:STANDARD_INTAKE_TARGET,daysLeft,lw};
+  return{bmr,req:DAILY_DEFICIT_FOR_RATE,target:bmr+active-DAILY_DEFICIT_FOR_RATE,daysLeft,lw};
 }
 function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 function isoToday(){return isoDate(new Date());}
@@ -2456,11 +2459,12 @@ function renderST(){
       const monday=new Date(now);
       monday.setDate(now.getDate()+mondayOffset);
       const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-      // Dynamic weekly target: dailyReq × 6.5 (6 full days + 0.5 for Sunday rest day)
+      // Weekly target: fixed-rate dailyReq × 6.5 (6 full days + 0.5 for Sunday rest day).
+      // Pace-driven (2026-07), not goal-date-driven — see calcTarget()/DAILY_DEFICIT_FOR_RATE.
       const lw=latestWeightLog()||USER.weightKg;
       const bmrBase=calcBMR(lw);
       const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
-      const dailyReq=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);
+      const dailyReq=DAILY_DEFICIT_FOR_RATE;
       const WEEKLY_TARGET=Math.round(dailyReq*6.5);
       let runningTotal=0;
       let rows="";

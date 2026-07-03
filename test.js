@@ -173,28 +173,32 @@ ok("calcBMR decreases as weight drops (95 kg)",
   calcBMR(95, 190.5, 30) < calcBMR(136.6, 190.5, 30));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. calcTarget — fixed daily standard (2026-07)
+// 6. calcTarget — pace-driven, not date-driven (2026-07)
 // ─────────────────────────────────────────────────────────────────────────────
-section("6 · calcTarget (fixed 1500/1800 standard)");
+section("6 · calcTarget (fixed 1.5 kg/week pace, no goal-date math)");
 
-// The goal-date-driven formula (weight-to-lose × 7700 / days-left) was
-// demanding a ~2100-2300 kcal/day deficit given the actual pace needed to
-// hit the goal date, pushing the raw target to ~100-300 kcal before the old
-// "floor" silently overrode it to 1500 every single day — the floor was
-// masking an unrealistic underlying calculation, not occasionally kicking
-// in. Replaced with an explicit fixed standard: 1500 kcal intake, 1800 kcal
-// deficit, regardless of BMR/active calories/goal-date math.
-ok("STANDARD_INTAKE_TARGET is defined as 1500",
-  HTML.includes("STANDARD_INTAKE_TARGET=1500"));
+// Goal is 85kg "however long it takes" — a fixed 1.5 kg/week deficit
+// (1650 kcal/day), independent of goal-date/weight-to-lose math entirely.
+// target = bmr + active - fixed deficit; no floor, no date pressure.
+ok("WEIGHT_LOSS_RATE_KG_PER_WEEK is defined as 1.5",
+  HTML.includes("WEIGHT_LOSS_RATE_KG_PER_WEEK=1.5"));
 
-ok("STANDARD_DAILY_DEFICIT is defined as 1800",
-  HTML.includes("STANDARD_DAILY_DEFICIT=1800"));
+ok("DAILY_DEFICIT_FOR_RATE = 1.5kg/week worth of calories (1650/day)",
+  HTML.includes("DAILY_DEFICIT_FOR_RATE=Math.round(WEIGHT_LOSS_RATE_KG_PER_WEEK*7700/7)"));
 
-ok("calcTarget returns the fixed standard, not a goal-date-driven formula",
-  HTML.includes("return{bmr,req:STANDARD_DAILY_DEFICIT,target:STANDARD_INTAKE_TARGET,daysLeft,lw}"));
+ok("calcTarget returns bmr+active-DAILY_DEFICIT_FOR_RATE, not a goal-date formula",
+  HTML.includes("target:bmr+active-DAILY_DEFICIT_FOR_RATE"));
 
-ok("calcTarget no longer applies the old bmr+active-req+mod formula",
-  !/target:Math\.max\(1500,bmr\+active-req\+mod\)/.test(HTML));
+ok("calcTarget no longer applies the old bmr+active-req+mod or fixed-standard formulas",
+  !/target:Math\.max\(1500,bmr\+active-req\+mod\)/.test(HTML) &&
+  !HTML.includes("target:STANDARD_INTAKE_TARGET"));
+
+const DAILY_DEFICIT_FOR_RATE = Math.round(1.5 * 7700 / 7);
+ok(`Fixed daily deficit for 1.5kg/week is ${DAILY_DEFICIT_FOR_RATE} kcal (expected 1650)`,
+  DAILY_DEFICIT_FOR_RATE === 1650);
+
+ok("USER.targetKg updated to 85",
+  HTML.includes("targetKg:85"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -400,25 +404,21 @@ ok("paceTarget pro-rates the weekly target by elapsed weight",
 ok("Pace status shown in UI (ahead/on/behind)",
   HTML.includes("Ahead of pace") && HTML.includes("Behind pace"));
 
-// Test the pace math
-function paceWeeklyTarget(lw, targetKg, goalDate) {
-  const daysLeft = Math.max(1, Math.ceil((goalDate - Date.now()) / 86400000));
-  const dailyReq = Math.round(Math.max(0, (lw - targetKg) * 7700) / daysLeft);
+// Test the pace math — fixed-rate (2026-07), no goal-date/weight-to-lose dependency
+function paceWeeklyTarget(dailyReq) {
   return Math.round(dailyReq * 6.5);
 }
 
-const goal = new Date(2026, 11, 1);
-ok("Pace weekly target is 6.5× daily requirement",
-  paceWeeklyTarget(136.6, 95, goal) > 0);
+const FIXED_DAILY_REQ = Math.round(1.5 * 7700 / 7); // 1650
 
-ok("Pace weekly target < 7× daily (Sunday is only 0.5)", (() => {
-  const daysLeft = Math.max(1, Math.ceil((goal - Date.now()) / 86400000));
-  const dailyReq = Math.round((136.6 - 95) * 7700 / daysLeft);
-  return paceWeeklyTarget(136.6, 95, goal) < dailyReq * 7;
-})());
+ok("Pace weekly target is 6.5× the fixed daily requirement",
+  paceWeeklyTarget(FIXED_DAILY_REQ) === Math.round(FIXED_DAILY_REQ * 6.5));
 
-ok("At goal weight, weekly target = 0",
-  paceWeeklyTarget(95, 95, goal) === 0);
+ok("Pace weekly target < 7× daily (Sunday is only 0.5)",
+  paceWeeklyTarget(FIXED_DAILY_REQ) < FIXED_DAILY_REQ * 7);
+
+ok("Weekly target does not depend on current weight or goal date (pace-driven, not date-driven)",
+  !HTML.includes("dailyReq=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 18. Postgres numeric-column guardrail
