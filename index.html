@@ -1043,7 +1043,43 @@ applyTheme();
 // Auto mode: re-resolve theme-color when the device theme flips
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme());
 let _appReady=false,_syncTimer=null,_syncAvailable=null,_lastSyncAt=null,_syncBusy=false;
-function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));queueSync();}
+function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));autoBackupTick();queueSync();}
+// Daily rotating local backup — independent of cloud sync, protects against sync bugs
+// and any future in-place data corruption. Keeps the last 14 calendar days.
+function autoBackupTick(){
+  const today=isoToday();
+  if(S._lastAutoBackupDay===today)return;
+  try{
+    localStorage.setItem("f5_daily_"+today,JSON.stringify(S));
+    S._lastAutoBackupDay=today;
+    localStorage.setItem("f5",JSON.stringify(S));
+    const cutoff=Date.now()-14*86400000;
+    for(let i=localStorage.length-1;i>=0;i--){
+      const k=localStorage.key(i);
+      if(k&&k.startsWith("f5_daily_")){
+        const d=new Date(k.slice(9));
+        if(!isNaN(d)&&d.getTime()<cutoff)localStorage.removeItem(k);
+      }
+    }
+  }catch(e){}
+}
+function listDailyBackups(){
+  const out=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(k&&k.startsWith("f5_daily_"))out.push(k.slice(9));
+  }
+  return out.sort().reverse();
+}
+function restoreDailyBackup(dateStr){
+  const raw=localStorage.getItem("f5_daily_"+dateStr);
+  if(!raw){showToast("Backup not found");return;}
+  let state;
+  try{state=JSON.parse(raw);}catch{showToast("Backup is corrupted");return;}
+  const w=dataWeight(state);
+  if(!confirm(`Restore local backup from ${dateStr} (~${w} entries)?\n\nThis REPLACES all current data on this device.`))return;
+  S=state;save();showToast("Backup restored ✓");location.reload();
+}
 
 // Personal constants · never rendered in UI
 const USER={birthDate:new Date(1995,7,1),weightKg:136.6,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2026,11,1)};
@@ -2088,8 +2124,28 @@ function dataWeight(st){
   n+=Object.keys(st.nutrition?.weights||{}).length*3;
   return n;
 }
+// Rolling snapshot list (last 5) taken before every remote overwrite — a single
+// slot (the old "f5_prepull") gets destroyed by the very next sync cycle, so this
+// keeps a short history any one of which can be restored.
+function pushSnapshot(state){
+  try{
+    const list=JSON.parse(localStorage.getItem("f5_snapshots")||"[]");
+    list.unshift({ts:Date.now(),weight:dataWeight(state),state});
+    localStorage.setItem("f5_snapshots",JSON.stringify(list.slice(0,5)));
+  }catch(e){}
+}
+function listSnapshots(){
+  try{return JSON.parse(localStorage.getItem("f5_snapshots")||"[]");}catch{return[];}
+}
+function restoreSnapshot(ts){
+  const list=listSnapshots();
+  const snap=list.find(s=>s.ts===ts);
+  if(!snap){showToast("Snapshot not found");return;}
+  if(!confirm(`Restore snapshot from ${new Date(snap.ts).toLocaleString()} (~${snap.weight} entries)?\n\nThis REPLACES all current data on this device.`))return;
+  S=snap.state;save();showToast("Snapshot restored ✓");location.reload();
+}
 function applyRemote(state){
-  try{localStorage.setItem("f5_prepull",localStorage.getItem("f5")||"");}catch(e){}
+  pushSnapshot(S);
   S=state;
   localStorage.setItem("f5",JSON.stringify(S));
   applyTheme();
@@ -2098,10 +2154,16 @@ function applyRemote(state){
   else renderST();
   _lastSyncAt=Date.now();
 }
-function restorePrePull(){
-  const snap=localStorage.getItem("f5_prepull");
-  if(!snap){showToast("No pre-sync snapshot found");return;}
-  S=JSON.parse(snap);save();showToast("Restored pre-sync data ✓");location.reload();
+// Shared guard: decide whether remote data is safe to apply automatically, or
+// needs explicit confirmation first. Any amount smaller than local, or a first-ever
+// sync against non-trivial local data, requires confirmation — no size floor.
+function confirmBeforeApplyingRemote(remoteState){
+  const localW=dataWeight(S),remoteW=dataWeight(remoteState);
+  const neverSynced=!S._syncTs&&localW>0;
+  if(remoteW<localW||neverSynced){
+    return confirm(`Cloud data looks SMALLER than this device's (cloud ~${remoteW} vs local ~${localW} entries)${neverSynced?" and this device has never synced before":""}.\n\nReplace local data with cloud anyway?\n\nCancel = keep local and push it to cloud.`);
+  }
+  return true;
 }
 async function pullSync(){
   if(_syncAvailable===false||!API_CFG.token)return;
@@ -2112,14 +2174,10 @@ async function pullSync(){
     _syncAvailable=true;setSyncDot();
     const d=await r.json();
     if(d&&d.state&&d.state.sessions&&(d.updatedAt||0)>(S._syncTs||0)){
-      const localW=dataWeight(S),remoteW=dataWeight(d.state);
-      if(remoteW<localW*0.7&&localW>10){
-        // Cloud copy has noticeably less data than local · don't silently clobber
-        if(!confirm(`Cloud data looks SMALLER than this device's (cloud ~${remoteW} vs local ~${localW} entries).\n\nReplace local data with cloud anyway?\n\nCancel = keep local and push it to cloud.`)){
-          S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));
-          pushSync();
-          return;
-        }
+      if(!confirmBeforeApplyingRemote(d.state)){
+        S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));
+        pushSync();
+        return;
       }
       applyRemote(d.state);
       showToast("☁️ Synced from your other device");
@@ -2144,8 +2202,7 @@ async function checkSyncNow(){
       _syncAvailable=true;
       const d=await r.json();
       if(d&&d.state&&d.state.sessions&&(d.updatedAt||0)>(S._syncTs||0)){
-        const localW=dataWeight(S),remoteW=dataWeight(d.state);
-        if(remoteW<localW*0.7&&localW>10&&!confirm(`Cloud data looks SMALLER than this device's (cloud ~${remoteW} vs local ~${localW} entries).\n\nReplace local data with cloud anyway?\n\nCancel = keep local and push it to cloud.`)){
+        if(!confirmBeforeApplyingRemote(d.state)){
           S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));
           await pushSync();
           showToast("✓ Kept local data and pushed it to cloud");
@@ -2377,7 +2434,9 @@ function renderST(){
         <div class="st-sec">Data</div>
         <div class="st-group">
           <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Cloud Sync</div><div class="st-sub">${_syncAvailable===true?`On · last synced ${_lastSyncAt?new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"just now"} · tap to sync now`:_syncAvailable===false?"Off · add Upstash Redis storage to the Vercel project, then redeploy":"Tap to check sync status"}</div></div></div>
-          ${localStorage.getItem("f5_prepull")?`<div class="st-row" onclick="if(confirm('Restore the data this device had BEFORE the last cloud sync?'))restorePrePull()"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">Undo Last Cloud Pull</div><div class="st-sub">Restore this device's data from before the last sync replaced it</div></div></div>`:""}
+          ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">Undo Sync · ${new Date(s.ts).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("");})()}
+          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">🗓</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">📅</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">⚠️</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
           <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
           <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
           <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
