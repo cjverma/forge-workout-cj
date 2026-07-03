@@ -6,9 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
-    "check": "node --check server.js && node --check api/_shared.js && node --check api/coach.js && node --check api/weekly-plan.js && node --check api/nutrition.js && node --check api/sync.js && node --check api/health.js"
+    "check": "node --check server.js && node --check api/_shared.js && node --check api/coach.js && node --check api/weekly-plan.js && node --check api/nutrition.js && node --check api/db.js && node --check api/state.js && node --check api/mutate.js && node --check api/health.js"
   },
   "dependencies": {
+    "@neondatabase/serverless": "^1.1.0",
     "dotenv": "^16.4.5",
     "express": "^4.21.2"
   }

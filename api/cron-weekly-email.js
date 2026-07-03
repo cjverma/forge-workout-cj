@@ -1,8 +1,8 @@
 // Vercel Cron: runs every Sunday at 20:00 UTC (~1:30 AM IST Monday)
-// Reads state from Upstash Redis, builds CSV, emails to recipient via Resend.
+// Reads state from Postgres, builds CSV, emails to recipient via Resend.
+import { assembleState } from "./state.js";
 
 const RECIPIENT = "chiranjay.verma@gmail.com";
-const SYNC_KEY = process.env.SYNC_KEY || "forge:state";
 
 const EX_NAMES = {
   m_bike:"Stationary Bike",m_cp:"Chest Press Machine",m_pf:"Pec Fly Machine",m_te:"Tricep Extension Machine",m_lr:"Seated Lateral Raise",m_cr:"Seated Cable Row",m_dc:"Seated Dumbbell Curl",m_fp:"Cable Face Pull",m_tr:"Treadmill Cool-Down",m_k2c:"Knee-to-Chest Stretch",m_gb:"Glute Bridge",m_bd:"Bird Dog",
@@ -21,12 +21,6 @@ const EX_NAMES = {
   su2_k2c:"Knee-to-Chest Stretch",
 };
 
-function kvCfg() {
-  const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN;
-  return url && token ? { url, token } : null;
-}
-
 function customName(S, exId) {
   for (const arr of Object.values(S.custom || {})) {
     if (!Array.isArray(arr)) continue;
@@ -37,17 +31,10 @@ function customName(S, exId) {
 }
 
 async function fetchState() {
-  const kv = kvCfg();
-  if (!kv) return null;
-  const r = await fetch(`${kv.url}/get/${SYNC_KEY}`, {
-    headers: { authorization: `Bearer ${kv.token}` },
-  });
-  const d = await r.json();
-  if (!d.result) return null;
   try {
-    const parsed = JSON.parse(d.result);
-    return parsed.state || null;
-  } catch {
+    return await assembleState();
+  } catch (e) {
+    console.error("[cron-weekly-email] assembleState failed:", e.message);
     return null;
   }
 }

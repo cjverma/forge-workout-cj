@@ -12,7 +12,8 @@ import { fileURLToPath } from "node:url";
 import coach from "./api/coach.js";
 import weeklyPlan from "./api/weekly-plan.js";
 import nutrition from "./api/nutrition.js";
-import sync from "./api/sync.js";
+import state from "./api/state.js";
+import mutate from "./api/mutate.js";
 import health from "./api/health.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -27,7 +28,8 @@ const mount = handler => (req, res) => Promise.resolve(handler(req, res)).catch(
 app.all("/api/coach", mount(coach));
 app.all("/api/weekly-plan", mount(weeklyPlan));
 app.all("/api/nutrition", mount(nutrition));
-app.all("/api/sync", mount(sync));
+app.all("/api/state", mount(state));
+app.all("/api/mutate", mount(mutate));
 app.all("/api/health", mount(health));
 
 app.use(express.static(__dirname));

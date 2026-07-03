@@ -54,7 +54,10 @@ const apiFiles = [
   "api/_shared.js",
   "api/coach.js",
   "api/nutrition.js",
-  "api/sync.js",
+  "api/db.js",
+  "api/state.js",
+  "api/mutate.js",
+  "api/cron-weekly-email.js",
   "api/weekly-plan.js",
   "api/health.js",
 ];
