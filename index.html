@@ -266,6 +266,7 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .dd-item-left{flex:1;}
 .dd-name{font-size:14px;font-weight:500;}
 .dd-cat{font-size:11px;color:var(--dim);margin-top:3px;}
+.dd-warn{font-size:11px;color:var(--amber);margin-top:3px;font-weight:600;}
 .dd-add-btn{background:var(--accent);border:none;border-radius:6px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;font-weight:700;color:var(--accent-ink);cursor:pointer;white-space:nowrap;flex-shrink:0;}
 .num-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
 .cf-num{width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:11px;font-family:'Inter',sans-serif;font-size:18px;font-weight:700;color:var(--white);outline:none;text-align:center;-webkit-appearance:none;}
@@ -2014,13 +2015,15 @@ function searchEx(q,day){
     .sort((a,b)=>b.score-a.score)
     .slice(0,8);
   if(!results.length){
-    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches · tap below to add "${esc(q)}" anyway</div></div><button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button></div>`;
+    const warn=isBannedExercise(q)?`<div class="dd-warn">⚠️ May not be spine-safe for your condition — check with your program first</div>`:"";
+    dd.innerHTML=`<div class="dd-item"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches · tap below to add "${esc(q)}" anyway</div>${warn}</div><button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button></div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
   }
   dd.innerHTML=results.map(({e},idx)=>`<div class="dd-item">
     <div class="dd-item-left">
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)}${e.muscles?.length?" · "+esc(e.muscles.slice(0,2).join(", ")):""}</div>
+      ${isBannedExercise(e.name)?`<div class="dd-warn">⚠️ May not be spine-safe for your condition</div>`:""}
     </div>
     <button class="dd-add-btn" data-action="fromdb" data-idx="${idx}" data-day="${d}">+</button>
   </div>`).join("");
