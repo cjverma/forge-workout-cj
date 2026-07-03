@@ -484,6 +484,11 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 .st-subacc>summary .st-subacc-note{font-size:11px;font-weight:400;color:var(--dim);margin-top:1px;}
 .st-subacc-inner{padding:0 0 12px;border-top:1px solid var(--b1);}
 .st-subacc .st-group{margin:12px 12px 0;}
+.st-subacc .st-sec{margin:14px 12px 6px;}
+.st-subacc .st-sec:first-of-type{margin-top:14px;}
+.danger-zone{margin:16px 12px 0;border-radius:14px;border:1.5px solid var(--red);overflow:hidden;}
+.danger-zone .st-sec{margin:0;padding:10px 14px;color:var(--red);border-bottom:1px solid var(--red);background:var(--red-lo);}
+.danger-zone .st-group{margin:0;border-radius:0;box-shadow:none;border:none;}
 .export-card{border-radius:18px;border:1px solid var(--b1);border-left:1px solid var(--b1);padding:18px;box-shadow:var(--shadow);}
 .rule-item{border-radius:14px;border-left:3px solid var(--red);box-shadow:var(--shadow);}
 .st-group{border-radius:18px;box-shadow:var(--shadow);}
@@ -2522,18 +2527,35 @@ function renderST(){
         <details class="st-subacc">
           <summary><div><div>🗄 Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
           <div class="st-subacc-inner">
+
+        <div class="st-sec">Sync &amp; Recovery</div>
         <div class="st-group">
           <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(_syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${_lastSyncAt?" · last "+new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(_syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
           ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">🗓</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">📅</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+        </div>
+
+        <div class="st-sec">Backup &amp; Export</div>
+        <div class="st-group">
           ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">⚠️</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
           <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
           <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
           <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
           <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
-          ${!window.FORGE_API_CFG?`<div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>`:""}
-          <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
         </div>
+
+        ${!window.FORGE_API_CFG?`<div class="st-sec">Session</div>
+        <div class="st-group">
+          <div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
+        </div>`:""}
+
+        <div class="danger-zone">
+          <div class="st-sec">Danger Zone</div>
+          <div class="st-group">
+            <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
+          </div>
+        </div>
+
           </div>
         </details>
       </div>
