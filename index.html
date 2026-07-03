@@ -3551,9 +3551,9 @@ function renderNutrition(){
     <div class="nut-card">
       <div class="nut-card-title">Burn</div>
       <div class="burn-row">
-        <div class="burn-col"><div class="burn-val${ro?"":" tappable"}" id="bvRest" onclick="editBurn(this,'${date}','resting')" title="Tap to override">${resting}${restOvr!=null?"*":""}</div><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
+        <div class="burn-col"><input class="burn-inp" id="bvRest" type="number" inputmode="numeric" enterkeyhint="done" value="${resting}" ${ro?'disabled':''} onchange="saveBurn('${date}','resting',this.value)" onfocus="this.select()"><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col"><div class="burn-val${ro?"":" tappable"}" id="bvAct" onclick="editBurn(this,'${date}','active')">${active||"&ndash;"}</div><div class="burn-lbl">Active</div></div>
+        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="0" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
       </div>
@@ -3584,34 +3584,26 @@ function renderNutrition(){
     <div style="height:20px"></div>
   </div>`;
 }
-// Inline calorie editing. The input is swapped in synchronously inside the
-// tap gesture so iOS opens the keyboard (focus() after a re-render is ignored).
-function editBurn(el,date,field){
+// Resting/active calorie fields are always-editable inputs (same pattern as
+// the workout tab's weight/reps inputs) — commit on change, no tap-to-reveal
+// step. Also queues a nutrition_day_meta mutation so these persist through
+// the database like weight log already does (previously local-only: any
+// server sync would silently wipe them back to the calculated default).
+function saveBurn(date,field,val){
   if(nutLocked(date))return;
-  const inp=document.createElement("input");
-  inp.className="burn-inp";inp.type="number";
-  inp.setAttribute("inputmode","numeric");inp.setAttribute("enterkeyhint","done");
-  inp.value=field==="resting"?(S.nutrition.days[date]?.restingOverride??calcBMR(latestWeightLog()||USER.weightKg)):(getDayData(date).active||"");
-  const finish=commit=>{
-    if(inp._done)return;inp._done=true;
-    if(commit){
-      const val=inp.value.trim();
-      if(field==="resting"){
-        if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
-        if(val===""){delete S.nutrition.days[date].restingOverride;}
-        else{const n=parseInt(val);if(isNaN(n)||n<800||n>4000){showToast("Enter 800-4000");renderNutrition();return;}S.nutrition.days[date].restingOverride=n;}
-      }else{
-        const n=parseInt(val||"0");if(isNaN(n)||n<0){showToast("Enter a valid number");renderNutrition();return;}
-        getDayData(date).active=n;
-      }
-      save();
-    }
-    renderNutrition();
-  };
-  inp.onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();inp.blur();}if(e.key==="Escape")finish(false);};
-  inp.onblur=()=>finish(true);
-  el.replaceWith(inp);
-  inp.focus();inp.select();
+  val=String(val||"").trim();
+  if(field==="resting"){
+    if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
+    if(val===""){delete S.nutrition.days[date].restingOverride;}
+    else{const n=parseInt(val);if(isNaN(n)||n<800||n>4000){showToast("Enter 800-4000");renderNutrition();return;}S.nutrition.days[date].restingOverride=n;}
+  }else{
+    const n=val===""?0:parseInt(val);if(isNaN(n)||n<0){showToast("Enter a valid number");renderNutrition();return;}
+    getDayData(date).active=n;
+  }
+  save();
+  const dm=S.nutrition.days[date]||{};
+  queueMutation("nutrition_day_meta",{date,active:dm.active??null,restingOverride:dm.restingOverride??null},"nutrition_day_meta:"+date);
+  renderNutrition();
 }
 function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
