@@ -50,8 +50,12 @@ export async function ensureSchema() {
     session_key text PRIMARY KEY,
     calf_twinges jsonb DEFAULT '[]',
     notes text,
+    duration numeric,
+    stopped boolean,
     updated_at timestamptz DEFAULT now()
   )`;
+  await q`ALTER TABLE session_meta ADD COLUMN IF NOT EXISTS duration numeric`;
+  await q`ALTER TABLE session_meta ADD COLUMN IF NOT EXISTS stopped boolean`;
   await q`CREATE TABLE IF NOT EXISTS nutrition_items(
     id serial PRIMARY KEY,
     client_id text,
@@ -65,8 +69,10 @@ export async function ensureSchema() {
   await q`CREATE TABLE IF NOT EXISTS nutrition_day_meta(
     date date PRIMARY KEY,
     active numeric,
-    resting_override numeric
+    resting_override numeric,
+    shock boolean
   )`;
+  await q`ALTER TABLE nutrition_day_meta ADD COLUMN IF NOT EXISTS shock boolean`;
   await q`CREATE TABLE IF NOT EXISTS weights(
     date date PRIMARY KEY,
     kg numeric NOT NULL,

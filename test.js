@@ -482,6 +482,65 @@ ok("mutate.js does not JSON.stringify numeric fields before inserting",
   stringifiedNumericCol ? `found JSON.stringify(...${stringifiedNumericCol}...) — numeric columns should be inserted as raw values` : "");
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 19. Sync-queue guardrail — every state writer must queue its mutation
+// ─────────────────────────────────────────────────────────────────────────────
+section("19 · Sync-queue guardrail");
+
+// The server is the source of truth: loadServerState() replaces local state
+// wholesale whenever the outbox is empty. Any function that writes to S and
+// save()s WITHOUT queueing a mutation is silently reverted on the next sync —
+// the class of bug behind the resting/active-calorie loss and a batch of
+// others found in review. This maps each known writer to the queue call its
+// body must contain. When adding a new writer, add it here.
+const WRITER_QUEUE_PAIRS = [
+  ["saveNotes",         "queueSessionMeta"],
+  ["logCalfTwinge",     "queueSessionMeta"],
+  ["undoCalfTwinge",    "queueSessionMeta"],
+  ["stopSess",          "queueSessionMeta"],
+  ["resumeSess",        "queueSessionMeta"],
+  ["toggleExUnit",      "queueSession("],
+  ["toggleShock",       "queueDayMeta"],
+  ["saveBurn",          "queueDayMeta"],
+  ["handleHKSync",      "queueDayMeta"],
+  ["quickAddRecent",    "nutrition_item_add"],
+  ["confirmFood",       "nutrition_item_add"],
+  ["delFood",           "nutrition_item_delete"],
+  ["applyPendingPlan",  "week_plan_update"],
+  ["resetPlan",         "week_plan_reset"],
+  ["checkMilestones",   "queueMilestones"],
+  ["toggleTheme",       "queueSettings"],
+  ["aiWeeklyReview",    "queueSettings"],
+  ["sendAiChat",        "ai_chat_add"],
+  ["clearAiChat",       "ai_chat_clear"],
+  ["restoreSnapshot",   "restore_all"],
+  ["restoreDailyBackup","restore_all"],
+  ["importBackup",      "restore_all"],
+  ["checkAndStorePR",   'queueMutation("pr"'],
+  ["rememberCustom",    "custom_exercise"],
+  ["saveWeight",        'queueMutation("weight"'],
+  ["delWeight",         "weight_delete"],
+];
+
+// Slice each function body: from its declaration to the next top-level
+// `function`/`async function` declaration (crude but reliable for this
+// file's single-scope, declaration-per-function style).
+function fnBody(name) {
+  const re = new RegExp(`(?:async )?function ${name}\\s*\\(`);
+  const m = re.exec(HTML);
+  if (!m) return null;
+  const rest = HTML.slice(m.index + m[0].length);
+  const next = rest.search(/\n(?:async )?function [A-Za-z_$]/);
+  return next === -1 ? rest : rest.slice(0, next);
+}
+
+for (const [fn, token] of WRITER_QUEUE_PAIRS) {
+  const body = fnBody(fn);
+  ok(`${fn}() queues its mutation (${token.replace(/"/g, "'")})`,
+    body !== null && body.includes(token),
+    body === null ? `function ${fn} not found in index.html` : `body does not contain "${token}" — this write will be silently reverted on next sync`);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 const total = passed + failed;

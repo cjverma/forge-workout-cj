@@ -8,9 +8,9 @@ export async function assembleState() {
   const [sessRows, metaRows, itemRows, dayMetaRows, weightRows, prRows,
     customRows, planRows, milestoneRows, chatRows, settingsRows] = await Promise.all([
     q`SELECT session_key, ex_id, done, skipped, unit, sets FROM sessions`,
-    q`SELECT session_key, calf_twinges, notes FROM session_meta`,
+    q`SELECT session_key, calf_twinges, notes, duration, stopped FROM session_meta`,
     q`SELECT id, client_id, date, name, kcal, protein, carbs, fat, fibre, sugar, sodium, time, canonical FROM nutrition_items ORDER BY id`,
-    q`SELECT date, active, resting_override FROM nutrition_day_meta`,
+    q`SELECT date, active, resting_override, shock FROM nutrition_day_meta`,
     q`SELECT date, kg FROM weights`,
     q`SELECT exercise_id, date, weight, reps, est FROM prs ORDER BY id`,
     q`SELECT id, day_name, name, cat, sets, reps, hint, url, cue, muscles FROM custom_exercises`,
@@ -27,6 +27,8 @@ export async function assembleState() {
   for (const r of metaRows) {
     (sessions[r.session_key] ??= {})._calfTwinges = r.calf_twinges || [];
     if (r.notes) sessions[r.session_key]._notes = r.notes;
+    if (r.duration != null) sessions[r.session_key]._duration = Number(r.duration);
+    if (r.stopped != null) sessions[r.session_key]._stopped = r.stopped;
   }
 
   const days = {};
@@ -44,6 +46,7 @@ export async function assembleState() {
     days[d] ??= { items: [] };
     if (r.active != null) days[d].active = Number(r.active);
     if (r.resting_override != null) days[d].restingOverride = Number(r.resting_override);
+    if (r.shock) days[d].shockProtocol = true;
   }
   const weights = {};
   for (const r of weightRows) {
@@ -80,7 +83,10 @@ export async function assembleState() {
     longestStreak: m.longest_streak || 0
   };
 
-  const aiChat = chatRows.map(r => ({ role: r.role, content: r.content }));
+  // Client message shape is {role, text} — not {role, content} (the column
+  // name). Mapping to `content` here would render blank chat bubbles after a
+  // server restore, since renderAiChatBubbles reads m.text.
+  const aiChat = chatRows.map(r => ({ role: r.role, text: r.content }));
 
   const s = settingsRows[0] || {};
   return {

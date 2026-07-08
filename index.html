@@ -1144,7 +1144,7 @@ function restoreDailyBackup(dateStr){
   try{state=JSON.parse(raw);}catch{showToast("Backup is corrupted");return;}
   const w=dataWeight(state);
   if(!confirm(`Restore local backup from ${dateStr} (~${w} entries)?\n\nThis REPLACES all current data on this device.`))return;
-  S=state;save();showToast("Backup restored ✓");location.reload();
+  S=state;save();queueMutation("restore_all",{state:S});showToast("Backup restored ✓");location.reload();
 }
 
 // Personal constants · never rendered in UI
@@ -1251,7 +1251,7 @@ function toggleExUnit(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
-  save();reCard(key,exId);
+  save();queueSession(key,exId);reCard(key,exId);
 }
 function hintDisp(hint,unit){
   if(!hint)return"";
@@ -1351,7 +1351,7 @@ function logCalfTwinge(){
   if(!S.sessions[key])S.sessions[key]={};
   if(!Array.isArray(S.sessions[key]._calfTwinges))S.sessions[key]._calfTwinges=[];
   S.sessions[key]._calfTwinges.push(Date.now());
-  save();
+  save();queueSessionMeta(key);
   const cnt=S.sessions[key]._calfTwinges.filter(ts=>Number.isFinite(ts)).length;
   const btn=document.getElementById("calfBtn");
   if(btn){
@@ -1371,7 +1371,7 @@ function undoCalfTwinge(){
   const arr=S.sessions[key]?._calfTwinges;
   if(!arr||!arr.length){showToast("Nothing to undo");return;}
   arr.pop();
-  save();
+  save();queueSessionMeta(key);
   showToast("Twinge removed");
   renderW();
 }
@@ -1427,7 +1427,7 @@ function saveNotes(val){
     const key=sk(cDay);
     if(!S.sessions[key])S.sessions[key]={};
     S.sessions[key]._notes=val;
-    save();
+    save();queueSessionMeta(key);
   },500);
 }
 
@@ -1445,8 +1445,10 @@ function initApp(){
   setInterval(cycleQ,9000);
   handleHKSync();
   _appReady=true;
-  flushOutbox();
-  loadServerState(false);
+  // Sequential, not concurrent: a queued restore_all (or any pending write)
+  // must land before we pull authoritative state, or the pull can return
+  // pre-write data and clobber it the moment the outbox empties.
+  flushOutbox().then(()=>loadServerState(false));
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;
@@ -1958,6 +1960,29 @@ function queueSession(key,exId){
   if(!ed)return;
   queueMutation("session_set",{sessionKey:key,exId,done:!!ed.done,skipped:!!ed.skipped,unit:ed.unit,sets:ed.sets||[]},"session_set:"+key+":"+exId);
 }
+// Session-level meta (notes, calf twinges, duration, stopped) lives beside the
+// per-exercise entries in S.sessions[key] but persists via its own table row.
+function queueSessionMeta(key){
+  const sess=S.sessions[key];
+  if(!sess)return;
+  queueMutation("session_meta",{sessionKey:key,calfTwinges:sess._calfTwinges||[],notes:sess._notes||null,duration:sess._duration??null,stopped:sess._stopped??null},"session_meta:"+key);
+}
+// Per-day nutrition meta (active/resting overrides + shock flag) as one upsert.
+function queueDayMeta(date){
+  const dm=S.nutrition.days[date]||{};
+  queueMutation("nutrition_day_meta",{date,active:dm.active??null,restingOverride:dm.restingOverride??null,shock:dm.shockProtocol??null},"nutrition_day_meta:"+date);
+}
+// Singleton settings row: theme, AI deficit modifier, weekly verdict/snapshots,
+// demo cache. Dedupe-keyed so rapid changes collapse to the latest values.
+function queueSettings(){
+  queueMutation("settings",{theme:S.theme??null,aiDeficitModifier:S.nutrition?.aiDeficitModifier??0,weeklySnapshots:S.nutrition?.weeklySnapshots||[],weeklyVerdict:S.nutrition?.weeklyVerdict||null,demoCache:S.demoCache||{},demoCacheV:S.demoCacheV??null,lastBackup:S._lastBackup??null},"settings");
+}
+// Milestone dedupe state — without this, already-celebrated milestones re-fire
+// after any cross-device sync.
+function queueMilestones(){
+  const m=S.milestones||{};
+  queueMutation("milestones",{shownProtein7:m.shownProtein7||[],shownWeight5kg:m.shownWeight5kg||[],shownWeek6:m.shownWeek6||[],longestStreak:m.longestStreak||0},"milestones");
+}
 function saveF(key,exId,i,field,val){
   if(isReadOnly(key))return;
   ensure(key,exId,i);
@@ -2216,7 +2241,7 @@ function stopSess(){
   if(!S.sessions[key])S.sessions[key]={};
   S.sessions[key]._duration=(S.sessions[key]._duration||0)+el; // accumulate across resumes
   S.sessions[key]._stopped=true;
-  save();
+  save();queueSessionMeta(key);
   const prog=PROG[cDay];
   const setsDone=prog.exercises.reduce((a,ex)=>a+((S.sessions[key]||{})[ex.id]?.sets?.filter(s=>s.done)?.length||0),0);
   document.getElementById("sumDur").textContent=m+"m "+(s<10?"0":"")+s+"s";
@@ -2228,7 +2253,7 @@ function stopSess(){
 
 function resumeSess(){
   const key=cDay+"_"+wk();
-  if(S.sessions[key]?._stopped){delete S.sessions[key]._stopped;save();}
+  if(S.sessions[key]?._stopped){delete S.sessions[key]._stopped;save();queueSessionMeta(key);}
   workoutOn=true;sessStart=Date.now();
   showToast("Workout resumed ▶");
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
@@ -2275,7 +2300,7 @@ function restoreSnapshot(ts){
   const snap=list.find(s=>s.ts===ts);
   if(!snap){showToast("Snapshot not found");return;}
   if(!confirm(`Restore snapshot from ${new Date(snap.ts).toLocaleString()} (~${snap.weight} entries)?\n\nThis REPLACES all current data on this device.`))return;
-  S=snap.state;save();showToast("Snapshot restored ✓");location.reload();
+  S=snap.state;save();queueMutation("restore_all",{state:S});showToast("Snapshot restored ✓");location.reload();
 }
 function setSyncDot(){
   const el=document.getElementById("syncDot");
@@ -2361,9 +2386,9 @@ async function loadServerState(showStatus){
 document.addEventListener("visibilitychange",()=>{
   if(!_appReady)return;
   if(document.hidden){clearTimeout(_syncTimer);flushOutbox();}
-  else{flushOutbox();loadServerState(false);}
+  else{flushOutbox().then(()=>loadServerState(false));}
 });
-window.addEventListener("online",()=>{if(_appReady){flushOutbox();loadServerState(false);}});
+window.addEventListener("online",()=>{if(_appReady){flushOutbox().then(()=>loadServerState(false));}});
 async function checkSyncNow(){
   await flushOutbox();
   await loadServerState(true);
@@ -2719,7 +2744,7 @@ async function aiWeeklyReview(){
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
     S.nutrition.weeklyVerdict={week:wk(),text:d.text};
-    save();renderST();
+    save();queueSettings();renderST();
   }catch(e){
     showToast("AI unavailable · try again");
     if(btn){btn.disabled=false;btn.textContent="Regenerate Verdict";}
@@ -3012,7 +3037,7 @@ function importBackup(input){
     const sessCount=Object.keys(state.sessions||{}).length;
     const exported=payload.exportedAt?new Date(payload.exportedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"unknown date";
     if(!confirm(`Restore backup from ${exported} (${sessCount} sessions)?\n\nThis REPLACES all current data on this device.`))return;
-    S=state;save();
+    S=state;save();queueMutation("restore_all",{state:S});
     showToast("Backup restored ✓");
     location.reload();
   };
@@ -3085,6 +3110,7 @@ function resetPlan(){
   delete S.weekPlans;
   delete S.plan; // migration cleanup
   save();
+  queueMutation("week_plan_reset",{}); // no weekKey = clear all weeks server-side
   location.reload();
 }
 
@@ -3293,6 +3319,14 @@ function applyPendingPlan(){
     }
   }
   save();
+  // Persist the week's final plan state: clear the week's rows server-side,
+  // then re-append every stored update. Ordered delivery through the outbox
+  // makes this reconstruct S.weekPlans[nwk] exactly, even after local merges
+  // (Object.assign above) that an append-only log couldn't express.
+  queueMutation("week_plan_reset",{weekKey:nwk});
+  for(const[day,updates]of Object.entries(S.weekPlans[nwk]))
+    for(const upd of(updates||[]))
+      queueMutation("week_plan_update",{weekKey:nwk,dayName:day,update:upd});
   closePlanModal();
   renderST();
   showToast("Plan saved for week of "+weekLabel(nwk)+" ✓");
@@ -3365,19 +3399,19 @@ function checkMilestones(){
   const wkKey=wk();
   // ── streak: update longest + fire 3-day toast ──
   const streak=currentStreak();
-  if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();}
+  if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();queueMilestones();}
   if(streak===3)showToastBig("🔥 3 days in a row — you're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);
     let weekTrains=0;
     for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const iso=isoDate(d);if(iso>=mon&&trainedOn(iso))weekTrains++;}
-    if(weekTrains>=6){S.milestones.shownWeek6.push(wkKey);save();showMilestone("💪","6 Workouts This Week","Elite consistency. Your body is adapting.");}
+    if(weekTrains>=6){S.milestones.shownWeek6.push(wkKey);save();queueMilestones();showMilestone("💪","6 Workouts This Week","Elite consistency. Your body is adapting.");}
   }
   // ── Protein 160g+ for 7 consecutive days (modal) ──
   if(!S.milestones.shownProtein7.includes(wkKey)){
     const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=160;}).every(Boolean);
-    if(allHit){S.milestones.shownProtein7.push(wkKey);save();showMilestone("🥩","7 Days of 160g+ Protein","Consistent fuelling = consistent results.");}
+    if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩","7 Days of 160g+ Protein","Consistent fuelling = consistent results.");}
   }
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
@@ -3385,7 +3419,7 @@ function checkMilestones(){
     const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
     for(const t of [95,100,105,110,115,120,125,130,135]){
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
-        S.milestones.shownWeight5kg.push(t);save();
+        S.milestones.shownWeight5kg.push(t);save();queueMilestones();
         showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
         break;
       }
@@ -3395,7 +3429,7 @@ function checkMilestones(){
 
 function toggleTheme(){
   S.theme=S.theme==="light"?"dark":S.theme==="dark"?"auto":"light";
-  save();applyTheme();
+  save();queueSettings();applyTheme();
   // Repaint the active tab so JS-rendered template colours refresh immediately
   if(cTab==="workout")renderW();
   else if(cTab==="nutrition")renderNutrition();
@@ -3732,8 +3766,7 @@ function saveBurn(date,field,val){
     getDayData(date).active=n;
   }
   save();
-  const dm=S.nutrition.days[date]||{};
-  queueMutation("nutrition_day_meta",{date,active:dm.active??null,restingOverride:dm.restingOverride??null},"nutrition_day_meta:"+date);
+  queueDayMeta(date);
   // Surgical: don't rebuild the DOM if the user is tapping straight from one
   // burn field into the other — replacing the card mid-tap destroys the
   // target input before focus lands on it, dismissing the iOS keyboard
@@ -3746,7 +3779,7 @@ function saveBurn(date,field,val){
   },0);
 }
 function toggleShock(date){
-  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();renderNutrition();}
+  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();}
 function redoFood(){_pendingFood=null;_foodChatOpen=true;_foodDraftText=_lastFoodText||"";_foodDraftMealName=_lastMealName||"";renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
@@ -3757,7 +3790,7 @@ async function askFood(){
   const out=document.getElementById("foodOut");
   if(out){out.className="ai-out show";out.innerHTML='<span class="spin"></span>Estimating...';}
   try{
-    const r=await fetch("/api/nutrition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({text:txt})});
+    const r=await fetch(API_CFG.baseUrl+"/api/nutrition",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({text:txt})});
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||"error");
     const arr=Array.isArray(d.items)?d.items:(d.name?[d]:[]);
@@ -3836,8 +3869,9 @@ function filterFoodSearch(q,date){
 }
 function quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium){
   if(nutLocked(date))return;
-  getDayData(date).items.push({id:"n_"+Date.now(),name,kcal,protein,carbs,fat,fibre:fibre||0,sugar:sugar||0,sodium:sodium||0,time:Date.now()});
-  save();checkMilestones();showToast("Added "+name+" ✓");renderNutrition();
+  const item={id:"n_"+Date.now(),name,kcal,protein,carbs,fat,fibre:fibre||0,sugar:sugar||0,sodium:sodium||0,time:Date.now()};
+  getDayData(date).items.push(item);
+  save();queueMutation("nutrition_item_add",{date,item});checkMilestones();showToast("Added "+name+" ✓");renderNutrition();
 }
 // Most-used meals across the last 60 days, ranked by frequency + recency.
 // Groups near-identical AI-parsed names by a normalised key (first 3 words,
@@ -3979,7 +4013,7 @@ function arrivalEst(){
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
   const active=parseInt(p.get("active")||"0"),date=p.get("date")||isoToday();
-  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();showToast(`⚡ Active calories synced (${active} kcal)`);}
+  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date);showToast(`⚡ Active calories synced (${active} kcal)`);}
   const url=new URL(location.href);url.searchParams.delete("hksync");url.searchParams.delete("active");url.searchParams.delete("date");
   history.replaceState({},"",url);
 }
@@ -4051,7 +4085,7 @@ function closeForgeChat(){
   document.getElementById("forgeChatOverlay")?.classList.remove("open");
   document.getElementById("forgeChatModal")?.classList.remove("open");
 }
-function clearAiChat(){S.aiChat=[];save();const el=document.getElementById("aiChatMessages");if(el)el.innerHTML=renderAiChatBubbles();}
+function clearAiChat(){S.aiChat=[];save();queueMutation("ai_chat_clear",{});const el=document.getElementById("aiChatMessages");if(el)el.innerHTML=renderAiChatBubbles();}
 function typewriterBubble(text,onDone){
   const msgs=document.getElementById("aiChatMessages");
   if(!msgs){onDone&&onDone();return;}
@@ -4083,6 +4117,7 @@ async function sendAiChat(){
   inp.value="";
   if(!S.aiChat)S.aiChat=[];
   S.aiChat.push({role:"user",text,ts:Date.now()});
+  queueMutation("ai_chat_add",{role:"user",content:text});
   if(S.aiChat.length>20)S.aiChat=S.aiChat.slice(-20);
   save();
   const msgs=document.getElementById("aiChatMessages");
@@ -4101,6 +4136,7 @@ async function sendAiChat(){
     const d=await r.json();
     const reply=d.text||d.error||"No response";
     S.aiChat.push({role:"ai",text:reply,ts:Date.now()});
+    queueMutation("ai_chat_add",{role:"ai",content:reply});
     if(S.aiChat.length>20)S.aiChat=S.aiChat.slice(-20);
     save();
     document.getElementById("chatThinking")?.remove();

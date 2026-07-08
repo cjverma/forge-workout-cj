@@ -89,6 +89,18 @@ function buildCSV(S) {
 }
 
 export default async function handler(req, res) {
+  // Vercel cron endpoints are publicly routable. Vercel sends
+  // `Authorization: Bearer ${CRON_SECRET}` with scheduled invocations when the
+  // CRON_SECRET env var is set — require it so outsiders can't trigger DB
+  // reads + Resend sends at will. Also accept the app's own FORGE_API_TOKEN
+  // so the email can still be triggered manually from an authenticated client.
+  const auth = req.headers["authorization"] || "";
+  const provided = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const cronSecret = process.env.CRON_SECRET;
+  const appToken = process.env.FORGE_API_TOKEN;
+  const ok = (cronSecret && provided === cronSecret) || (appToken && provided === appToken);
+  if (!ok) return res.status(401).json({ error: "Unauthorized" });
+
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) return res.status(503).json({ error: "RESEND_API_KEY not set" });
 

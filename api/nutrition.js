@@ -1,4 +1,4 @@
-import { setCors } from "./_shared.js";
+import { setCors, checkAuth } from "./_shared.js";
 
 const SYSTEM = `You are a nutrition estimator. Respond ONLY with valid JSON — no markdown, no explanation, no code fences.
 Format: {"items":[{"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>,"fibre":<number>,"sugar":<number>,"sodium":<number>}]}
@@ -9,6 +9,9 @@ export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
+  // Every other AI endpoint requires the bearer token; this one was missed —
+  // an unauthenticated caller could drive unbounded OpenAI spend through it.
+  if (!checkAuth(req, res)) return;
 
   const { text = "" } = req.body || {};
   if (!text.trim()) return res.status(400).json({ error: "No food description provided" });
