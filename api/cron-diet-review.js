@@ -9,10 +9,9 @@ import { assembleState } from "./state.js";
 // Mirrors the client's goal constants (index.html USER / rate / limits) —
 // keep in sync if those change.
 const GOALS = {
-  targetKg: 85,
-  rateKgPerWeek: 1.5,
-  dailyDeficitKcal: 1650,
-  proteinTargetG: 170,
+  targetKg: 90,
+  goalDate: "2027-02-20",
+  proteinTargetG: 180,
   fibreTargetG: 38,
   sugarLimitG: 50,
   sodiumLimitMg: 2300,
@@ -65,7 +64,7 @@ export function buildPrompt(weekDays, weights) {
 
 Medical context (non-negotiable): ${HARD_RULES}
 
-The user's goals: reach ${GOALS.targetKg} kg at a steady ${GOALS.rateKgPerWeek} kg/week (a ${GOALS.dailyDeficitKcal} kcal/day deficit). Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
+The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate} — the daily calorie deficit is recomputed from remaining weight ÷ days left (roughly 1.5 kg/week at the outset). Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
 
 Write your feedback with a SANDWICH structure, in this exact order:
 1. Start with 2-3 specific things done WELL this week — name actual foods from the log, not generalities.
