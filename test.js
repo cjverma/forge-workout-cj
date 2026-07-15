@@ -579,6 +579,10 @@ ok("wipe_all clears diet_reviews",
 ok("client renders the review card guarded on S.dietReview?.text",
   HTML.includes("S.dietReview?.text") && HTML.includes("Weekly Diet Review") && HTML.includes("mdLite(S.dietReview.text)"));
 
+ok("client has manual generate/regenerate button wired with auth + busy guard",
+  HTML.includes("generateDietReview") && HTML.includes("dietRevBtn") &&
+  HTML.includes("_dietRevBusy") && /generateDietReview[\s\S]{0,400}api\/cron-diet-review[\s\S]{0,200}Bearer "\+API_CFG\.token/.test(HTML));
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────

@@ -3712,11 +3712,13 @@ function renderNutrition(){
       })():`<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
     </div>
 
-    ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron, read-only here -->
+    ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc" open>
       <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${new Date(S.dietReview.weekStart+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · AI feedback on your goals</div></div></summary>
-      <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div></div>
-    </details>`:""}
+      <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
+      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
+    </details>`:`
+    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
 
     <!-- Burn card -->
     <div class="nut-card">
@@ -3788,6 +3790,24 @@ function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();}
+let _dietRevBusy=false;
+async function generateDietReview(){
+  if(_dietRevBusy)return;
+  _dietRevBusy=true;renderNutrition();
+  try{
+    const r=await fetch(API_CFG.baseUrl+"/api/cron-diet-review",{method:"POST",headers:{"Authorization":"Bearer "+API_CFG.token}});
+    const d=await r.json().catch(()=>({}));
+    if(r.status===401){showToast("❌ Auth failed · app token doesn't match FORGE_API_TOKEN");return;}
+    if(d.skipped){showToast("No food logged this week yet — nothing to review");return;}
+    if(!r.ok||!d.ok)throw new Error(d.error||"error");
+    await loadServerState(false);
+    showToast("✅ Diet review ready");
+  }catch(e){
+    showToast("❌ Diet review failed — try again");
+  }finally{
+    _dietRevBusy=false;renderNutrition();
+  }
+}
 function redoFood(){_pendingFood=null;_foodChatOpen=true;_foodDraftText=_lastFoodText||"";_foodDraftMealName=_lastMealName||"";renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 async function askFood(){
   const ta=document.getElementById("foodTa");if(!ta)return;
