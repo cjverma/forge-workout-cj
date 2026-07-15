@@ -6,7 +6,7 @@ export async function assembleState() {
   const q = sql();
 
   const [sessRows, metaRows, itemRows, dayMetaRows, weightRows, prRows,
-    customRows, planRows, milestoneRows, chatRows, settingsRows] = await Promise.all([
+    customRows, planRows, milestoneRows, chatRows, settingsRows, dietReviewRows] = await Promise.all([
     q`SELECT session_key, ex_id, done, skipped, unit, sets FROM sessions`,
     q`SELECT session_key, calf_twinges, notes, duration, stopped FROM session_meta`,
     q`SELECT id, client_id, date, name, kcal, protein, carbs, fat, fibre, sugar, sodium, time, canonical FROM nutrition_items ORDER BY id`,
@@ -17,7 +17,8 @@ export async function assembleState() {
     q`SELECT week_key, day_name, update FROM week_plan_updates ORDER BY id`,
     q`SELECT shown_protein7, shown_weight5kg, shown_week6, longest_streak FROM milestones WHERE id=1`,
     q`SELECT role, content FROM ai_chat ORDER BY id`,
-    q`SELECT theme, ai_deficit_modifier, weekly_snapshots, weekly_verdict, demo_cache, demo_cache_v, last_backup FROM app_settings WHERE id=1`
+    q`SELECT theme, ai_deficit_modifier, weekly_snapshots, weekly_verdict, demo_cache, demo_cache_v, last_backup FROM app_settings WHERE id=1`,
+    q`SELECT week_start, text, created_at FROM diet_reviews ORDER BY week_start DESC LIMIT 1`
   ]);
 
   const sessions = {};
@@ -100,7 +101,14 @@ export async function assembleState() {
     theme: s.theme || undefined,
     demoCache: s.demo_cache || {},
     demoCacheV: s.demo_cache_v || undefined,
-    _lastBackup: s.last_backup ? new Date(s.last_backup).getTime() : undefined
+    _lastBackup: s.last_backup ? new Date(s.last_backup).getTime() : undefined,
+    // Explicitly null (never undefined) when no review exists yet, so the
+    // client guard is a plain truthiness check.
+    dietReview: dietReviewRows[0] ? {
+      weekStart: dietReviewRows[0].week_start.toISOString ? dietReviewRows[0].week_start.toISOString().slice(0, 10) : dietReviewRows[0].week_start,
+      text: dietReviewRows[0].text,
+      createdAt: dietReviewRows[0].created_at ? new Date(dietReviewRows[0].created_at).getTime() : null
+    } : null
   };
 }
 

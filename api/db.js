@@ -110,6 +110,11 @@ export async function ensureSchema() {
     role text, content text,
     created_at timestamptz DEFAULT now()
   )`;
+  await q`CREATE TABLE IF NOT EXISTS diet_reviews(
+    week_start date PRIMARY KEY,
+    text text NOT NULL,
+    created_at timestamptz DEFAULT now()
+  )`;
   await q`CREATE TABLE IF NOT EXISTS app_settings(
     id int PRIMARY KEY DEFAULT 1,
     theme text,

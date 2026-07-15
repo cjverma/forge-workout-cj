@@ -3712,6 +3712,12 @@ function renderNutrition(){
       })():`<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
     </div>
 
+    ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron, read-only here -->
+    <details class="st-acc" open>
+      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${new Date(S.dietReview.weekStart+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · AI feedback on your goals</div></div></summary>
+      <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div></div>
+    </details>`:""}
+
     <!-- Burn card -->
     <div class="nut-card">
       <div class="nut-card-title">Burn</div>

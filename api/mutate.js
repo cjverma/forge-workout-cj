@@ -233,6 +233,7 @@ export default async function handler(req, res) {
         await q`DELETE FROM custom_exercises`;
         await q`DELETE FROM week_plan_updates`;
         await q`DELETE FROM ai_chat`;
+        await q`DELETE FROM diet_reviews`;
         await q`UPDATE milestones SET shown_protein7='[]', shown_weight5kg='[]', shown_week6='[]', longest_streak=0 WHERE id=1`;
         await q`UPDATE app_settings SET theme=NULL, ai_deficit_modifier=0, weekly_snapshots='[]', weekly_verdict=NULL, demo_cache='{}', demo_cache_v=NULL, last_backup=NULL WHERE id=1`;
         break;
