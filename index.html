@@ -1149,16 +1149,123 @@ function restoreDailyBackup(dateStr){
 
 // Personal constants · never rendered in UI
 const USER={birthDate:new Date(1995,7,1),weightKg:138,targetKg:90,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,20)};
-// Date-driven (2026-07-15): goal is 90kg by Feb 20, 2027 (138kg at reset).
-// The required deficit is recomputed daily from remaining-weight ÷ days-left
-// (~1680 kcal/day at reset ≈ 1.53 kg/week), so it self-corrects if a week
-// goes off track. requiredDeficit() is the single source for this math.
+// Fallback when no phase covers a date: date-driven deficit toward 90kg by
+// Feb 20, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
-// Eating target never displays below the floor — when the date-driven math
-// demands less, the shortfall is surfaced as a "move target" (extra active
-// burn) instead. Floor is weight-staged: 1200 kcal while above 115 kg (large
-// bodies tolerate bigger deficits), 1500 kcal from 115 kg down.
-function intakeFloor(lw){return lw>115?1200:1500;}
+
+// ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
+// The plan is phase-based: fixed eat/active/resting targets inside each phase,
+// colour-banded checkpoints between phases. Identity (id+version) is primary;
+// plannedEnd is the immutable authored deadline, effectiveEnd() is derived
+// (plannedEnd + extend-pauses). Definitions live here; runtime state
+// (S.phaseRun), immutable completion snapshots (S.phaseHistory) and reviews
+// ride the settings sync blob. All date math is noon-UTC-anchored on
+// YYYY-MM-DD strings so Toronto DST transitions can never shift a day.
+const PHASES=[
+  {id:"phase_1",version:1,strategy:"fat_loss",curve:"front_loaded",
+   start:"2026-07-17",plannedEnd:"2026-08-31",startKg:138,targetKg:128,
+   eatKcal:2100,restingKcal:2850,activeTargetWorkout:1500,activeTargetRest:650}
+];
+function noonUTC(iso){return new Date(iso+"T12:00:00Z");}
+function daysBetween(aIso,bIso){return Math.round((noonUTC(bIso)-noonUTC(aIso))/86400000);}
+function addDaysIso(iso,n){const d=noonUTC(iso);d.setUTCDate(d.getUTCDate()+n);return d.toISOString().split("T")[0];}
+// Read-only accessor — never writes to S; mutations go through explicit actions
+function getPhaseRun(id){return(S.phaseRun&&S.phaseRun[id])||{pauses:[],completedAt:null,outcome:null,locked:false};}
+function ensurePhaseRun(id){S.phaseRun=S.phaseRun||{};S.phaseRun[id]=S.phaseRun[id]||{pauses:[],completedAt:null,outcome:null,locked:false};return S.phaseRun[id];}
+// Whole days consumed by extend:true pauses (open pauses count up to `uptoIso`)
+function pausedDaysExtend(p,uptoIso){
+  let n=0;
+  for(const pa of getPhaseRun(p.id).pauses){
+    if(!pa.extend)continue;
+    const end=pa.resumed||uptoIso;
+    n+=Math.max(0,daysBetween(pa.start,end));
+  }
+  return n;
+}
+function effectiveEnd(p,todayIso){return addDaysIso(p.plannedEnd,pausedDaysExtend(p,todayIso||isoToday()));}
+// planned | active | paused | completed | locked
+function phaseState(p,todayIso){
+  const run=getPhaseRun(p.id);const t=todayIso||isoToday();
+  if(run.locked)return"locked";
+  if(run.completedAt)return"completed";
+  if(run.pauses.some(pa=>!pa.resumed))return"paused";
+  if(t<p.start)return"planned";
+  if(t>effectiveEnd(p,t))return"completed"; // past end, awaiting verdict/lock
+  return"active";
+}
+function phaseFor(dateIso){
+  return PHASES.find(p=>{
+    const run=getPhaseRun(p.id);
+    if(run.locked||run.completedAt)return false;
+    return dateIso>=p.start&&dateIso<=effectiveEnd(p,dateIso);
+  })||null;
+}
+// Declarative curve shapes → per-day loss shares (no magic arrays). Linear
+// interpolation of a start→end rate multiplier, normalised to sum to 1 so the
+// cumulative curve lands exactly on targetKg at the phase end.
+function curveWeights(shape,nDays){
+  const ends={front_loaded:[1.35,0.75],moderate:[1.15,0.85],linear:[1,1],back_loaded:[0.75,1.35]};
+  const[a,b]=ends[shape]||ends.linear;
+  const w=[];
+  for(let i=0;i<nDays;i++){const t=nDays>1?i/(nDays-1):0;w.push(a+(b-a)*t);}
+  const sum=w.reduce((s,x)=>s+x,0)||1;
+  return w.map(x=>x/sum);
+}
+function phaseCurveKg(p,dateIso){
+  const end=effectiveEnd(p,dateIso);
+  const total=Math.max(1,daysBetween(p.start,end));
+  const dIn=Math.min(Math.max(daysBetween(p.start,dateIso),0),total);
+  const w=curveWeights(p.curve,total);
+  const lost=(p.startKg-p.targetKg)*w.slice(0,dIn).reduce((s,x)=>s+x,0);
+  return Math.round((p.startKg-lost)*10)/10;
+}
+// ±1 kg tolerance corridor — UI language is "Target range today", never a point
+function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{expected:e,lo:Math.round((e-1)*10)/10,hi:Math.round((e+1)*10)/10};}
+function isRestDay(dateIso){return noonUTC(dateIso).getUTCDay()===0;} // Sunday
+function phaseActiveTarget(p,dateIso){return isRestDay(dateIso)?p.activeTargetRest:p.activeTargetWorkout;}
+// Background verification only (weekly deficit card, AI context) — never
+// rendered on the Nutrition dashboard: users chase behaviours, not deficits.
+function phaseDayDeficit(p,dateIso){return Math.round(p.restingKcal+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
+function restingFor(dateIso,dayData){
+  if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;
+  const p=phaseFor(dateIso);
+  return p?p.restingKcal:calcBMR(latestWeightLog()||USER.weightKg);
+}
+function sevenDayAvg(dateIso){
+  const ws=S.nutrition.weights||{};const t=dateIso||isoToday();
+  const vals=[];
+  for(let i=0;i<7;i++){const d=addDaysIso(t,-i);if(ws[d]!=null)vals.push(Number(ws[d]));}
+  return vals.length?Math.round(vals.reduce((s,x)=>s+x,0)/vals.length*10)/10:null;
+}
+function phaseKgPerDay(p){const total=daysBetween(p.start,p.plannedEnd);return total?(p.startKg-p.targetKg)/total:0;}
+// Ahead/behind the curve translated to schedule days (positive = ahead)
+function bankedDays(p,todayIso){
+  const avg=sevenDayAvg(todayIso);
+  const rate=phaseKgPerDay(p);
+  if(avg==null||!rate)return null;
+  const kg=Math.round((phaseCurveKg(p,todayIso)-avg)*10)/10;
+  return{kg,days:Math.round(kg/rate)};
+}
+// Trend projection to the overall 90kg goal, gated by weigh-in confidence so a
+// few early water-loss days can't predict an unrealistically early finish.
+function projectedFinish(todayIso){
+  const ws=S.nutrition.weights||{};const t=todayIso||isoToday();
+  const pts=[];
+  for(let i=0;i<21;i++){const d=addDaysIso(t,-i);if(ws[d]!=null)pts.push({x:-i,y:Number(ws[d])});}
+  if(pts.length<10)return{status:"stabilizing"};
+  const p14=pts.filter(pt=>pt.x>=-13);
+  const n=p14.length,sx=p14.reduce((s,pt)=>s+pt.x,0),sy=p14.reduce((s,pt)=>s+pt.y,0);
+  const sxx=p14.reduce((s,pt)=>s+pt.x*pt.x,0),sxy=p14.reduce((s,pt)=>s+pt.x*pt.y,0);
+  const denom=n*sxx-sx*sx;
+  if(!denom)return{status:"stabilizing"};
+  const slope=(n*sxy-sx*sy)/denom; // kg/day, negative = losing
+  const cur=sevenDayAvg(t);
+  if(slope>=-0.01||cur==null)return{status:"stabilizing"};
+  const days=Math.ceil((cur-USER.targetKg)/(-slope));
+  const date=addDaysIso(t,days);
+  return{status:"ok",date,confidence:pts.length>=14?"High":"Medium",deltaDays:daysBetween(date,isoDate(USER.goalDate))};
+}
+// ── END PHASE ENGINE ─────────────────────────────────────────────────────────
 const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300,ACTIVE_MULT=0.75;
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
@@ -1172,19 +1279,17 @@ function trainedOn(dateIso){
   const sess=S.sessions[dayName+"_"+wkKey];
   return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)));
 }
-function calcTarget(bmr,active){
-  // Date-driven (2026-07-15): deficit = weight-to-lose ÷ days-left, so it
-  // adapts to actual progress toward 90kg by Feb 20, 2027.
-  const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
+function calcTarget(bmr,active,dateIso){
+  // Phase-aware: inside a phase the eating target is the phase's fixed kcal
+  // and req is the phase's expected day deficit (background use only).
+  // Outside any phase: date-driven fallback toward 90kg by Feb 20, 2027.
+  const t=dateIso||isoToday();
   const lw=latestWeightLog()||USER.weightKg;
+  const p=phaseFor(t);
+  if(p)return{bmr,req:phaseDayDeficit(p,t),target:p.eatKcal,daysLeft:daysBetween(t,effectiveEnd(p,t)),lw,phase:p};
+  const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const req=requiredDeficit(lw,daysLeft);
-  const raw=bmr+active-req;
-  const floor=intakeFloor(lw);
-  const target=Math.max(floor,raw);
-  // moveGap: effective-burn shortfall when the floor kicks in; ÷ACTIVE_MULT at
-  // display time to convert to raw active calories the user must log.
-  const moveGap=Math.max(0,floor-raw);
-  return{bmr,req,target,daysLeft,lw,moveGap,floor};
+  return{bmr,req,target:bmr+active-req,daysLeft,lw,phase:null};
 }
 function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 function isoToday(){return isoDate(new Date());}
@@ -2532,35 +2637,38 @@ function renderST(){
       const monday=new Date(now);
       monday.setDate(now.getDate()+mondayOffset);
       const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-      // Weekly target: dailyReq × 6.5 (6 full days + 0.5 for Sunday rest day).
-      // Date-driven (2026-07-15) — see calcTarget()/requiredDeficit().
+      // Weekly target: background deficit verification. In a phase, each day's
+      // expected deficit comes from phaseDayDeficit() (workout vs Sunday) and
+      // the weekly target is their sum; outside a phase, the date-driven
+      // fallback with the 6.5-share heuristic applies.
       const lw=latestWeightLog()||USER.weightKg;
-      const bmrBase=calcBMR(lw);
       const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
       const dailyReq=requiredDeficit(lw,daysLeft);
-      const WEEKLY_TARGET=Math.round(dailyReq*6.5);
+      const mondayIso=isoDate(monday);
+      const weekPhase=phaseFor(mondayIso)||phaseFor(todayIso);
+      const dayShare=i=>{const iso=addDaysIso(mondayIso,i);return weekPhase?phaseDayDeficit(weekPhase,iso):(i===6?dailyReq*0.5:dailyReq);};
+      const WEEKLY_TARGET=Math.round([0,1,2,3,4,5,6].reduce((s,i)=>s+dayShare(i),0));
       let runningTotal=0;
       let rows="";
       let loggedDays=0;
       let daysElapsed=0;
-      let elapsedWeight=0; // Mon-Sat = 1 share, Sunday (rest day, no active burn) = 0.5
+      let elapsedShare=0; // expected-deficit share of elapsed days
       for(let i=0;i<7;i++){
         const d=new Date(monday);
         d.setDate(monday.getDate()+i);
         const iso=isoDate(d);
         if(iso>todayIso)break;
         daysElapsed++;
-        elapsedWeight+=(i===6?0.5:1);
+        elapsedShare+=dayShare(i);
         const nutDay=S.nutrition?.days?.[iso]||{};
         const items=nutDay.items||[];
         const consumed=items.reduce((s,it)=>s+(it.kcal||0),0);
         if(!consumed){
           const isSun=i===6;
-          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]}${isSun?' <span style="font-size:9px;color:var(--dim)">(rest ×0.5)</span>':''} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
+          rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]}${isSun?' <span style="font-size:9px;color:var(--dim)">(rest day)</span>':''} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:var(--dim);font-size:12px">not logged</span></div>`;
           continue;
         }
-        const bmr=calcBMR(lw);
-        const resting=nutDay.restingOverride!=null?nutDay.restingOverride:bmr;
+        const resting=restingFor(iso,nutDay);
         const active=nutDay.active||0;
         const burn=resting+Math.round(active*ACTIVE_MULT);
         const deficit=burn-consumed;
@@ -2573,11 +2681,9 @@ function renderST(){
       }
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
       const adjusted=runningTotal;
-      // Pace-based status: pro-rate the weekly target by burn-weighted days,
-      // not calendar days. Sunday is a rest day (no active burn) so it carries
-      // half a share; Mon-Sat carry full shares.
-      const WEEK_WEIGHT=6.5;
-      const paceTarget=Math.round(WEEKLY_TARGET*elapsedWeight/WEEK_WEIGHT);
+      // Pace-based status: pro-rate by each elapsed day's expected-deficit
+      // share (phase-aware; Sunday naturally carries a smaller share).
+      const paceTarget=Math.round(elapsedShare);
       const pace=paceTarget?adjusted/paceTarget:0;
       const totalCol=pace>=1?"var(--green)":pace>=0.95?"var(--amber)":"var(--red)";
       const statusTxt=pace>=1.05?"Ahead of pace ✓":pace>=0.95?"On pace":"Behind pace";
@@ -2745,7 +2851,8 @@ async function aiWeeklyReview(){
   else if(wtEntries.length===1){wtLine=`${wtEntries[0][1]}kg (${wtEntries[0][0]}), only one weigh-in`;}
   const lw=latestWeightLog()||USER.weightKg;
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
-  const req=requiredDeficit(lw,daysLeft);
+  const _wp=phaseFor(isoToday());
+  const req=_wp?phaseDayDeficit(_wp,isoToday()):requiredDeficit(lw,daysLeft);
   const prompt=`Weekly summary (last 7 days):\nWorkouts: ${sessCount} sessions\nAvg intake: ${avgKcal} kcal/day | Avg protein: ${avgProtein}g | Avg fibre: ${avgFibre}g\nAvg active burn: ${avgActive} kcal | Avg total burn: ${avgBurn} kcal | Avg deficit: ${avgDeficit} kcal/day\nRequired deficit to hit goal: ${req} kcal/day\nWeight: ${wtLine}\nCurrent: ${lw}kg → Target: ${USER.targetKg}kg | ${daysLeft} days left\n\nFood log (last 7 days):\n${foodLines.slice(0,60).join("\n")}\n\nAssess in 4-5 sentences: (1) is the actual deficit on track vs the required ${req} kcal/day? (2) given the deficit numbers, explain whether the weight change is water retention (assume this first — glycogen, sodium, hormonal shifts are common causes, especially with training) or genuine fat gain; do NOT question logging accuracy. (3) workout consistency. (4) one food habit observation from the log. (5) one specific action for next week. Cite actual numbers. Plain text only.`;
   try{
     const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})});
@@ -3425,7 +3532,7 @@ function checkMilestones(){
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
   if(wtEntries.length){
     const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
-    for(const t of [95,100,105,110,115,120,125,130,135]){
+    for(const t of [90,95,100,105,110,115,120,125,130,135]){
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();queueMilestones();
         showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
@@ -3596,14 +3703,15 @@ function macroPie(protein,carbs,fat,fibre){
 function renderNutrition(){
   const date=_nutDate;
   const ro=nutLocked(date);
+  {const _p=phaseFor(isoToday());if(_p)recordWeekCompliance(_p);}
   const day=getDayData(date);
   const lw=latestWeightLog()||USER.weightKg;
   const bmr=calcBMR(lw);
-  const resting=day.restingOverride!=null?day.restingOverride:bmr;
+  const resting=restingFor(date,day);
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
   const totalBurn=resting+Math.round(active*ACTIVE_MULT);
-  const {target,moveGap,floor}=calcTarget(resting,Math.round(active*ACTIVE_MULT));
+  const {target,phase}=calcTarget(resting,Math.round(active*ACTIVE_MULT),date);
   const shock=day.shockProtocol;
   const finalTarget=shock?1500:target;
   const items=day.items||[];
@@ -3665,7 +3773,15 @@ function renderNutrition(){
       </div>
       <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
-      ${!shock&&moveGap>0?`<div style="font-size:11px;color:var(--hero-fg-dim);margin-top:4px;text-align:left">⚡ Move target: log ${Math.round(moveGap/ACTIVE_MULT).toLocaleString()} kcal active burn to stay on pace (eating floored at ${floor.toLocaleString()})</div>`:""}
+      ${phase?(()=>{
+        // Active compliance: raw Watch kcal vs the phase's daily active target
+        const aTgt=phaseActiveTarget(phase,date);
+        const aPct=aTgt?Math.round(active/aTgt*100):0;
+        const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
+        const met=aPct>=95;
+        const remain=Math.max(0,aTgt-active);
+        return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">⚡ Active ${active.toLocaleString()} / ${aTgt.toLocaleString()} · ${aPct}%${remain>0?` · ${remain.toLocaleString()} kcal remaining`:""} · ${lbl}</div>`;
+      })():""}
       ${macroPie(protein,carbs,fat,fibre)}
       <div class="macro-row">
         <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:var(--hero-pos)":""}">${protein}<span style="font-size:11px;color:var(--hero-fg-faint)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
@@ -3728,6 +3844,8 @@ function renderNutrition(){
       <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
     <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
+
+    ${phaseCardHtml()}
 
     <!-- Burn card -->
     <div class="nut-card">
@@ -3817,6 +3935,294 @@ async function generateDietReview(){
     _dietRevBusy=false;renderNutrition();
   }
 }
+
+// ── PHASE CARD: compliance, health, pause, verdict, AI review ───────────────
+const COMPLIANCE_WEIGHTS={calories:0.35,active:0.25,protein:0.20,workouts:0.15,weighins:0.05};
+function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addDaysIso(dateIso,dow===0?-6:1-dow);}
+// Weighted compliance for [weekStartIso .. endIso]. Returns {calculating:true}
+// until at least one day has food logged (NaN-safe denominators throughout).
+function weekCompliance(p,weekStartIso,endIso){
+  const days=[];
+  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
+  if(!days.length)return{calculating:true};
+  let calOk=0,calLogged=0,protSum=0,protDays=0,actSum=0,actTgtSum=0,workoutDays=0,expWorkout=0,weighins=0;
+  for(const d of days){
+    const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
+    const kcal=items.reduce((s,it)=>s+(it.kcal||0),0);
+    if(kcal>0){
+      calLogged++;
+      if(kcal<=p.eatKcal*1.05)calOk++;
+      protSum+=items.reduce((s,it)=>s+(it.protein||0),0);protDays++;
+    }
+    actSum+=nd.active||0;actTgtSum+=phaseActiveTarget(p,d);
+    if(!isRestDay(d)){expWorkout++;if(trainedOn(d))workoutDays++;}
+    if((S.nutrition.weights||{})[d]!=null)weighins++;
+  }
+  if(!calLogged)return{calculating:true};
+  const m={
+    calories:Math.round(calOk/calLogged*100),
+    active:Math.min(100,Math.round(actTgtSum?actSum/actTgtSum*100:0)),
+    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/(USER.targetKg*2)*100:0)),
+    workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
+    weighins:Math.round(weighins/days.length*100),
+  };
+  m.overall=Math.round(Object.entries(COMPLIANCE_WEIGHTS).reduce((s,[k,w])=>s+m[k]*w,0));
+  return m;
+}
+// Live health colour — same distance bands as the phase-end verdict, applied
+// to today's curve point instead of the phase target.
+function phaseHealth(p,todayIso){
+  const avg=sevenDayAvg(todayIso);
+  if(avg==null)return null;
+  const d=avg-phaseCurveKg(p,todayIso);
+  if(d<=1)return{colour:"green",label:d<-1?"Ahead of schedule":"On track"};
+  if(d<=2)return{colour:"yellow",label:"Slightly behind"};
+  if(d<=4)return{colour:"orange",label:"Moderately behind"};
+  return{colour:"red",label:"Off track — reassess"};
+}
+// End-of-phase colour bands with the user's prescribed actions, verbatim rule
+function phaseVerdict(p,finalAvg){
+  const d=finalAvg-p.targetKg;
+  if(d<=1)return{band:"green",title:"🟢 On Target",action:"No changes. Continue to the next phase exactly as planned."};
+  if(d<=2)return{band:"yellow",title:"🟡 Slightly Behind",action:"Keep calories the same. Increase average active calories by 100/day. Recalculate the next phase."};
+  if(d<=4)return{band:"orange",title:"🟠 Moderately Behind",action:"Decision point — Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
+  return{band:"red",title:"🔴 Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, Zepbound dose and response, and any injury or illness. Only then adjust calories, activity, or the timeline."};
+}
+// Exactly one rule-based actionable recommendation (deterministic, no AI)
+function coachRecommendation(p,todayIso,comp){
+  const h=phaseHealth(p,todayIso);
+  if(!h||!comp||comp.calculating)return"Log food and weight consistently this week to unlock recommendations.";
+  if(h.colour==="green"&&comp.overall>=90)return"Excellent adherence — avoid the temptation to cut calories further.";
+  if(h.colour==="green")return"Stay the course.";
+  if(comp.active<90)return"Increase active calories by roughly 100/day next week.";
+  if(comp.calories<80)return"Keep more days at or under the calorie target — that's the biggest lever right now.";
+  return"Hold targets steady and prioritise consistency over intensity.";
+}
+// Append last week's score to the quiet compliance history once it's complete
+function recordWeekCompliance(p){
+  const t=isoToday();
+  const thisMon=mondayOfIso(t);
+  const lastMon=addDaysIso(thisMon,-7);
+  if(lastMon<p.start)return;
+  const run=getPhaseRun(p.id);
+  if((run.weeks||[]).some(w=>w.week===lastMon))return;
+  const comp=weekCompliance(p,lastMon,addDaysIso(lastMon,6));
+  if(comp.calculating)return;
+  const r=ensurePhaseRun(p.id);
+  r.weeks=r.weeks||[];
+  r.weeks.push({week:lastMon,overall:comp.overall,perMetric:comp});
+  save();queueSettings();
+}
+let _phasePauseOpen=false;
+function pausePhase(id,reason,extend){
+  const run=ensurePhaseRun(id);
+  run.pauses.push({start:isoToday(),reason,extend:!!extend,resumed:null});
+  _phasePauseOpen=false;
+  save();queueSettings();renderNutrition();
+  showToast("⏸ Phase paused · "+reason+(extend?" · phase will extend":""));
+}
+function resumePhase(id){
+  const open=ensurePhaseRun(id).pauses.find(pa=>!pa.resumed);
+  if(open)open.resumed=isoToday();
+  save();queueSettings();renderNutrition();
+  showToast("▶ Phase resumed");
+}
+// Completion: verdict + immutable snapshot + quiet analytics, then lock.
+// `manual` = the "Accept current result" override — never fight the user.
+function completePhase(id,manual){
+  const p=PHASES.find(x=>x.id===id);
+  if(!p)return;
+  const run=ensurePhaseRun(id);
+  if(run.locked)return;
+  const t=isoToday();
+  const finalAvg=sevenDayAvg(t)??latestWeightLog()??p.startKg;
+  const v=phaseVerdict(p,finalAvg);
+  run.completedAt=t;run.outcome=v.band;run.locked=true;
+  const weeks=run.weeks||[];
+  const avgCompliance=weeks.length?Math.round(weeks.reduce((s,w)=>s+w.overall,0)/weeks.length):null;
+  const phaseDays=Math.max(1,daysBetween(p.start,t));
+  let kcalSum=0,kcalDays=0,actSum=0,recovery=0,pauseDays=0;
+  for(let i=0;i<phaseDays;i++){
+    const d=addDaysIso(p.start,i);
+    const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
+    const kc=items.reduce((s,it)=>s+(it.kcal||0),0);
+    if(kc>0){kcalSum+=kc;kcalDays++;}
+    actSum+=nd.active||0;
+    if(!isRestDay(d)&&!trainedOn(d))recovery++;
+  }
+  for(const pa of run.pauses){pauseDays+=Math.max(0,daysBetween(pa.start,pa.resumed||t));}
+  S.phaseHistory=S.phaseHistory||{};
+  S.phaseHistory[id]={
+    version:p.version,strategy:p.strategy,start:p.start,plannedEnd:p.plannedEnd,
+    effectiveEnd:effectiveEnd(p,t),completedAt:t,startKg:p.startKg,targetKg:p.targetKg,
+    actualEndKg:finalAvg,eatKcal:p.eatKcal,
+    activeTargets:{workout:p.activeTargetWorkout,rest:p.activeTargetRest},
+    outcome:v.band,manual:!!manual,weeklyCompliance:weeks,
+    stats:{avgCompliance,avgWeeklyLossKg:Math.round((p.startKg-finalAvg)/(phaseDays/7)*100)/100,
+      avgKcal:kcalDays?Math.round(kcalSum/kcalDays):null,
+      avgActive:Math.round(actSum/phaseDays),pauseDays,recoveryDays:recovery},
+  };
+  save();queueSettings();renderNutrition();
+  showToast(manual?"✓ Checkpoint accepted at "+finalAvg+" kg":"🏁 Phase complete");
+}
+let _phaseRevBusy=false;
+async function aiPhaseReview(id){
+  const p=PHASES.find(x=>x.id===id);
+  if(!p||_phaseRevBusy)return;
+  _phaseRevBusy=true;renderNutrition();
+  try{
+    const t=isoToday();
+    const end=effectiveEnd(p,t);
+    const completion=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/Math.max(1,daysBetween(p.start,end))*100)));
+    const comp=weekCompliance(p,mondayOfIso(t),t);
+    const health=phaseHealth(p,t);
+    const cor=phaseCorridor(p,t);
+    const run=getPhaseRun(p.id);
+    // Compact per-day JSON (daily totals only, never raw food strings) —
+    // keeps the prompt token-safe.
+    const days=[];
+    for(let i=13;i>=0;i--){
+      const d=addDaysIso(t,-i);
+      const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
+      const w=(S.nutrition.weights||{})[d];
+      if(!items.length&&!nd.active&&w==null)continue;
+      days.push({date:d,kcal:items.reduce((s,it)=>s+(it.kcal||0),0),protein:items.reduce((s,it)=>s+(it.protein||0),0),active:nd.active||0,weight:w!=null?Number(w):null});
+    }
+    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${p.activeTargetWorkout} (Mon-Sat) / ${p.activeTargetRest} (Sun), counted burn = resting ${p.restingKcal} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
+    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})});
+    const d=await r.json();
+    if(!r.ok||!d.text)throw new Error(d.error||"failed");
+    S.phaseReview={phase:p.id,text:d.text,at:Date.now()};
+    save();queueSettings();
+  }catch(e){
+    showToast("AI unavailable · try again");
+  }finally{
+    _phaseRevBusy=false;renderNutrition();
+  }
+}
+// The 🎯 phase card (Nutrition tab). Returns "" when no phase is relevant.
+function phaseCardHtml(){
+  const t=isoToday();
+  const p=PHASES.find(x=>{
+    const st=phaseState(x,t);
+    return st==="active"||st==="paused"||(st==="completed"&&!getPhaseRun(x.id).locked);
+  });
+  if(!p)return"";
+  const st=phaseState(p,t);
+  const run=getPhaseRun(p.id);
+  const end=effectiveEnd(p,t);
+  const totalDays=Math.max(1,daysBetween(p.start,end));
+  const dayIn=Math.min(Math.max(daysBetween(p.start,t)+1,1),totalDays);
+  const pctDone=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  const avg=sevenDayAvg(t);
+  const cor=phaseCorridor(p,t);
+  const health=phaseHealth(p,t);
+  const banked=bankedDays(p,t);
+  const comp=weekCompliance(p,mondayOfIso(t),t);
+  const proj=projectedFinish(t);
+  const fmtD=iso=>new Date(iso+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  const healthCol=c=>c==="green"?"var(--green)":c==="yellow"?"var(--amber)":c==="orange"?"#e8853d":"var(--red)";
+  const num=n=>n.toLocaleString();
+  const nMuted=`font-size:12px;color:var(--dim)`;
+  const row=(l,v)=>`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--mid)">${l}</span><span style="font-weight:600">${v}</span></div>`;
+  const openPause=run.pauses.find(pa=>!pa.resumed);
+
+  // Lost / remaining stats
+  const cur=avg??latestWeightLog();
+  const lost=cur!=null?Math.round((p.startKg-cur)*10)/10:null;
+  const lostPct=lost!=null?Math.round(lost/p.startKg*1000)/10:null;
+
+  // Milestones (5-kg thresholds, shared list with checkMilestones)
+  const reached=(S.milestones?.shownWeight5kg||[]).slice().sort((a,b)=>a-b)[0];
+  const nextMs=cur!=null?[135,130,125,120,115,110,105,100,95,90].find(m=>m<cur):null;
+
+  // Verdict (due once past effective end, or via Accept)
+  let verdictHtml="";
+  if(st==="completed"&&!run.locked){
+    const finalAvg=avg??latestWeightLog()??p.startKg;
+    const v=phaseVerdict(p,finalAvg);
+    verdictHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px">${v.title} · final 7-day avg ${finalAvg} kg vs target ${p.targetKg} kg</div>
+      <div style="font-size:12px;color:var(--lt);line-height:1.6">${v.action}</div>
+      <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
+    </div>`;
+  }
+  const inLastWeek=daysBetween(t,end)<=7&&st!=="completed";
+
+  // Sunday coach summary (visible Sunday → Saturday for the week just ended)
+  let sundayHtml="";
+  {
+    const thisMon=mondayOfIso(t);
+    const lastMon=addDaysIso(thisMon,-7);
+    const showWeekMon=isRestDay(t)?thisMon:lastMon; // on Sunday summarise the week ending today
+    if(showWeekMon>=p.start){
+      const wEnd=addDaysIso(showWeekMon,6);
+      const wc=weekCompliance(p,showWeekMon,wEnd>t?t:wEnd);
+      const wN=Math.floor(daysBetween(p.start,showWeekMon)/7)+1;
+      const ws=S.nutrition.weights||{};
+      let wDelta=null;
+      const w0=ws[showWeekMon]??ws[addDaysIso(showWeekMon,-1)],w1=ws[wEnd]??ws[addDaysIso(wEnd,-1)]??ws[t];
+      if(w0!=null&&w1!=null)wDelta=Math.round((Number(w1)-Number(w0))*10)/10;
+      if(!wc.calculating){
+        sundayHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
+          <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">Week ${wN} summary</div>
+          ${wDelta!=null?row("Weight",`${wDelta>0?"+":""}${wDelta} kg`):""}
+          ${banked?row(banked.kg>=0?"Ahead of schedule":"Behind schedule",`${Math.abs(banked.kg)} kg`):""}
+          ${row("Calories compliance",wc.calories+"%")}
+          ${row("Active target",wc.active+"%")}
+          ${row("Protein",wc.protein+"%")}
+          <div style="font-size:12px;color:var(--accent-text);font-weight:600;margin-top:6px">→ ${coachRecommendation(p,t,wc)}</div>
+        </div>`;
+      }
+    }
+  }
+
+  return`<details class="st-acc" open>
+    <summary><div><div>🎯 ${p.id.replace("_"," ").replace(/^p/,"P")}${st==="paused"?" · ⏸ PAUSED":""}</div><div class="st-acc-sub">${fmtD(p.start)} → ${fmtD(end)}${end!==p.plannedEnd?" (extended)":""} · ${p.startKg} → ${p.targetKg} kg · eat ${num(p.eatKcal)}/day</div></div></summary>
+    <div class="st-acc-inner" style="padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
+        <span style="${nMuted}">Day ${dayIn} of ${totalDays}</span>
+        <span style="font-weight:700;font-size:14px">${pctDone}%</span>
+      </div>
+      <div class="prog-bar-wrap" style="margin-bottom:12px"><div class="prog-bar-fill" style="width:${pctDone}%"></div></div>
+      ${lost!=null?row("Lost this phase",`${lost>0?lost:0} kg (${lostPct>0?lostPct:0}%)`):""}
+      ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
+      ${cur!=null?row("Remaining to 90 (overall)",`${Math.max(0,Math.round((cur-USER.targetKg)*10)/10)} kg`):""}
+      ${avg!=null?`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--mid)">Target range today</span><span style="font-weight:600">${cor.lo}–${cor.hi} kg · You: ${avg} <span style="color:${health?healthCol(health.colour):"var(--dim)"}">${avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:""}</span></span></div>`:`<div style="${nMuted};padding:4px 0">Log weigh-ins to see your target range check</div>`}
+      ${banked?row(banked.days>=0?"Banked progress":"Schedule debt",`${banked.days>=0?"Ahead":"Behind"} ${Math.abs(banked.kg)} kg ≈ ${Math.abs(banked.days)} days ${banked.days>=0?"ahead":"behind"}`):""}
+      ${proj.status==="ok"?row("Projected 90 kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected 90 kg","Trend stabilizing…")}
+      ${nextMs!=null?row("Next milestone",`${nextMs} kg · ${Math.round((cur-nextMs)*10)/10} kg remaining${reached!=null?` · ✔ ${reached} reached`:""}`):""}
+      <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px">
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">This week's compliance</div>
+        ${comp.calculating?`<div style="${nMuted}">Calculating… log a full day of food to start scoring</div>`:`
+          ${row("Calories (35%)",comp.calories+"%")}
+          ${row("Active (25%)",comp.active+"%")}
+          ${row("Protein (20%)",comp.protein+"%")}
+          ${row("Workouts (15%)",comp.workouts+"%")}
+          ${row("Weigh-ins (5%)",comp.weighins+"%")}
+          <div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:14px;font-weight:700"><span>Overall</span><span style="color:${comp.overall>=90?"var(--green)":comp.overall>=75?"var(--amber)":"var(--red)"}">${comp.overall}%</span></div>`}
+      </div>
+      ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift — add ~100 kcal/day active or revisit the plan.</div>`:""}
+      ${sundayHtml}
+      ${verdictHtml}
+      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${new Date(S.phaseReview.at).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":"🤖 Review now"}</button>
+        ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
+          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
+        ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
+      </div>
+      ${openPause?`<div style="${nMuted};margin-top:8px">Paused · ${esc(openPause.reason)} · ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?" · extends phase":" · deadline unchanged"}</div>`:""}
+      ${_phasePauseOpen&&!openPause?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px;background:var(--s2)">
+        <div style="font-size:12px;font-weight:600;margin-bottom:8px">Pause reason</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">${["Medical","Vacation","Other"].map(r=>`<button onclick="_phasePauseReason='${r}';renderNutrition()" style="flex:1;background:${_phasePauseReason===r?"var(--accent)":"var(--s1)"};color:${_phasePauseReason===r?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${r}</button>`).join("")}</div>
+        <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--lt);margin-bottom:10px"><input type="checkbox" id="pauseExtend" ${_phasePauseExtend?"checked":""} onchange="_phasePauseExtend=this.checked"> Extend the phase by the paused days</label>
+        <button onclick="pausePhase('${p.id}',_phasePauseReason,document.getElementById('pauseExtend').checked)" style="width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer">Confirm pause</button>
+      </div>`:""}
+    </div>
+  </details>`;
+}
+let _phasePauseReason="Medical",_phasePauseExtend=true;
 function redoFood(){_pendingFood=null;_foodChatOpen=true;_foodDraftText=_lastFoodText||"";_foodDraftMealName=_lastMealName||"";renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 async function askFood(){
   const ta=document.getElementById("foodTa");if(!ta)return;
@@ -4064,9 +4470,18 @@ function buildChatContext(){
   const currentWeight=latestWeightLog()||USER.weightKg;
   // Respect the day's custom resting-calorie override (tap-to-edit), else formula BMR
   const bmr=dayData.restingOverride!=null?dayData.restingOverride:calcBMR(currentWeight);
-  const{target,req:dailyDeficitReq,moveGap}=calcTarget(bmr,Math.round(active*ACTIVE_MULT));
+  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*ACTIVE_MULT),today);
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
+  const phaseCtx=phase?(()=>{
+    const cor=phaseCorridor(phase,today);
+    const banked=bankedDays(phase,today);
+    const comp=weekCompliance(phase,mondayOfIso(today),today);
+    return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
+      eatKcal:phase.eatKcal,activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
+      targetRangeToday:[cor.lo,cor.hi],bankedDays:banked?banked.days:null,
+      weekCompliance:comp.calculating?null:comp.overall,expectedDeficitToday:dailyDeficitReq};
+  })():null;
   const goal={
     type:"weight loss",
     currentKg:currentWeight,
@@ -4075,7 +4490,7 @@ function buildChatContext(){
     goalDate:isoDate(USER.goalDate),
     daysLeft,
     dailyDeficitRequired:dailyDeficitReq,
-    moveTargetKcal:moveGap>0?Math.round(moveGap/ACTIVE_MULT):0,
+    phase:phaseCtx,
     intakeTargetToday:target,
     consumedToday:consumed,
     remainingToday:target-consumed,

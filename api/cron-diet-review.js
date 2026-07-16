@@ -6,11 +6,12 @@ import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
 import { sql, ensureSchema } from "./db.js";
 import { assembleState } from "./state.js";
 
-// Mirrors the client's goal constants (index.html USER / rate / limits) —
+// Mirrors the client's goal constants (index.html USER / PHASES / limits) —
 // keep in sync if those change.
 const GOALS = {
   targetKg: 90,
   goalDate: "2027-02-20",
+  phase: "Phase 1 (Jul 17 – Aug 31, 2026): 138 → 128 kg, eat 2,100 kcal/day fixed, Apple Watch active targets 1,500 kcal Mon–Sat / 650 kcal Sunday (counted at 75%), resting ~2,850",
   proteinTargetG: 180,
   fibreTargetG: 38,
   sugarLimitG: 50,
@@ -64,7 +65,7 @@ export function buildPrompt(weekDays, weights) {
 
 Medical context (non-negotiable): ${HARD_RULES}
 
-The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate} — the daily calorie deficit is recomputed from remaining weight ÷ days left (roughly 1.5 kg/week at the outset). Eating is floored at 1200 kcal/day while above 115 kg (1500 below that) — any remaining deficit shortfall must come from activity, so on low-eating days activity matters as much as food choices. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
+The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, executed in phases. Current: ${GOALS.phase}. Judge the week against the phase's fixed 2,100 kcal/day eating target and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
 
 Write your feedback with a SANDWICH structure, in this exact order:
 1. Start with 2-3 specific things done WELL this week — name actual foods from the log, not generalities.
