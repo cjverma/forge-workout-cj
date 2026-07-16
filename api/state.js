@@ -6,7 +6,7 @@ export async function assembleState() {
   const q = sql();
 
   const [sessRows, metaRows, itemRows, dayMetaRows, weightRows, prRows,
-    customRows, planRows, milestoneRows, chatRows, settingsRows, dietReviewRows] = await Promise.all([
+    customRows, planRows, milestoneRows, chatRows, settingsRows, dietReviewRows, quoteRows] = await Promise.all([
     q`SELECT session_key, ex_id, done, skipped, unit, sets FROM sessions`,
     q`SELECT session_key, calf_twinges, notes, duration, stopped FROM session_meta`,
     q`SELECT id, client_id, date, name, kcal, protein, carbs, fat, fibre, sugar, sodium, time, canonical FROM nutrition_items ORDER BY id`,
@@ -18,7 +18,8 @@ export async function assembleState() {
     q`SELECT shown_protein7, shown_weight5kg, shown_week6, longest_streak FROM milestones WHERE id=1`,
     q`SELECT role, content FROM ai_chat ORDER BY id`,
     q`SELECT theme, ai_deficit_modifier, weekly_snapshots, weekly_verdict, demo_cache, demo_cache_v, last_backup FROM app_settings WHERE id=1`,
-    q`SELECT week_start, text, created_at FROM diet_reviews ORDER BY week_start DESC LIMIT 1`
+    q`SELECT week_start, text, created_at FROM diet_reviews ORDER BY week_start DESC LIMIT 1`,
+    q`SELECT quotes FROM weekly_quotes ORDER BY week_start DESC LIMIT 1`
   ]);
 
   const sessions = {};
@@ -108,7 +109,10 @@ export async function assembleState() {
       weekStart: dietReviewRows[0].week_start.toISOString ? dietReviewRows[0].week_start.toISOString().slice(0, 10) : dietReviewRows[0].week_start,
       text: dietReviewRows[0].text,
       createdAt: dietReviewRows[0].created_at ? new Date(dietReviewRows[0].created_at).getTime() : null
-    } : null
+    } : null,
+    // Latest server-generated quote pool; null until the first Monday cron
+    // run — the client falls back to its built-in pool.
+    weeklyQuotes: quoteRows[0] && Array.isArray(quoteRows[0].quotes) && quoteRows[0].quotes.length ? quoteRows[0].quotes : null
   };
 }
 

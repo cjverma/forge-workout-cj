@@ -113,6 +113,8 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 /* ── QUOTE ── */
 .quote{padding:6px 16px 10px;flex-shrink:0;background:var(--black);}
+.quote-card>.quote-overlay{position:absolute!important;inset:0;padding:13px 16px;background:var(--grad-rest);border-radius:16px;z-index:2;transition:opacity .8s ease;}
+.quote-card>.quote-overlay::after{content:"";position:absolute;inset:0;border-radius:16px;background:radial-gradient(120% 90% at 85% -10%,rgba(200,241,53,.10),transparent 55%);pointer-events:none;}
 .quote-card{background:var(--grad-rest);border:none;border-top:1px solid rgba(200,241,53,.18);border-radius:16px;padding:13px 16px;position:relative;overflow:hidden;box-shadow:var(--shadow-lift);}
 .quote-card::after{content:"";position:absolute;inset:0;background:radial-gradient(120% 90% at 85% -10%,rgba(200,241,53,.10),transparent 55%);pointer-events:none;}
 .quote-card>*{position:relative;z-index:1;}
@@ -726,10 +728,8 @@ body{font-family:'Inter',sans-serif;color:var(--white);max-width:430px;margin:0 
 
 <script src="config.local.js"></script>
 <script>
-// Quote of the WEEK (refreshed 2026-07): one quote per calendar week, chosen
-// by weeklyQuote() — a seeded shuffle per 10-week cycle guarantees no quote
-// repeats until every quote has been shown, identical on every device with
-// zero storage.
+// Fallback quote pool (refreshed 2026-07). The live pool is server-generated
+// weekly — see quotePool() below.
 const Q=[
   "We are what we repeatedly do. Excellence, then, is not an act, but a habit. - Will Durant",
   "Take care of your body. It's the only place you have to live. - Jim Rohn",
@@ -742,20 +742,11 @@ const Q=[
   "You do not rise to the level of your goals. You fall to the level of your systems. - James Clear",
   "The clock is ticking. Are you becoming the person you want to be? - Greg Plitt",
 ];
-// Deterministic weekly pick: week number since a fixed anchor Monday; each
-// Q.length-week cycle gets its own xorshift-seeded Fisher-Yates order, so
-// within a cycle every quote appears exactly once.
-function weeklyQuote(dateIso){
-  const monday=mondayOfIso(dateIso||isoToday());
-  const weekN=Math.floor(daysBetween("2026-07-13",monday)/7);
-  const n=Q.length;
-  const cycle=Math.floor(weekN/n);
-  const pos=((weekN%n)+n)%n;
-  let s=((cycle+1)*2654435761)>>>0;
-  const rnd=()=>{s^=s<<13;s^=s>>>17;s^=s<<5;s>>>=0;return s/4294967296;};
-  const idx=Array.from({length:n},(_,i)=>i);
-  for(let i=n-1;i>0;i--){const j=Math.floor(rnd()*(i+1));[idx[i],idx[j]]=[idx[j],idx[i]];}
-  return Q[idx[pos]];
+// The server generates a brand-new 10-quote pool every Monday (cron) and it
+// arrives via state sync as S.weeklyQuotes; the built-in Q is only the
+// fallback until the first generated pool lands (or offline on first run).
+function quotePool(){
+  return(Array.isArray(S.weeklyQuotes)&&S.weeklyQuotes.length)?S.weeklyQuotes:Q;
 }
 
 const EX_DB=[
@@ -1391,7 +1382,7 @@ function hintDisp(hint,unit){
   return hint.replace(/\b(kg|lbs)\b/gi,"").trim()+" "+(unit||"kg");
 }
 
-let cDay="",cTab="workout",workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
+let cDay="",cTab="workout",qIdx=0,workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false,_foodSearchOpen=false,_foodSearchQ="";
 let _foodDraftText="",_foodDraftMealName=""; // survives tab switches — see openFood()/askFood() for lifecycle
 let _lastFoodText="",_lastMealName="";
@@ -1575,7 +1566,7 @@ function initApp(){
   try{lastTab=sessionStorage.getItem("forge_tab");}catch(_){}
   if(lastTab==="nutrition"||lastTab==="settings")go(lastTab);
   cycleQ();
-  setInterval(cycleQ,3600000); // hourly re-check: week rollover updates without a reload
+  setInterval(cycleQ,15000);
   handleHKSync();
   _appReady=true;
   // Sequential, not concurrent: a queued restore_all (or any pending write)
@@ -1605,13 +1596,26 @@ window.addEventListener("DOMContentLoaded",()=>{
   setTimeout(()=>document.getElementById("lockInput").focus(),100);
 });
 
-// Render this week's quote (fixed for the whole week — see weeklyQuote()).
+// Crossfade carousel over the current week's quote pool (see quotePool()):
+// snapshot the current quote as an overlay, swap the text underneath, fade
+// the overlay out - the new quote is revealed with no blank gap.
 function cycleQ(){
   const body=document.getElementById("quoteBody");
   const auth=document.getElementById("quoteAuthor");
   if(!body)return;
-  const q=weeklyQuote();
+  const card=body.closest(".quote-card");
+  const pool=quotePool();
+  const q=pool[qIdx++%pool.length];
   const sep=q.lastIndexOf(" - ");
+  const isFirst=!body.textContent;
+  if(card&&!isFirst){
+    const ov=document.createElement("div");
+    ov.className="quote-overlay";
+    ov.innerHTML=`<span class="quote-body">${body.innerHTML}</span><span class="quote-author">${auth?auth.innerHTML:""}</span>`;
+    card.appendChild(ov);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>{ov.style.opacity=0;}));
+    setTimeout(()=>ov.remove(),900);
+  }
   if(sep>0&&auth){body.textContent="“"+q.slice(0,sep)+"”";auth.textContent=q.slice(sep+3);}
   else{body.textContent=q;if(auth)auth.textContent="";}
 }

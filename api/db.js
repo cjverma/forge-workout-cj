@@ -115,6 +115,11 @@ export async function ensureSchema() {
     text text NOT NULL,
     created_at timestamptz DEFAULT now()
   )`;
+  await q`CREATE TABLE IF NOT EXISTS weekly_quotes(
+    week_start date PRIMARY KEY,
+    quotes jsonb NOT NULL,
+    created_at timestamptz DEFAULT now()
+  )`;
   await q`CREATE TABLE IF NOT EXISTS app_settings(
     id int PRIMARY KEY DEFAULT 1,
     theme text,

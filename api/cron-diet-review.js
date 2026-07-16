@@ -87,6 +87,31 @@ Review my week and give me your sandwich-structured feedback.`;
   return { system, user, loggedDays };
 }
 
+// Generate this week's fresh 10-quote pool, avoiding every quote used in the
+// last 12 weeks. Exported for tests. Never throws — quote failure must not
+// break the diet review (and vice versa).
+export async function generateWeeklyQuotes(q, weekStart) {
+  try {
+    const existing = await q`SELECT 1 FROM weekly_quotes WHERE week_start=${weekStart}`;
+    if (existing.length) return { ok: true, skipped: "already generated" };
+    const past = await q`SELECT quotes FROM weekly_quotes ORDER BY week_start DESC LIMIT 12`;
+    const used = past.flatMap(r => Array.isArray(r.quotes) ? r.quotes : []);
+    const system = `You curate motivational quotes for a fitness app (user goal: disciplined fat loss, strength training, consistency). Return ONLY a JSON array of exactly 10 strings, no other text. Each string is a REAL quote with its REAL author in the exact format "Quote text - Author Name". Rules: short (under 140 chars), genuinely attributed (no fabricated quotes or authors, no "Unknown"), themes of discipline, habit, consistency, training, resilience. Do NOT use any of these already-shown quotes:\n${used.map(u => `- ${u}`).join("\n") || "(none yet)"}`;
+    const text = await callOpenAI({ system, user: "Generate this week's 10 quotes.", maxOutputTokens: 700 });
+    const match = text && text.match(/\[[\s\S]*\]/);
+    const arr = match ? JSON.parse(match[0]) : null;
+    if (!Array.isArray(arr)) throw new Error("bad quotes payload");
+    const clean = [...new Set(arr.map(x => String(x).trim()).filter(x => x.length > 10 && x.length < 200 && x.includes(" - ")))].slice(0, 10);
+    if (clean.length < 8) throw new Error("too few valid quotes");
+    await q`INSERT INTO weekly_quotes(week_start, quotes) VALUES (${weekStart}, ${JSON.stringify(clean)})
+            ON CONFLICT (week_start) DO NOTHING`;
+    return { ok: true, count: clean.length };
+  } catch (e) {
+    console.error("[weekly-quotes]", e.message);
+    return { ok: false };
+  }
+}
+
 export default async function handler(req, res) {
   setCors(res);
   if (req.method === "OPTIONS") return res.status(204).end();
@@ -103,6 +128,12 @@ export default async function handler(req, res) {
     await ensureSchema();
     const { weekStart, range } = targetWeekRange(new Date().toISOString());
 
+    // Fresh quote pool for the week that is STARTING (reviewed week + 7 days)
+    const q0 = sql();
+    const mondayNew = new Date(`${weekStart}T12:00:00Z`);
+    mondayNew.setUTCDate(mondayNew.getUTCDate() + 7);
+    const quotes = await generateWeeklyQuotes(q0, mondayNew.toISOString().split("T")[0]);
+
     const state = await assembleState();
     const weekDays = {};
     for (const d of range) {
@@ -115,7 +146,7 @@ export default async function handler(req, res) {
 
     const totalItems = Object.values(weekDays).reduce((n, day) => n + (day.items || []).length, 0);
     if (totalItems === 0) {
-      return res.json({ skipped: "no food logged", weekStart });
+      return res.json({ skipped: "no food logged", weekStart, quotes });
     }
 
     const { system, user } = buildPrompt(weekDays, weights);
@@ -126,7 +157,7 @@ export default async function handler(req, res) {
     await q`INSERT INTO diet_reviews(week_start, text) VALUES (${weekStart}, ${text.trim()})
             ON CONFLICT (week_start) DO UPDATE SET text=EXCLUDED.text, created_at=now()`;
 
-    return res.json({ ok: true, weekStart });
+    return res.json({ ok: true, weekStart, quotes });
   } catch (e) {
     console.error("[cron-diet-review]", e.message);
     return res.status(502).json({ error: "Diet review failed" });

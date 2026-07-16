@@ -683,34 +683,26 @@ ok("wipe_all clears diet_reviews",
 ok("client renders the review card guarded on S.dietReview?.text",
   HTML.includes("S.dietReview?.text") && HTML.includes("Weekly Diet Review") && HTML.includes("mdLite(S.dietReview.text)"));
 
-// Quote of the week — extract the real Q + weeklyQuote and unit-test rotation
+// Weekly quote pool — server-generated Mondays, client carousel every 15s
 {
   const qm = HTML.match(/const Q=\[[\s\S]*?\];/)?.[0];
-  const wq = HTML.match(/function weeklyQuote\(dateIso\)\{[\s\S]*?\n\}/)?.[0];
-  ok("Q pool and weeklyQuote() present", !!qm && !!wq);
-  const mkWq = new Function("mondayOfIso", "daysBetween", "isoToday", qm + wq + ";return {Q,weeklyQuote};");
-  const noonUTC = iso => new Date(iso + "T12:00:00Z");
-  const daysBetween = (a, b) => Math.round((noonUTC(b) - noonUTC(a)) / 86400000);
-  const mondayOfIso = iso => { const d = noonUTC(iso); const dow = d.getUTCDay(); d.setUTCDate(d.getUTCDate() + (dow === 0 ? -6 : 1 - dow)); return d.toISOString().split("T")[0]; };
-  const { Q, weeklyQuote } = mkWq(mondayOfIso, daysBetween, () => "2026-07-16");
-  ok("exactly 10 brand-new quotes (none from the old pool)",
-    Q.length === 10 && !Q.some(q => /Schwarzenegger|Ronnie Coleman|Muhammad Ali|Gretzky|Henry Rollins/.test(q)));
-  ok("every quote has an attributed author", Q.every(q => q.lastIndexOf(" - ") > 0));
-  const week = d => weeklyQuote(d);
-  ok("stable within a week, changes across weeks",
-    week("2026-07-13") === week("2026-07-19") && week("2026-07-19") !== week("2026-07-20"));
-  const cycle1 = Array.from({ length: 10 }, (_, i) => {
-    const d = noonUTC("2026-07-13"); d.setUTCDate(d.getUTCDate() + i * 7); return week(d.toISOString().split("T")[0]);
-  });
-  ok("no repeats within a 10-week cycle (all 10 quotes shown exactly once)",
-    new Set(cycle1).size === 10);
-  const cycle2first = week("2026-09-21") /* wk 10 */;
-  ok("next cycle reshuffles into a different order",
-    JSON.stringify(cycle1) !== JSON.stringify(Array.from({ length: 10 }, (_, i) => {
-      const d = noonUTC("2026-09-21"); d.setUTCDate(d.getUTCDate() + i * 7); return week(d.toISOString().split("T")[0]);
-    })) && !!cycle2first);
-  ok("9-second carousel removed (weekly, hourly rollover check only)",
-    !HTML.includes("setInterval(cycleQ,9000)") && HTML.includes("setInterval(cycleQ,3600000)"));
+  ok("fallback Q pool present with quotePool() indirection",
+    !!qm && HTML.includes("function quotePool()") && HTML.includes("S.weeklyQuotes"));
+  const Q = new Function(qm + ";return Q;")();
+  ok("exactly 10 brand-new fallback quotes (none from the old pool)",
+    Q.length === 10 && !Q.some(x => /Schwarzenegger|Ronnie Coleman|Muhammad Ali|Gretzky|Henry Rollins/.test(x)));
+  ok("every fallback quote has an attributed author", Q.every(x => x.lastIndexOf(" - ") > 0));
+  ok("carousel runs every 15s with the crossfade overlay restored",
+    HTML.includes("setInterval(cycleQ,15000)") && HTML.includes("quote-overlay") && HTML.includes("const q=pool[qIdx++%pool.length]"));
+  const CRON = readFileSync("api/cron-diet-review.js", "utf8");
+  ok("cron generates weekly quotes for the STARTING week, avoiding last 12 weeks",
+    CRON.includes("export async function generateWeeklyQuotes") && CRON.includes("LIMIT 12") &&
+    CRON.includes("already-shown quotes") && CRON.includes("getUTCDate() + 7"));
+  ok("quote generation is failure-isolated from the diet review (never throws)",
+    /generateWeeklyQuotes[\s\S]*?catch \(e\) \{[\s\S]*?return \{ ok: false \};/.test(CRON));
+  ok("schema + state + wipe wired: weekly_quotes table, state.weeklyQuotes null-guarded, wipe clears",
+    DB.includes("weekly_quotes(") && STATE.includes("weeklyQuotes:") && STATE.includes(": null") &&
+    MUTATE.includes("DELETE FROM weekly_quotes"));
 }
 
 // Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
