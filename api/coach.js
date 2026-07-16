@@ -1,4 +1,4 @@
-import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
+import { HARD_RULES, setCors, checkAuth, checkRateLimit, callOpenAI } from "./_shared.js";
 
 const MAX_PROMPT = 5000; // raised to accommodate AI-chat context injection (~2-3k) + user question
 
@@ -7,6 +7,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   if (!checkAuth(req, res)) return;
+  if (!checkRateLimit(req, res, { name: "coach" })) return;
 
   const { prompt = "", context = {} } = req.body || {};
   if (!prompt || typeof prompt !== "string") {
