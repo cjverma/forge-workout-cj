@@ -70,6 +70,7 @@ const apiFiles = [
   "api/suggest-alt.js",
   "api/cron-weekly-email.js",
   "api/cron-diet-review.js",
+  "api/healthkit.js",
   "api/weekly-plan.js",
   "api/health.js",
 ];
@@ -703,6 +704,23 @@ ok("client renders the review card guarded on S.dietReview?.text",
   ok("schema + state + wipe wired: weekly_quotes table, state.weeklyQuotes null-guarded, wipe clears",
     DB.includes("weekly_quotes(") && STATE.includes("weeklyQuotes:") && STATE.includes(": null") &&
     MUTATE.includes("DELETE FROM weekly_quotes"));
+}
+
+// HealthKit sync endpoint — static guardrails (behavioural tests live in
+// test-healthkit.js, run via npm run check)
+{
+  const HK = readFileSync("api/healthkit.js", "utf8");
+  ok("healthkit: POST-only, checkAuth, generic error, Toronto date default",
+    HK.includes('req.method !== "POST"') && HK.includes("checkAuth(req, res)") &&
+    HK.includes("HealthKit sync failed") && HK.includes('timeZone: "America/Toronto"'));
+  ok("healthkit: column-scoped upsert never touches shock or unspecified columns",
+    HK.includes("resting_override=EXCLUDED.resting_override") && !HK.includes("shock=EXCLUDED.shock") &&
+    HK.includes("active=EXCLUDED.active"));
+  ok("healthkit: uses q.query() for parameterised SQL (Neon v1 rejects bare q(text, params))",
+    HK.includes("q.query(st.text, st.values)"));
+  ok("healthkit: bounds active 0-6000 · resting 800-4000 · weight 30-300",
+    HK.includes("0, 6000") && HK.includes("800, 4000") && HK.includes("30, 300"));
+  ok("healthkit: mounted in server.js", readFileSync("server.js", "utf8").includes('"/api/healthkit"'));
 }
 
 // Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
