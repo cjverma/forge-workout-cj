@@ -1,4 +1,4 @@
-import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
+import { HARD_RULES, setCors, checkAuth, checkRateLimit, callOpenAI } from "./_shared.js";
 
 const MAX_BODY_BYTES = 8_000;
 
@@ -20,6 +20,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
   if (!checkAuth(req, res)) return;
+  if (!checkRateLimit(req, res, { name: "suggest-alt" })) return;
 
   const bodyStr = JSON.stringify(req.body || {});
   if (bodyStr.length > MAX_BODY_BYTES) return res.status(400).json({ error: "Request body too large" });
