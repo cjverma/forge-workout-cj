@@ -45,7 +45,8 @@ export function normalizeHealthKitPayload(body = {}, fallbackDate = todayToronto
   if (active !== undefined && active !== null) applied.active = active;
   if (resting !== undefined && resting !== null) applied.resting = resting;
   if (weightKg !== undefined && weightKg !== null) applied.weightKg = weightKg;
-  if (!Object.keys(applied).length) errors.push("at least one metric is required");
+  const anyProvided = body.active != null || body.resting != null || body.weightKg != null;
+  if (!anyProvided) errors.push("at least one metric is required");
 
   return { ok: errors.length === 0, date, applied, ignored, errors };
 }
@@ -92,7 +93,10 @@ export function buildHealthKitSql(payload) {
 
 async function applyHealthKitPayload(q, payload) {
   for (const st of buildHealthKitSql(payload)) {
-    await q(st.text, st.values);
+    // Neon v1+ only accepts tagged-template calls or .query(text, params) —
+    // a bare q(text, params) throws at runtime. (Test stubs may be plain fns.)
+    if (typeof q.query === "function") await q.query(st.text, st.values);
+    else await q(st.text, st.values);
   }
 }
 
