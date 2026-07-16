@@ -1,4 +1,4 @@
-import { setCors, checkAuth } from "./_shared.js";
+import { setCors, checkAuth, checkRateLimit, fetchWithTimeout } from "./_shared.js";
 
 const SYSTEM = `You are a nutrition estimator. Respond ONLY with valid JSON — no markdown, no explanation, no code fences.
 Format: {"items":[{"name":"<short name>","kcal":<number>,"protein":<number>,"carbs":<number>,"fat":<number>,"fibre":<number>,"sugar":<number>,"sodium":<number>}]}
@@ -12,6 +12,7 @@ export default async function handler(req, res) {
   // Every other AI endpoint requires the bearer token; this one was missed —
   // an unauthenticated caller could drive unbounded OpenAI spend through it.
   if (!checkAuth(req, res)) return;
+  if (!checkRateLimit(req, res, { name: "nutrition" })) return;
 
   const { text = "" } = req.body || {};
   if (!text.trim()) return res.status(400).json({ error: "No food description provided" });
@@ -29,7 +30,7 @@ export default async function handler(req, res) {
 
   let apiRes, data;
   try {
-    apiRes = await fetch("https://api.openai.com/v1/chat/completions", {
+    apiRes = await fetchWithTimeout("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
       body: JSON.stringify({
@@ -39,7 +40,7 @@ export default async function handler(req, res) {
         ],
         max_completion_tokens: 2000
       })
-    });
+    }, 60000);
     data = await apiRes.json();
   } catch (e) {
     console.error("[nutrition] fetch error:", e.message);
