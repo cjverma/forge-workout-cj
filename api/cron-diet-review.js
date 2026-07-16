@@ -64,7 +64,7 @@ export function buildPrompt(weekDays, weights) {
 
 Medical context (non-negotiable): ${HARD_RULES}
 
-The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate} — the daily calorie deficit is recomputed from remaining weight ÷ days left (roughly 1.5 kg/week at the outset). Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
+The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate} — the daily calorie deficit is recomputed from remaining weight ÷ days left (roughly 1.5 kg/week at the outset). Eating is floored at 1200 kcal/day while above 115 kg (1500 below that) — any remaining deficit shortfall must come from activity, so on low-eating days activity matters as much as food choices. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
 
 Write your feedback with a SANDWICH structure, in this exact order:
 1. Start with 2-3 specific things done WELL this week — name actual foods from the log, not generalities.

@@ -183,8 +183,12 @@ section("6 · calcTarget (date-driven: 90kg by 2027-02-20)");
 ok("requiredDeficit() defines the weight-to-lose ÷ days-left formula",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}"));
 
-ok("calcTarget returns bmr+active-req using requiredDeficit",
-  HTML.includes("const req=requiredDeficit(lw,daysLeft);") && HTML.includes("target:bmr+active-req"));
+ok("calcTarget returns bmr+active-req using requiredDeficit, floored by intakeFloor",
+  HTML.includes("const req=requiredDeficit(lw,daysLeft);") && HTML.includes("const raw=bmr+active-req;") &&
+  HTML.includes("Math.max(floor,raw)") && HTML.includes("function intakeFloor(lw){return lw>115?1200:1500;}"));
+
+ok("floor shortfall surfaces as a move target (÷ACTIVE_MULT to raw active kcal)",
+  HTML.includes("moveGap") && HTML.includes("Move target") && HTML.includes("moveGap/ACTIVE_MULT"));
 
 ok("calcTarget no longer applies the old bmr+active-req+mod or fixed-standard formulas",
   !/target:Math\.max\(1500,bmr\+active-req\+mod\)/.test(HTML) &&
@@ -407,21 +411,22 @@ ok("paceTarget pro-rates the weekly target by elapsed weight",
 ok("Pace status shown in UI (ahead/on/behind)",
   HTML.includes("Ahead of pace") && HTML.includes("Behind pace"));
 
-// Test the pace math — fixed-rate (2026-07), no goal-date/weight-to-lose dependency
+// Weekly card math — date-driven (2026-07-15): dailyReq comes from
+// requiredDeficit(lw,daysLeft), weekly target is 6.5 shares (Sunday = 0.5)
 function paceWeeklyTarget(dailyReq) {
   return Math.round(dailyReq * 6.5);
 }
 
-const FIXED_DAILY_REQ = Math.round(1.5 * 7700 / 7); // 1650
+const RESET_DAILY_REQ = Math.round((138 - 90) * 7700 / 220); // ≈1680 at the 2026-07-15 reset
 
-ok("Pace weekly target is 6.5× the fixed daily requirement",
-  paceWeeklyTarget(FIXED_DAILY_REQ) === Math.round(FIXED_DAILY_REQ * 6.5));
+ok("Weekly target is 6.5× the daily requirement",
+  paceWeeklyTarget(RESET_DAILY_REQ) === Math.round(RESET_DAILY_REQ * 6.5));
 
-ok("Pace weekly target < 7× daily (Sunday is only 0.5)",
-  paceWeeklyTarget(FIXED_DAILY_REQ) < FIXED_DAILY_REQ * 7);
+ok("Weekly target < 7× daily (Sunday is only 0.5)",
+  paceWeeklyTarget(RESET_DAILY_REQ) < RESET_DAILY_REQ * 7);
 
-ok("Weekly target does not depend on current weight or goal date (pace-driven, not date-driven)",
-  !HTML.includes("dailyReq=Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft)"));
+ok("Weekly card uses the shared requiredDeficit() (date-driven, no inline formula)",
+  HTML.includes("dailyReq=requiredDeficit(lw,daysLeft)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 18. Postgres numeric-column guardrail

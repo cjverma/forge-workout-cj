@@ -1154,6 +1154,11 @@ const USER={birthDate:new Date(1995,7,1),weightKg:138,targetKg:90,heightCm:190.5
 // (~1680 kcal/day at reset ≈ 1.53 kg/week), so it self-corrects if a week
 // goes off track. requiredDeficit() is the single source for this math.
 function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
+// Eating target never displays below the floor — when the date-driven math
+// demands less, the shortfall is surfaced as a "move target" (extra active
+// burn) instead. Floor is weight-staged: 1200 kcal while above 115 kg (large
+// bodies tolerate bigger deficits), 1500 kcal from 115 kg down.
+function intakeFloor(lw){return lw>115?1200:1500;}
 const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300,ACTIVE_MULT=0.75;
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
@@ -1173,7 +1178,13 @@ function calcTarget(bmr,active){
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const lw=latestWeightLog()||USER.weightKg;
   const req=requiredDeficit(lw,daysLeft);
-  return{bmr,req,target:bmr+active-req,daysLeft,lw};
+  const raw=bmr+active-req;
+  const floor=intakeFloor(lw);
+  const target=Math.max(floor,raw);
+  // moveGap: effective-burn shortfall when the floor kicks in; ÷ACTIVE_MULT at
+  // display time to convert to raw active calories the user must log.
+  const moveGap=Math.max(0,floor-raw);
+  return{bmr,req,target,daysLeft,lw,moveGap,floor};
 }
 function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 function isoToday(){return isoDate(new Date());}
@@ -3592,7 +3603,7 @@ function renderNutrition(){
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
   const totalBurn=resting+Math.round(active*ACTIVE_MULT);
-  const {target}=calcTarget(resting,Math.round(active*ACTIVE_MULT));
+  const {target,moveGap,floor}=calcTarget(resting,Math.round(active*ACTIVE_MULT));
   const shock=day.shockProtocol;
   const finalTarget=shock?1500:target;
   const items=day.items||[];
@@ -3654,6 +3665,7 @@ function renderNutrition(){
       </div>
       <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
+      ${!shock&&moveGap>0?`<div style="font-size:11px;color:var(--hero-fg-dim);margin-top:4px;text-align:left">⚡ Move target: log ${Math.round(moveGap/ACTIVE_MULT).toLocaleString()} kcal active burn to stay on pace (eating floored at ${floor.toLocaleString()})</div>`:""}
       ${macroPie(protein,carbs,fat,fibre)}
       <div class="macro-row">
         <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:var(--hero-pos)":""}">${protein}<span style="font-size:11px;color:var(--hero-fg-faint)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
@@ -4052,7 +4064,7 @@ function buildChatContext(){
   const currentWeight=latestWeightLog()||USER.weightKg;
   // Respect the day's custom resting-calorie override (tap-to-edit), else formula BMR
   const bmr=dayData.restingOverride!=null?dayData.restingOverride:calcBMR(currentWeight);
-  const{target,req:dailyDeficitReq}=calcTarget(bmr,Math.round(active*ACTIVE_MULT));
+  const{target,req:dailyDeficitReq,moveGap}=calcTarget(bmr,Math.round(active*ACTIVE_MULT));
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const goal={
@@ -4060,9 +4072,10 @@ function buildChatContext(){
     currentKg:currentWeight,
     targetKg:USER.targetKg,
     remainingKg:Math.round((currentWeight-USER.targetKg)*10)/10,
-    goalDate:USER.goalDate.toISOString().slice(0,10),
+    goalDate:isoDate(USER.goalDate),
     daysLeft,
     dailyDeficitRequired:dailyDeficitReq,
+    moveTargetKcal:moveGap>0?Math.round(moveGap/ACTIVE_MULT):0,
     intakeTargetToday:target,
     consumedToday:consumed,
     remainingToday:target-consumed,
