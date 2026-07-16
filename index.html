@@ -3837,19 +3837,9 @@ function renderNutrition(){
       })():`<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
     </div>
 
-    ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
-    <details class="st-acc" open>
-      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${new Date(S.dietReview.weekStart+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · AI feedback on your goals</div></div></summary>
-      <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
-      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
-    </details>`:`
-    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
-
-    ${phaseCardHtml()}
-
-    <!-- Burn card -->
+    <!-- Body card: daily burn inputs + weight logging in one place -->
     <div class="nut-card">
-      <div class="nut-card-title">Burn</div>
+      <div class="nut-card-title">Body</div>
       <div class="burn-row">
         <div class="burn-col"><input class="burn-inp" id="bvRest" type="number" inputmode="numeric" enterkeyhint="done" value="${resting}" ${ro?'disabled':''} onchange="saveBurn('${date}','resting',this.value)" onfocus="this.select()"><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
@@ -3857,13 +3847,27 @@ function renderNutrition(){
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
       </div>
+      <div style="border-top:1px solid var(--b1);margin-top:12px;padding-top:12px;display:flex;align-items:center;gap:10px">
+        ${ro?"":_wtOpen?`<input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" style="flex:1"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button>`:`<button class="wt-log-btn" style="flex:0 0 auto;margin:0" onclick="openWtInput(this,'${date}')">+ Log Weight</button><span style="font-size:12px;color:var(--dim)">${allWtKeys.length?`latest ${wts[allWtKeys[allWtKeys.length-1]]} kg`:"no entries yet"}</span>`}
+      </div>
     </div>
 
-    <!-- Weight log card -->
+    <div class="st-sec">Progress</div>
+
+    ${phaseCardHtml()}
+
+    ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
+    <details class="st-acc">
+      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${new Date(S.dietReview.weekStart+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · AI feedback on your goals</div></div></summary>
+      <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
+      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
+    </details>`:`
+    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
+
+    <!-- Weight history & trend -->
     <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
-      <summary><div><div>⚖️ Weight Log</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · latest ${wts[allWtKeys[allWtKeys.length-1]]} kg`:"No entries yet"}</div></div></summary>
+      <summary><div><div>⚖️ Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
       <div class="st-acc-inner">
-      ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" onclick="openWtInput(this,'${date}')">+ Log Weight</button>`}
       ${sparkHtml}
       ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${wts[k]} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
       </div>
@@ -4177,8 +4181,14 @@ function phaseCardHtml(){
     }
   }
 
-  return`<details class="st-acc" open>
-    <summary><div><div>🎯 ${p.id.replace("_"," ").replace(/^p/,"P")}${st==="paused"?" · ⏸ PAUSED":""}</div><div class="st-acc-sub">${fmtD(p.start)} → ${fmtD(end)}${end!==p.plannedEnd?" (extended)":""} · ${p.startKg} → ${p.targetKg} kg · eat ${num(p.eatKcal)}/day</div></div></summary>
+  // Live status chip in the collapsed summary: %, range check, compliance
+  const chipBits=[`${pctDone}%`];
+  if(st==="paused")chipBits.push("⏸ paused");
+  else if(st==="completed")chipBits.push("🏁 verdict ready");
+  else if(avg!=null)chipBits.push(avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:"");
+  if(!comp.calculating)chipBits.push(`compliance ${comp.overall}%`);
+  return`<details class="st-acc"${st==="completed"?" open":""}>
+    <summary><div><div>🎯 ${p.id.replace("_"," ").replace(/^p/,"P")} · ${chipBits.filter(Boolean).join(" · ")}</div><div class="st-acc-sub">Day ${dayIn} of ${totalDays} · ${fmtD(p.start)} → ${fmtD(end)}${end!==p.plannedEnd?" (extended)":""} · ${p.startKg} → ${p.targetKg} kg · eat ${num(p.eatKcal)}/day</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
         <span style="${nMuted}">Day ${dayIn} of ${totalDays}</span>

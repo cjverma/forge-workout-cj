@@ -684,6 +684,24 @@ ok("wipe_all clears diet_reviews",
 ok("client renders the review card guarded on S.dietReview?.text",
   HTML.includes("S.dietReview?.text") && HTML.includes("Weekly Diet Review") && HTML.includes("mdLite(S.dietReview.text)"));
 
+// Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
+const rnTpl = fnBody("renderNutrition");
+const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly Diet Review", "Weight History", "ask-forge-btn"].map(s => rnTpl.indexOf(s));
+ok("Nutrition tab order: hero → Food Log → Body → PROGRESS → phase → diet review → weight history → Ask Forge",
+  order.every(i => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]));
+
+ok("Body card merges burn inputs and weight quick-log (ids preserved for saveBurn focus contract)",
+  rnTpl.indexOf(">Body<") < rnTpl.indexOf('id="bvRest"') && rnTpl.indexOf('id="bvRest"') < rnTpl.indexOf("+ Log Weight") &&
+  rnTpl.indexOf("+ Log Weight") < rnTpl.indexOf(">Progress<") && rnTpl.includes('id="bvAct"'));
+
+ok("Diet review and weight history render collapsed; phase card collapsed unless verdict is ready",
+  !rnTpl.includes(`<details class="st-acc" open>\n      <summary><div><div>🥗`) &&
+  HTML.includes(`<details class="st-acc"\${st==="completed"?" open":""}>`) ||
+  (!/st-acc" open>\s*<summary><div><div>🥗/.test(HTML) && HTML.includes(`st==="completed"?" open":""`)));
+
+ok("Phase summary carries the live status chip (%, range/paused state, compliance)",
+  HTML.includes("chipBits") && HTML.includes("✓ In range") && HTML.includes("compliance ${comp.overall}%"));
+
 ok("client has manual generate/regenerate button wired with auth + busy guard",
   HTML.includes("generateDietReview") && HTML.includes("dietRevBtn") &&
   HTML.includes("_dietRevBusy") && /generateDietReview[\s\S]{0,400}api\/cron-diet-review[\s\S]{0,200}Bearer "\+API_CFG\.token/.test(HTML));
