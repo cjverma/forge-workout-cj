@@ -127,6 +127,6 @@ export default async function handler(req, res) {
     return res.json({ state, updatedAt: Date.now() });
   } catch (e) {
     console.error("[state]", e.message);
-    return res.status(502).json({ error: "Failed to load state: " + e.message });
+    return res.status(502).json({ error: "Failed to load state" });
   }
 }
