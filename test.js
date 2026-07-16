@@ -201,7 +201,7 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
   E.PHASES[0].curve === "front_loaded" && E.PHASES[0].plannedEnd === "2026-08-31");
 
 ok("phaseFor boundaries: Jul 16 null · Jul 17 & Aug 31 phase_1 · Sep 1 null",
-  E.phaseFor("2026-07-14") === null && E.phaseFor("2026-07-15")?.id === "phase_1" &&
+  E.phaseFor("2026-07-16") === null && E.phaseFor("2026-07-17")?.id === "phase_1" &&
   E.phaseFor("2026-08-31")?.id === "phase_1" && E.phaseFor("2026-09-01") === null);
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -236,7 +236,7 @@ ok("front_loaded loses faster early; back_loaded reversed; linear flat",
   E.curveWeights("back_loaded", 45)[0] < E.curveWeights("back_loaded", 45)[44] &&
   Math.abs(E.curveWeights("linear", 45)[0] - E.curveWeights("linear", 45)[44]) < 1e-12);
 ok("curve starts at 138 and lands exactly on 128 at phase end",
-  E.phaseCurveKg(E.PHASES[0], "2026-07-15") === 138 &&
+  E.phaseCurveKg(E.PHASES[0], "2026-07-17") === 138 &&
   Math.abs(E.phaseCurveKg(E.PHASES[0], "2026-08-31") - 128) < 0.051);
 ok("front_loaded midpoint sits below the linear midpoint (early water loss)",
   E.phaseCurveKg(E.PHASES[0], "2026-08-08") < 133);
