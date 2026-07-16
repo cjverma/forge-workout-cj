@@ -20,6 +20,8 @@ export const HARD_RULES = [
   "Never push through left calf nerve pain."
 ].join(" ");
 
+const RATE_BUCKETS = new Map();
+
 export function setCors(res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
@@ -47,6 +49,37 @@ export function checkAuth(req, res) {
   return true;
 }
 
+export function checkRateLimit(req, res, { name = "default", limit = 20, windowMs = 10 * 60 * 1000 } = {}) {
+  const now = Date.now();
+  const auth = req.headers?.authorization || "";
+  const forwarded = req.headers?.["x-forwarded-for"] || "";
+  const ip = Array.isArray(forwarded) ? forwarded[0] : String(forwarded).split(",")[0].trim();
+  const key = `${name}:${auth.slice(-16) || ip || "anon"}`;
+  const bucket = RATE_BUCKETS.get(key) || { reset: now + windowMs, count: 0 };
+  if (now > bucket.reset) {
+    bucket.reset = now + windowMs;
+    bucket.count = 0;
+  }
+  bucket.count += 1;
+  RATE_BUCKETS.set(key, bucket);
+  if (bucket.count > limit) {
+    res.setHeader("Retry-After", String(Math.ceil((bucket.reset - now) / 1000)));
+    res.status(429).json({ error: "Rate limit exceeded" });
+    return false;
+  }
+  return true;
+}
+
+export async function fetchWithTimeout(url, options = {}, ms = 15000) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function extractText(data) {
   if (typeof data?.output_text === "string" && data.output_text.trim()) {
     return data.output_text;
@@ -61,16 +94,16 @@ function extractText(data) {
   return chunks.join("\n").trim();
 }
 
-export async function callOpenAI({ system, user, maxOutputTokens = 1000 }) {
+export async function callOpenAI({ system, user, maxOutputTokens = 1000, timeoutMs = 60000 }) {
   const key = process.env.OPENAI_API_KEY;
   if (!key) throw new Error("Missing OPENAI_API_KEY");
 
   const model = process.env.OPENAI_MODEL || "gpt-4o";
-  const response = await fetch("https://api.openai.com/v1/responses", {
+  const response = await fetchWithTimeout("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: { "content-type": "application/json", authorization: `Bearer ${key}` },
     body: JSON.stringify({ model, instructions: system, input: user, max_output_tokens: maxOutputTokens })
-  });
+  }, timeoutMs);
 
   const data = await response.json();
   if (!response.ok) throw new Error(data?.error?.message || `OpenAI API error (${response.status})`);
