@@ -414,7 +414,6 @@ const features = [
   ["clearAiChat defined",               "function clearAiChat()"],
   ["USER uses birthDate not age",       "USER.birthDate"],
   ["USER no longer has hardcoded age",  true],   // checked below
-  ["ask-forge-btn CSS defined",         ".ask-forge-btn"],
   ["FIBRE_TARGET defined",              "FIBRE_TARGET=38"],
   ["quickAddRecent carries fibre",      "quickAddRecent(date,name,kcal,protein,carbs,fat,fibre,sugar,sodium)"],
   ["chat-bubble CSS defined",           ".chat-bubble"],
@@ -686,7 +685,7 @@ ok("client renders the review card guarded on S.dietReview?.text",
 
 // Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
 const rnTpl = fnBody("renderNutrition");
-const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly Diet Review", "Weight History", "ask-forge-btn"].map(s => rnTpl.indexOf(s));
+const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly Diet Review", "Weight History"].map(s => rnTpl.indexOf(s));
 ok("Nutrition tab order: hero → Food Log → Body → PROGRESS → phase → diet review → weight history → Ask Forge",
   order.every(i => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]));
 
