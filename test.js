@@ -692,8 +692,8 @@ ok("client renders the review card guarded on S.dietReview?.text",
   ok("exactly 10 brand-new fallback quotes (none from the old pool)",
     Q.length === 10 && !Q.some(x => /Schwarzenegger|Ronnie Coleman|Muhammad Ali|Gretzky|Henry Rollins/.test(x)));
   ok("every fallback quote has an attributed author", Q.every(x => x.lastIndexOf(" - ") > 0));
-  ok("carousel runs every 15s with the crossfade overlay restored",
-    HTML.includes("setInterval(cycleQ,15000)") && HTML.includes("quote-overlay") && HTML.includes("const q=pool[qIdx++%pool.length]"));
+  ok("carousel runs every 9s with the crossfade overlay restored",
+    HTML.includes("setInterval(cycleQ,9000)") && HTML.includes("quote-overlay") && HTML.includes("const q=pool[qIdx++%pool.length]"));
   const CRON = readFileSync("api/cron-diet-review.js", "utf8");
   ok("cron generates weekly quotes for the STARTING week, avoiding last 12 weeks",
     CRON.includes("export async function generateWeeklyQuotes") && CRON.includes("LIMIT 12") &&

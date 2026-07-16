@@ -1566,7 +1566,7 @@ function initApp(){
   try{lastTab=sessionStorage.getItem("forge_tab");}catch(_){}
   if(lastTab==="nutrition"||lastTab==="settings")go(lastTab);
   cycleQ();
-  setInterval(cycleQ,15000);
+  setInterval(cycleQ,9000);
   handleHKSync();
   _appReady=true;
   // Sequential, not concurrent: a queued restore_all (or any pending write)
