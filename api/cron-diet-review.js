@@ -11,7 +11,7 @@ import { assembleState } from "./state.js";
 const GOALS = {
   targetKg: 90,
   goalDate: "2027-02-20",
-  phase: "Phase 1 (Jul 17 – Aug 31, 2026): 138 → 128 kg, eat 2,100 kcal/day fixed, Apple Watch active targets 1,500 kcal Mon–Sat / 650 kcal Sunday (counted at 75%), resting ~2,850",
+  phase: "Phase 1 (Jul 15 – Aug 31, 2026): 138 → 128 kg, eat 2,100 kcal/day fixed, Apple Watch active targets 1,500 kcal Mon–Sat / 650 kcal Sunday (counted at 75%), resting ~2,850",
   proteinTargetG: 180,
   fibreTargetG: 38,
   sugarLimitG: 50,
