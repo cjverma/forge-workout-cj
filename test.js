@@ -683,6 +683,36 @@ ok("wipe_all clears diet_reviews",
 ok("client renders the review card guarded on S.dietReview?.text",
   HTML.includes("S.dietReview?.text") && HTML.includes("Weekly Diet Review") && HTML.includes("mdLite(S.dietReview.text)"));
 
+// Quote of the week — extract the real Q + weeklyQuote and unit-test rotation
+{
+  const qm = HTML.match(/const Q=\[[\s\S]*?\];/)?.[0];
+  const wq = HTML.match(/function weeklyQuote\(dateIso\)\{[\s\S]*?\n\}/)?.[0];
+  ok("Q pool and weeklyQuote() present", !!qm && !!wq);
+  const mkWq = new Function("mondayOfIso", "daysBetween", "isoToday", qm + wq + ";return {Q,weeklyQuote};");
+  const noonUTC = iso => new Date(iso + "T12:00:00Z");
+  const daysBetween = (a, b) => Math.round((noonUTC(b) - noonUTC(a)) / 86400000);
+  const mondayOfIso = iso => { const d = noonUTC(iso); const dow = d.getUTCDay(); d.setUTCDate(d.getUTCDate() + (dow === 0 ? -6 : 1 - dow)); return d.toISOString().split("T")[0]; };
+  const { Q, weeklyQuote } = mkWq(mondayOfIso, daysBetween, () => "2026-07-16");
+  ok("exactly 10 brand-new quotes (none from the old pool)",
+    Q.length === 10 && !Q.some(q => /Schwarzenegger|Ronnie Coleman|Muhammad Ali|Gretzky|Henry Rollins/.test(q)));
+  ok("every quote has an attributed author", Q.every(q => q.lastIndexOf(" - ") > 0));
+  const week = d => weeklyQuote(d);
+  ok("stable within a week, changes across weeks",
+    week("2026-07-13") === week("2026-07-19") && week("2026-07-19") !== week("2026-07-20"));
+  const cycle1 = Array.from({ length: 10 }, (_, i) => {
+    const d = noonUTC("2026-07-13"); d.setUTCDate(d.getUTCDate() + i * 7); return week(d.toISOString().split("T")[0]);
+  });
+  ok("no repeats within a 10-week cycle (all 10 quotes shown exactly once)",
+    new Set(cycle1).size === 10);
+  const cycle2first = week("2026-09-21") /* wk 10 */;
+  ok("next cycle reshuffles into a different order",
+    JSON.stringify(cycle1) !== JSON.stringify(Array.from({ length: 10 }, (_, i) => {
+      const d = noonUTC("2026-09-21"); d.setUTCDate(d.getUTCDate() + i * 7); return week(d.toISOString().split("T")[0]);
+    })) && !!cycle2first);
+  ok("9-second carousel removed (weekly, hourly rollover check only)",
+    !HTML.includes("setInterval(cycleQ,9000)") && HTML.includes("setInterval(cycleQ,3600000)"));
+}
+
 // Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
 const rnTpl = fnBody("renderNutrition");
 const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly Diet Review", "Weight History"].map(s => rnTpl.indexOf(s));
