@@ -732,8 +732,8 @@ ok("Nutrition tab order: hero → Food Log → Body → PROGRESS → phase → d
   order.every(i => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]));
 
 ok("Body card merges burn inputs and weight quick-log (ids preserved for saveBurn focus contract)",
-  rnTpl.indexOf(">Body<") < rnTpl.indexOf('id="bvRest"') && rnTpl.indexOf('id="bvRest"') < rnTpl.indexOf("+ Log Weight") &&
-  rnTpl.indexOf("+ Log Weight") < rnTpl.indexOf(">Progress<") && rnTpl.includes('id="bvAct"'));
+  rnTpl.indexOf(">Body<") < rnTpl.indexOf('id="bvRest"') && rnTpl.indexOf('id="bvRest"') < rnTpl.indexOf(">Progress<") &&
+  rnTpl.includes('id="bvAct"') && rnTpl.includes("burn-lbl\">Weight"));
 
 ok("Diet review and weight history render collapsed; phase card collapsed unless verdict is ready",
   !rnTpl.includes(`<details class="st-acc" open>\n      <summary><div><div>🥗`) &&

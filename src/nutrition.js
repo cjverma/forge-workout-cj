@@ -299,9 +299,14 @@ export function renderNutrition(){
         <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="0" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
-      </div>
-      <div style="border-top:1px solid var(--b1);margin-top:12px;padding-top:12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
-        ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:8px;width:100%"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" style="flex:1"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" style="margin:0" onclick="openWtInput(this,'${date}')">+ Log Weight</button>${allWtKeys.length?`<span style="font-size:12px;color:var(--dim)">latest ${wts[allWtKeys[allWtKeys.length-1]]} kg</span>`:""}`}
+        <div class="burn-sep"></div>
+        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="${_wtOpen?`_wtOpen=false;renderNutrition()`:`openWtInput(this,'${date}')`}"`} style="cursor:${ro?"default":"pointer"}">
+          ${_wtOpen
+            ? `<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="—" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${date}')">✓</button></div>`
+            : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}</div>`
+          }
+          <div class="burn-lbl">Weight${allWtKeys.length?" kg":ro?"":" · tap"}</div>
+        </div>
       </div>
     </div>
 
