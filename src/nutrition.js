@@ -308,14 +308,14 @@ export function renderNutrition(){
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="toggleWtOpen()"`} style="cursor:${ro?"default":"pointer"}">
-          ${_wtOpen
-            ? `<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="—" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${date}')">✓</button></div>`
-            : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}${allWtKeys.length>=2?(()=>{const delta=wts[allWtKeys[allWtKeys.length-1]]-wts[allWtKeys[allWtKeys.length-2]];return delta<0?`<span style="font-size:11px;color:var(--green)"> ↓${Math.abs(delta).toFixed(1)}</span>`:delta>0?`<span style="font-size:11px;color:var(--red)"> ↑${delta.toFixed(1)}</span>`:"";})():""}</div>`
-          }
+          <div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim)"}">${(()=>{if(!allWtKeys.length)return"—";const cur=wts[allWtKeys[allWtKeys.length-1]];if(allWtKeys.length<2)return cur;const delta=cur-wts[allWtKeys[allWtKeys.length-2]];const arrow=delta<0?'<span style="font-size:11px;color:var(--green)"> ↓'+Math.abs(delta).toFixed(1)+"</span>":delta>0?'<span style="font-size:11px;color:var(--red)"> ↑'+delta.toFixed(1)+"</span>":"";return cur+arrow;})()}</div>
           <div class="burn-lbl">Weight${allWtKeys.length?" kg":""}</div>
-          ${!allWtKeys.length&&!ro&&!_wtOpen?`<div style="font-size:10px;color:var(--accent-text);font-weight:700;margin-top:2px">+ Log</div>`:""}
         </div>
       </div>
+      ${ro?"":_wtOpen
+        ? `<div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="e.g. 138.5" inputmode="decimal" enterkeyhint="done" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="toggleWtOpen()">✕</button></div>`
+        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">${allWtKeys.length?"+ Update Weight":"+ Log Weight"}</button>`
+      }
     </div>
 
     <div class="st-sec">Progress</div>
