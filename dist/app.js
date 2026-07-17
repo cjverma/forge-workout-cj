@@ -166,8 +166,8 @@ Give today's exact progressive overload targets in 4 lines max.`,a="oo"}else if(
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${c}</div><div class="burn-lbl">Total</div></div>
       </div>
-      <div style="border-top:1px solid var(--b1);margin-top:12px;padding-top:12px;display:flex;align-items:center;gap:10px">
-        ${t?"":_wtOpen?`<input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" style="flex:1"><button class="wt-save" onclick="saveWeight('${e}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">\u2715</button>`:`<button class="wt-log-btn" style="flex:0 0 auto;margin:0" onclick="openWtInput(this,'${e}')">+ Log Weight</button><span style="font-size:12px;color:var(--dim)">${O.length?`latest ${_[O[O.length-1]]} kg`:"no entries yet"}</span>`}
+      <div style="border-top:1px solid var(--b1);margin-top:12px;padding-top:12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        ${t?"":_wtOpen?`<div style="display:flex;align-items:center;gap:8px;width:100%"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" style="flex:1"><button class="wt-save" onclick="saveWeight('${e}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">\u2715</button></div>`:`<button class="wt-log-btn" style="margin:0" onclick="openWtInput(this,'${e}')">+ Log Weight</button>${O.length?`<span style="font-size:12px;color:var(--dim)">latest ${_[O[O.length-1]]} kg</span>`:""}`}
       </div>
     </div>
 

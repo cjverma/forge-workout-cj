@@ -300,8 +300,8 @@ export function renderNutrition(){
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
       </div>
-      <div style="border-top:1px solid var(--b1);margin-top:12px;padding-top:12px;display:flex;align-items:center;gap:10px">
-        ${ro?"":_wtOpen?`<input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" style="flex:1"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button>`:`<button class="wt-log-btn" style="flex:0 0 auto;margin:0" onclick="openWtInput(this,'${date}')">+ Log Weight</button><span style="font-size:12px;color:var(--dim)">${allWtKeys.length?`latest ${wts[allWtKeys[allWtKeys.length-1]]} kg`:"no entries yet"}</span>`}
+      <div style="border-top:1px solid var(--b1);margin-top:12px;padding-top:12px;display:flex;flex-direction:column;align-items:flex-start;gap:6px">
+        ${ro?"":_wtOpen?`<div style="display:flex;align-items:center;gap:8px;width:100%"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="kg" style="flex:1"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="_wtOpen=false;renderNutrition()">✕</button></div>`:`<button class="wt-log-btn" style="margin:0" onclick="openWtInput(this,'${date}')">+ Log Weight</button>${allWtKeys.length?`<span style="font-size:12px;color:var(--dim)">latest ${wts[allWtKeys[allWtKeys.length-1]]} kg</span>`:""}`}
       </div>
     </div>
 
