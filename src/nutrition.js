@@ -5,6 +5,12 @@ import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
 import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 
+function fetchT(url, opts, ms = 15000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(t));
+}
+
 // ── NUTRITION ──────────────────────────────────────────
 function nutShift(delta){
   const d=new Date(_nutDate+"T12:00:00");d.setDate(d.getDate()+delta);
@@ -287,7 +293,8 @@ export function renderNutrition(){
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional — e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
-      })():`<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
+      })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet · ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
+<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
     </div>
 
     <!-- Body card: daily burn inputs + weight logging in one place -->
@@ -296,14 +303,14 @@ export function renderNutrition(){
       <div class="burn-row">
         <div class="burn-col"><input class="burn-inp" id="bvRest" type="number" inputmode="numeric" enterkeyhint="done" value="${resting}" ${ro?'disabled':''} onchange="saveBurn('${date}','resting',this.value)" onfocus="this.select()"><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="0" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
+        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="from Watch" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="${_wtOpen?`_wtOpen=false;renderNutrition()`:`openWtInput(this,'${date}')`}"`} style="cursor:${ro?"default":"pointer"}">
+        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="_wtOpen=!_wtOpen;renderNutrition()"`} style="cursor:${ro?"default":"pointer"}">
           ${_wtOpen
             ? `<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="—" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${date}')">✓</button></div>`
-            : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}</div>`
+            : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}${allWtKeys.length>=2?(()=>{const delta=wts[allWtKeys[allWtKeys.length-1]]-wts[allWtKeys[allWtKeys.length-2]];return delta<0?`<span style="font-size:11px;color:var(--green)"> ↓${Math.abs(delta).toFixed(1)}</span>`:delta>0?`<span style="font-size:11px;color:var(--red)"> ↑${delta.toFixed(1)}</span>`:"";})():""}</div>`
           }
           <div class="burn-lbl">Weight${allWtKeys.length?" kg":ro?"":" · tap"}</div>
         </div>
@@ -373,7 +380,7 @@ async function generateDietReview(){
   if(_dietRevBusy)return;
   _dietRevBusy=true;renderNutrition();
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/cron-diet-review",{method:"POST",headers:{"Authorization":"Bearer "+API_CFG.token}});
+    const r=await fetchT(API_CFG.baseUrl+"/api/cron-diet-review",{method:"POST",headers:{"Authorization":"Bearer "+API_CFG.token}},30000);
     const d=await r.json().catch(()=>({}));
     if(r.status===401){showToast("❌ Auth failed · app token doesn't match FORGE_API_TOKEN");return;}
     if(d.skipped){showToast("No food logged this week yet — nothing to review");return;}
@@ -540,7 +547,7 @@ async function aiPhaseReview(id){
       days.push({date:d,kcal:items.reduce((s,it)=>s+(it.kcal||0),0),protein:items.reduce((s,it)=>s+(it.protein||0),0),active:nd.active||0,weight:w!=null?Number(w):null});
     }
     const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${p.activeTargetWorkout} (Mon-Sat) / ${p.activeTargetRest} (Sun), counted burn = resting ${p.restingKcal} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
-    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})});
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
     S.phaseReview={phase:p.id,text:d.text,at:Date.now()};
@@ -688,7 +695,7 @@ async function askFood(){
   const out=document.getElementById("foodOut");
   if(out){out.className="ai-out show";out.innerHTML='<span class="spin"></span>Estimating...';}
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/nutrition",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({text:txt})});
+    const r=await fetchT(API_CFG.baseUrl+"/api/nutrition",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({text:txt})},60000);
     const d=await r.json();
     if(!r.ok||d.error)throw new Error(d.error||"error");
     const arr=Array.isArray(d.items)?d.items:(d.name?[d]:[]);
@@ -821,32 +828,6 @@ function delFood(date,id){
   if(nutLocked(date))return;
   const day=getDayData(date);day.items=day.items.filter(i=>i.id!==id);save();queueMutation("nutrition_item_delete",{date,id});renderNutrition();
 }
-function openWtInput(btn,date){
-  if(nutLocked(date))return;
-  _wtOpen=true;
-  const wrap=document.createElement("div");
-  wrap.style.cssText="display:flex;align-items:center;gap:10px;margin-bottom:10px";
-  const inp=document.createElement("input");
-  inp.className="wt-inp";inp.type="number";inp.step="0.1";inp.placeholder="kg";
-  inp.setAttribute("inputmode","decimal");inp.setAttribute("enterkeyhint","done");
-  const saveBtn=document.createElement("button");saveBtn.className="wt-save";saveBtn.textContent="Save";
-  const cancel=document.createElement("button");cancel.className="food-cancel";cancel.textContent="✕";
-  wrap.append(inp,saveBtn,cancel);
-  btn.replaceWith(wrap);
-  inp.focus();inp.select();
-  const commit=ok=>{
-    if(inp._done)return;inp._done=true;
-    if(ok){
-      const val=parseFloat(inp.value);
-      if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");inp._done=false;inp.focus();return;}
-      S.nutrition.weights[date]=val;save();queueMutation("weight",{date,kg:val},"weight:"+date);checkMilestones();showToast("Weight logged ✓");
-    }
-    _wtOpen=false;renderNutrition();
-  };
-  saveBtn.onclick=()=>commit(true);
-  cancel.onclick=()=>commit(false);
-  inp.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();commit(true);}if(e.key==="Escape")commit(false);});
-}
 let _wtPage=0,_wtExpanded=false;
 function wtPage(n){_wtPage=n;_wtExpanded=true;renderNutrition();}
 function saveWeight(date){
@@ -931,7 +912,6 @@ window.redoFood=redoFood;
 window.dropPending=dropPending;
 window.delFood=delFood;
 window.quickAddRecent=quickAddRecent;
-window.openWtInput=openWtInput;
 window.saveWeight=saveWeight;
 window.delWeight=delWeight;
 window.wtPage=wtPage;

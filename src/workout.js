@@ -5,6 +5,12 @@ import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
 import { EX_DB, PROG, DAYS, GYM } from "./constants.js";
 
+function fetchT(url, opts, ms = 15000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(t));
+}
+
 // ── UNITS · per-exercise label (no conversion, you enter what you see) ──
 function getExUnit(key,exId){const S=ctx.getS();return S.sessions[key]?.[exId]?.unit||"kg";}
 function toggleExUnit(key,exId){
@@ -742,7 +748,7 @@ async function suggestSafeAlt(kind,day,idx){
   }
   if(row)row.innerHTML=`<div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">Finding a safe alternative…</div></div>`;
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/suggest-alt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({exerciseName,muscles,cat})});
+    const r=await fetchT(API_CFG.baseUrl+"/api/suggest-alt",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({exerciseName,muscles,cat})},60000);
     const d=await r.json();
     if(!r.ok||!d.name){
       if(row)row.innerHTML=`<div class="dd-item-left"><div class="dd-name" style="color:var(--red)">Couldn't find a safe alternative · try a different search</div></div>`;
@@ -911,7 +917,7 @@ async function aiRun(type){
   out.className="ai-out show";
   out.innerHTML='<span class="spin"></span>Thinking...';
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:PROG[ctx.cDay]?.title||""}})});
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:PROG[ctx.cDay]?.title||""}})},60000);
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||"Request failed");
     out.innerHTML=d.text?mdLite(d.text):"No response.";

@@ -5,6 +5,12 @@ import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { PROG, DAYS } from "./constants.js";
 
+function fetchT(url, opts, ms = 15000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(t));
+}
+
 // Settings
 export function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
@@ -273,7 +279,7 @@ async function aiWeeklyReview(){
   const req=_wp?phaseDayDeficit(_wp,isoToday()):requiredDeficit(lw,daysLeft);
   const prompt=`Weekly summary (last 7 days):\nWorkouts: ${sessCount} sessions\nAvg intake: ${avgKcal} kcal/day | Avg protein: ${avgProtein}g | Avg fibre: ${avgFibre}g\nAvg active burn: ${avgActive} kcal | Avg total burn: ${avgBurn} kcal | Avg deficit: ${avgDeficit} kcal/day\nRequired deficit to hit goal: ${req} kcal/day\nWeight: ${wtLine}\nCurrent: ${lw}kg → Target: ${USER.targetKg}kg | ${daysLeft} days left\n\nFood log (last 7 days):\n${foodLines.slice(0,60).join("\n")}\n\nAssess in 4-5 sentences: (1) is the actual deficit on track vs the required ${req} kcal/day? (2) given the deficit numbers, explain whether the weight change is water retention (assume this first — glycogen, sodium, hormonal shifts are common causes, especially with training) or genuine fat gain; do NOT question logging accuracy. (3) workout consistency. (4) one food habit observation from the log. (5) one specific action for next week. Cite actual numbers. Plain text only.`;
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})});
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
     S.nutrition.weeklyVerdict={week:wk(),text:d.text};
@@ -363,11 +369,11 @@ async function emailCSV(){
   if(btn){btn.disabled=true;btn.textContent="Sending…";}
   try{
     const csv=buildFullCSV();
-    const res=await fetch(API_CFG.baseUrl+"/api/email",{
+    const res=await fetchT(API_CFG.baseUrl+"/api/email",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({filename:`forge-export-${isoToday()}.csv`,content:btoa(unescape(encodeURIComponent(csv)))})
-    });
+    },30000);
     if(res.ok)showToast("CSV emailed to you 📧");
     else showToast("Email failed — use backup download");
   }catch(e){showToast("Email failed — use backup download");}
@@ -626,7 +632,7 @@ async function wipeAllData(){
   let dbOk=true;
   try{
     if(API_CFG.token){
-      const r=await fetch(API_CFG.baseUrl+"/api/mutate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({entity:"wipe_all",payload:{confirm:"WIPE_ALL"}})});
+      const r=await fetchT(API_CFG.baseUrl+"/api/mutate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({entity:"wipe_all",payload:{confirm:"WIPE_ALL"}})},15000);
       dbOk=r.ok;
     }
   }catch(e){dbOk=false;}
@@ -740,19 +746,15 @@ async function genWeeklyPlan(){
   const btns=[...document.querySelectorAll(".gen-plan-btn")];
   if(!btns.length)return;
   btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
-  // Guard against a hung request (e.g. slow model) leaving the spinner stuck forever
-  const ctrl=new AbortController();
-  const timer=setTimeout(()=>ctrl.abort(),60000);
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/weekly-plan",{
+    const r=await fetchT(API_CFG.baseUrl+"/api/weekly-plan",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         sessionHistory:buildSessionHistory(4),
         profile:{equipment:GYM,currentPlan:buildPlanSnapshot(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
-      }),
-      signal:ctrl.signal
-    });
+      })
+    },60000);
     if(!r.ok)throw new Error("Request failed");
     const data=await r.json();
     let parsed;
@@ -764,7 +766,6 @@ async function genWeeklyPlan(){
   }catch(e){
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
-    clearTimeout(timer);
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
   }
 }

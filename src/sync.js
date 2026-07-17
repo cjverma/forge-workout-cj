@@ -4,6 +4,12 @@ import { showToast } from "./ui.js";
 
 export const API_CFG = window.FORGE_API_CFG || { baseUrl: "", token: localStorage.getItem("forge_key") || "" };
 
+function fetchT(url, opts, ms = 15000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(t));
+}
+
 function dataWeight(st) {
   let n = 0;
   for (const sess of Object.values(st.sessions || {}))
@@ -80,7 +86,7 @@ export async function flushOutbox() {
       const m = list[0];
       let ok = false;
       try {
-        const r = await fetch(API_CFG.baseUrl + "/api/mutate", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + API_CFG.token }, body: JSON.stringify({ entity: m.entity, payload: m.payload }) });
+        const r = await fetchT(API_CFG.baseUrl + "/api/mutate", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + API_CFG.token }, body: JSON.stringify({ entity: m.entity, payload: m.payload }) }, 15000);
         if (r.status === 501) { ctx.syncAvailable = false; break; }
         ok = r.ok;
         if (r.ok) ctx.syncAvailable = true;
@@ -96,7 +102,7 @@ export async function loadServerState(showStatus) {
   if (!API_CFG.token) return;
   if (showStatus) showToast("Checking database…");
   try {
-    const r = await fetch(API_CFG.baseUrl + "/api/state", { headers: { "Authorization": "Bearer " + API_CFG.token } });
+    const r = await fetchT(API_CFG.baseUrl + "/api/state", { headers: { "Authorization": "Bearer " + API_CFG.token } }, 15000);
     if (r.status === 501) { ctx.syncAvailable = false; setSyncDot(); if (showStatus) showToast("❌ Database not configured · add DATABASE_URL in Vercel, then redeploy"); return; }
     if (r.status === 401) { if (showStatus) showToast("❌ Auth failed · app token doesn't match FORGE_API_TOKEN"); return; }
     if (!r.ok) { if (showStatus) showToast("❌ Sync error (HTTP " + r.status + ")"); return; }

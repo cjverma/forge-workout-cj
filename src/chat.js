@@ -4,6 +4,12 @@ import { esc, mdLite, showToast } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueMutation } from "./sync.js";
 
+function fetchT(url, opts, ms = 15000) {
+  const ac = new AbortController();
+  const t = setTimeout(() => ac.abort(), ms);
+  return fetch(url, { ...opts, signal: ac.signal }).finally(() => clearTimeout(t));
+}
+
 // ── AI CHAT ──────────────────────────────────────────────────────────────────
 function sanitizeCtx(str,max=100){return String(str||"").slice(0,max).replace(/[<>{}\[\]]/g,"");}
 function buildChatContext(){
@@ -120,14 +126,14 @@ async function sendAiChat(){
   if(btn)btn.disabled=true;
   try{
     const ctx=buildChatContext();
-    const r=await fetch(API_CFG.baseUrl+"/api/coach",{
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         prompt:text,
         context:{day:"",program:"",chatContext:JSON.stringify(ctx)}
       })
-    });
+    }, 60000);
     const d=await r.json();
     const reply=d.text||d.error||"No response";
     S.aiChat.push({role:"ai",text:reply,ts:Date.now()});
