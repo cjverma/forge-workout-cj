@@ -138,9 +138,26 @@ function hintDisp(hint,unit){
 
 let cDay="",cTab="workout",workoutOn=false,sessStart=null,sessTimer=null,selectedEx=null;
 ctx.getTab=()=>cTab;
+// Live ctx proxies so extracted modules (workout.js, nutrition.js) can read/write shared state
+Object.defineProperty(ctx,"cDay",{get:()=>cDay,set:v=>{cDay=v;},enumerable:true});
+Object.defineProperty(ctx,"cTab",{get:()=>cTab,set:v=>{cTab=v;},enumerable:true});
+Object.defineProperty(ctx,"workoutOn",{get:()=>workoutOn,set:v=>{workoutOn=v;},enumerable:true});
+Object.defineProperty(ctx,"sessStart",{get:()=>sessStart,set:v=>{sessStart=v;},enumerable:true});
+Object.defineProperty(ctx,"sessTimer",{get:()=>sessTimer,set:v=>{sessTimer=v;},enumerable:true});
+Object.defineProperty(ctx,"selectedEx",{get:()=>selectedEx,set:v=>{selectedEx=v;},enumerable:true});
 let _nutDate=isoToday(),_pendingFood=null,_foodChatOpen=false,_wtOpen=false,_foodSearchOpen=false,_foodSearchQ="";
 let _foodDraftText="",_foodDraftMealName=""; // survives tab switches — see openFood()/askFood() for lifecycle
 let _lastFoodText="",_lastMealName="";
+Object.defineProperty(ctx,"nutDate",{get:()=>_nutDate,set:v=>{_nutDate=v;},enumerable:true});
+Object.defineProperty(ctx,"pendingFood",{get:()=>_pendingFood,set:v=>{_pendingFood=v;},enumerable:true});
+Object.defineProperty(ctx,"foodChatOpen",{get:()=>_foodChatOpen,set:v=>{_foodChatOpen=v;},enumerable:true});
+Object.defineProperty(ctx,"wtOpen",{get:()=>_wtOpen,set:v=>{_wtOpen=v;},enumerable:true});
+Object.defineProperty(ctx,"foodSearchOpen",{get:()=>_foodSearchOpen,set:v=>{_foodSearchOpen=v;},enumerable:true});
+Object.defineProperty(ctx,"foodSearchQ",{get:()=>_foodSearchQ,set:v=>{_foodSearchQ=v;},enumerable:true});
+Object.defineProperty(ctx,"foodDraftText",{get:()=>_foodDraftText,set:v=>{_foodDraftText=v;},enumerable:true});
+Object.defineProperty(ctx,"foodDraftMealName",{get:()=>_foodDraftMealName,set:v=>{_foodDraftMealName=v;},enumerable:true});
+Object.defineProperty(ctx,"lastFoodText",{get:()=>_lastFoodText,set:v=>{_lastFoodText=v;},enumerable:true});
+Object.defineProperty(ctx,"lastMealName",{get:()=>_lastMealName,set:v=>{_lastMealName=v;},enumerable:true});
 
 // ── REST TIMER (background-safe, 30s) ──
 const REST_DURATION=30;
@@ -394,6 +411,7 @@ function mondayDateOf(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d
 function _todayMonday(){return mondayDateOf(new Date());}
 // Navigation state: Date of Monday being viewed, null = current week
 let _viewMon=null;
+Object.defineProperty(ctx,"viewMon",{get:()=>_viewMon,set:v=>{_viewMon=v;},enumerable:true});
 // vwk() must return a wkStr whose session key matches what was stored this week.
 // wk() uses a formula that may put Sunday in the NEXT week, so for non-current weeks
 // we apply wk()'s formula to Wednesday of the viewed week (safely mid-week).
@@ -414,6 +432,7 @@ function isPastDay(){
   return DAYS.indexOf(cDay)<ti;
 }
 let _unlocked={}; // session-only edit unlocks, keyed by day_week
+Object.defineProperty(ctx,"unlocked",{get:()=>_unlocked,set:v=>{_unlocked=v;},enumerable:true});
 function unlockDay(){_unlocked[sk(cDay)]=true;renderW();showToast("Editing unlocked for this day");}
 function lockDay(){delete _unlocked[sk(cDay)];renderW();}
 function isReadOnly(key){
