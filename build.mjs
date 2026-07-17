@@ -20,6 +20,7 @@ function sourceForInline(path) {
 const html = readFileSync("index.html", "utf8");
 const inlineJs = [
   sourceForInline("src/runtime.js"),
+  sourceForInline("src/constants.js"),
   sourceForInline("src/state.js"),
   sourceForInline("src/ui.js"),
   sourceForInline("src/phase.js"),
