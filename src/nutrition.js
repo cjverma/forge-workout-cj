@@ -307,7 +307,7 @@ export function renderNutrition(){
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="_wtOpen=!_wtOpen;renderNutrition()"`} style="cursor:${ro?"default":"pointer"}">
+        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="toggleWtOpen()"`} style="cursor:${ro?"default":"pointer"}">
           ${_wtOpen
             ? `<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="—" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${date}')">✓</button></div>`
             : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}${allWtKeys.length>=2?(()=>{const delta=wts[allWtKeys[allWtKeys.length-1]]-wts[allWtKeys[allWtKeys.length-2]];return delta<0?`<span style="font-size:11px;color:var(--green)"> ↓${Math.abs(delta).toFixed(1)}</span>`:delta>0?`<span style="font-size:11px;color:var(--red)"> ↑${delta.toFixed(1)}</span>`:"";})():""}</div>`
@@ -915,6 +915,8 @@ window.quickAddRecent=quickAddRecent;
 window.saveWeight=saveWeight;
 window.delWeight=delWeight;
 window.wtPage=wtPage;
+function toggleWtOpen(){_wtOpen=!_wtOpen;renderNutrition();}
+window.toggleWtOpen=toggleWtOpen;
 window.nutDateLabel=nutDateLabel;
 window.filterFoodSearch=filterFoodSearch;
 ctx.renderNutrition=renderNutrition;

@@ -2869,7 +2869,7 @@ function renderNutrition(){
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="_wtOpen=!_wtOpen;renderNutrition()"`} style="cursor:${ro?"default":"pointer"}">
+        <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="toggleWtOpen()"`} style="cursor:${ro?"default":"pointer"}">
           ${_wtOpen
             ? `<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="—" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${date}')">✓</button></div>`
             : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}${allWtKeys.length>=2?(()=>{const delta=wts[allWtKeys[allWtKeys.length-1]]-wts[allWtKeys[allWtKeys.length-2]];return delta<0?`<span style="font-size:11px;color:var(--green)"> ↓${Math.abs(delta).toFixed(1)}</span>`:delta>0?`<span style="font-size:11px;color:var(--red)"> ↑${delta.toFixed(1)}</span>`:"";})():""}</div>`
@@ -3477,6 +3477,8 @@ window.quickAddRecent=quickAddRecent;
 window.saveWeight=saveWeight;
 window.delWeight=delWeight;
 window.wtPage=wtPage;
+function toggleWtOpen(){_wtOpen=!_wtOpen;renderNutrition();}
+window.toggleWtOpen=toggleWtOpen;
 window.nutDateLabel=nutDateLabel;
 window.filterFoodSearch=filterFoodSearch;
 ctx.renderNutrition=renderNutrition;
@@ -4231,19 +4233,15 @@ async function genWeeklyPlan(){
   const btns=[...document.querySelectorAll(".gen-plan-btn")];
   if(!btns.length)return;
   btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
-  // Guard against a hung request (e.g. slow model) leaving the spinner stuck forever
-  const ctrl=new AbortController();
-  const timer=setTimeout(()=>ctrl.abort(),60000);
   try{
-    const r=await fetch(API_CFG.baseUrl+"/api/weekly-plan",{
+    const r=await fetchT(API_CFG.baseUrl+"/api/weekly-plan",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         sessionHistory:buildSessionHistory(4),
         profile:{equipment:GYM,currentPlan:buildPlanSnapshot(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
-      }),
-      signal:ctrl.signal
-    });
+      })
+    },60000);
     if(!r.ok)throw new Error("Request failed");
     const data=await r.json();
     let parsed;
@@ -4255,7 +4253,6 @@ async function genWeeklyPlan(){
   }catch(e){
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
-    clearTimeout(timer);
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
   }
 }
