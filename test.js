@@ -720,8 +720,8 @@ ok("client renders the review card guarded on S.dietReview?.text",
     HK.includes("active=EXCLUDED.active"));
   ok("healthkit: uses q.query() for parameterised SQL (Neon v1 rejects bare q(text, params))",
     HK.includes("q.query(st.text, st.values)"));
-  ok("healthkit: bounds active 0-6000 · resting 800-4000 · weight 30-300",
-    HK.includes("0, 6000") && HK.includes("800, 4000") && HK.includes("30, 300"));
+  ok("healthkit: bounds active 0-6000 · resting 200-6000 · weight 30-300",
+    HK.includes("0, 6000") && HK.includes("200, 6000") && HK.includes("30, 300"));
   ok("healthkit: mounted in server.js", readFileSync("server.js", "utf8").includes('"/api/healthkit"'));
 }
 

@@ -34,11 +34,11 @@ export function normalizeHealthKitPayload(body = {}, fallbackDate = todayToronto
   if (!validDate(date)) errors.push("date must be YYYY-MM-DD");
 
   const active = numberInRange(body.active, 0, 6000);
-  const resting = numberInRange(body.resting, 800, 4000);
+  const resting = numberInRange(body.resting, 200, 6000);
   const weightKg = numberInRange(body.weightKg, 30, 300);
 
   if (active === null) errors.push("active must be 0-6000");
-  if (resting === null) errors.push("resting must be 800-4000");
+  if (resting === null) errors.push("resting must be 200-6000");
   if (weightKg === null) errors.push("weightKg must be 30-300");
 
   const applied = {};
