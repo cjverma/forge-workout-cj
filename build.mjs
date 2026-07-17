@@ -26,6 +26,7 @@ const inlineJs = [
   sourceForInline("src/phase.js"),
   sourceForInline("src/quotes.js"),
   sourceForInline("src/sync.js"),
+  sourceForInline("src/workout.js"),
   sourceForInline("src/main.js"),
 ].join("\n\n");
 const builtHtml = html.replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);
