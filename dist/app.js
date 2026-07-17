@@ -163,13 +163,14 @@ Give today's exact progressive overload targets in 4 lines max.`,a="oo"}else if(
       <div class="burn-row">
         <div class="burn-col"><input class="burn-inp" id="bvRest" type="number" inputmode="numeric" enterkeyhint="done" value="${o}" ${t?"disabled":""} onchange="saveBurn('${e}','resting',this.value)" onfocus="this.select()"><div class="burn-lbl">Resting${i!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="from Watch" value="${c||""}" ${t?"disabled":""} onchange="saveBurn('${e}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
+        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="0" value="${c||""}" ${t?"disabled":""} onchange="saveBurn('${e}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${r}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col${t?"":" tappable"}" ${t?"":'onclick="toggleWtOpen()"'} style="cursor:${t?"default":"pointer"}">
           ${_wtOpen?`<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="\u2014" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${e}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${e}')">\u2713</button></div>`:`<div class="burn-val" style="${P.length?"":"color:var(--dim);font-size:16px"}">${P.length?_[P[P.length-1]]:"\u2014"}${P.length>=2?(()=>{let C=_[P[P.length-1]]-_[P[P.length-2]];return C<0?`<span style="font-size:11px;color:var(--green)"> \u2193${Math.abs(C).toFixed(1)}</span>`:C>0?`<span style="font-size:11px;color:var(--red)"> \u2191${C.toFixed(1)}</span>`:""})():""}</div>`}
-          <div class="burn-lbl">Weight${P.length?" kg":t?"":" \xB7 tap"}</div>
+          <div class="burn-lbl">Weight${P.length?" kg":""}</div>
+          ${!P.length&&!t&&!_wtOpen?'<div style="font-size:10px;color:var(--accent-text);font-weight:700;margin-top:2px">+ Log</div>':""}
         </div>
       </div>
     </div>

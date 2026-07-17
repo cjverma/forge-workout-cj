@@ -303,7 +303,7 @@ export function renderNutrition(){
       <div class="burn-row">
         <div class="burn-col"><input class="burn-inp" id="bvRest" type="number" inputmode="numeric" enterkeyhint="done" value="${resting}" ${ro?'disabled':''} onchange="saveBurn('${date}','resting',this.value)" onfocus="this.select()"><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
         <div class="burn-sep"></div>
-        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="from Watch" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
+        <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="0" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
@@ -312,7 +312,8 @@ export function renderNutrition(){
             ? `<div style="display:flex;align-items:center;gap:6px"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="—" style="width:60px;font-size:18px;padding:4px 6px" onclick="event.stopPropagation()" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" style="padding:6px 10px;font-size:12px" onclick="event.stopPropagation();saveWeight('${date}')">✓</button></div>`
             : `<div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim);font-size:16px"}">${allWtKeys.length?wts[allWtKeys[allWtKeys.length-1]]:"—"}${allWtKeys.length>=2?(()=>{const delta=wts[allWtKeys[allWtKeys.length-1]]-wts[allWtKeys[allWtKeys.length-2]];return delta<0?`<span style="font-size:11px;color:var(--green)"> ↓${Math.abs(delta).toFixed(1)}</span>`:delta>0?`<span style="font-size:11px;color:var(--red)"> ↑${delta.toFixed(1)}</span>`:"";})():""}</div>`
           }
-          <div class="burn-lbl">Weight${allWtKeys.length?" kg":ro?"":" · tap"}</div>
+          <div class="burn-lbl">Weight${allWtKeys.length?" kg":""}</div>
+          ${!allWtKeys.length&&!ro&&!_wtOpen?`<div style="font-size:10px;color:var(--accent-text);font-weight:700;margin-top:2px">+ Log</div>`:""}
         </div>
       </div>
     </div>
