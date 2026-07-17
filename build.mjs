@@ -20,9 +20,11 @@ function sourceForInline(path) {
 const html = readFileSync("index.html", "utf8");
 const inlineJs = [
   sourceForInline("src/runtime.js"),
-  sourceForInline("src/quotes.js"),
+  sourceForInline("src/state.js"),
   sourceForInline("src/ui.js"),
   sourceForInline("src/phase.js"),
+  sourceForInline("src/quotes.js"),
+  sourceForInline("src/sync.js"),
   sourceForInline("src/main.js"),
 ].join("\n\n");
 const builtHtml = html.replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);

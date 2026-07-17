@@ -2,6 +2,8 @@ import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, PHASES, USER, addDaysIso, bankedDays, calcBMR, calcTarget, daysBetween, effectiveEnd, ensurePhaseRun, getPhaseRun, isoDate, isoToday, isRestDay, latestWeightLog, phaseActiveTarget, phaseCorridor, phaseCurveKg, phaseDayDeficit, phaseFor, phaseState, projectedFinish, requiredDeficit, restingFor, sevenDayAvg } from "./phase.js";
 import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
+import { save, autoBackupTick, listDailyBackups } from "./state.js";
+import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 
 const EX_DB=[
   // ── MACHINES ──
@@ -321,6 +323,7 @@ const GYM="Stationary bike, treadmill, seated cable machine, chest press machine
 
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
 ctx.getS=()=>S;
+ctx.setS=(ns)=>{S=ns;};
 if(!S.sessions)S.sessions={};
 if(!S.custom)S.custom={};
 if(!S.nutrition)S.nutrition={days:{},weights:{},aiDeficitModifier:0,weeklySnapshots:[]};
@@ -366,36 +369,8 @@ applyPlanOverrides();
 applyTheme();
 // Auto mode: re-resolve theme-color when the device theme flips
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme());
-let _appReady=false,_syncTimer=null,_syncAvailable=null,_lastSyncAt=null,_syncBusy=false;
-function save(){S._syncTs=Date.now();localStorage.setItem("f5",JSON.stringify(S));autoBackupTick();}
+let _appReady=false;
 ctx.save=save;
-// Daily rotating local backup — independent of cloud sync, protects against sync bugs
-// and any future in-place data corruption. Keeps the last 14 calendar days.
-function autoBackupTick(){
-  const today=isoToday();
-  if(S._lastAutoBackupDay===today)return;
-  try{
-    localStorage.setItem("f5_daily_"+today,JSON.stringify(S));
-    S._lastAutoBackupDay=today;
-    localStorage.setItem("f5",JSON.stringify(S));
-    const cutoff=Date.now()-14*86400000;
-    for(let i=localStorage.length-1;i>=0;i--){
-      const k=localStorage.key(i);
-      if(k&&k.startsWith("f5_daily_")){
-        const d=new Date(k.slice(9));
-        if(!isNaN(d)&&d.getTime()<cutoff)localStorage.removeItem(k);
-      }
-    }
-  }catch(e){}
-}
-function listDailyBackups(){
-  const out=[];
-  for(let i=0;i<localStorage.length;i++){
-    const k=localStorage.key(i);
-    if(k&&k.startsWith("f5_daily_"))out.push(k.slice(9));
-  }
-  return out.sort().reverse();
-}
 function restoreDailyBackup(dateStr){
   const raw=localStorage.getItem("f5_daily_"+dateStr);
   if(!raw){showToast("Backup not found");return;}
@@ -1153,35 +1128,7 @@ function ensure(key,exId,i){
 function onWtKey(e,exId,i){if(e.key==="Enter"){e.preventDefault();const r=document.getElementById("ri-"+exId+"-"+i);if(r)r.focus();}}
 function onRpKey(e){if(e.key==="Enter"){e.preventDefault();document.activeElement.blur();}}
 
-function queueSession(key,exId){
-  const ed=S.sessions[key]?.[exId];
-  if(!ed)return;
-  queueMutation("session_set",{sessionKey:key,exId,done:!!ed.done,skipped:!!ed.skipped,unit:ed.unit,sets:ed.sets||[]},"session_set:"+key+":"+exId);
-}
-// Session-level meta (notes, calf twinges, duration, stopped) lives beside the
-// per-exercise entries in S.sessions[key] but persists via its own table row.
-function queueSessionMeta(key){
-  const sess=S.sessions[key];
-  if(!sess)return;
-  queueMutation("session_meta",{sessionKey:key,calfTwinges:sess._calfTwinges||[],notes:sess._notes||null,duration:sess._duration??null,stopped:sess._stopped??null},"session_meta:"+key);
-}
-// Per-day nutrition meta (active/resting overrides + shock flag) as one upsert.
-function queueDayMeta(date){
-  const dm=S.nutrition.days[date]||{};
-  queueMutation("nutrition_day_meta",{date,active:dm.active??null,restingOverride:dm.restingOverride??null,shock:dm.shockProtocol??null},"nutrition_day_meta:"+date);
-}
-// Singleton settings row: theme, AI deficit modifier, weekly verdict/snapshots,
-// demo cache. Dedupe-keyed so rapid changes collapse to the latest values.
-function queueSettings(){
-  queueMutation("settings",{theme:S.theme??null,aiDeficitModifier:S.nutrition?.aiDeficitModifier??0,weeklySnapshots:S.nutrition?.weeklySnapshots||[],weeklyVerdict:S.nutrition?.weeklyVerdict||null,demoCache:S.demoCache||{},demoCacheV:S.demoCacheV??null,lastBackup:S._lastBackup??null},"settings");
-}
 ctx.queueSettings=queueSettings;
-// Milestone dedupe state — without this, already-celebrated milestones re-fire
-// after any cross-device sync.
-function queueMilestones(){
-  const m=S.milestones||{};
-  queueMutation("milestones",{shownProtein7:m.shownProtein7||[],shownWeight5kg:m.shownWeight5kg||[],shownWeek6:m.shownWeek6||[],longestStreak:m.longestStreak||0},"milestones");
-}
 function saveF(key,exId,i,field,val){
   if(isReadOnly(key))return;
   ensure(key,exId,i);
@@ -1465,126 +1412,16 @@ function closeSummary(){
 }
 // AI Coach
 
-const API_CFG=window.FORGE_API_CFG||{baseUrl:"",token:localStorage.getItem("forge_key")||""};
+// sync state exposed via ctx so sync.js can read/write it
+ctx.syncAvailable = null;
+ctx.syncTimer = null;
+ctx.syncBusy = false;
+ctx.lastSyncAt = null;
+ctx.applyTheme = applyTheme;
 
-// ── DATABASE SYNC (Postgres is the source of truth; localStorage is an
-// offline write-queue + cache) ──
-// Every mutation is a small, scoped, idempotent upsert keyed by its own
-// entity+key — never a whole-state overwrite. A device can only ever lose
-// its OWN not-yet-flushed queue (e.g. if storage is cleared before it syncs),
-// never someone else's already-synced data, and never more than the single
-// mutation that failed to send.
-function dataWeight(st){
-  // Rough size of meaningful data: logged sets + nutrition days + weigh-ins
-  let n=0;
-  for(const sess of Object.values(st.sessions||{}))for(const e of Object.values(sess))if(e&&typeof e==="object"&&(e.sets||[]).some(s=>s&&s.done))n+=e.sets.filter(s=>s.done).length;
-  n+=Object.keys(st.nutrition?.days||{}).length*3;
-  n+=Object.keys(st.nutrition?.weights||{}).length*3;
-  return n;
-}
-// Rolling snapshot list (last 5) — extra local safety net, independent of the
-// server, taken whenever we load a fresh server state over local data.
-function pushSnapshot(state){
-  try{
-    const list=JSON.parse(localStorage.getItem("f5_snapshots")||"[]");
-    list.unshift({ts:Date.now(),weight:dataWeight(state),state});
-    localStorage.setItem("f5_snapshots",JSON.stringify(list.slice(0,5)));
-  }catch(e){}
-}
-function listSnapshots(){
-  try{return JSON.parse(localStorage.getItem("f5_snapshots")||"[]");}catch{return[];}
-}
-function restoreSnapshot(ts){
-  const list=listSnapshots();
-  const snap=list.find(s=>s.ts===ts);
-  if(!snap){showToast("Snapshot not found");return;}
-  if(!confirm(`Restore snapshot from ${new Date(snap.ts).toLocaleString()} (~${snap.weight} entries)?\n\nThis REPLACES all current data on this device.`))return;
-  S=snap.state;save();queueMutation("restore_all",{state:S});showToast("Snapshot restored ✓");location.reload();
-}
-function setSyncDot(){
-  const el=document.getElementById("syncDot");
-  if(!el)return;
-  const pending=getOutbox().length;
-  el.className="sync-dot "+(_syncAvailable===true?(pending?"":"on"):_syncAvailable===false?"off":"");
-}
-function getOutbox(){
-  try{return JSON.parse(localStorage.getItem("f5_outbox")||"[]");}catch{return[];}
-}
-function setOutbox(list){localStorage.setItem("f5_outbox",JSON.stringify(list));}
-// Queue a scoped mutation for background delivery. Pass dedupeKey for
-// upsert-style entities (session_set, weight, settings, ...) so rapid edits
-// (e.g. every keystroke on a weight field) collapse into the latest value
-// instead of piling up. Omit it for append-only entities (pr, nutrition_item_add,
-// week_plan_update, ai_chat_add, ...) where every call is a distinct new row.
-function queueMutation(entity,payload,dedupeKey){
-  const list=getOutbox();
-  if(dedupeKey){
-    const i=list.findIndex(m=>m.dedupeKey===dedupeKey);
-    if(i>=0){list[i]={entity,payload,dedupeKey,ts:Date.now()};setOutbox(list);scheduleFlush();return;}
-  }
-  list.push({entity,payload,dedupeKey,ts:Date.now()});
-  setOutbox(list);
-  scheduleFlush();
-}
-function scheduleFlush(){
-  if(!API_CFG.token)return;
-  clearTimeout(_syncTimer);
-  _syncTimer=setTimeout(flushOutbox,3000);
-}
-async function flushOutbox(){
-  if(_syncBusy||!API_CFG.token)return;
-  let list=getOutbox();
-  if(!list.length)return;
-  _syncBusy=true;
-  try{
-    while(list.length){
-      const m=list[0];
-      let ok=false;
-      try{
-        const r=await fetch(API_CFG.baseUrl+"/api/mutate",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({entity:m.entity,payload:m.payload})});
-        if(r.status===501){_syncAvailable=false;break;}
-        ok=r.ok;
-        if(r.ok)_syncAvailable=true;
-      }catch(e){break;} // offline/network error · stop, preserve order, retry later
-      if(!ok)break; // server rejected this one · stop here so we don't skip ahead of it
-      list.shift();
-      setOutbox(list);
-    }
-  }finally{_syncBusy=false;setSyncDot();}
-}
-// Load authoritative state from the server. Only replaces local data when the
-// outbox is fully flushed — i.e. this device has nothing of its own still
-// pending — so a load can never destroy an unsent local write.
-async function loadServerState(showStatus){
-  if(!API_CFG.token)return;
-  if(showStatus)showToast("Checking database…");
-  try{
-    const r=await fetch(API_CFG.baseUrl+"/api/state",{headers:{"Authorization":"Bearer "+API_CFG.token}});
-    if(r.status===501){_syncAvailable=false;setSyncDot();if(showStatus)showToast("❌ Database not configured · add DATABASE_URL in Vercel, then redeploy");return;}
-    if(r.status===401){if(showStatus)showToast("❌ Auth failed · app token doesn't match FORGE_API_TOKEN");return;}
-    if(!r.ok){if(showStatus)showToast("❌ Sync error (HTTP "+r.status+")");return;}
-    _syncAvailable=true;setSyncDot();
-    const d=await r.json();
-    if(getOutbox().length){
-      // This device still has unsent writes · don't overwrite them, just try sending again
-      flushOutbox();
-      if(showStatus)showToast("⏳ Finishing pending sync first…");
-      return;
-    }
-    pushSnapshot(S);
-    S=d.state;
-    localStorage.setItem("f5",JSON.stringify(S));
-    applyTheme();
-    if(cTab==="workout")renderW();
-    else if(cTab==="nutrition")renderNutrition();
-    else renderST();
-    _lastSyncAt=Date.now();
-    if(showStatus)showToast("✓ Synced from database");
-  }catch(e){if(showStatus)showToast("❌ Network error · is the deployment live?");}
-}
 document.addEventListener("visibilitychange",()=>{
   if(!_appReady)return;
-  if(document.hidden){clearTimeout(_syncTimer);flushOutbox();}
+  if(document.hidden){clearTimeout(ctx.syncTimer);flushOutbox();}
   else{flushOutbox().then(()=>loadServerState(false));}
 });
 window.addEventListener("online",()=>{if(_appReady){flushOutbox().then(()=>loadServerState(false));}});
@@ -1817,7 +1654,7 @@ function renderST(){
 
         <div class="st-sec">Sync &amp; Recovery</div>
         <div class="st-group">
-          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(_syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${_lastSyncAt?" · last "+new Date(_lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(_syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
           ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">🗓</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">📅</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
         </div>
 
