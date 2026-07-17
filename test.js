@@ -31,7 +31,9 @@
 import { readFileSync } from "fs";
 import { execSync } from "child_process";
 
-const HTML = readFileSync("index.html", "utf8");
+execSync("node build.mjs", { stdio: "inherit" });
+
+const HTML = readFileSync("dist/index.html", "utf8");
 const COACH = readFileSync("api/coach.js", "utf8");
 const DB = readFileSync("api/db.js", "utf8");
 const STATE = readFileSync("api/state.js", "utf8");
