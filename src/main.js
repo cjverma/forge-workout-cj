@@ -5,7 +5,10 @@ import { applyTheme, closeMilestone, esc, mdLite, showMilestone, showToast, show
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { EX_DB, PROG_V1, PROG_V2, PROG, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
-import "./workout.js";
+import { renderW } from "./workout.js";
+import { renderNutrition, buildSparkline } from "./nutrition.js";
+import { isBannedExercise, renderST } from "./settings.js";
+import { closeForgeChat } from "./chat.js";
 
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
 ctx.getS=()=>S;
@@ -162,8 +165,8 @@ ctx.rememberCustom=rememberCustom;
 ctx.weekLabel=weekLabel;
 ctx.isBannedExercise=isBannedExercise;
 ctx.buildSparkline=buildSparkline;
-ctx.renderST=()=>renderST();
-ctx.renderNutrition=()=>renderNutrition();
+ctx.renderST=renderST;
+ctx.renderNutrition=renderNutrition;
 
 
 function initApp(){
@@ -310,6 +313,25 @@ function updateDayNavDates(){
     btn.innerHTML=`<span>${d.slice(0,3)}</span><small class="day-date">${dd.getDate()}</small>`;
   });
 }
+
+function submitLock(){
+  const inp=document.getElementById("lockInput");
+  if(!inp)return;
+  const v=inp.value.trim();
+  if(!v){showToast("Enter your access token");return;}
+  localStorage.setItem("forge_key",v);
+  API_CFG.token=v;
+  document.getElementById("lockScreen").style.display="none";
+  initApp();
+}
+function lockApp(){
+  localStorage.removeItem("forge_key");
+  API_CFG.token="";
+  location.reload();
+}
+
+window.submitLock=submitLock;
+window.lockApp=lockApp;
 
 ctx.queueSettings=queueSettings;
 

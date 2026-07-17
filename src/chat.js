@@ -76,7 +76,7 @@ function openForgeChat(){
   if(modal)modal.classList.add("open");
   requestAnimationFrame(()=>{ scrollChatBottom(); const inp=document.getElementById("aiChatInp"); if(inp)inp.focus(); });
 }
-function closeForgeChat(){
+export function closeForgeChat(){
   document.getElementById("forgeChatOverlay")?.classList.remove("open");
   document.getElementById("forgeChatModal")?.classList.remove("open");
 }

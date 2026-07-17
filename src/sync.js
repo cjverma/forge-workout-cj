@@ -151,5 +151,8 @@ export function queueMilestones() {
   queueMutation("milestones", { shownProtein7: m.shownProtein7 || [], shownWeight5kg: m.shownWeight5kg || [], shownWeek6: m.shownWeek6 || [], longestStreak: m.longestStreak || 0 }, "milestones");
 }
 
+export function checkSyncNow() { loadServerState(true); }
+
 window.restoreSnapshot = restoreSnapshot;
 window.listSnapshots = listSnapshots;
+window.checkSyncNow = checkSyncNow;

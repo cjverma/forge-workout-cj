@@ -1509,8 +1509,11 @@ function queueMilestones() {
   queueMutation("milestones", { shownProtein7: m.shownProtein7 || [], shownWeight5kg: m.shownWeight5kg || [], shownWeek6: m.shownWeek6 || [], longestStreak: m.longestStreak || 0 }, "milestones");
 }
 
+function checkSyncNow() { loadServerState(true); }
+
 window.restoreSnapshot = restoreSnapshot;
 window.listSnapshots = listSnapshots;
+window.checkSyncNow = checkSyncNow;
 
 
 
@@ -3474,13 +3477,9 @@ window.dropPending=dropPending;
 window.delFood=delFood;
 window.quickAddRecent=quickAddRecent;
 window.openWtInput=openWtInput;
-window.closeWtInput=closeWtInput;
 window.saveWeight=saveWeight;
 window.delWeight=delWeight;
 window.wtPage=wtPage;
-window.setShock=setShock;
-window.setActive=setActive;
-window.setResting=setResting;
 window.nutDateLabel=nutDateLabel;
 window.filterFoodSearch=filterFoodSearch;
 ctx.renderNutrition=renderNutrition;
@@ -4373,9 +4372,6 @@ window.lockDay=lockDay;
 window.shiftWeek=shiftWeek;
 window.goCurrentWeek=goCurrentWeek;
 window.restoreDailyBackup=restoreDailyBackup;
-window.checkSyncNow=checkSyncNow;
-window.submitLock=submitLock;
-window.lockApp=lockApp;
 ctx.renderST=renderST;
 
 
@@ -4575,6 +4571,9 @@ window.sendAiChat=sendAiChat;
 
 
 
+
+
+
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
 ctx.getS=()=>S;
 ctx.setS=(ns)=>{S=ns;};
@@ -4730,8 +4729,8 @@ ctx.rememberCustom=rememberCustom;
 ctx.weekLabel=weekLabel;
 ctx.isBannedExercise=isBannedExercise;
 ctx.buildSparkline=buildSparkline;
-ctx.renderST=()=>renderST();
-ctx.renderNutrition=()=>renderNutrition();
+ctx.renderST=renderST;
+ctx.renderNutrition=renderNutrition;
 
 
 function initApp(){
@@ -4878,6 +4877,25 @@ function updateDayNavDates(){
     btn.innerHTML=`<span>${d.slice(0,3)}</span><small class="day-date">${dd.getDate()}</small>`;
   });
 }
+
+function submitLock(){
+  const inp=document.getElementById("lockInput");
+  if(!inp)return;
+  const v=inp.value.trim();
+  if(!v){showToast("Enter your access token");return;}
+  localStorage.setItem("forge_key",v);
+  API_CFG.token=v;
+  document.getElementById("lockScreen").style.display="none";
+  initApp();
+}
+function lockApp(){
+  localStorage.removeItem("forge_key");
+  API_CFG.token="";
+  location.reload();
+}
+
+window.submitLock=submitLock;
+window.lockApp=lockApp;
 
 ctx.queueSettings=queueSettings;
 

@@ -6,7 +6,7 @@ import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, ge
 import { PROG, DAYS } from "./constants.js";
 
 // Settings
-function renderST(){
+export function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Set<span>tings</span></div>
     <div class="st-pg-sub">FORGE · personal · private</div>
@@ -713,7 +713,7 @@ const BANNED_EX=[
   /\bstanding\b/i,/upright\s*row/i,/barbell\s*row/i,/bent[\s-]?over/i,
   /\bclean\b/i,/snatch/i,/thruster/i,/farmer/i,/\bcarr(y|ies)\b/i,/\brunning?\b/i
 ];
-function isBannedExercise(name){
+export function isBannedExercise(name){
   const n=String(name||"");
   if(/lat\s*pulldown/i.test(n)&&!/neutral|close/i.test(n))return true; // standard lat pulldown banned
   return BANNED_EX.some(rx=>rx.test(n));
@@ -884,7 +884,4 @@ window.lockDay=lockDay;
 window.shiftWeek=shiftWeek;
 window.goCurrentWeek=goCurrentWeek;
 window.restoreDailyBackup=restoreDailyBackup;
-window.checkSyncNow=checkSyncNow;
-window.submitLock=submitLock;
-window.lockApp=lockApp;
 ctx.renderST=renderST;

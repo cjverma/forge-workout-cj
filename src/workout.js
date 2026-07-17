@@ -193,7 +193,7 @@ function saveNotes(val){
   },500);
 }
 
-function renderW(){
+export function renderW(){
   const S=ctx.getS();
   const cDay=ctx.cDay;
   const prog=PROG[cDay],el=document.getElementById("tc");

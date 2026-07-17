@@ -153,7 +153,7 @@ function macroPie(protein,carbs,fat,fibre){
   const p=(pK/tot*100).toFixed(1),pc=((pK+cK)/tot*100).toFixed(1),pcf=((pK+cK+fK)/tot*100).toFixed(1);
   return`<div class="mpie-wrap"><div class="mpie-donut" style="background:conic-gradient(var(--chart-p) 0% ${p}%,var(--chart-c) ${p}% ${pc}%,var(--chart-f) ${pc}% ${pcf}%,var(--chart-fi) ${pcf}% 100%)"><div class="mpie-hole"></div></div><div class="mpie-legend"><div class="mpie-row"><span class="mpie-dot" style="background:var(--chart-p)"></span>Protein<span class="mpie-val">${pK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--chart-c)"></span>Carbs<span class="mpie-val">${cK} kcal</span></div><div class="mpie-row"><span class="mpie-dot" style="background:var(--chart-f)"></span>Fat<span class="mpie-val">${fK} kcal</span></div>${fibre?`<div class="mpie-row"><span class="mpie-dot" style="background:var(--chart-fi)"></span>Fibre<span class="mpie-val">${fibre}g</span></div>`:""}</div></div>`;
 }
-function renderNutrition(){
+export function renderNutrition(){
   const date=_nutDate;
   const ro=nutLocked(date);
   {const _p=phaseFor(isoToday());if(_p)recordWeekCompliance(_p);}
@@ -853,7 +853,7 @@ function saveWeight(date){
 function delWeight(date){
   _wtPage=0;delete S.nutrition.weights[date];save();queueMutation("weight_delete",{date});showToast("Entry removed");renderNutrition();
 }
-function buildSparkline(keys,wts,summary){
+export function buildSparkline(keys,wts,summary){
   if(keys.length<2)return"";
   const vals=keys.map(k=>wts[k]);
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
@@ -927,13 +927,9 @@ window.dropPending=dropPending;
 window.delFood=delFood;
 window.quickAddRecent=quickAddRecent;
 window.openWtInput=openWtInput;
-window.closeWtInput=closeWtInput;
 window.saveWeight=saveWeight;
 window.delWeight=delWeight;
 window.wtPage=wtPage;
-window.setShock=setShock;
-window.setActive=setActive;
-window.setResting=setResting;
 window.nutDateLabel=nutDateLabel;
 window.filterFoodSearch=filterFoodSearch;
 ctx.renderNutrition=renderNutrition;
