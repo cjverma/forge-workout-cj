@@ -308,7 +308,7 @@ export function renderNutrition(){
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="toggleWtOpen()"`} style="cursor:${ro?"default":"pointer"}">
-          <div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim)"}">${(()=>{if(!allWtKeys.length)return"—";const r5=v=>(Math.round(v*2)/2).toFixed(1);const cur=wts[allWtKeys[allWtKeys.length-1]];if(allWtKeys.length<2)return r5(cur);const delta=cur-wts[allWtKeys[allWtKeys.length-2]];const arrow=delta<0?'<span style="font-size:11px;color:var(--green)"> ↓'+Math.abs(delta).toFixed(1)+"</span>":delta>0?'<span style="font-size:11px;color:var(--red)"> ↑'+delta.toFixed(1)+"</span>":"";return r5(cur)+arrow;})()}</div>
+          <div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim)"}">${(()=>{if(!allWtKeys.length)return"—";const cur=wts[allWtKeys[allWtKeys.length-1]];const curFmt=Number(cur).toFixed(1);if(allWtKeys.length<2)return curFmt;const delta=cur-wts[allWtKeys[allWtKeys.length-2]];const arrow=delta<0?'<span style="font-size:11px;color:var(--green)"> ↓'+Math.abs(delta).toFixed(1)+"</span>":delta>0?'<span style="font-size:11px;color:var(--red)"> ↑'+delta.toFixed(1)+"</span>":"";return curFmt+arrow;})()}</div>
           <div class="burn-lbl">Weight${allWtKeys.length?" kg":""}</div>
         </div>
       </div>
