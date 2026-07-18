@@ -636,6 +636,21 @@ function phaseCardHtml(){
     }
   }
 
+  // Pre-compute compliance HTML (avoids nested template literals)
+  const compBadge=(v)=>'<span style="background:'+(v>=80?"var(--green-lo)":v>=50?"var(--amber-lo)":"var(--red-lo)")+';color:'+(v>=80?"var(--green)":v>=50?"var(--amber)":"var(--red)")+';border-radius:5px;padding:2px 8px;font-size:12px;font-weight:700;min-width:38px;display:inline-block;text-align:center">'+v+'%</span>';
+  const compRow=(lbl,v)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+lbl+'</span>'+compBadge(v)+'</div>';
+  const compHtml=comp.calculating
+    ?'<div style="'+nMuted+'">Calculating… log a full day of food to start scoring</div>'
+    :compRow("Calories (35%)",comp.calories)+compRow("Active (25%)",comp.active)+compRow("Protein (20%)",comp.protein)+compRow("Workouts (15%)",comp.workouts)+compRow("Weigh-ins (5%)",comp.weighins)+'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;border-top:1px solid var(--b1);margin-top:4px"><span style="font-size:14px;font-weight:700">Overall</span><span style="font-size:22px;font-weight:700;font-family:var(--font-display);color:'+(comp.overall>=80?"var(--green)":comp.overall>=50?"var(--amber)":"var(--red)")+'">'+comp.overall+'%</span></div>';
+
+  // Pre-compute target range row (avoids nested template literals)
+  let targetRangeHtml='<div style="'+nMuted+';padding:4px 0">Log weigh-ins to see your target range check</div>';
+  if(avg!=null){const inRange=avg>=cor.lo&&avg<=cor.hi;const pillBg=inRange?"var(--green-lo)":"var(--red-lo)";const pillCol=inRange?"var(--green)":"var(--red)";const pillTxt=inRange?"✓ In range":(health?health.label:"Out of range");targetRangeHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--mid)">Target range today</span><span style="font-weight:600;display:flex;align-items:center;gap:6px">'+cor.lo+'–'+cor.hi+' kg · <span style="color:var(--lt)">'+avg+'</span> <span style="background:'+pillBg+';color:'+pillCol+';border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700">'+pillTxt+'</span></span></div>';}
+
+  // Pre-compute debt chip row
+  let debtHtml="";
+  if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?"Banked progress":"Schedule debt")+'</span><span style="background:'+(ahead?"var(--green-lo)":"var(--red-lo)")+';color:'+(ahead?"var(--green)":"var(--red)")+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?"▲":"▼")+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?"ahead":"behind")+'</span></div>';}
+
   // Live status chip in the collapsed summary: %, range check, compliance
   const chipBits=[`${pctDone}%`];
   if(st==="paused")chipBits.push("⏸ paused");
@@ -649,23 +664,17 @@ function phaseCardHtml(){
         <span style="${nMuted}">Day ${dayIn} of ${totalDays}</span>
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
-      <div class="prog-bar-wrap" style="margin-bottom:12px"><div class="prog-bar-fill" style="width:${pctDone}%"></div></div>
+      <div class="prog-bar-wrap" style="margin-bottom:16px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
       ${lost!=null?row("Lost this phase",`${lost>0?lost:0} kg (${lostPct>0?lostPct:0}%)`):""}
       ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
       ${cur!=null?row("Remaining to 90 (overall)",`${Math.max(0,Math.round((cur-USER.targetKg)*10)/10)} kg`):""}
-      ${avg!=null?`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--mid)">Target range today</span><span style="font-weight:600">${cor.lo}–${cor.hi} kg · 7-day avg: ${avg} <span style="color:${health?healthCol(health.colour):"var(--dim)"}">${avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:""}</span></span></div>`:`<div style="${nMuted};padding:4px 0">Log weigh-ins to see your target range check</div>`}
-      ${banked?row(banked.days>=0?"Banked progress":"Schedule debt",`${banked.days>=0?"Ahead":"Behind"} ${Math.abs(banked.kg)} kg ≈ ${Math.abs(banked.days)} days ${banked.days>=0?"ahead":"behind"}`):""}
+      ${targetRangeHtml}
+      ${debtHtml}
       ${proj.status==="ok"?row("Projected 90 kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected 90 kg","Trend stabilizing…")}
       ${nextMs!=null?row("Next milestone",`${nextMs} kg · ${Math.round((cur-nextMs)*10)/10} kg remaining${reached!=null?` · ✔ ${reached} reached`:""}`):""}
       <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px">
-        <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:4px">This week's compliance</div>
-        ${comp.calculating?`<div style="${nMuted}">Calculating… log a full day of food to start scoring</div>`:`
-          ${row("Calories (35%)",comp.calories+"%")}
-          ${row("Active (25%)",comp.active+"%")}
-          ${row("Protein (20%)",comp.protein+"%")}
-          ${row("Workouts (15%)",comp.workouts+"%")}
-          ${row("Weigh-ins (5%)",comp.weighins+"%")}
-          <div style="display:flex;justify-content:space-between;padding:6px 0 0;font-size:14px;font-weight:700"><span>Overall</span><span style="color:${comp.overall>=90?"var(--green)":comp.overall>=75?"var(--amber)":"var(--red)"}">${comp.overall}%</span></div>`}
+        <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
+        ${compHtml}
       </div>
       ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift — add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
