@@ -31,7 +31,9 @@
 import { readFileSync } from "fs";
 import { execSync } from "child_process";
 
-const HTML = readFileSync("index.html", "utf8");
+execSync("node build.mjs", { stdio: "inherit" });
+
+const HTML = readFileSync("dist/index.html", "utf8");
 const COACH = readFileSync("api/coach.js", "utf8");
 const DB = readFileSync("api/db.js", "utf8");
 const STATE = readFileSync("api/state.js", "utf8");
@@ -718,8 +720,8 @@ ok("client renders the review card guarded on S.dietReview?.text",
     HK.includes("active=EXCLUDED.active"));
   ok("healthkit: uses q.query() for parameterised SQL (Neon v1 rejects bare q(text, params))",
     HK.includes("q.query(st.text, st.values)"));
-  ok("healthkit: bounds active 0-6000 · resting 800-4000 · weight 30-300",
-    HK.includes("0, 6000") && HK.includes("800, 4000") && HK.includes("30, 300"));
+  ok("healthkit: bounds active 0-6000 · resting 200-6000 · weight 30-300",
+    HK.includes("0, 6000") && HK.includes("200, 6000") && HK.includes("30, 300"));
   ok("healthkit: mounted in server.js", readFileSync("server.js", "utf8").includes('"/api/healthkit"'));
 }
 
@@ -730,8 +732,8 @@ ok("Nutrition tab order: hero → Food Log → Body → PROGRESS → phase → d
   order.every(i => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]));
 
 ok("Body card merges burn inputs and weight quick-log (ids preserved for saveBurn focus contract)",
-  rnTpl.indexOf(">Body<") < rnTpl.indexOf('id="bvRest"') && rnTpl.indexOf('id="bvRest"') < rnTpl.indexOf("+ Log Weight") &&
-  rnTpl.indexOf("+ Log Weight") < rnTpl.indexOf(">Progress<") && rnTpl.includes('id="bvAct"'));
+  rnTpl.indexOf(">Body<") < rnTpl.indexOf('id="bvRest"') && rnTpl.indexOf('id="bvRest"') < rnTpl.indexOf(">Progress<") &&
+  rnTpl.includes('id="bvAct"') && rnTpl.includes("burn-lbl\">Weight"));
 
 ok("Diet review and weight history render collapsed; phase card collapsed unless verdict is ready",
   !rnTpl.includes(`<details class="st-acc" open>\n      <summary><div><div>🥗`) &&

@@ -4,9 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build": "node build.mjs",
     "start": "node server.js",
     "dev": "node --watch server.js",
     "check": "node --check server.js && node --check api/_shared.js && node --check api/coach.js && node --check api/weekly-plan.js && node --check api/nutrition.js && node --check api/db.js && node --check api/state.js && node --check api/mutate.js && node --check api/suggest-alt.js && node --check api/cron-diet-review.js && node --check api/cron-weekly-email.js && node --check api/healthkit.js && node --check api/health.js && node test-healthkit.js && node test-hardening.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "playwright": "^1.61.1"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

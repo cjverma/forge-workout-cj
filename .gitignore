@@ -15,3 +15,6 @@ node_modules/
 # Icon build scripts
 gen-icons.cjs
 icon.svg
+
+# Scratch verification scripts
+verify-*.mjs
