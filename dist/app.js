@@ -220,7 +220,7 @@ Give today's exact progressive overload targets in 4 lines max.`,a="oo"}else if(
       ${T!=null?w("Lost this phase",`${T>0?T:0} kg (${N>0?N:0}%)`):""}
       ${M!=null?w(`Remaining to ${t.targetKg}`,`${Math.max(0,Math.round((M-t.targetKg)*10)/10)} kg`):""}
       ${M!=null?w("Remaining to 90 (overall)",`${Math.max(0,Math.round((M-L.targetKg)*10)/10)} kg`):""}
-      ${r!=null?`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--mid)">Target range today</span><span style="font-weight:600">${u.lo}\u2013${u.hi} kg \xB7 You: ${r} <span style="color:${h?g(h.colour):"var(--dim)"}">${r>=u.lo&&r<=u.hi?"\u2713 In range":h?h.label:""}</span></span></div>`:`<div style="${v};padding:4px 0">Log weigh-ins to see your target range check</div>`}
+      ${r!=null?`<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:13px"><span style="color:var(--mid)">Target range today</span><span style="font-weight:600">${u.lo}\u2013${u.hi} kg \xB7 7-day avg: ${r} <span style="color:${h?g(h.colour):"var(--dim)"}">${r>=u.lo&&r<=u.hi?"\u2713 In range":h?h.label:""}</span></span></div>`:`<div style="${v};padding:4px 0">Log weigh-ins to see your target range check</div>`}
       ${m?w(m.days>=0?"Banked progress":"Schedule debt",`${m.days>=0?"Ahead":"Behind"} ${Math.abs(m.kg)} kg \u2248 ${Math.abs(m.days)} days ${m.days>=0?"ahead":"behind"}`):""}
       ${d.status==="ok"?w("Projected 90 kg",`\u2248 ${y(d.date)} ${d.date.slice(0,4)} \xB7 Confidence: ${d.confidence}`):w("Projected 90 kg","Trend stabilizing\u2026")}
       ${O!=null?w("Next milestone",`${O} kg \xB7 ${Math.round((M-O)*10)/10} kg remaining${E!=null?` \xB7 \u2714 ${E} reached`:""}`):""}
