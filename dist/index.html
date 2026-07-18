@@ -3229,7 +3229,6 @@ function phaseCardHtml(){
       <div class="prog-bar-wrap" style="margin-bottom:16px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
       ${lost!=null?row("Lost this phase",`${lost>0?lost:0} kg (${lostPct>0?lostPct:0}%)`):""}
       ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
-      ${cur!=null?row("Remaining to 90 (overall)",`${Math.max(0,Math.round((cur-USER.targetKg)*10)/10)} kg`):""}
       ${targetRangeHtml}
       ${debtHtml}
       ${proj.status==="ok"?row("Projected 90 kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected 90 kg","Trend stabilizing…")}
