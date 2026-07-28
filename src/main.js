@@ -68,7 +68,7 @@ function restoreDailyBackup(dateStr){
   let state;
   try{state=JSON.parse(raw);}catch{showToast("Backup is corrupted");return;}
   const w=dataWeight(state);
-  if(!confirm(`Restore local backup from ${dateStr} (~${w} entries)?\n\nThis REPLACES all current data on this device.`))return;
+  if(!confirm(`Restore local backup from ${fmtDate(dateStr)} (~${w} entries)?\n\nThis REPLACES all current data on this device.`))return;
   S=state;save();queueMutation("restore_all",{state:S});showToast("Backup restored ✓");location.reload();
 }
 

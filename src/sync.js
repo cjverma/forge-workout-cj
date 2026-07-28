@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { save } from "./state.js";
-import { showToast } from "./ui.js";
+import { fmtDate, showToast } from "./ui.js";
 
 export const API_CFG = window.FORGE_API_CFG || { baseUrl: "", token: localStorage.getItem("forge_key") || "" };
 
@@ -37,7 +37,7 @@ export function restoreSnapshot(ts) {
   const list = listSnapshots();
   const snap = list.find(s => s.ts === ts);
   if (!snap) { showToast("Snapshot not found"); return; }
-  if (!confirm(`Restore snapshot from ${new Date(snap.ts).toLocaleString()} (~${snap.weight} entries)?\n\nThis REPLACES all current data on this device.`)) return;
+  if (!confirm(`Restore snapshot from ${fmtDate(new Date(snap.ts).toISOString().slice(0,10))} · ${new Date(snap.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} (~${snap.weight} entries)?\n\nThis REPLACES all current data on this device.`)) return;
   ctx.setS(snap.state);
   save();
   queueMutation("restore_all", { state: ctx.getS() });

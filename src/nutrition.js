@@ -21,7 +21,7 @@ function nutShift(delta){
 function nutDateLabel(iso){
   const today=isoToday();
   const d=new Date(iso+"T12:00:00");
-  const lbl=d.toLocaleDateString("en-AU",{weekday:"short",month:"short",day:"numeric"});
+  const lbl=d.toLocaleDateString("en-US",{weekday:"short",timeZone:"UTC"})+" "+fmtDate(iso);
   return iso===today?lbl+" (Today)":lbl;
 }
 function getDayData(date){
@@ -131,7 +131,7 @@ function renderDrawer(){
         const sparkHtml=sparkKeys.length>=2?buildSparkline(sparkKeys,dateMap,false):"";
         return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
           <div class="rule-ttl">${name}</div>
-          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${pr.date}`:"No PR recorded yet"}</div>
+          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${fmtDate(pr.date)}`:"No PR recorded yet"}</div>
           ${sparkHtml}
         </div>`;
       }).join("");
@@ -337,7 +337,7 @@ export function renderNutrition(){
       <summary><div><div>⚖️ Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
       <div class="st-acc-inner">
       ${sparkHtml}
-      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${k}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${Number(wts[k]).toFixed(1)} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
+      ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${fmtDate(k)}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${Number(wts[k]).toFixed(1)} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
       </div>
     </details>
 
@@ -414,8 +414,8 @@ function zepCardHtml(){
   const due=nextZepDue();
   const today=isoToday();
   const overdue=due&&due<today;
-  const dueLabel=due?(due===today?"today":overdue?`overdue since ${due}`:due):"—";
-  const lastLabel=last?`${last.mg}mg · ${last.date}`:"Not logged yet";
+  const dueLabel=due?(due===today?"today":overdue?`overdue since ${fmtDate(due)}`:fmtDate(due)):"—";
+  const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
   return`<div class="nut-card" style="margin-bottom:10px">
     <div class="nut-card-title">💉 Zepbound</div>
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px">
@@ -434,7 +434,7 @@ function zepCardHtml(){
         <button onclick="toggleZepOpen()" style="padding:10px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer">✕</button>
       </div>
     </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">+ Log Dose</button>`}
-    ${doses.length?`<div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:10px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">History</div>${doses.slice().reverse().slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--mid)">${d.date}</span><span style="font-weight:600">${d.mg}mg</span><button onclick="delZepDose('${d.date}')" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px 6px">✕</button></div>`).join("")}</div>`:""}
+    ${doses.length?`<div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:10px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">History</div>${doses.slice().reverse().slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--mid)">${fmtDate(d.date)}</span><span style="font-weight:600">${d.mg}mg</span><button onclick="delZepDose('${d.date}')" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px 6px">✕</button></div>`).join("")}</div>`:""}
   </div>`;
 }
 // ── END ZEPBOUND ──────────────────────────────────────────────────────────────

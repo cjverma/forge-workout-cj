@@ -100,7 +100,7 @@ export function renderST(){
         const isSun=i===6;
         const sign=deficit>=0?"":"+";
         const col=deficit>=0?"var(--green)":"var(--red)";
-        rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${d.getDate()} ${d.toLocaleString("default",{month:"short"})}</span></span><span style="color:${col};font-weight:600">${sign}${deficit>=0?"-":""}${Math.abs(deficit).toLocaleString()} kcal</span></div>`;
+        rows+=`<div class="wdef-row"><span class="wdef-day">${DAY_NAMES[i]} <span style="font-size:10px;color:var(--dim)">${fmtDate(isoDate(d))}</span></span><span style="color:${col};font-weight:600">${sign}${deficit>=0?"-":""}${Math.abs(deficit).toLocaleString()} kcal</span></div>`;
       }
       if(!loggedDays)return`<div class="export-card"><div class="export-sub" style="color:var(--dim)">No nutrition data logged this week yet.</div></div>`;
       const adjusted=runningTotal;
@@ -145,7 +145,7 @@ export function renderST(){
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>⏪ Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
-          <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">${new Date(s.ts).toLocaleString([],{month:"short",day:"numeric",hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("")}</div></div>
+          <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">${fmtDate(new Date(s.ts).toISOString().slice(0,10))} · ${new Date(s.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("")}</div></div>
         </details>`;})()}
 
         <details class="st-subacc">
@@ -463,7 +463,7 @@ function buildPDFReport(){
   const exName=id=>exMap[id]||_prNameMap[id]||id;
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
     const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
-    return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${best.date}</td></tr>`;
+    return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${fmtDate(best.date)}</td></tr>`;
   }).join("");
   // Recent workouts + notes + calf twinges (last 14 sessions)
   const recentSessions=Object.entries(S.sessions||{}).sort(([a],[b])=>b.localeCompare(a)).slice(0,14);
@@ -481,7 +481,7 @@ function buildPDFReport(){
     return Object.entries(sessMap).filter(([k,ed])=>k[0]!=="_"&&ed?.sets?.some(s=>s.done)).map(([exId,ed])=>{
       const doneSets=ed.sets.filter(s=>s.done);
       const maxW=Math.max(...doneSets.map(s=>s.weight||0));
-      return`<tr><td>${date}</td><td>${esc(exName(exId))}</td><td>${doneSets.length} sets</td><td>${maxW>0?maxW+"kg":"—"}</td></tr>`;
+      return`<tr><td>${fmtDate(date)}</td><td>${esc(exName(exId))}</td><td>${doneSets.length} sets</td><td>${maxW>0?maxW+"kg":"—"}</td></tr>`;
     });
   }).join("");
   // Session notes and calf twinges
@@ -490,7 +490,7 @@ function buildPDFReport(){
     const twinges=(sessMap._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
     const notes=sessMap._notes||"";
     const twingeBadge=twinges>0?`<span style="display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:6px">⚡ ${twinges} calf twinge${twinges!==1?"s":""}</span>`:"";
-    return`<tr><td style="white-space:nowrap">${date}</td><td>${twingeBadge}${notes?`<span style="color:#374151">${esc(notes)}</span>`:""}</td></tr>`;
+    return`<tr><td style="white-space:nowrap">${fmtDate(date)}</td><td>${twingeBadge}${notes?`<span style="color:#374151">${esc(notes)}</span>`:""}</td></tr>`;
   }).join("");
 
   const html=`<!DOCTYPE html><html><head><meta charset="utf-8"><title>FORGE Report · ${isoToday()}</title><style>
@@ -517,7 +517,7 @@ function buildPDFReport(){
     @media print{body{padding:16px;}@page{margin:16mm;}}
   </style></head><body>
     <div class="header">
-      <div><div class="header-title">⚡ FORGE</div><div class="header-sub">Weekly Report · ${new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div></div>
+      <div><div class="header-title">⚡ FORGE</div><div class="header-sub">Weekly Report · ${fmtDate(isoToday())}</div></div>
       <div style="text-align:right"><div style="font-size:13px;font-weight:600">${esc(USER.targetKg?`Goal: ${USER.targetKg}kg`:"")}</div><div style="font-size:12px;color:#6b7280">Current: ${lw}kg</div></div>
     </div>
     <div class="stats-row">
