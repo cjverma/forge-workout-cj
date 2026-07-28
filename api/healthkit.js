@@ -107,7 +107,7 @@ export default async function handler(req, res) {
   if (!checkAuth(req, res)) return;
 
   const parsed = normalizeHealthKitPayload(req.body || {});
-  if (!parsed.ok) return res.status(400).json({ error: parsed.errors.join("; ") });
+  if (!parsed.ok) return res.status(400).json({ error: parsed.errors.join("; "), received: req.body });
 
   try {
     if (!testSql) await ensureSchema();
