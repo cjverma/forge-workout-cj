@@ -462,7 +462,7 @@ async function generateDietReview(){
 }
 
 // ── PHASE CARD: compliance, health, pause, verdict, AI review ───────────────
-const COMPLIANCE_WEIGHTS={calories:0.35,active:0.25,protein:0.20,workouts:0.15,weighins:0.05};
+const COMPLIANCE_WEIGHTS={calories:0.30,active:0.25,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05};
 function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addDaysIso(dateIso,dow===0?-6:1-dow);}
 // Weighted compliance for [weekStartIso .. endIso]. Returns {calculating:true}
 // until at least one day has food logged (NaN-safe denominators throughout).
@@ -484,14 +484,18 @@ function weekCompliance(p,weekStartIso,endIso){
     if((S.nutrition.weights||{})[d]!=null)weighins++;
   }
   if(!calLogged)return{calculating:true};
+  // Zepbound: weekly dose logged anywhere in the week = 100, else 0
+  const zepDoseDates=(S.meds?.zepbound?.doses||[]).map(d=>d.date);
+  const zepTaken=days.some(d=>zepDoseDates.includes(d))?100:0;
   const m={
     calories:Math.round(calOk/calLogged*100),
     active:Math.min(100,Math.round(actTgtSum?actSum/actTgtSum*100:0)),
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighins/days.length*100),
+    zepbound:zepTaken,
   };
-  m.overall=Math.round(Object.entries(COMPLIANCE_WEIGHTS).reduce((s,[k,w])=>s+m[k]*w,0));
+  m.overall=Math.round(Object.entries(COMPLIANCE_WEIGHTS).reduce((s,[k,w])=>s+(m[k]||0)*w,0));
   return m;
 }
 // Live health colour — same distance bands as the phase-end verdict, applied

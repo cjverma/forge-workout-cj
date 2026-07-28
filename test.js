@@ -291,9 +291,9 @@ ok("verdict bands: 127.5 green · 129.3 yellow · 131 orange · 133 red",
   phaseVerdictFn(P1, 131).band === "orange" && phaseVerdictFn(P1, 133).band === "red");
 
 // Weighted compliance
-ok("compliance weights are 35/25/20/15/5 and sum to 1",
-  HTML.includes("COMPLIANCE_WEIGHTS={calories:0.35,active:0.25,protein:0.20,workouts:0.15,weighins:0.05}") &&
-  Math.abs(0.35 + 0.25 + 0.20 + 0.15 + 0.05 - 1) < 1e-12);
+ok("compliance weights are 30/25/20/15/5/5 (with zepbound) and sum to 1",
+  HTML.includes("COMPLIANCE_WEIGHTS={calories:0.30,active:0.25,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05}") &&
+  Math.abs(0.30 + 0.25 + 0.20 + 0.15 + 0.05 + 0.05 - 1) < 1e-12);
 ok("compliance is NaN-safe (Calculating placeholder) and caps protein/active at 100",
   HTML.includes("calculating:true") && HTML.includes("Calculating…") &&
   /protein:Math\.min\(100/.test(HTML) && /active:Math\.min\(100/.test(HTML));
