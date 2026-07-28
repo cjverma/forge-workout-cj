@@ -1,5 +1,17 @@
 import { ctx } from "./runtime.js";
 
+// "Aug 27th" — year only when 2027 (the goal year)
+export function fmtDate(iso){
+  const d=new Date(iso+"T12:00:00Z");
+  const month=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
+  const day=d.getUTCDate();
+  const year=d.getUTCFullYear();
+  const v=day%100;
+  const sfx=["th","st","nd","rd"];
+  const ord=day+(sfx[(v-20)%10]||sfx[v]||sfx[0]);
+  return year===2027?`${month} ${ord}, 2027`:`${month} ${ord}`;
+}
+
 export function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, ch => ({
     "&": "&amp;",

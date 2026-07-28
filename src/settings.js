@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseFor, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
-import { esc, mdLite, showToast, toggleTheme } from "./ui.js";
+import { esc, fmtDate, mdLite, showToast, toggleTheme } from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { PROG, DAYS } from "./constants.js";
@@ -161,7 +161,7 @@ export function renderST(){
         <div class="st-sec">Backup &amp; Export</div>
         <div class="st-group">
           ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">⚠️</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
           <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
           <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
@@ -574,7 +574,7 @@ function importBackup(input){
     const state=payload&&payload.app==="FORGE"&&payload.state?payload.state:null;
     if(!state||typeof state!=="object"||!state.sessions){showToast("Not a FORGE backup file");return;}
     const sessCount=Object.keys(state.sessions||{}).length;
-    const exported=payload.exportedAt?new Date(payload.exportedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"unknown date";
+    const exported=payload.exportedAt?fmtDate(new Date(payload.exportedAt).toISOString().slice(0,10)):"unknown date";
     if(!confirm(`Restore backup from ${exported} (${sessCount} sessions)?\n\nThis REPLACES all current data on this device.`))return;
     S=state;save();queueMutation("restore_all",{state:S});
     showToast("Backup restored ✓");

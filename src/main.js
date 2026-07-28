@@ -1,7 +1,7 @@
 import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, PHASES, USER, addDaysIso, bankedDays, calcBMR, calcTarget, daysBetween, effectiveEnd, ensurePhaseRun, getPhaseRun, isoDate, isoToday, isRestDay, latestWeightLog, phaseActiveTarget, phaseCorridor, phaseCurveKg, phaseDayDeficit, phaseFor, phaseState, projectedFinish, requiredDeficit, restingFor, sevenDayAvg } from "./phase.js";
 import { cycleQ, quotePool } from "./quotes.js";
-import { applyTheme, closeMilestone, esc, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
+import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { EX_DB, PROG_V1, PROG_V2, PROG, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
@@ -246,7 +246,7 @@ function selectDay(day){
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nextWk(){const d=new Date();d.setDate(d.getDate()+(d.getDay()===0?1:7));const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
-function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
+function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return fmtDate(mon.toISOString().slice(0,10));}
 // Returns the Monday Date object for the Mon-Sun week containing Date d.
 // Named distinctly from the ISO-string mondayOf() defined later in this file.
 function mondayDateOf(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;}

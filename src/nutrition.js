@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, USER, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseFor, restingFor } from "./phase.js";
-import { esc, mdLite, showToast } from "./ui.js";
+import { esc, fmtDate, mdLite, showToast } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
 import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
@@ -326,7 +326,7 @@ export function renderNutrition(){
 
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
-      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${new Date(S.dietReview.weekStart+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · AI feedback on your goals</div></div></summary>
+      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
       <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
@@ -649,7 +649,7 @@ function phaseCardHtml(){
   const banked=bankedDays(p,t);
   const comp=weekCompliance(p,mondayOfIso(t),t);
   const proj=projectedFinish(t);
-  const fmtD=iso=>new Date(iso+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  const fmtD=fmtDate;
   const healthCol=c=>c==="green"?"var(--green)":c==="yellow"?"var(--amber)":c==="orange"?"#e8853d":"var(--red)";
   const num=n=>n.toLocaleString();
   const nMuted=`font-size:12px;color:var(--dim)`;
@@ -739,7 +739,7 @@ function phaseCardHtml(){
       ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
       ${targetRangeHtml}
       ${debtHtml}
-      ${proj.status==="ok"?row("Projected "+USER.targetKg+" kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected "+USER.targetKg+" kg","Trend stabilizing…")}
+      ${proj.status==="ok"?row("Projected "+USER.targetKg+" kg",`≈ ${fmtD(proj.date)} · Confidence: ${proj.confidence}`):row("Projected "+USER.targetKg+" kg","Trend stabilizing…")}
       ${nextMs!=null?row("Next milestone",`${nextMs} kg · ${Math.round((cur-nextMs)*10)/10} kg remaining${reached!=null?` · ✔ ${reached} reached`:""}`):""}
       <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
@@ -748,7 +748,7 @@ function phaseCardHtml(){
       ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift — add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
       ${verdictHtml}
-      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${new Date(S.phaseReview.at).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
+      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${fmtDate(new Date(S.phaseReview.at).toISOString().slice(0,10))}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
       <div style="display:flex;gap:8px;margin-top:12px">
         <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":"🤖 Review now"}</button>
         ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
@@ -966,7 +966,7 @@ function arrivalEst(){
   const diff=Math.round((USER.goalDate-arrival)/86400000);
   const ahead=diff>0?` (${diff}d ahead)`:diff<0?` (${Math.abs(diff)}d behind)`:" (on track)";
   const rate=Math.abs(slope*7).toFixed(1);
-  return`Estimated arrival: <b>${arrival.toLocaleDateString("en-AU",{month:"short",day:"numeric",year:"numeric"})}</b>${ahead} · losing ~${rate} kg/week`;
+  return`Estimated arrival: <b>${fmtDate(arrival.toISOString().slice(0,10))}</b>${ahead} · losing ~${rate} kg/week`;
 }
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;

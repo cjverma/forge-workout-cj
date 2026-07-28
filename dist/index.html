@@ -1189,6 +1189,18 @@ window.listDailyBackups = listDailyBackups;
 
 
 
+// "Aug 27th" — year only when 2027 (the goal year)
+function fmtDate(iso){
+  const d=new Date(iso+"T12:00:00Z");
+  const month=d.toLocaleDateString("en-US",{month:"short",timeZone:"UTC"});
+  const day=d.getUTCDate();
+  const year=d.getUTCFullYear();
+  const v=day%100;
+  const sfx=["th","st","nd","rd"];
+  const ord=day+(sfx[(v-20)%10]||sfx[v]||sfx[0]);
+  return year===2027?`${month} ${ord}, 2027`:`${month} ${ord}`;
+}
+
 function esc(v) {
   return String(v ?? "").replace(/[&<>"']/g, ch => ({
     "&": "&amp;",
@@ -1838,8 +1850,8 @@ function renderW(){
   const lockedPast=ctx.isPastDay()&&!ctx.unlocked[_key0];
   const readOnly=future||lockedPast||(stopped&&!ctx.isPastDay());
   const _vm=ctx.viewMon||_todayMonday();
-  const _curMonLbl=_todayMonday().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
-  const wkLbl=past?`Week of ${_vm.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:future?'Next Week':'This Week';
+  const _curMonLbl=fmtDate(_todayMonday().toISOString().slice(0,10));
+  const wkLbl=past?`Week of ${fmtDate(_vm.toISOString().slice(0,10))}`:future?'Next Week':'This Week';
   const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
     <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
@@ -2512,7 +2524,7 @@ async function aiRun(type){
       const dayStart=now-(d+1)*dayMs;
       const dayEnd=now-d*dayMs;
       const dayDate=new Date(dayEnd);
-      const dayName=dayDate.toLocaleDateString("en-GB",{weekday:"short",month:"short",day:"numeric"});
+      const dayName=dayDate.toLocaleDateString("en-GB",{weekday:"short"})+' '+fmtDate(dayDate.toISOString().slice(0,10));
       let cnt=0;
       for(const[,sessData] of Object.entries(S.sessions||{})){
         const twinges=(sessData._calfTwinges||[]).filter(ts=>Number.isFinite(ts)&&ts>=dayStart&&ts<dayEnd);
@@ -2991,7 +3003,7 @@ function renderNutrition(){
 
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
-      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${new Date(S.dietReview.weekStart+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"})} · AI feedback on your goals</div></div></summary>
+      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
       <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
@@ -3314,7 +3326,7 @@ function phaseCardHtml(){
   const banked=bankedDays(p,t);
   const comp=weekCompliance(p,mondayOfIso(t),t);
   const proj=projectedFinish(t);
-  const fmtD=iso=>new Date(iso+"T12:00:00").toLocaleDateString("en-GB",{day:"numeric",month:"short"});
+  const fmtD=fmtDate;
   const healthCol=c=>c==="green"?"var(--green)":c==="yellow"?"var(--amber)":c==="orange"?"#e8853d":"var(--red)";
   const num=n=>n.toLocaleString();
   const nMuted=`font-size:12px;color:var(--dim)`;
@@ -3404,7 +3416,7 @@ function phaseCardHtml(){
       ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
       ${targetRangeHtml}
       ${debtHtml}
-      ${proj.status==="ok"?row("Projected "+USER.targetKg+" kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected "+USER.targetKg+" kg","Trend stabilizing…")}
+      ${proj.status==="ok"?row("Projected "+USER.targetKg+" kg",`≈ ${fmtD(proj.date)} · Confidence: ${proj.confidence}`):row("Projected "+USER.targetKg+" kg","Trend stabilizing…")}
       ${nextMs!=null?row("Next milestone",`${nextMs} kg · ${Math.round((cur-nextMs)*10)/10} kg remaining${reached!=null?` · ✔ ${reached} reached`:""}`):""}
       <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
@@ -3413,7 +3425,7 @@ function phaseCardHtml(){
       ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift — add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
       ${verdictHtml}
-      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${new Date(S.phaseReview.at).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
+      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${fmtDate(new Date(S.phaseReview.at).toISOString().slice(0,10))}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
       <div style="display:flex;gap:8px;margin-top:12px">
         <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":"🤖 Review now"}</button>
         ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
@@ -3631,7 +3643,7 @@ function arrivalEst(){
   const diff=Math.round((USER.goalDate-arrival)/86400000);
   const ahead=diff>0?` (${diff}d ahead)`:diff<0?` (${Math.abs(diff)}d behind)`:" (on track)";
   const rate=Math.abs(slope*7).toFixed(1);
-  return`Estimated arrival: <b>${arrival.toLocaleDateString("en-AU",{month:"short",day:"numeric",year:"numeric"})}</b>${ahead} · losing ~${rate} kg/week`;
+  return`Estimated arrival: <b>${fmtDate(arrival.toISOString().slice(0,10))}</b>${ahead} · losing ~${rate} kg/week`;
 }
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
@@ -3830,7 +3842,7 @@ function renderST(){
         <div class="st-sec">Backup &amp; Export</div>
         <div class="st-group">
           ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">⚠️</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${new Date(S._lastBackup).toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:""}</div></div></div>
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
           <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
           <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
@@ -4243,7 +4255,7 @@ function importBackup(input){
     const state=payload&&payload.app==="FORGE"&&payload.state?payload.state:null;
     if(!state||typeof state!=="object"||!state.sessions){showToast("Not a FORGE backup file");return;}
     const sessCount=Object.keys(state.sessions||{}).length;
-    const exported=payload.exportedAt?new Date(payload.exportedAt).toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"}):"unknown date";
+    const exported=payload.exportedAt?fmtDate(new Date(payload.exportedAt).toISOString().slice(0,10)):"unknown date";
     if(!confirm(`Restore backup from ${exported} (${sessCount} sessions)?\n\nThis REPLACES all current data on this device.`))return;
     S=state;save();queueMutation("restore_all",{state:S});
     showToast("Backup restored ✓");
@@ -5003,7 +5015,7 @@ function selectDay(day){
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nextWk(){const d=new Date();d.setDate(d.getDate()+(d.getDay()===0?1:7));const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
-function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return mon.toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});}
+function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return fmtDate(mon.toISOString().slice(0,10));}
 // Returns the Monday Date object for the Mon-Sun week containing Date d.
 // Named distinctly from the ISO-string mondayOf() defined later in this file.
 function mondayDateOf(d){const day=d.getDay(),diff=day===0?-6:1-day,m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;}

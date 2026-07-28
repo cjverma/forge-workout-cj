@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { isoToday, isoDate } from "./phase.js";
-import { esc, showToast, showToastBig, showMilestone, mdLite } from "./ui.js";
+import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
 import { EX_DB, PROG, DAYS, GYM } from "./constants.js";
@@ -211,8 +211,8 @@ export function renderW(){
   const lockedPast=ctx.isPastDay()&&!ctx.unlocked[_key0];
   const readOnly=future||lockedPast||(stopped&&!ctx.isPastDay());
   const _vm=ctx.viewMon||_todayMonday();
-  const _curMonLbl=_todayMonday().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
-  const wkLbl=past?`Week of ${_vm.toLocaleDateString("en-GB",{day:"numeric",month:"short"})}`:future?'Next Week':'This Week';
+  const _curMonLbl=fmtDate(_todayMonday().toISOString().slice(0,10));
+  const wkLbl=past?`Week of ${fmtDate(_vm.toISOString().slice(0,10))}`:future?'Next Week':'This Week';
   const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
     <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
@@ -885,7 +885,7 @@ async function aiRun(type){
       const dayStart=now-(d+1)*dayMs;
       const dayEnd=now-d*dayMs;
       const dayDate=new Date(dayEnd);
-      const dayName=dayDate.toLocaleDateString("en-GB",{weekday:"short",month:"short",day:"numeric"});
+      const dayName=dayDate.toLocaleDateString("en-GB",{weekday:"short"})+' '+fmtDate(dayDate.toISOString().slice(0,10));
       let cnt=0;
       for(const[,sessData] of Object.entries(S.sessions||{})){
         const twinges=(sessData._calfTwinges||[]).filter(ts=>Number.isFinite(ts)&&ts>=dayStart&&ts<dayEnd);
