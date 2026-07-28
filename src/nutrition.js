@@ -172,7 +172,7 @@ export function renderNutrition(){
   const totalBurn=resting+Math.round(active*ACTIVE_MULT);
   const {target,phase}=calcTarget(resting,Math.round(active*ACTIVE_MULT),date);
   const shock=day.shockProtocol;
-  const finalTarget=shock?1500:target;
+  const finalTarget=shock?1200:target;
   const items=day.items||[];
   const consumed=items.reduce((s,i)=>s+i.kcal,0);
   const protein=items.reduce((s,i)=>s+(i.protein||0),0);
@@ -252,7 +252,7 @@ export function renderNutrition(){
         <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sugar>SUGAR_LIMIT?"color:var(--amber)":""}">${sugar}g</div><div class="macro-lbl">Sugar</div></div>
         <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sodium>SODIUM_LIMIT?"color:var(--amber)":""}">${sodium.toLocaleString()}<span style="font-size:10px;color:var(--hero-fg-faint)">mg</span></div><div class="macro-lbl">Sodium</div></div>
       </div>
-      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1500 kcal)"}</button>`}
+      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1200 kcal)"}</button>`}
     </div>
 
     <!-- Food log card -->
@@ -380,7 +380,14 @@ let _zepOpen=false,_zepDate="",_zepMg=10;
 function zepDoses(){return(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
 function nextZepDue(){
   const doses=zepDoses();
-  if(!doses.length)return null;
+  if(!doses.length){
+    // No doses yet — find next Tuesday
+    const now=new Date();
+    const day=now.getUTCDay();
+    const daysUntilTue=(2-day+7)%7||7;
+    const d=new Date(now);d.setUTCDate(now.getUTCDate()+daysUntilTue);
+    return d.toISOString().slice(0,10);
+  }
   const last=doses[doses.length-1];
   const d=new Date(last.date+"T12:00:00Z");
   d.setUTCDate(d.getUTCDate()+7);
