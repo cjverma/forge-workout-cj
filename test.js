@@ -306,8 +306,8 @@ ok("intakeFloor/moveGap fully removed", !HTML.includes("intakeFloor") && !HTML.i
 ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
 ok("phase card present: target range wording, pause, review-now, accept override, banked progress",
-  HTML.includes("Target range today") && HTML.includes("Pause phase") && HTML.includes("Review now") &&
-  HTML.includes("Accept current result") && HTML.includes("Banked progress") && HTML.includes("Extend the phase"));
+  HTML.includes("Range today") && HTML.includes("Pause phase") && HTML.includes("Review now") &&
+  HTML.includes("Accept current result") && (HTML.includes("Banked") || HTML.includes("Behind schedule")) && HTML.includes("Extend the phase"));
 ok("immutable snapshot on completion (S.phaseHistory) + quiet analytics incl. recoveryDays",
   HTML.includes("S.phaseHistory[id]=") && HTML.includes("recoveryDays") && HTML.includes("pauseDays"));
 ok("Sunday summary with one deterministic recommendation",

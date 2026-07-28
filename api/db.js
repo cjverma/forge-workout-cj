@@ -132,4 +132,12 @@ export async function ensureSchema() {
   )`;
   await q`INSERT INTO milestones(id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
   await q`INSERT INTO app_settings(id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
+  await q`CREATE TABLE IF NOT EXISTS med_doses(
+    id serial PRIMARY KEY,
+    client_id text UNIQUE,
+    med text NOT NULL DEFAULT 'zepbound',
+    date date NOT NULL,
+    mg numeric NOT NULL,
+    created_at timestamptz DEFAULT now()
+  )`;
 }

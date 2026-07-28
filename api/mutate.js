@@ -108,6 +108,16 @@ export default async function handler(req, res) {
         await q`DELETE FROM ai_chat`;
         break;
       }
+      case "med_dose_add": {
+        const { clientId, med, date: doseDate, mg } = payload;
+        await q`INSERT INTO med_doses(client_id, med, date, mg) VALUES (${clientId}, ${med || "zepbound"}, ${doseDate}, ${mg}) ON CONFLICT (client_id) DO UPDATE SET date=EXCLUDED.date, mg=EXCLUDED.mg`;
+        break;
+      }
+      case "med_dose_delete": {
+        const { date: delDate, med: delMed } = payload;
+        await q`DELETE FROM med_doses WHERE date=${delDate} AND med=${delMed || "zepbound"}`;
+        break;
+      }
       case "settings": {
         const { theme, aiDeficitModifier, weeklySnapshots, weeklyVerdict, demoCache, demoCacheV, lastBackup } = payload;
         await q`UPDATE app_settings SET
@@ -237,6 +247,7 @@ export default async function handler(req, res) {
         await q`DELETE FROM weekly_quotes`;
         await q`UPDATE milestones SET shown_protein7='[]', shown_weight5kg='[]', shown_week6='[]', longest_streak=0 WHERE id=1`;
         await q`UPDATE app_settings SET theme=NULL, ai_deficit_modifier=0, weekly_snapshots='[]', weekly_verdict=NULL, demo_cache='{}', demo_cache_v=NULL, last_backup=NULL WHERE id=1`;
+        await q`DELETE FROM med_doses`;
         break;
       }
       default:

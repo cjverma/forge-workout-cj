@@ -2,7 +2,7 @@ import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, USER, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseFor, restingFor } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast } from "./ui.js";
 import { save } from "./state.js";
-import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
+import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
 import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -397,14 +397,15 @@ function logZepDose(date,mg){
   if(!S.meds)S.meds={};
   if(!S.meds.zepbound)S.meds.zepbound={doses:[]};
   S.meds.zepbound.doses=S.meds.zepbound.doses.filter(d=>d.date!==date);
-  S.meds.zepbound.doses.push({date,mg:Number(mg)});
-  _zepOpen=false;save();queueSettings();renderNutrition();
+  const clientId="zep_"+date;
+  S.meds.zepbound.doses.push({date,mg:Number(mg),clientId});
+  _zepOpen=false;save();queueMedDoseAdd(clientId,date,Number(mg));renderNutrition();
   showToast("💉 "+mg+"mg logged");
 }
 function delZepDose(date){
   if(!S.meds?.zepbound?.doses)return;
   S.meds.zepbound.doses=S.meds.zepbound.doses.filter(d=>d.date!==date);
-  save();queueSettings();renderNutrition();
+  save();queueMedDoseDelete(date);renderNutrition();
 }
 function toggleZepOpen(){_zepOpen=!_zepOpen;if(_zepOpen)_zepDate=isoToday();renderNutrition();}
 window.logZepDose=logZepDose;window.delZepDose=delZepDose;window.toggleZepOpen=toggleZepOpen;
@@ -706,22 +707,57 @@ function phaseCardHtml(){
     }
   }
 
-  // Pre-compute compliance HTML (avoids nested template literals)
-  const compBadge=(v)=>'<span style="background:'+(v>=80?"var(--green-lo)":v>=50?"var(--amber-lo)":"var(--red-lo)")+';color:'+(v>=80?"var(--green)":v>=50?"var(--amber)":"var(--red)")+';border-radius:5px;padding:2px 8px;font-size:12px;font-weight:700;min-width:38px;display:inline-block;text-align:center">'+v+'%</span>';
-  const compRow=(lbl,v)=>'<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+lbl+'</span>'+compBadge(v)+'</div>';
+  // Latest logged weight (different from 7-day avg)
+  const latestKg=latestWeightLog();
+
+  // Weight block: latest weight + range check (avg used for range, labeled clearly)
+  let weightBlockHtml="";
+  {
+    const latest=latestKg??p.startKg;
+    const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);
+    let rangeChip="";
+    if(avg!=null){
+      const inRange=avg>=cor.lo&&avg<=cor.hi;
+      const pillBg=inRange?"var(--green-lo)":"var(--red-lo)";
+      const pillCol=inRange?"var(--green)":"var(--red)";
+      const pillTxt=inRange?"✓ In range":(health?health.label:"Out of range");
+      rangeChip='<span style="background:'+pillBg+';color:'+pillCol+';border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700">'+pillTxt+'</span>';
+    }
+    weightBlockHtml=
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;font-size:13px">'+
+        '<span style="color:var(--mid)">Weight</span>'+
+        '<span style="font-weight:700">'+latest+' kg'+
+          (latestKg!=null?' <span style="font-size:11px;color:var(--dim);font-weight:400">→ '+p.targetKg+' kg ('+remaining+' to go)</span>':'')+'</span>'+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px">'+
+        '<span style="color:var(--mid)">Range today <span style="font-size:11px;color:var(--dim)">(7d avg: '+(avg!=null?avg:"—")+' kg)</span></span>'+
+        '<span style="font-weight:600;display:flex;align-items:center;gap:6px">'+cor.lo+'–'+cor.hi+' kg '+rangeChip+'</span>'+
+      '</div>';
+  }
+
+  // Banked/debt chip
+  let debtHtml="";
+  if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?"Banked":"Behind schedule")+'</span><span style="background:'+(ahead?"var(--green-lo)":"var(--red-lo)")+';color:'+(ahead?"var(--green)":"var(--red)")+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?"▲":"▼")+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?"ahead":"behind")+'</span></div>';}
+
+  // Compliance: overall score + compact chip grid
+  const compChip=(v)=>'<span style="background:'+(v>=80?"var(--green-lo)":v>=50?"var(--amber-lo)":"var(--red-lo)")+';color:'+(v>=80?"var(--green)":v>=50?"var(--amber)":"var(--red)")+';border-radius:5px;padding:2px 7px;font-size:12px;font-weight:700">'+v+'%</span>';
+  const compGridItem=(lbl,v)=>'<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px">'+compChip(v)+'<span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">'+lbl+'</span></div>';
   const compHtml=comp.calculating
     ?'<div style="'+nMuted+'">Calculating… log a full day of food to start scoring</div>'
-    :compRow("Calories (35%)",comp.calories)+compRow("Active (25%)",comp.active)+compRow("Protein (20%)",comp.protein)+compRow("Workouts (15%)",comp.workouts)+compRow("Weigh-ins (5%)",comp.weighins)+'<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 2px;border-top:1px solid var(--b1);margin-top:4px"><span style="font-size:14px;font-weight:700">Overall</span><span style="font-size:22px;font-weight:700;font-family:var(--font-display);color:'+(comp.overall>=80?"var(--green)":comp.overall>=50?"var(--amber)":"var(--red)")+'">'+comp.overall+'%</span></div>';
+    :'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">'+
+        compGridItem("Calories",comp.calories)+
+        compGridItem("Active",comp.active)+
+        compGridItem("Protein",comp.protein)+
+        compGridItem("Workouts",comp.workouts)+
+        compGridItem("Weigh-ins",comp.weighins)+
+        compGridItem("Zepbound",comp.zepbound??0)+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 2px;border-top:1px solid var(--b1)">'+
+        '<span style="font-size:13px;font-weight:700;color:var(--mid)">Overall</span>'+
+        '<span style="font-size:24px;font-weight:700;font-family:var(--font-display);color:'+(comp.overall>=80?"var(--green)":comp.overall>=50?"var(--amber)":"var(--red)")+'">'+comp.overall+'%</span>'+
+      '</div>';
 
-  // Pre-compute target range row (avoids nested template literals)
-  let targetRangeHtml='<div style="'+nMuted+';padding:4px 0">Log weigh-ins to see your target range check</div>';
-  if(avg!=null){const inRange=avg>=cor.lo&&avg<=cor.hi;const pillBg=inRange?"var(--green-lo)":"var(--red-lo)";const pillCol=inRange?"var(--green)":"var(--red)";const pillTxt=inRange?"✓ In range":(health?health.label:"Out of range");targetRangeHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--mid)">Target range today</span><span style="font-weight:600;display:flex;align-items:center;gap:6px">'+cor.lo+'–'+cor.hi+' kg · <span style="color:var(--lt)">'+avg+'</span> <span style="background:'+pillBg+';color:'+pillCol+';border-radius:4px;padding:2px 6px;font-size:11px;font-weight:700">'+pillTxt+'</span></span></div>';}
-
-  // Pre-compute debt chip row
-  let debtHtml="";
-  if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?"Banked progress":"Schedule debt")+'</span><span style="background:'+(ahead?"var(--green-lo)":"var(--red-lo)")+';color:'+(ahead?"var(--green)":"var(--red)")+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?"▲":"▼")+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?"ahead":"behind")+'</span></div>';}
-
-  // Live status chip in the collapsed summary: %, range check, compliance
+  // Live status chip in the collapsed summary
   const chipBits=[`${pctDone}%`];
   if(st==="paused")chipBits.push("⏸ paused");
   else if(st==="completed")chipBits.push("🏁 verdict ready");
@@ -734,14 +770,10 @@ function phaseCardHtml(){
         <span style="${nMuted}">Day ${dayIn} of ${totalDays}</span>
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
-      <div class="prog-bar-wrap" style="margin-bottom:16px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
-      ${lost!=null?row("Lost this phase",`${lost>0?lost:0} kg (${lostPct>0?lostPct:0}%)`):""}
-      ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
-      ${targetRangeHtml}
+      <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      ${weightBlockHtml}
       ${debtHtml}
-      ${proj.status==="ok"?row("Projected "+USER.targetKg+" kg",`≈ ${fmtD(proj.date)} · Confidence: ${proj.confidence}`):row("Projected "+USER.targetKg+" kg","Trend stabilizing…")}
-      ${nextMs!=null?row("Next milestone",`${nextMs} kg · ${Math.round((cur-nextMs)*10)/10} kg remaining${reached!=null?` · ✔ ${reached} reached`:""}`):""}
-      <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px">
+      <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
         ${compHtml}
       </div>

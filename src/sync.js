@@ -157,6 +157,14 @@ export function queueMilestones() {
   queueMutation("milestones", { shownProtein7: m.shownProtein7 || [], shownWeight5kg: m.shownWeight5kg || [], shownWeek6: m.shownWeek6 || [], longestStreak: m.longestStreak || 0 }, "milestones");
 }
 
+export function queueMedDoseAdd(clientId, date, mg, med = "zepbound") {
+  queueMutation("med_dose_add", { clientId, med, date, mg }, "med_dose_add_" + date);
+}
+
+export function queueMedDoseDelete(date, med = "zepbound") {
+  queueMutation("med_dose_delete", { date, med }, "med_dose_del_" + date);
+}
+
 export function checkSyncNow() { loadServerState(true); }
 
 window.restoreSnapshot = restoreSnapshot;
