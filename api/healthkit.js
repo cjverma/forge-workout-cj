@@ -22,7 +22,7 @@ function validDate(date) {
 
 function numberInRange(value, min, max) {
   if (value == null) return undefined;
-  const n = Number(value);
+  const n = Number(typeof value === "string" ? value.replace(/[a-zA-Z\s]+$/, "") : value);
   if (!Number.isFinite(n) || n < min || n > max) return null;
   return n;
 }
