@@ -61,7 +61,12 @@ function buildChatContext(){
     .map(([date,kg])=>({date,kg}));
   const todayItems=(dayData.items||[]).slice(0,10)
     .map(i=>({name:sanitizeCtx(i.name,50),kcal:i.kcal,protein:i.protein||0,carbs:i.carbs||0,fat:i.fat||0,fibre:i.fibre||0,sugar:i.sugar||0,sodiumMg:i.sodium||0}));
-  return{today,goal,sessions,weights,todayItems};
+  const zepDoses=(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);
+  const lastZep=zepDoses.length?zepDoses[zepDoses.length-1]:null;
+  let nextZepDue=null;
+  if(lastZep){const d=new Date(lastZep.date+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+7);nextZepDue=d.toISOString().slice(0,10);}
+  const medication=lastZep?{name:"Zepbound",currentMg:lastZep.mg,lastDoseDate:lastZep.date,nextDueDate:nextZepDue,schedule:"weekly on Tuesday"}:null;
+  return{today,goal,sessions,weights,todayItems,medication};
 }
 function renderAiChatBubbles(){
   if(!S.aiChat||!S.aiChat.length){

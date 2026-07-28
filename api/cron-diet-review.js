@@ -9,10 +9,10 @@ import { assembleState } from "./state.js";
 // Mirrors the client's goal constants (index.html USER / PHASES / limits) —
 // keep in sync if those change.
 const GOALS = {
-  targetKg: 90,
-  goalDate: "2027-02-20",
-  phase: "Phase 1 (Jul 17 – Aug 31, 2026): 138 → 128 kg, eat 2,100 kcal/day fixed, Apple Watch active targets 1,500 kcal Mon–Sat / 650 kcal Sunday (counted at 75%), resting ~2,850",
-  proteinTargetG: 180,
+  targetKg: 95,
+  goalDate: "2027-02-21",
+  phase: "Phase 1 (Jul 28 – Sep 7, 2026): 140 → 128 kg, eat 1,600 kcal/day fixed, Apple Watch active targets 1,500 kcal Mon–Sat / 650 kcal Sunday (counted at 75%), resting ~2,446. Medication: Zepbound 10mg weekly on Tuesday.",
+  proteinTargetG: 130,
   fibreTargetG: 38,
   sugarLimitG: 50,
   sodiumLimitMg: 2300,
@@ -65,7 +65,7 @@ export function buildPrompt(weekDays, weights) {
 
 Medical context (non-negotiable): ${HARD_RULES}
 
-The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, executed in phases. Current: ${GOALS.phase}. Judge the week against the phase's fixed 2,100 kcal/day eating target and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
+The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, executed in phases. Current: ${GOALS.phase}. Judge the week against the phase's fixed 1,600 kcal/day eating target and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
 
 Write your feedback with a SANDWICH structure, in this exact order:
 1. Start with 2-3 specific things done WELL this week — name actual foods from the log, not generalities.

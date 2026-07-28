@@ -735,7 +735,7 @@ function phaseCardHtml(){
       ${cur!=null?row(`Remaining to ${p.targetKg}`,`${Math.max(0,Math.round((cur-p.targetKg)*10)/10)} kg`):""}
       ${targetRangeHtml}
       ${debtHtml}
-      ${proj.status==="ok"?row("Projected 90 kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected 90 kg","Trend stabilizing…")}
+      ${proj.status==="ok"?row("Projected "+USER.targetKg+" kg",`≈ ${fmtD(proj.date)} ${proj.date.slice(0,4)} · Confidence: ${proj.confidence}`):row("Projected "+USER.targetKg+" kg","Trend stabilizing…")}
       ${nextMs!=null?row("Next milestone",`${nextMs} kg · ${Math.round((cur-nextMs)*10)/10} kg remaining${reached!=null?` · ✔ ${reached} reached`:""}`):""}
       <div style="border-top:1px solid var(--b1);margin-top:8px;padding-top:8px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
