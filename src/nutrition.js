@@ -378,21 +378,27 @@ function saveBurn(date,field,val){
 const ZEP_DOSES_MG=[5,7.5,10,12.5,15];
 let _zepOpen=false,_zepDate="",_zepMg=10;
 function zepDoses(){return(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
-function nextZepDue(){
-  const doses=zepDoses();
-  if(!doses.length){
-    // No doses yet — find next Tuesday
-    const now=new Date();
-    const day=now.getUTCDay();
-    const daysUntilTue=(2-day+7)%7||7;
-    const d=new Date(now);d.setUTCDate(now.getUTCDate()+daysUntilTue);
-    return d.toISOString().slice(0,10);
-  }
-  const last=doses[doses.length-1];
-  const d=new Date(last.date+"T12:00:00Z");
-  d.setUTCDate(d.getUTCDate()+7);
-  return d.toISOString().slice(0,10);
+function zepSchedule(){
+  // Fixed schedule: every Tuesday at 17:00 America/Toronto
+  const now=new Date();
+  const todayToronto=now.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});
+  const hourToronto=Number(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Toronto",hour:"numeric",hourCycle:"h23"}).format(now));
+  const dow=new Date(todayToronto+"T12:00:00Z").getUTCDay(); // 0=Sun 2=Tue 6=Sat
+  // Most recent Tuesday on or before today
+  const daysSinceTue=(dow-2+7)%7;
+  const lastTue=addDaysIso(todayToronto,-daysSinceTue);
+  // Has a dose been logged since last Tuesday (inclusive)?
+  const taken=zepDoses().some(d=>d.date>=lastTue);
+  // Overdue: past 17:00 Tuesday this cycle and not taken
+  const pastDueTime=dow===2?hourToronto>=17:(dow===0||dow>=3);
+  const overdue=!taken&&pastDueTime;
+  // Next due date
+  const thisTue=lastTue;
+  const nextTue=addDaysIso(thisTue,7);
+  const dueDate=taken?nextTue:thisTue;
+  return{dueDate,overdue,taken};
 }
+function nextZepDue(){return zepSchedule().dueDate;}
 function logZepDose(date,mg){
   if(!S.meds)S.meds={};
   if(!S.meds.zepbound)S.meds.zepbound={doses:[]};
@@ -412,10 +418,11 @@ window.logZepDose=logZepDose;window.delZepDose=delZepDose;window.toggleZepOpen=t
 function zepCardHtml(){
   const doses=zepDoses();
   const last=doses.length?doses[doses.length-1]:null;
-  const due=nextZepDue();
+  const sched=zepSchedule();
+  const due=sched.dueDate;
   const today=isoToday();
-  const overdue=due&&due<today;
-  const dueLabel=due?(due===today?"today":overdue?`overdue since ${fmtDate(due)}`:fmtDate(due)):"—";
+  const overdue=sched.overdue;
+  const dueLabel=sched.taken?fmtDate(due):overdue?`overdue since ${fmtDate(due)}`:(due===today?"today — by 5 PM":fmtDate(due)+" · 5 PM");
   const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
   return`<div class="nut-card" style="margin-bottom:10px">
     <div class="nut-card-title">💉 Zepbound</div>
@@ -485,9 +492,8 @@ function weekCompliance(p,weekStartIso,endIso){
     if((S.nutrition.weights||{})[d]!=null)weighins++;
   }
   if(!calLogged)return{calculating:true};
-  // Zepbound: weekly dose logged anywhere in the week = 100, else 0
-  const zepDoseDates=(S.meds?.zepbound?.doses||[]).map(d=>d.date);
-  const zepTaken=days.some(d=>zepDoseDates.includes(d))?100:0;
+  // Zepbound: taken this Tuesday cycle (last Tue → now) = 100, else 0
+  const zepTaken=zepSchedule().taken?100:0;
   const m={
     calories:Math.round(calOk/calLogged*100),
     active:Math.min(100,Math.round(actTgtSum?actSum/actTgtSum*100:0)),
@@ -745,8 +751,7 @@ function phaseCardHtml(){
   let debtHtml='';
   if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?'Banked':'Behind schedule')+'</span><span style="background:'+(ahead?'var(--green-lo)':'var(--red-lo)')+';color:'+(ahead?'var(--green)':'var(--red)')+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?'▲':'▼')+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?'ahead':'behind')+'</span></div>';}
 
-  const zepDue=nextZepDue();
-  const zepOverdue=zepDue<=isoToday()&&!(comp.zepbound>0);
+  const zepOverdue=zepSchedule().overdue;
   const compGridItem=(lbl,v,isZep)=>{
     if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px dashed var(--b2)"><span style="font-size:15px;font-weight:700;color:var(--dim)">—</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Zepbound<br><span style="font-size:9px">not due</span></span></div>';
     const col=v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
