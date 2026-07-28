@@ -402,11 +402,11 @@ export const PROG_V3={
 };
 
 // Active program: V3 return block Jul 28–Aug 3, then V2 from Aug 4 onwards.
-// Physio stripped for first 2 weeks (Jul 28–Aug 10) — no effect on phase calculations.
+// Physio stripped until Aug 11 — no effect on phase calculations.
 const _pd=new Date();
 function _sp(p){const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};return o;}
-const _noPhysio=_pd<new Date(2026,7,11);
-export const PROG=_pd>=new Date(2026,7,4)?(_noPhysio?_sp(PROG_V2):PROG_V2):_pd>=new Date(2026,6,28)?_sp(PROG_V3):_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+const _base=_pd>=new Date(2026,7,4)?PROG_V2:_pd>=new Date(2026,6,28)?PROG_V3:_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+export const PROG=_pd<new Date(2026,7,11)?_sp(_base):_base;
 
 export const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 export const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";
