@@ -707,54 +707,64 @@ function phaseCardHtml(){
     }
   }
 
-  // Latest logged weight (different from 7-day avg)
+  // Fix A+B+C+D: weight block, range row, Zepbound cell, short chip
   const latestKg=latestWeightLog();
-
-  // Weight block: latest weight + range check (avg used for range, labeled clearly)
-  let weightBlockHtml="";
-  {
-    const latest=latestKg??p.startKg;
-    const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);
-    let rangeChip="";
-    if(avg!=null){
-      const inRange=avg>=cor.lo&&avg<=cor.hi;
-      const pillBg=inRange?"var(--green-lo)":"var(--red-lo)";
-      const pillCol=inRange?"var(--green)":"var(--red)";
-      const pillTxt=inRange?"✓ In range":(health?health.label:"Out of range");
-      rangeChip='<span style="background:'+pillBg+';color:'+pillCol+';border-radius:4px;padding:2px 7px;font-size:11px;font-weight:700">'+pillTxt+'</span>';
-    }
-    weightBlockHtml=
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;font-size:13px">'+
-        '<span style="color:var(--mid)">Weight</span>'+
-        '<span style="font-weight:700">'+latest+' kg'+
-          (latestKg!=null?' <span style="font-size:11px;color:var(--dim);font-weight:400">→ '+p.targetKg+' kg ('+remaining+' to go)</span>':'')+'</span>'+
+  const latest=latestKg??p.startKg;
+  const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);
+  const weightBlockHtml=
+    '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
+        '<span style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px">Latest weight</span>'+
+        '<span style="font-family:var(--font-display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+latest+' <span style="font-size:13px;font-weight:600;color:var(--mid)">kg</span></span>'+
       '</div>'+
-      '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px">'+
-        '<span style="color:var(--mid)">Range today <span style="font-size:11px;color:var(--dim)">(7d avg: '+(avg!=null?avg:"—")+' kg)</span></span>'+
-        '<span style="font-weight:600;display:flex;align-items:center;gap:6px">'+cor.lo+'–'+cor.hi+' kg '+rangeChip+'</span>'+
+      '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">'+
+        '<span>Target: '+p.targetKg+' kg — '+remaining+' to go</span>'+
+        '<span>Start: '+p.startKg+' kg</span>'+
+      '</div>'+
+    '</div>';
+
+  let rangeRowHtml='<div style="font-size:12px;color:var(--dim);padding:4px 0">Log weigh-ins to see your target range</div>';
+  if(avg!=null){
+    const inRange=avg>=cor.lo&&avg<=cor.hi;
+    const chipBg=inRange?'var(--green-lo)':'var(--red-lo)';
+    const chipCol=inRange?'var(--green)':'var(--red)';
+    const chipTxt=inRange?'✓ In range':(banked&&banked.days>=0?'Ahead':'Behind');
+    rangeRowHtml=
+      '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:8px">'+
+        '<div style="display:flex;flex-direction:column;gap:1px">'+
+          '<span style="font-size:13px;color:var(--mid)">Range today</span>'+
+          '<span style="font-size:10px;color:var(--dim)">7-day avg: '+avg+' kg</span>'+
+        '</div>'+
+        '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">'+
+          '<span style="font-weight:600;font-variant-numeric:tabular-nums">'+cor.lo+'–'+cor.hi+' kg</span>'+
+          '<span style="background:'+chipBg+';color:'+chipCol+';border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">'+chipTxt+'</span>'+
+        '</div>'+
       '</div>';
   }
 
-  // Banked/debt chip
-  let debtHtml="";
-  if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?"Banked":"Behind schedule")+'</span><span style="background:'+(ahead?"var(--green-lo)":"var(--red-lo)")+';color:'+(ahead?"var(--green)":"var(--red)")+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?"▲":"▼")+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?"ahead":"behind")+'</span></div>';}
+  let debtHtml='';
+  if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?'Banked':'Behind schedule')+'</span><span style="background:'+(ahead?'var(--green-lo)':'var(--red-lo)')+';color:'+(ahead?'var(--green)':'var(--red)')+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?'▲':'▼')+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?'ahead':'behind')+'</span></div>';}
 
-  // Compliance: overall score + compact chip grid
-  const compChip=(v)=>'<span style="background:'+(v>=80?"var(--green-lo)":v>=50?"var(--amber-lo)":"var(--red-lo)")+';color:'+(v>=80?"var(--green)":v>=50?"var(--amber)":"var(--red)")+';border-radius:5px;padding:2px 7px;font-size:12px;font-weight:700">'+v+'%</span>';
-  const compGridItem=(lbl,v)=>'<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px">'+compChip(v)+'<span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">'+lbl+'</span></div>';
+  const zepDue=nextZepDue();
+  const zepOverdue=zepDue<=isoToday()&&!(comp.zepbound>0);
+  const compGridItem=(lbl,v,isZep)=>{
+    if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px dashed var(--b2)"><span style="font-size:15px;font-weight:700;color:var(--dim)">—</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Zepbound<br><span style="font-size:9px">not due</span></span></div>';
+    const col=v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
+    return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px"><span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:'+col+'">'+v+'%</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">'+lbl+'</span></div>';
+  };
   const compHtml=comp.calculating
     ?'<div style="'+nMuted+'">Calculating… log a full day of food to start scoring</div>'
     :'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">'+
-        compGridItem("Calories",comp.calories)+
-        compGridItem("Active",comp.active)+
-        compGridItem("Protein",comp.protein)+
-        compGridItem("Workouts",comp.workouts)+
-        compGridItem("Weigh-ins",comp.weighins)+
-        compGridItem("Zepbound",comp.zepbound??0)+
+        compGridItem('Calories',comp.calories)+
+        compGridItem('Active',comp.active)+
+        compGridItem('Protein',comp.protein)+
+        compGridItem('Workouts',comp.workouts)+
+        compGridItem('Weigh-ins',comp.weighins)+
+        compGridItem('Zepbound',comp.zepbound??0,true)+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 2px;border-top:1px solid var(--b1)">'+
         '<span style="font-size:13px;font-weight:700;color:var(--mid)">Overall</span>'+
-        '<span style="font-size:24px;font-weight:700;font-family:var(--font-display);color:'+(comp.overall>=80?"var(--green)":comp.overall>=50?"var(--amber)":"var(--red)")+'">'+comp.overall+'%</span>'+
+        '<span style="font-size:24px;font-weight:700;font-family:var(--font-display);color:'+(comp.overall>=80?'var(--green)':comp.overall>=50?'var(--amber)':'var(--red)')+'">'+comp.overall+'%</span>'+
       '</div>';
 
   // Live status chip in the collapsed summary
@@ -772,6 +782,7 @@ function phaseCardHtml(){
       </div>
       <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
       ${weightBlockHtml}
+      ${rangeRowHtml}
       ${debtHtml}
       <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
