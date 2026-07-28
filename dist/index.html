@@ -1041,8 +1041,102 @@ const PROG_V2={
   ]}
 };
 
-// Active program: V1 until May 31, V2 from June 1 2026 onwards
-const PROG=new Date()>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+// ── PROGRAM V3: Jul 28 – Aug 3 2026 · 1-week return block ────────────────────
+// Full-body every session (push + pull + legs each day). 2 sets per exercise,
+// weights at ~60% of V2 — connective tissue needs this ramp-up after 2 months off.
+// Wednesday = active recovery (physio only). Flips to V2 on Aug 4.
+const PROG_V3={
+  Monday:{label:"Full Body · Return Week",sub:"Chest · Back · Legs · Glutes",exercises:[
+    {id:"m3_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 5-7",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Return week — ease in. Spin easy, joints first.",muscles:[]},
+    {id:"m3_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"20-28 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Return week — go lighter than feels easy. Full range, controlled return. No arching.",muscles:["chest","triceps","front delt"]},
+    {id:"m3_scr",name:"Seated Cable Row",cat:"gym",sets:2,reps:12,hint:"18-24 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Core tight. Do not lean back excessively.",muscles:["back","biceps","rear delt"]},
+    {id:"m3_lp",name:"Leg Press Machine",cat:"gym",sets:2,reps:12,hint:"40-55 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on plate. 90 degrees max. Back flat. Lighter than you think.",muscles:["quads","glutes","hamstrings"]},
+    {id:"m3_ha",name:"Hip Abduction Machine",cat:"gym",sets:2,reps:15,hint:"15-22 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press. Side glute critical for spinal stability.",muscles:["glutes","hip abductors"]},
+    {id:"m3_sc",name:"Seated Calf Raise",cat:"gym",sets:2,reps:15,hint:"18-28 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Full range of motion.",muscles:["calves"]},
+    {id:"m3_fp",name:"Cable Face Pull",cat:"gym",sets:2,reps:15,hint:"10-14 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Elbows flare wide. Shoulder health non-negotiable.",muscles:["rear delt","rotator cuff","traps"]},
+    {id:"m3_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk. Let heart rate settle.",muscles:[]},
+    {id:"m3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"m3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes, not lower back. Hold 3 seconds at top.",muscles:[]},
+    {id:"m3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+  ]},
+  Tuesday:{label:"Full Body · Return Week",sub:"Upper Chest · Lats · Hamstrings · Arms",exercises:[
+    {id:"t3_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 5-7",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Return week — easy spin to warm up joints.",muscles:[]},
+    {id:"t3_icp",name:"Incline Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"18-24 kg",url:"https://www.youtube.com/results?search_query=incline+chest+press+machine+form",cue:"Upper chest focus. Back flat on pad. Controlled descent. Return week — stay light.",muscles:["upper chest","front delt","triceps"]},
+    {id:"t3_ld",name:"Neutral Grip Lat Pulldown",cat:"gym",sets:2,reps:12,hint:"25-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+lat+pulldown+form",cue:"Pull to upper chest. Core engaged. Full stretch at the top.",muscles:["lats","biceps","mid back"]},
+    {id:"t3_lc",name:"Seated Leg Curl",cat:"gym",sets:2,reps:12,hint:"20-28 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Slow and controlled both ways. Hamstrings need gradual reloading.",muscles:["hamstrings"]},
+    {id:"t3_le",name:"Leg Extension Machine",cat:"gym",sets:2,reps:15,hint:"20-30 kg",url:"https://www.youtube.com/results?search_query=leg+extension+machine+form",cue:"Full extension at top. Slow on the way down.",muscles:["quads"]},
+    {id:"t3_lr",name:"Seated Lateral Raise",cat:"gym",sets:2,reps:12,hint:"4-6 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"SEATED only. Shoulder height max. Very light — shoulder joint needs ramp-up.",muscles:["lateral delt"]},
+    {id:"t3_dc",name:"Seated Dumbbell Curl",cat:"gym",sets:2,reps:12,hint:"6-8 kg",url:"https://www.youtube.com/watch?v=av7-8igSXTs",cue:"Elbows fixed. No swinging. Light and controlled for return.",muscles:["biceps"]},
+    {id:"t3_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk.",muscles:[]},
+    {id:"t3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"t3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Squeeze at top. Hold 3 seconds.",muscles:[]},
+    {id:"t3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Slow deliberate reps.",muscles:[]},
+  ]},
+  Wednesday:{label:"Active Recovery",sub:"Physio & Mobility",exercises:[
+    {id:"w3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"w3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"w3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"w3_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:[]},
+    {id:"w3_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly.",muscles:[]},
+    {id:"w3_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]},
+  Thursday:{label:"Full Body · Return Week",sub:"Chest · Back · Legs · Rear Delts",exercises:[
+    {id:"th3_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 5-7",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Return week — easy warmup. Joints before load.",muscles:[]},
+    {id:"th3_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"22-30 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Slight step up from Monday if it felt easy. Back flat. Controlled.",muscles:["chest","triceps","front delt"]},
+    {id:"th3_pf",name:"Pec Fly Machine",cat:"gym",sets:2,reps:12,hint:"15-20 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Stop at chest stretch. Never go too wide. Chest isolation.",muscles:["chest"]},
+    {id:"th3_csr",name:"Chest Supported Row",cat:"gym",sets:2,reps:12,hint:"15-22 kg",url:"https://www.youtube.com/watch?v=0hF4XgKqBTI",cue:"Chest on pad. Full stretch at bottom. Squeeze at top.",muscles:["mid back","rhomboids","biceps"]},
+    {id:"th3_lp",name:"Leg Press Machine",cat:"gym",sets:2,reps:12,hint:"42-58 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH. 90 degrees. Back flat. Slight step up from Monday.",muscles:["quads","glutes","hamstrings"]},
+    {id:"th3_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:2,reps:15,hint:"10-14 kg",url:"https://www.youtube.com/results?search_query=rear+delt+fly+machine+form",cue:"Sit facing pad. Pull handles wide. Squeeze shoulder blades. Shoulder health.",muscles:["rear delt","rhomboids","mid back"]},
+    {id:"th3_ha",name:"Hip Abduction Machine",cat:"gym",sets:2,reps:15,hint:"16-23 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press. Side glute critical for spinal stability.",muscles:["glutes","hip abductors"]},
+    {id:"th3_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk to close.",muscles:[]},
+    {id:"th3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"th3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Glutes not back. Hold 3 seconds.",muscles:[]},
+    {id:"th3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Slow and deliberate.",muscles:[]},
+    {id:"th3_dbg",name:"Dead Bug",cat:"physio",sets:3,reps:"8 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays on floor the whole time.",muscles:[]},
+  ]},
+  Friday:{label:"Full Body · Return Week",sub:"Push · Pull · Legs · Arms",exercises:[
+    {id:"f3_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 5-7",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Return week — easy spin to warm up.",muscles:[]},
+    {id:"f3_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"22-30 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Same range as Thursday. If both sets felt controlled, move up Monday.",muscles:["chest","triceps","front delt"]},
+    {id:"f3_scr",name:"Seated Cable Row",cat:"gym",sets:2,reps:12,hint:"20-26 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Slight step up from Monday. Squeeze at the end. Core tight.",muscles:["back","biceps","rear delt"]},
+    {id:"f3_lc",name:"Seated Leg Curl",cat:"gym",sets:2,reps:12,hint:"22-30 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Slow both ways. Slight step up from Tuesday.",muscles:["hamstrings"]},
+    {id:"f3_le",name:"Leg Extension Machine",cat:"gym",sets:2,reps:15,hint:"22-32 kg",url:"https://www.youtube.com/results?search_query=leg+extension+machine+form",cue:"Full extension at top. Slow descent.",muscles:["quads"]},
+    {id:"f3_hc",name:"Hammer Curl",cat:"gym",sets:2,reps:12,hint:"6-9 kg",url:"https://www.youtube.com/results?search_query=hammer+curl+dumbbell+form",cue:"Neutral grip. Elbows fixed. No swinging.",muscles:["biceps","brachialis","forearms"]},
+    {id:"f3_tcp",name:"Cable Tricep Pushdown",cat:"gym",sets:2,reps:12,hint:"12-16 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+pushdown+form",cue:"Elbows pinned at sides. Full extension. Slow return.",muscles:["triceps"]},
+    {id:"f3_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy pace to close.",muscles:[]},
+    {id:"f3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"f3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Squeeze and hold.",muscles:[]},
+    {id:"f3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Slow deliberate reps.",muscles:[]},
+  ]},
+  Saturday:{label:"Full Body · Return Week",sub:"Push · Pull · Legs · Core",exercises:[
+    {id:"sa3_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"20 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Last session of the return week — slightly longer bike to mark the milestone.",muscles:[]},
+    {id:"sa3_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"22-30 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Same range as Thu/Fri. Consistent form over weight.",muscles:["chest","triceps","front delt"]},
+    {id:"sa3_ld",name:"Neutral Grip Lat Pulldown",cat:"gym",sets:2,reps:12,hint:"27-37 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+lat+pulldown+form",cue:"Slight step up from Tuesday. Pull to upper chest. Core engaged.",muscles:["lats","biceps","mid back"]},
+    {id:"sa3_lp",name:"Leg Press Machine",cat:"gym",sets:2,reps:12,hint:"44-60 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH. 90 degrees. Back flat. Best leg session of the week.",muscles:["quads","glutes","hamstrings"]},
+    {id:"sa3_ha",name:"Hip Abduction Machine",cat:"gym",sets:2,reps:15,hint:"17-24 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press. Side glute critical for spinal stability.",muscles:["glutes","hip abductors"]},
+    {id:"sa3_sc",name:"Seated Calf Raise",cat:"gym",sets:2,reps:15,hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow raise and lower. Full range of motion.",muscles:["calves"]},
+    {id:"sa3_fp",name:"Cable Face Pull",cat:"gym",sets:2,reps:15,hint:"11-15 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Rope at face height. Elbows flare wide. Shoulder health finish.",muscles:["rear delt","rotator cuff","traps"]},
+    {id:"sa3_tw",name:"Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Return week complete after this. Slight incline. Lean forward.",muscles:[]},
+    {id:"sa3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"sa3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Squeeze at top.",muscles:[]},
+    {id:"sa3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Quality reps.",muscles:[]},
+    {id:"sa3_dbg",name:"Dead Bug",cat:"physio",sets:3,reps:"8 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Back stays flat.",muscles:[]},
+    {id:"sa3_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side.",muscles:[]},
+    {id:"sa3_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last.",muscles:[]},
+    {id:"sa3_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Left leg only.",muscles:[]},
+  ]},
+  Sunday:{label:"Active Recovery",sub:"Physio & Mobility",exercises:[
+    {id:"su3_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"su3_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"su3_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"su3_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:[]},
+    {id:"su3_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly.",muscles:[]},
+    {id:"su3_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]}
+};
+
+// Active program: V3 return block Jul 28–Aug 3, then V2 from Aug 4 onwards
+const _pd=new Date();
+const PROG=_pd>=new Date(2026,7,4)?PROG_V2:_pd>=new Date(2026,6,28)?PROG_V3:_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
 
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";
