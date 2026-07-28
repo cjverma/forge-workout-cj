@@ -177,7 +177,7 @@ ok("calcBMR decreases as weight drops (95 kg)",
   calcBMR(95, 190.5, 30) < calcBMR(136.6, 190.5, 30));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 6. Phase engine (Phase 1: Jul 17 → Aug 31, 138 → 128 kg)
+// 6. Phase engine (Phase 1: Jul 28 → Sep 7, 140 → 128 kg)
 // ─────────────────────────────────────────────────────────────────────────────
 section("6 · Phase engine (Phase 1)");
 
@@ -187,12 +187,12 @@ const engineMatch = HTML.match(/\/\/ ── PHASE ENGINE[^\n]*\n([\s\S]*?)\/\/ �
 ok("phase engine block present with markers", !!engineMatch);
 
 function mkEngine(Sstub) {
-  const USERstub = { targetKg: 90, weightKg: 138, goalDate: new Date(2027, 1, 20), heightCm: 190.5, birthDate: new Date(1995, 7, 1) };
+  const USERstub = { targetKg: 95, weightKg: 140, goalDate: new Date(2027, 1, 21), heightCm: 190.5, birthDate: new Date(1995, 7, 1) };
   const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog",
     engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,restingFor,bankedDays,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
-    () => "2026-07-20",
+    () => "2026-07-28",
     w => Math.round(10 * w + 6.25 * 190.5 - 5 * 31 + 5),
     () => (Sstub.nutrition && Object.values(Sstub.nutrition.weights || {})[0]) || null);
 }
@@ -200,71 +200,73 @@ const emptyS = { nutrition: { weights: {}, days: {} } };
 const E = mkEngine(emptyS);
 
 ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, plannedEnd)",
-  E.PHASES[0].id === "phase_1" && E.PHASES[0].version === 1 && E.PHASES[0].strategy === "fat_loss" &&
-  E.PHASES[0].curve === "front_loaded" && E.PHASES[0].plannedEnd === "2026-08-31");
+  E.PHASES[0].id === "phase_1" && E.PHASES[0].version === 2 && E.PHASES[0].strategy === "fat_loss" &&
+  E.PHASES[0].curve === "front_loaded" && E.PHASES[0].plannedEnd === "2026-09-07");
 
-ok("phaseFor boundaries: Jul 16 null · Jul 17 & Aug 31 phase_1 · Sep 1 null",
-  E.phaseFor("2026-07-16") === null && E.phaseFor("2026-07-17")?.id === "phase_1" &&
-  E.phaseFor("2026-08-31")?.id === "phase_1" && E.phaseFor("2026-09-01") === null);
+ok("phaseFor boundaries: Jul 27 null · Jul 28 & Sep 7 phase_1 · Sep 8 phase_2 · Dec 1 phase_3",
+  E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
+  E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08")?.id === "phase_2" &&
+  E.phaseFor("2026-12-01")?.id === "phase_3");
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
-const pausedS = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-01", resumed: "2026-08-06", extend: true }], completedAt: null, locked: false } } };
+const pausedS = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-10", resumed: "2026-08-15", extend: true }], completedAt: null, locked: false } } };
 const Ep = mkEngine(pausedS);
-ok("extend:true pause of 5 days shifts effectiveEnd to Sep 5 (Sep 5 still phase 1)",
-  Ep.effectiveEnd(Ep.PHASES[0], "2026-08-10") === "2026-09-05" && Ep.phaseFor("2026-09-05")?.id === "phase_1");
-const pausedNoExt = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-01", resumed: "2026-08-06", extend: false }], completedAt: null, locked: false } } };
+ok("extend:true pause of 5 days shifts effectiveEnd to Sep 12 (Sep 12 still phase 1)",
+  Ep.effectiveEnd(Ep.PHASES[0], "2026-08-20") === "2026-09-12" && Ep.phaseFor("2026-09-12")?.id === "phase_1");
+const pausedNoExt = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-10", resumed: "2026-08-15", extend: false }], completedAt: null, locked: false } } };
 const En = mkEngine(pausedNoExt);
 ok("extend:false pause does NOT shift effectiveEnd",
-  En.effectiveEnd(En.PHASES[0], "2026-08-10") === "2026-08-31");
+  En.effectiveEnd(En.PHASES[0], "2026-08-20") === "2026-09-07");
 
 // State machine
 ok("phaseState: planned before start · active inside · completed past end",
-  E.phaseState(E.PHASES[0], "2026-07-10") === "planned" &&
-  E.phaseState(E.PHASES[0], "2026-08-01") === "active" &&
-  E.phaseState(E.PHASES[0], "2026-09-02") === "completed");
-const openPauseS = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-01", resumed: null, extend: true }], completedAt: null, locked: false } } };
+  E.phaseState(E.PHASES[0], "2026-07-20") === "planned" &&
+  E.phaseState(E.PHASES[0], "2026-08-15") === "active" &&
+  E.phaseState(E.PHASES[0], "2026-09-10") === "completed");
+const openPauseS = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-10", resumed: null, extend: true }], completedAt: null, locked: false } } };
 ok("phaseState: paused while a pause is open · locked when locked",
-  mkEngine(openPauseS).phaseState(E.PHASES[0], "2026-08-03") === "paused" &&
-  mkEngine({ nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [], completedAt: "2026-08-31", locked: true } } }).phaseState(E.PHASES[0], "2026-09-02") === "locked");
+  mkEngine(openPauseS).phaseState(E.PHASES[0], "2026-08-12") === "paused" &&
+  mkEngine({ nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [], completedAt: "2026-09-07", locked: true } } }).phaseState(E.PHASES[0], "2026-09-10") === "locked");
 ok("locked/completed phases drop out of phaseFor (history is read from snapshots, not PHASES)",
-  mkEngine({ nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [], completedAt: "2026-08-20", locked: true } } }).phaseFor("2026-08-01") === null);
+  mkEngine({ nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [], completedAt: "2026-08-20", locked: true } } }).phaseFor("2026-08-15") === null);
 
 // Curve shapes — declarative, normalised, no magic arrays
 for (const shape of ["front_loaded", "moderate", "linear", "back_loaded"]) {
-  const w = E.curveWeights(shape, 45);
+  const w = E.curveWeights(shape, 41);
   ok(`curveWeights(${shape}) normalises to 1`, Math.abs(w.reduce((s, x) => s + x, 0) - 1) < 1e-9);
 }
 ok("front_loaded loses faster early; back_loaded reversed; linear flat",
-  E.curveWeights("front_loaded", 45)[0] > E.curveWeights("front_loaded", 45)[44] &&
-  E.curveWeights("back_loaded", 45)[0] < E.curveWeights("back_loaded", 45)[44] &&
-  Math.abs(E.curveWeights("linear", 45)[0] - E.curveWeights("linear", 45)[44]) < 1e-12);
-ok("curve starts at 138 and lands exactly on 128 at phase end",
-  E.phaseCurveKg(E.PHASES[0], "2026-07-17") === 138 &&
-  Math.abs(E.phaseCurveKg(E.PHASES[0], "2026-08-31") - 128) < 0.051);
+  E.curveWeights("front_loaded", 41)[0] > E.curveWeights("front_loaded", 41)[40] &&
+  E.curveWeights("back_loaded", 41)[0] < E.curveWeights("back_loaded", 41)[40] &&
+  Math.abs(E.curveWeights("linear", 41)[0] - E.curveWeights("linear", 41)[40]) < 1e-12);
+ok("curve starts at 140 and lands exactly on 128 at phase end",
+  E.phaseCurveKg(E.PHASES[0], "2026-07-28") === 140 &&
+  Math.abs(E.phaseCurveKg(E.PHASES[0], "2026-09-07") - 128) < 0.051);
 ok("front_loaded midpoint sits below the linear midpoint (early water loss)",
-  E.phaseCurveKg(E.PHASES[0], "2026-08-08") < 133);
-const cor = E.phaseCorridor(E.PHASES[0], "2026-08-08");
+  E.phaseCurveKg(E.PHASES[0], "2026-08-17") < 134);
+const cor = E.phaseCorridor(E.PHASES[0], "2026-08-17");
 ok("corridor is expected ±1 kg", Math.abs((cor.hi - cor.lo) - 2) < 0.01 && cor.lo < cor.expected && cor.expected < cor.hi);
 
-// Day deficits — background verification numbers from the user's spec
-ok("phaseDayDeficit: 1,875 workout day · ~1,238 Sunday · week ≈ 12,488",
-  E.phaseDayDeficit(E.PHASES[0], "2026-07-20") === 1875 &&
-  E.phaseDayDeficit(E.PHASES[0], "2026-07-19") === 1238 &&
-  (6 * 1875 + 1238) === 12488);
+// Day deficits — Phase 1: resting 2446, eatKcal 1600, active 1500/650
+// workout: 2446 + 0.75*1500 - 1600 = 1971 · rest: 2446 + 0.75*650 - 1600 = 1334
+ok("phaseDayDeficit: 1,971 workout day · 1,334 Sunday · week ≈ 13,160",
+  E.phaseDayDeficit(E.PHASES[0], "2026-07-28") === 1971 &&
+  E.phaseDayDeficit(E.PHASES[0], "2026-08-02") === 1334 &&
+  (6 * 1971 + 1334) === 13160);
 ok("active targets: 1,500 Mon–Sat · 650 Sunday",
-  E.phaseActiveTarget(E.PHASES[0], "2026-07-20") === 1500 && E.phaseActiveTarget(E.PHASES[0], "2026-07-19") === 650);
-ok("restingFor: phase default 2,850 · per-day override wins",
-  E.restingFor("2026-07-20", {}) === 2850 && E.restingFor("2026-07-20", { restingOverride: 3000 }) === 3000);
+  E.phaseActiveTarget(E.PHASES[0], "2026-07-28") === 1500 && E.phaseActiveTarget(E.PHASES[0], "2026-08-02") === 650);
+ok("restingFor: phase default 2,446 · per-day override wins",
+  E.restingFor("2026-07-28", {}) === 2446 && E.restingFor("2026-07-28", { restingOverride: 3000 }) === 3000);
 
-// Banked progress — user's examples (rate ≈ 0.22 kg/day)
+// Banked progress — rate ≈ 0.293 kg/day (12 kg / 41 days)
 function withAvg(avgKg, dateIso) {
   const w = {}; for (let i = 0; i < 7; i++) { const d = new Date(dateIso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() - i); w[d.toISOString().split("T")[0]] = avgKg; }
   return mkEngine({ nutrition: { weights: w, days: {} } });
 }
-const ahead = withAvg(126.8, "2026-08-31").bankedDays(E.PHASES[0], "2026-08-31");
-ok("bankedDays: 126.8 vs 128 target → ahead ~5-6 days", ahead.kg === 1.2 && ahead.days >= 5 && ahead.days <= 6);
-const behind = withAvg(129.5, "2026-08-31").bankedDays(E.PHASES[0], "2026-08-31");
-ok("bankedDays: 129.5 vs 128 target → behind ~6-7 days", behind.kg === -1.5 && behind.days <= -6 && behind.days >= -8);
+const ahead = withAvg(126.8, "2026-09-07").bankedDays(E.PHASES[0], "2026-09-07");
+ok("bankedDays: 126.8 vs 128 target → ahead ~3-5 days", ahead.kg === 1.2 && ahead.days >= 3 && ahead.days <= 5);
+const behind = withAvg(129.5, "2026-09-07").bankedDays(E.PHASES[0], "2026-09-07");
+ok("bankedDays: 129.5 vs 128 target → behind ~4-6 days", behind.kg === -1.5 && behind.days <= -4 && behind.days >= -7);
 
 // Projected finish confidence gates
 ok("projectedFinish: <10 weigh-ins → Trend stabilizing",
@@ -318,8 +320,8 @@ ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 90 · goalDate Feb 20 2027",
-  HTML.includes("targetKg:90") && HTML.includes("goalDate:new Date(2027,1,20)"));
+ok("USER.targetKg 95 · goalDate Feb 21 2027",
+  HTML.includes("targetKg:95") && HTML.includes("goalDate:new Date(2027,1,21)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -500,8 +502,8 @@ ok(`MAX_PROMPT ≥ 4000 (actual: ${MAX_PROMPT})`, MAX_PROMPT >= 4000);
 section("16 · USER.weightKg fallback");
 
 const userLine = HTML.match(/const USER=\{[^}]+\}/)?.[0] || "";
-ok("USER.weightKg is defined as fallback (138, 2026-07-15 reset)",
-  userLine.includes("weightKg:138"));
+ok("USER.weightKg is defined as fallback (140)",
+  userLine.includes("weightKg:140"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 17. Pace-based weekly deficit
@@ -516,14 +518,14 @@ ok("Pace pro-rates by elapsed expected-deficit share, not calendar days",
   HTML.includes("elapsedShare+=dayShare(i)") &&
   HTML.includes("paceTarget=Math.round(elapsedShare)"));
 
-ok("Card resting uses restingFor() (phase 2,850 default, override wins)",
+ok("Card resting uses restingFor() (phase 2,446 default, override wins)",
   HTML.includes("const resting=restingFor(iso,nutDay)"));
 
 ok("Pace status shown in UI (ahead/on/behind)",
   HTML.includes("Ahead of pace") && HTML.includes("Behind pace"));
 
-ok("Phase 1 weekly deficit target ≈ 12,488 (6×1,875 + 1,238)",
-  6 * 1875 + 1238 === 12488);
+ok("Phase 1 weekly deficit target ≈ 13,160 (6×1,971 + 1,334)",
+  6 * 1971 + 1334 === 13160);
 
 ok("Outside a phase the date-driven fallback still applies (dailyReq via requiredDeficit)",
   HTML.includes("dailyReq=requiredDeficit(lw,daysLeft)"));

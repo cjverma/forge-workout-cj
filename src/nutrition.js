@@ -77,7 +77,7 @@ function weight30Chart(){
 }
 function renderDrawer(){
   const t=buildTrendData();
-  const pTarget=Math.round(USER.targetKg*2);
+  const pTarget=130;
   document.getElementById("drawerContent").innerHTML=`
     <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
     <div class="st-sec">7-Day Trends</div>
@@ -185,7 +185,7 @@ export function renderNutrition(){
   const netDef=consumed-totalBurn;
   // Protein target: 2g × goal weight, +10% on days with training or logged active burn
   const trained=trainedOn(date)||active>0;
-  const pTarget=Math.round(USER.targetKg*2*(trained?1.1:1));
+  const pTarget=Math.round(130*(trained?1.1:1));
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
@@ -318,6 +318,8 @@ export function renderNutrition(){
       }
     </div>
 
+    ${zepCardHtml()}
+
     <div class="st-sec">Progress</div>
 
     ${phaseCardHtml()}
@@ -372,6 +374,63 @@ function saveBurn(date,field,val){
     if(!a||(a.id!=="bvRest"&&a.id!=="bvAct"))renderNutrition();
   },0);
 }
+// ── ZEPBOUND ─────────────────────────────────────────────────────────────────
+const ZEP_DOSES_MG=[5,7.5,10,12.5,15];
+let _zepOpen=false,_zepDate="",_zepMg=10;
+function zepDoses(){return(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
+function nextZepDue(){
+  const doses=zepDoses();
+  if(!doses.length)return null;
+  const last=doses[doses.length-1];
+  const d=new Date(last.date+"T12:00:00Z");
+  d.setUTCDate(d.getUTCDate()+7);
+  return d.toISOString().slice(0,10);
+}
+function logZepDose(date,mg){
+  if(!S.meds)S.meds={};
+  if(!S.meds.zepbound)S.meds.zepbound={doses:[]};
+  S.meds.zepbound.doses=S.meds.zepbound.doses.filter(d=>d.date!==date);
+  S.meds.zepbound.doses.push({date,mg:Number(mg)});
+  _zepOpen=false;save();queueSettings();renderNutrition();
+  showToast("💉 "+mg+"mg logged");
+}
+function delZepDose(date){
+  if(!S.meds?.zepbound?.doses)return;
+  S.meds.zepbound.doses=S.meds.zepbound.doses.filter(d=>d.date!==date);
+  save();queueSettings();renderNutrition();
+}
+function toggleZepOpen(){_zepOpen=!_zepOpen;if(_zepOpen)_zepDate=isoToday();renderNutrition();}
+window.logZepDose=logZepDose;window.delZepDose=delZepDose;window.toggleZepOpen=toggleZepOpen;
+function zepCardHtml(){
+  const doses=zepDoses();
+  const last=doses.length?doses[doses.length-1]:null;
+  const due=nextZepDue();
+  const today=isoToday();
+  const overdue=due&&due<today;
+  const dueLabel=due?(due===today?"today":overdue?`overdue since ${due}`:due):"—";
+  const lastLabel=last?`${last.mg}mg · ${last.date}`:"Not logged yet";
+  return`<div class="nut-card" style="margin-bottom:10px">
+    <div class="nut-card-title">💉 Zepbound</div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px">
+      <span style="color:var(--mid)">Last dose</span><span style="font-weight:600">${lastLabel}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:10px">
+      <span style="color:var(--mid)">Next due</span><span style="font-weight:600;color:${overdue?"var(--red)":due===today?"var(--amber)":"var(--white)"}">${dueLabel}</span>
+    </div>
+    ${_zepOpen?`<div style="border-top:1px solid var(--b1);padding-top:12px;margin-top:4px">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Date</div>
+      <input type="date" value="${_zepDate}" onchange="_zepDate=this.value" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);outline:none;margin-bottom:10px;-webkit-appearance:none">
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Dose</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">${ZEP_DOSES_MG.map(mg=>`<button onclick="_zepMg=${mg};renderNutrition()" style="flex:1;background:${_zepMg===mg?"var(--accent)":"var(--s2)"};color:${_zepMg===mg?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px 4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">${mg}mg</button>`).join("")}</div>
+      <div style="display:flex;gap:8px">
+        <button onclick="logZepDose(_zepDate,_zepMg)" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Save</button>
+        <button onclick="toggleZepOpen()" style="padding:10px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer">✕</button>
+      </div>
+    </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">+ Log Dose</button>`}
+    ${doses.length?`<div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:10px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">History</div>${doses.slice().reverse().slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--mid)">${d.date}</span><span style="font-weight:600">${d.mg}mg</span><button onclick="delZepDose('${d.date}')" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px 6px">✕</button></div>`).join("")}</div>`:""}
+  </div>`;
+}
+// ── END ZEPBOUND ──────────────────────────────────────────────────────────────
 function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
@@ -421,7 +480,7 @@ function weekCompliance(p,weekStartIso,endIso){
   const m={
     calories:Math.round(calOk/calLogged*100),
     active:Math.min(100,Math.round(actTgtSum?actSum/actTgtSum*100:0)),
-    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/(USER.targetKg*2)*100:0)),
+    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighins/days.length*100),
   };

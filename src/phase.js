@@ -1,7 +1,7 @@
 import { ctx } from "./runtime.js";
 
 // Personal constants · never rendered in UI
-export const USER={birthDate:new Date(1995,7,1),weightKg:138,targetKg:90,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,20)};
+export const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
 export const ACTIVE_MULT=0.75;
 
 export function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
@@ -20,9 +20,15 @@ export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-US
 // ride the settings sync blob. All date math is noon-UTC-anchored on
 // YYYY-MM-DD strings so Toronto DST transitions can never shift a day.
 export const PHASES=[
-  {id:"phase_1",version:1,strategy:"fat_loss",curve:"front_loaded",
-   start:"2026-07-17",plannedEnd:"2026-08-31",startKg:138,targetKg:128,
-   eatKcal:2100,restingKcal:2850,activeTargetWorkout:1500,activeTargetRest:650}
+  {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
+   start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
+   eatKcal:1600,restingKcal:2446,activeTargetWorkout:1500,activeTargetRest:650},
+  {id:"phase_2",version:1,strategy:"fat_loss",curve:"linear",
+   start:"2026-09-08",plannedEnd:"2026-11-30",startKg:128,targetKg:110,
+   eatKcal:1600,restingKcal:2321,activeTargetWorkout:1400,activeTargetRest:600},
+  {id:"phase_3",version:1,strategy:"fat_loss",curve:"linear",
+   start:"2026-12-01",plannedEnd:"2027-02-21",startKg:110,targetKg:95,
+   eatKcal:1600,restingKcal:2141,activeTargetWorkout:1300,activeTargetRest:550},
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;
