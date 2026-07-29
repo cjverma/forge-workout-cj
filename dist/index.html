@@ -2162,11 +2162,25 @@ async function probeBatches(cands){
   return null;
 }
 let _localDemos=null; // demos/map.json · clips shipped with the app
-fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
+_localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
   _localDemos=m;
-  // Resolve any placeholder wraps that are already visible (cards expanded before map.json loaded)
-  document.querySelectorAll(".sets-body.open .demo-wrap[data-demo-name]").forEach(resolveDemo);
+  if(!m)return;
+  // Populate ALL placeholder wraps in DOM now — open or closed — so images are
+  // ready when the user taps to expand, with no further network request needed.
+  document.querySelectorAll(".demo-wrap[data-demo-name]").forEach(wrap=>{
+    const name=wrap.getAttribute("data-demo-name");
+    const loc=m[name];
+    if(!loc)return;
+    wrap.removeAttribute("data-demo-name");
+    if(Array.isArray(loc)){
+      wrap.innerHTML=`<div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div>`;
+    } else {
+      wrap.innerHTML=`<video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video>`;
+    }
+    wrap.style.display="";
+  });
 }).catch(()=>{});
+let _localDemosReady=null; // resolves when map.json is loaded
 let _demoIndex=null;   // demos/index.json · 870-exercise name index for fuzzy-matching custom exercises
 fetch("demos/index.json").then(r=>r.ok?r.json():null).then(m=>{_demoIndex=m;}).catch(()=>{});
 const DEMO_GH="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
@@ -2200,7 +2214,8 @@ async function resolveDemo(wrap){
   const name=wrap.getAttribute("data-demo-name");
   if(!name)return;
   wrap.removeAttribute("data-demo-name");
-  // Check local map first (exact match, no external request needed)
+  // Wait for local map if still loading, then check exact match (no external request needed)
+  if(!_localDemos&&_localDemosReady)await _localDemosReady;
   const local=_localDemos&&_localDemos[name];
   if(Array.isArray(local)){
     wrap.innerHTML=`<div class="demo-flip"><img src="${local[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${local[1]}"></div>`;
