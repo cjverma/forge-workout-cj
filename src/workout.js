@@ -3,7 +3,7 @@ import { isoToday, isoDate } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
-import { EX_DB, PROG, DAYS, GYM } from "./constants.js";
+import { EX_DB, PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -285,6 +285,25 @@ export function renderW(){
 
   if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
   if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">🟢 Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+
+  // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
+  if(!future){
+    const _allExMap={};
+    [PROG_V1,PROG_V2,PROG_V3,PROG_V4].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
+    const curIds=new Set(dispExs.map(e=>e.id));
+    const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&ed.sets&&ed.sets.some(s=>s&&s.done));
+    if(orphanEntries.length){
+      h+=`<details class="st-acc"><summary class="sec" style="padding:12px 16px;color:var(--dim)">📂 Logged on previous program</summary>`;
+      orphanEntries.forEach(([id,ed])=>{
+        const ex=_allExMap[id];
+        const doneSets=ed.sets.filter(s=>s&&s.done);
+        const unit=ed.unit||"kg";
+        const summary=doneSets.map((s,i)=>`Set ${i+1}: ${s.weight||"—"} ${unit} × ${s.reps||"—"}`).join(" · ");
+        h+=`<div class="ex-card" style="opacity:0.7"><div class="ex-hd"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta" style="color:var(--dim)">${esc(ex.cat||"")} · read-only</div></div><div style="font-size:13px;color:var(--mid);padding:8px 16px 12px">${esc(summary)||"No sets logged"}</div></div>`;
+      });
+      h+=`</details>`;
+    }
+  }
 
   // Session notes
   if(!readOnly){

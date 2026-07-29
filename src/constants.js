@@ -401,11 +401,113 @@ export const PROG_V3={
   ]}
 };
 
-// Active program: V3 return block Jul 28–Aug 3, then V2 from Aug 4 onwards.
+// PROG_V4 — Southpaw Physique Program (Aug 4+)
+// Push/Pull/Rest split; all exercises seated or chest-supported for lower back safety.
+export const PROG_V4={
+  Monday:{label:"Chest & Shoulders · Push",sub:"Gym · Upper",exercises:[
+    {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Steady warm-up. Joints first.",muscles:[]},
+    {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:3,reps:12,hint:"38-45 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Full range. 2-3s eccentric. No arching.",muscles:["chest","triceps","front delt"]},
+    {id:"m4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:3,reps:10,hint:"32-38 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Incline angle targets upper chest. Controlled descent.",muscles:["upper chest","front delt","triceps"]},
+    {id:"m4_pf",name:"Pec Fly Machine",cat:"gym",sets:3,reps:12,hint:"25-32 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return — the stretch builds width.",muscles:["chest"]},
+    {id:"m4_lr",name:"Seated Lateral Raise",cat:"gym",sets:3,reps:15,hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Lead with elbows. Stop at shoulder height. No shrug.",muscles:["side delt"]},
+    {id:"m4_clr",name:"Seated Cable Lateral Raise",cat:"gym",sets:3,reps:15,hint:"6-10 kg",url:"https://www.youtube.com/watch?v=PPzMBpEylWI",cue:"Constant cable tension. Lean slightly toward the stack. Slow and controlled.",muscles:["side delt"]},
+    {id:"m4_fp",name:"Cable Face Pull",cat:"gym",sets:3,reps:15,hint:"15-20 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Elbows flare wide. Pull to forehead. Rotator cuff health non-negotiable.",muscles:["rear delt","rotator cuff","traps"]},
+    {id:"m4_sp",name:"Incline Scapular Punch",cat:"gym",sets:3,reps:15,hint:"4-6 kg",url:"https://www.youtube.com/watch?v=_b3xBqlF5Rk",cue:"Lie chest-down on incline bench, arms straight. Push dumbbells forward by protracting shoulder blades only — no elbow bend. Serratus anterior (boxer muscle).",muscles:["serratus anterior","chest"]},
+    {id:"m4_tcp",name:"Cable Tricep Pushdown",cat:"gym",sets:3,reps:12,hint:"20-28 kg",url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows pinned to sides. Full extension. 2s hold at bottom.",muscles:["triceps"]},
+    {id:"m4_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk. Heart rate down.",muscles:[]},
+    {id:"m4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"m4_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"m4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"m4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side.",muscles:[]},
+    {id:"m4_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last.",muscles:[]},
+    {id:"m4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Left leg only.",muscles:[]},
+  ]},
+  Tuesday:{label:"Back & Arms · Pull",sub:"Gym · Upper",exercises:[
+    {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Warm up. Steady pace.",muscles:[]},
+    {id:"t4_ld",name:"Neutral Grip Lat Pulldown",cat:"gym",sets:3,reps:12,hint:"32-42 kg",url:"https://www.youtube.com/watch?v=CAwf7n6Luuc",cue:"Pull to upper chest. Slight lean back. Squeeze lats at bottom. V-taper builder.",muscles:["lats","biceps","rear delt"]},
+    {id:"t4_csr",name:"Chest Supported Row",cat:"gym",sets:3,reps:12,hint:"18-26 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Chest on pad — lower back protected. Pull elbows back. Squeeze shoulder blades.",muscles:["mid back","rear delt","biceps"]},
+    {id:"t4_scr",name:"Seated Cable Row",cat:"gym",sets:3,reps:12,hint:"24-32 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Core tight. Do not lean back excessively.",muscles:["mid back","lats","biceps"]},
+    {id:"t4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:3,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows slightly bent. Squeeze rear delts at peak. Slow return.",muscles:["rear delt","traps"]},
+    {id:"t4_fp",name:"Cable Face Pull",cat:"gym",sets:3,reps:15,hint:"15-20 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Elbows flare wide. Pull to forehead.",muscles:["rear delt","rotator cuff","traps"]},
+    {id:"t4_shr",name:"Incline DB Shrug",cat:"gym",sets:3,reps:12,hint:"10-14 kg",url:"https://www.youtube.com/watch?v=cJRVVxmytaM",cue:"Set bench to 45°, lie face-down. Dumbbells hang straight, shrug up-and-back toward ears. Chest supports all load — lower back at 0%.",muscles:["upper traps"]},
+    {id:"t4_dc",name:"Seated Dumbbell Curl",cat:"gym",sets:3,reps:12,hint:"8-10 kg",url:"https://www.youtube.com/watch?v=sAq_ocpRh_I",cue:"Seated. Full supination at top. No swinging.",muscles:["biceps"]},
+    {id:"t4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"8-10 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Targets brachialis for arm thickness.",muscles:["biceps","brachialis"]},
+    {id:"t4_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk. Let heart rate settle.",muscles:[]},
+    {id:"t4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"t4_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"t4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"t4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:[]},
+    {id:"t4_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Cat phase most important.",muscles:[]},
+    {id:"t4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]},
+  Wednesday:{label:"Rest",sub:"Recovery",exercises:[]},
+  Thursday:{label:"Chest & Shoulders · Push B",sub:"Gym · Upper",exercises:[
+    {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Warm up. Steady.",muscles:[]},
+    {id:"th4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:3,reps:10,hint:"34-40 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Incline leads on Push B. Upper chest emphasis. Controlled descent.",muscles:["upper chest","front delt","triceps"]},
+    {id:"th4_cp",name:"Chest Press Machine",cat:"gym",sets:3,reps:12,hint:"40-48 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Full range. 2-3s eccentric.",muscles:["chest","triceps","front delt"]},
+    {id:"th4_pf",name:"Pec Fly Machine",cat:"gym",sets:3,reps:12,hint:"27-34 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return.",muscles:["chest"]},
+    {id:"th4_lr",name:"Seated Lateral Raise",cat:"gym",sets:3,reps:15,hint:"7-9 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Lead with elbows. Stop at shoulder height.",muscles:["side delt"]},
+    {id:"th4_clr",name:"Seated Cable Lateral Raise",cat:"gym",sets:3,reps:15,hint:"7-11 kg",url:"https://www.youtube.com/watch?v=PPzMBpEylWI",cue:"Constant cable tension. Slow and controlled.",muscles:["side delt"]},
+    {id:"th4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:3,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide. Squeeze rear delts at peak.",muscles:["rear delt","traps"]},
+    {id:"th4_sp",name:"Incline Scapular Punch",cat:"gym",sets:3,reps:15,hint:"4-6 kg",url:"https://www.youtube.com/watch?v=_b3xBqlF5Rk",cue:"Chest-down on incline. Protract shoulder blades. Serratus second hit this week.",muscles:["serratus anterior","chest"]},
+    {id:"th4_tcp",name:"Cable Tricep Pushdown",cat:"gym",sets:3,reps:12,hint:"20-28 kg",url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Elbows pinned. Full extension.",muscles:["triceps"]},
+    {id:"th4_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk.",muscles:[]},
+    {id:"th4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"th4_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"th4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds.",muscles:[]},
+    {id:"th4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side.",muscles:[]},
+    {id:"th4_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly.",muscles:[]},
+    {id:"th4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm.",muscles:[]},
+  ]},
+  Friday:{label:"Back & Arms · Pull B",sub:"Gym · Upper",exercises:[
+    {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Warm up. Steady.",muscles:[]},
+    {id:"f4_ld",name:"Neutral Grip Lat Pulldown",cat:"gym",sets:3,reps:12,hint:"34-44 kg",url:"https://www.youtube.com/watch?v=CAwf7n6Luuc",cue:"Pull to upper chest. Squeeze lats. V-taper.",muscles:["lats","biceps","rear delt"]},
+    {id:"f4_lcr",name:"Low Cable Row",cat:"gym",sets:3,reps:12,hint:"22-30 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Seated. Low pulley angle targets lower lats. Pull to navel. No torso sway.",muscles:["lower lats","mid back","biceps"]},
+    {id:"f4_csr",name:"Chest Supported Row",cat:"gym",sets:3,reps:12,hint:"20-28 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Chest on pad. Pull elbows back hard. Lower back at 0%.",muscles:["mid back","rear delt","biceps"]},
+    {id:"f4_fp",name:"Cable Face Pull",cat:"gym",sets:3,reps:15,hint:"15-20 kg",url:"https://www.youtube.com/watch?v=rep-qVOkqgk",cue:"Elbows flare wide. Pull to forehead.",muscles:["rear delt","rotator cuff","traps"]},
+    {id:"f4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:3,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Slow return. Full rear delt peak contraction.",muscles:["rear delt","traps"]},
+    {id:"f4_cc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:12,hint:"12-18 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Straight bar or EZ bar. Full supination. Constant cable tension.",muscles:["biceps"]},
+    {id:"f4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"8-10 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Arm thickness.",muscles:["biceps","brachialis"]},
+    {id:"f4_tr",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk.",muscles:[]},
+    {id:"f4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"f4_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"f4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds.",muscles:[]},
+    {id:"f4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side.",muscles:[]},
+    {id:"f4_cc2",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly.",muscles:[]},
+    {id:"f4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm.",muscles:[]},
+  ]},
+  Saturday:{label:"Legs & Core",sub:"Gym · Lower",exercises:[
+    {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"20 min",hint:"Intervals: 2min L8 / 1min L12 × 6",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Intervals: 2 min Level 8, 1 min Level 12. Repeat 6 times. Hard but doable.",muscles:[]},
+    {id:"sa4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:12,hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads","glutes","hamstrings"]},
+    {id:"sa4_lc",name:"Seated Leg Curl",cat:"gym",sets:3,reps:12,hint:"24-32 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric. Hamstring peak contraction at bottom.",muscles:["hamstrings"]},
+    {id:"sa4_ha",name:"Hip Abduction Machine",cat:"gym",sets:3,reps:15,hint:"18-26 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press. Glute med is your spinal stabiliser.",muscles:["glutes","hip abductors"]},
+    {id:"sa4_le",name:"Leg Extension Machine",cat:"gym",sets:3,reps:15,hint:"24-34 kg",url:"https://www.youtube.com/watch?v=YyvSfVjQeL0",cue:"Full extension. 1s squeeze at top. Quad definition.",muscles:["quads"]},
+    {id:"sa4_pp",name:"Cable Pallof Press",cat:"gym",sets:3,reps:"15 each side",hint:"12-18 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to cable. Press straight out and resist rotation. Anti-rotation core. Breathe out on press.",muscles:["core","obliques"]},
+    {id:"sa4_sh",name:"Cable Side Hold (Iso)",cat:"gym",sets:3,reps:"20s each side",hint:"10-14 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Sit sideways to cable. Hold handle at chest with both hands. Resist cable pulling torso sideways for 20s. Seated = no lower back load. Switch sides.",muscles:["obliques","core"]},
+    {id:"sa4_sc",name:"Seated Calf Raise",cat:"gym",sets:3,reps:15,hint:"22-32 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Full range. Slow raise and lower.",muscles:["calves"]},
+    {id:"sa4_tw",name:"Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 2-3%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy incline walk. Cool down.",muscles:[]},
+    {id:"sa4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first.",muscles:[]},
+    {id:"sa4_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"sa4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds.",muscles:[]},
+    {id:"sa4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"60 full seconds each side.",muscles:[]},
+    {id:"sa4_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Slowly. Always last.",muscles:[]},
+    {id:"sa4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Gentle rhythm. Left leg only.",muscles:[]},
+  ]},
+  Sunday:{label:"Active Recovery",sub:"Physio & Mobility",exercises:[
+    {id:"su4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:2,reps:"30s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"su4_gb",name:"Glute Bridge",cat:"physio",sets:3,reps:"10 (hold 3s)",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"Push with glutes. Hold 3 seconds at top.",muscles:[]},
+    {id:"su4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hold 8 seconds. Hips level.",muscles:[]},
+    {id:"su4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:2,reps:"60s each",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"Hold 60 full seconds each side.",muscles:[]},
+    {id:"su4_cc",name:"Cat-Cow",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Cat phase most important. Move slowly.",muscles:[]},
+    {id:"su4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:2,reps:"10 slow reps",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]}
+};
+
+// Active program: V3 return block Jul 28–Aug 3, V4 (Southpaw) from Aug 4 onwards.
 // Physio stripped until Aug 11 — no effect on phase calculations.
 const _pd=new Date();
 function _sp(p){const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};return o;}
-const _base=_pd>=new Date(2026,7,4)?PROG_V2:_pd>=new Date(2026,6,28)?PROG_V3:_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+const _base=_pd>=new Date(2026,7,4)?PROG_V4:_pd>=new Date(2026,6,28)?PROG_V3:_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
 export const PROG=_pd<new Date(2026,7,11)?_sp(_base):_base;
 
 export const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
