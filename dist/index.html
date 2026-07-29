@@ -2162,6 +2162,7 @@ async function probeBatches(cands){
   return null;
 }
 let _localDemos=null; // demos/map.json · clips shipped with the app
+let _localDemosReady=null; // Promise that resolves when map.json is loaded
 _localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
   _localDemos=m;
   if(!m)return;
@@ -2180,7 +2181,6 @@ _localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
     wrap.style.display="";
   });
 }).catch(()=>{});
-let _localDemosReady=null; // resolves when map.json is loaded
 let _demoIndex=null;   // demos/index.json · 870-exercise name index for fuzzy-matching custom exercises
 fetch("demos/index.json").then(r=>r.ok?r.json():null).then(m=>{_demoIndex=m;}).catch(()=>{});
 const DEMO_GH="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
