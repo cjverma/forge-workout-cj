@@ -2040,15 +2040,25 @@ function renderW(){
     const _allExMap={};
     [PROG_V1,PROG_V2,PROG_V3,PROG_V4].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
     const curIds=new Set(dispExs.map(e=>e.id));
-    const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&ed.sets&&ed.sets.some(s=>s&&s.done));
+    const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc"><summary class="sec" style="padding:12px 16px;color:var(--dim)">📂 Logged on previous program</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">📂 Logged on previous program</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
-        const doneSets=ed.sets.filter(s=>s&&s.done);
+        const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
         const unit=ed.unit||"kg";
-        const summary=doneSets.map((s,i)=>`Set ${i+1}: ${s.weight||"—"} ${unit} × ${s.reps||"—"}`).join(" · ");
-        h+=`<div class="ex-card" style="opacity:0.7"><div class="ex-hd"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta" style="color:var(--dim)">${esc(ex.cat||"")} · read-only</div></div><div style="font-size:13px;color:var(--mid);padding:8px 16px 12px">${esc(summary)||"No sets logged"}</div></div>`;
+        const icon=ex.cat==="physio"?"🟢":ex.cat==="cardio"?"🚴":"💪";
+        const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
+        const setRows=doneSets.length
+          ?doneSets.map((s,i)=>`<div style="display:flex;gap:8px;font-size:13px;color:var(--mid);padding:2px 0"><span style="color:var(--dim);min-width:40px">Set ${i+1}</span><span>${esc(String(s.weight||"—"))} ${unit} × ${esc(String(s.reps||"—"))}</span></div>`).join("")
+          :`<div style="font-size:13px;color:var(--dim)">No sets recorded</div>`;
+        h+=`<div class="ex-card ex-card--prev" style="opacity:0.75">
+          <div class="ex-top" style="cursor:default">
+            <div class="ex-icon ${iconCls}">${icon}</div>
+            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program · read-only</div></div>
+          </div>
+          <div style="padding:0 15px 14px">${setRows}</div>
+        </div>`;
       });
       h+=`</details>`;
     }
@@ -4801,9 +4811,11 @@ function buildChatContext(){
   };
   const sessions=Object.entries(S.sessions||{})
     .sort(([a],[b])=>b.localeCompare(a)).slice(0,7)
-    .map(([date,sess])=>({date,day:sanitizeCtx(sess.day,20),
-      setsLogged:sess.logs?Object.values(sess.logs).flat().length:0,
-      calfEvents:sess.calfCount||0,notes:sanitizeCtx(sess.notes,100)}));
+    .map(([key,sess])=>{
+      const setsLogged=Object.values(sess).filter(e=>e&&typeof e==="object"&&!Array.isArray(e)).reduce((n,e)=>n+(e.sets||[]).filter(s=>s&&s.done).length,0);
+      const calfEvents=(sess._calfTwinges||[]).length;
+      return{date:key,setsLogged,calfEvents,notes:sanitizeCtx(sess._notes,100)};
+    });
   const weights=Object.entries(S.nutrition.weights||{})
     .sort(([a],[b])=>b.localeCompare(a)).slice(0,5)
     .map(([date,kg])=>({date,kg}));

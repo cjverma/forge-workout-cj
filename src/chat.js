@@ -53,9 +53,11 @@ function buildChatContext(){
   };
   const sessions=Object.entries(S.sessions||{})
     .sort(([a],[b])=>b.localeCompare(a)).slice(0,7)
-    .map(([date,sess])=>({date,day:sanitizeCtx(sess.day,20),
-      setsLogged:sess.logs?Object.values(sess.logs).flat().length:0,
-      calfEvents:sess.calfCount||0,notes:sanitizeCtx(sess.notes,100)}));
+    .map(([key,sess])=>{
+      const setsLogged=Object.values(sess).filter(e=>e&&typeof e==="object"&&!Array.isArray(e)).reduce((n,e)=>n+(e.sets||[]).filter(s=>s&&s.done).length,0);
+      const calfEvents=(sess._calfTwinges||[]).length;
+      return{date:key,setsLogged,calfEvents,notes:sanitizeCtx(sess._notes,100)};
+    });
   const weights=Object.entries(S.nutrition.weights||{})
     .sort(([a],[b])=>b.localeCompare(a)).slice(0,5)
     .map(([date,kg])=>({date,kg}));
