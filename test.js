@@ -749,6 +749,9 @@ ok("client has manual generate/regenerate button wired with auth + busy guard",
   HTML.includes("generateDietReview") && HTML.includes("dietRevBtn") &&
   HTML.includes("_dietRevBusy") && /generateDietReview[\s\S]{0,400}api\/cron-diet-review[\s\S]{0,200}Bearer "\+API_CFG\.token/.test(HTML));
 
+ok("_localDemosReady declared before first assignment (TDZ guard)",
+  HTML.indexOf("let _localDemosReady") < HTML.indexOf("_localDemosReady=fetch"));
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────

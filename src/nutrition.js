@@ -721,7 +721,7 @@ function phaseCardHtml(){
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
         '<span style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px">Latest weight</span>'+
-        '<span style="font-family:var(--font-display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+latest+' <span style="font-size:13px;font-weight:600;color:var(--mid)">kg</span></span>'+
+        '<span style="font-family:var(--font-display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+Number(latest).toFixed(1)+' <span style="font-size:13px;font-weight:600;color:var(--mid)">kg</span></span>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">'+
         '<span>Target: '+p.targetKg+' kg — '+remaining+' to go</span>'+
@@ -739,7 +739,7 @@ function phaseCardHtml(){
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:8px">'+
         '<div style="display:flex;flex-direction:column;gap:1px">'+
           '<span style="font-size:13px;color:var(--mid)">Range today</span>'+
-          '<span style="font-size:10px;color:var(--dim)">7-day avg: '+avg+' kg</span>'+
+          '<span style="font-size:10px;color:var(--dim)">7-day avg: '+Number(avg).toFixed(1)+' kg</span>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">'+
           '<span style="font-weight:600;font-variant-numeric:tabular-nums">'+cor.lo+'–'+cor.hi+' kg</span>'+

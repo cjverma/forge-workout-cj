@@ -103,3 +103,4 @@ are moss `#55700B`; keep it consistent if editing the report builder.
 - Any new colour: confirm it uses a CSS variable, not a hex literal
 - Check BOTH themes (Settings → Appearance cycles light/dark/auto) — especially
   text inside hero cards in light mode
+- `let`/`const`: declaration must appear before first use — never assign to a variable before its `let`/`const` line (TDZ crash)
