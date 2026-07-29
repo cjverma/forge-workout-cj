@@ -413,7 +413,11 @@ async function probeBatches(cands){
   return null;
 }
 let _localDemos=null; // demos/map.json · clips shipped with the app
-fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{_localDemos=m;}).catch(()=>{});
+fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
+  _localDemos=m;
+  // Resolve any placeholder wraps that are already visible (cards expanded before map.json loaded)
+  document.querySelectorAll(".sets-body.open .demo-wrap[data-demo-name]").forEach(resolveDemo);
+}).catch(()=>{});
 let _demoIndex=null;   // demos/index.json · 870-exercise name index for fuzzy-matching custom exercises
 fetch("demos/index.json").then(r=>r.ok?r.json():null).then(m=>{_demoIndex=m;}).catch(()=>{});
 const DEMO_GH="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
@@ -447,6 +451,18 @@ async function resolveDemo(wrap){
   const name=wrap.getAttribute("data-demo-name");
   if(!name)return;
   wrap.removeAttribute("data-demo-name");
+  // Check local map first (exact match, no external request needed)
+  const local=_localDemos&&_localDemos[name];
+  if(Array.isArray(local)){
+    wrap.innerHTML=`<div class="demo-flip"><img src="${local[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${local[1]}"></div>`;
+    wrap.style.display="";
+    return;
+  }
+  if(local){
+    wrap.innerHTML=`<video src="${local}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
+    wrap.style.display="";
+    return;
+  }
   const pair=fuzzyDemo(name);
   if(pair){
     S.demoCache[name]=pair;save();
