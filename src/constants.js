@@ -503,25 +503,40 @@ export const PROG_V4={
   ]}
 };
 
-// Active program: V3 return block Jul 28–Aug 3, V4 (Southpaw) from Aug 4 onwards.
-// Physio stripped until Aug 11 — no effect on phase calculations.
+// ── SCHEDULE ────────────────────────────────────────────────────────────────
+// Both boundaries are MONDAYS so a program never changes mid-week:
+//   V3 return block  Jul 28 – Aug 2
+//   V4 (Southpaw)    Mon Aug 3 onwards
+//   Physio hidden on gym days until Mon Aug 10
+//
+// Exactly one rest day per week, Wednesday. Sunday is Active Recovery, i.e. a
+// real (light) session, not a rest day.
+const _REST_DAY="Wednesday";
+
+// Physio is hidden from GYM days during the return block, but never from
+// Sunday. Sunday's entire content is physio, so stripping it would empty the
+// day and silently turn Active Recovery into a second rest day. That is what
+// made Sunday read as rest. Wednesday still comes out empty under V3 (its
+// content is all physio) and is a literal 0-exercise "Rest" day under V4, so
+// Wednesday stays the one rest day either way.
 // Memoised on the source object: only four programs can ever be passed in, and
-// programFor() gets called in a loop when walking back over a streak.
+// programFor() runs in a loop when walking back over a streak.
 const _spCache=new Map();
 function _sp(p){
   if(_spCache.has(p))return _spCache.get(p);
-  const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};
+  const o={};
+  for(const[d,v]of Object.entries(p))
+    o[d]=d==="Sunday"?{...v}:{...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};
   _spCache.set(p,o);return o;
 }
 
 // Which program was active on a GIVEN date, rather than only "right now".
-// History matters: on Aug 11 physio comes back, which turns Wednesday and
-// Sunday from zero-exercise rest days into training days. Anything reasoning
-// about past dates (the streak) has to ask what was scheduled THEN, or every
-// pre-Aug-11 rest day suddenly reads as a missed workout.
+// History matters: physio returns Aug 10, so anything reasoning about past
+// dates (the streak) has to ask what was scheduled THEN, or days that were
+// legitimately lighter get re-read against a later, fuller schedule.
 export function programFor(date){
-  const base=date>=new Date(2026,7,4)?PROG_V4:date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
-  return date<new Date(2026,7,11)?_sp(base):base;
+  const base=date>=new Date(2026,7,3)?PROG_V4:date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+  return date<new Date(2026,7,10)?_sp(base):base;
 }
 
 const _pd=new Date();

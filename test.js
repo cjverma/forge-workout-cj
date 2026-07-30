@@ -96,8 +96,15 @@ ok("index.html has </script> closing", HTML.includes("</script>"));
 section("2 · PROG_V2 spine safety");
 
 // Extract just the PROG_V2 const block
-const progV2Match = HTML.match(/const PROG_V2=\{([\s\S]*?)\};\s*\/\/ Active program/);
-const progV2Block = progV2Match ? progV2Match[1] : HTML; // fallback: scan whole file
+// Anchor on the next program declaration, which is structural, rather than on a
+// nearby comment. The old regex ended at "// Active program"; rewording that
+// comment silently broke the match, and the fallback then scanned the WHOLE
+// file, so banned names in OTHER programs were reported as PROG_V2 failures.
+// A fallback that widens the search turns "block not found" into four
+// misleading failures, so this one fails loudly and specifically instead.
+const progV2Match = HTML.match(/PROG_V2=\{([\s\S]*?)\};?\s*(?:\/\/[^\n]*\n)*\s*(?:const |var |let )?PROG_V3=/);
+ok("PROG_V2 block located for scanning", !!progV2Match);
+const progV2Block = progV2Match ? progV2Match[1] : "";
 
 const BANNED_PATTERNS = [
   { label: "overhead press",       re: /overhead\s*press/i },
