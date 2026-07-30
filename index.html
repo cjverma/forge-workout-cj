@@ -434,7 +434,9 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .st-group{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;}
 .st-row{display:flex;align-items:center;padding:14px;gap:12px;border-bottom:1px solid var(--b1);cursor:pointer;}
 .st-row:last-child{border:none;}
-.st-icon{font-size:16px;width:28px;text-align:center;flex-shrink:0;}
+/* Holds a 18px SVG, not a 16px emoji glyph. Inherits --mid so the 13 rows
+   read as one quiet system instead of 13 competing colours. */
+.st-icon{width:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--mid);}
 .st-info{flex:1;}
 .st-ttl{font-size:14px;font-weight:600;}
 .st-sub{font-size:12px;color:var(--mid);margin-top:2px;}
@@ -498,12 +500,12 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .forge-chat-drag{width:40px;height:4px;background:var(--b2);border-radius:var(--r-pill);margin:12px auto 0;}
 .ai-chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--b1);}
 .ai-chat-title-wrap{display:flex;align-items:center;gap:8px;}
-.ai-chat-title-icon{font-size:18px;line-height:1;}
+.ai-chat-title-icon{display:flex;align-items:center;justify-content:center;color:var(--accent-text);}
 .ai-chat-title{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--white);letter-spacing:.3px;text-transform:uppercase;}
 .ai-chat-clear{background:var(--s2);border:1px solid var(--b2);border-radius:8px;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;padding:6px 10px;}
 .ai-chat-messages{padding:14px;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;flex:1;}
 .ai-chat-empty{margin:auto 0;text-align:center;padding:20px 16px;color:var(--dim);}
-.ai-chat-empty-icon{font-size:32px;margin-bottom:10px;}
+.ai-chat-empty-icon{display:flex;align-items:center;justify-content:center;margin-bottom:10px;color:var(--accent-text);opacity:.85;}
 .ai-chat-empty-ttl{font-size:14px;font-weight:700;color:var(--lt);margin-bottom:4px;}
 .ai-chat-empty-sub{font-size:12px;line-height:1.5;max-width:260px;margin:0 auto;}
 .ai-chat-empty{font-size:12px;color:var(--dim);text-align:center;padding:20px 0;}
@@ -720,6 +722,14 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* ── PHYSIO REST BANNER ── */
 .physio-banner{margin:var(--sp-3) var(--sp-4) var(--sp-1);background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);line-height:1.6;}
 
+/* Phase verdict status dot. Replaces the 🟢🟡🟠🔴 emoji, which were literally
+   coloured circles — a CSS dot themes correctly and matches the semantic
+   tokens the rest of the app already uses for the same states. */
+.band-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+.band-green{background:var(--green);}
+.band-yellow,.band-orange{background:var(--amber);}
+.band-red{background:var(--red);}
+
 /* ── SHARED CARD MATERIAL ────────────────────────────────────────────────────
    One place that turns every flat --s1 rectangle into a lit object: a near-
    invisible vertical gradient plus a brighter top edge, the same light-source
@@ -727,11 +737,20 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    beats the earlier per-card `background:var(--s1)` declarations without having
    to edit each one (several are inside minified single-line blocks).
 
-   Deliberately SINGLE-class selectors: any modifier that intentionally recolours
-   a card is `.a.b` (0,2,0) and still wins — .ex-card.done keeps its green wash.
+   Deliberately SINGLE-class selectors, which protects COMPOUND modifiers only:
+   .ex-card.done is (0,2,0) and still wins its green wash.
+
+   It does NOT protect a second INDEPENDENT class on the same element. That is
+   what bit .nut-hero, which rides on <div class="nut-card nut-hero">: it's also
+   (0,1,0), so this later rule won on source order and the hero lost both its
+   dark --grad-nut background and its volt border-top to --card-edge. Invisible
+   in dark mode (--card-grad is dark there) and white-on-white in light. Heroes
+   are theme-independent dark surfaces and must never take card material, hence
+   the :not(). Adding a card class to a hero element needs an exclusion here.
+
    Cards on --s2 (.set-row, .st-subacc, .weekly-note, .pending-food) are excluded
    on purpose: they're recessed surfaces, so a lit top edge would fight them. */
-.ex-card,.nut-card,.ai-card,.custom-form,.st-group,.st-acc,.trend-card,
+.ex-card,.nut-card:not(.nut-hero),.ai-card,.custom-form,.st-group,.st-acc,.trend-card,
 .plan-nudge,.rest-card,.export-card,.rule-item,.pm-notes,.pm-flag,.pm-change{
   background:var(--card-grad);
   border-top-color:var(--card-edge);
@@ -780,7 +799,7 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 <div class="forge-chat-modal" id="forgeChatModal">
   <div class="forge-chat-drag"></div>
   <div class="ai-chat-header">
-    <span class="ai-chat-title-wrap"><span class="ai-chat-title-icon">🤖</span><span class="ai-chat-title">Ask Forge</span></span>
+    <span class="ai-chat-title-wrap"><span class="ai-chat-title-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg></span><span class="ai-chat-title">Ask Forge</span></span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="ai-chat-clear" onclick="clearAiChat()">Clear</button>
       <button class="ai-chat-clear" onclick="closeForgeChat()" style="font-size:16px;padding:6px 9px;">✕</button>

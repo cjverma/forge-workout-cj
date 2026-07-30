@@ -114,6 +114,17 @@ HERO TOKENS (theme-independent — hero cards stay dark in BOTH themes):
   one grouped rule at the end of the cascade, using single-class selectors so
   `.a.b` modifiers (`.ex-card.done`) still win. Recessed `--s2` surfaces
   (`.set-row`, `.st-subacc`, `.weekly-note`) are excluded on purpose.
+- **Single-class selectors protect COMPOUND modifiers only, not a second
+  independent class on the same element.** `.ex-card.done` is (0,2,0) and wins.
+  But `.nut-hero` rides on `<div class="nut-card nut-hero">` — also (0,1,0), so
+  the later grouped rule won and the hero lost its dark gradient *and* its volt
+  `border-top`. Invisible in dark mode, white-on-white in light. Hence
+  `.nut-card:not(.nut-hero)`. **Putting a card class on a hero element needs an
+  exclusion in that rule**, and `node test.js` fails if the two ever mix.
+- **Heroes are theme-independent dark surfaces.** Never let card material,
+  `--s1`, or any `light-dark()` surface token reach `.hero`, `.quote-card`, or
+  `.nut-hero`. Verify hero changes in LIGHT mode: dark mode hides this whole
+  class of bug, because a wrong light surface still looks dark there.
 - **Overlays use `--scrim` + `--scrim-blur`**, never a raw `rgba(0,0,0,.N)`.
   Keep the `@supports not (backdrop-filter…)` fallback in sync when adding a
   blurred surface, or it degrades to washed-out and unreadable.
@@ -143,7 +154,15 @@ HERO TOKENS (theme-independent — hero cards stay dark in BOTH themes):
   weight, no fills, 24 grid, `stroke="currentColor"` so it themes for free.
 - **No emoji as iconography.** Emoji render differently on every platform, so
   the look isn't ours to control, and they read as informal. Emoji are fine as
-  *content* (milestone/celebration toasts).
+  *content* (milestone/celebration toasts). `node test.js` sweeps for this;
+  exemptions are toasts/milestones, AI prompt strings, `confirm()` dialogs
+  (native, cannot hold markup) and the PDF report.
+- **`icon()` returns markup, so the call site must be able to render it.**
+  Three traps, all of which bit during the sweep: a plain `"..."` string can't
+  interpolate `${...}` (promote it to a template literal), `textContent` won't
+  parse HTML (use `innerHTML`, and only with values you know are safe), and
+  anything passed through `esc()` will show the SVG as literal text (drop the
+  glyph or move the icon to the render site).
 - Don't put icons in filled pastel tiles — they read as stickers. Colour the
   stroke instead (`.ex-icon.gym/.cardio/.physio`).
 

@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseFor, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
-import { esc, fmtDate, mdLite, showToast, toggleTheme } from "./ui.js";
+import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS } from "./constants.js";
@@ -19,17 +19,17 @@ export function renderST(){
 
     <!-- Group 1: This Week -->
     <details class="st-acc" open>
-      <summary><div><div>📅 This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
+      <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly Plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
           <div class="export-title">Generate Next Week</div>
-          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
+          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">${icon("calendar",20)} Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
           <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="width:100%;margin-bottom:8px">Generate Next Week</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
         </div>
         <details class="st-acc">
-          <summary><div><div>💪 Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
+          <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
           <div class="st-acc-inner">
         ${(()=>{
           const vdata=buildVolumeData();
@@ -49,7 +49,7 @@ export function renderST(){
 
     <!-- Group 2: Progress -->
     <details class="st-acc" open>
-      <summary><div><div>📊 Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
+      <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly Calorie Deficit</div>
     ${(()=>{
@@ -136,12 +136,12 @@ export function renderST(){
 
     <!-- Group 3: App (appearance + data) -->
     <details class="st-acc" open>
-      <summary><div><div>⚙️ App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
+      <summary><div><div>${icon("gear",20)} App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Appearance</div>
         <div class="st-group">
-          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
-          <div class="st-row" onclick="scanDemos()"><div class="st-icon">🎬</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
+          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
+          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>⏪ Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
@@ -149,34 +149,34 @@ export function renderST(){
         </details>`;})()}
 
         <details class="st-subacc">
-          <summary><div><div>🗄 Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
+          <summary><div><div>${icon("database",20)} Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
           <div class="st-subacc-inner">
 
         <div class="st-sec">Sync &amp; Recovery</div>
         <div class="st-group">
-          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
-          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">🗓</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">📅</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
+          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
         </div>
 
         <div class="st-sec">Backup &amp; Export</div>
         <div class="st-group">
-          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">⚠️</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
-          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
-          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
+          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
+          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
+          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-          <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
+          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
         </div>
 
         ${!window.FORGE_API_CFG?`<div class="st-sec">Session</div>
         <div class="st-group">
-          <div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
+          <div class="st-row" onclick="lockApp()"><div class="st-icon">${icon("lock",18)}</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
         </div>`:""}
 
         <div class="danger-zone">
           <div class="st-sec">Danger Zone</div>
           <div class="st-group">
-            <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
+            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
           </div>
         </div>
 
@@ -231,7 +231,7 @@ function buildWeeklyReviewCard(){
   const wtHtml=st.wtChange?`${st.wtChange.delta<=0?"":"+"}${st.wtChange.delta} kg <span style="font-size:10px;color:var(--dim)">(${st.wtChange.from}→${st.wtChange.to})</span>`:"-";
   const wtCol=st.wtChange?(st.wtChange.delta<0?"var(--green)":"var(--red)"):"var(--dim)";
   return`<div class="export-card"${isSunday?' style="border-left-color:var(--green)"':""}>
-    ${isSunday?`<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🗓 Sunday review time</div>`:""}
+    ${isSunday?`<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">${icon("calendar",20)} Sunday review time</div>`:""}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="text-align:center"><div style="font-size:20px;font-weight:700">${st.sessions}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Sessions</div></div>
       <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:${wtCol}">${wtHtml}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Weight</div></div>
@@ -355,8 +355,8 @@ function showExportSheet(){
   sheet.innerHTML=`
     <div class="export-sheet-inner">
       <div class="export-sheet-title">Export My Data</div>
-      <button class="export-opt" onclick="emailCSV()">📄 Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
-      <button class="export-opt" onclick="openPDFReport()">📊 View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
+      <button class="export-opt" onclick="emailCSV()">${icon("file",18)} Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
+      <button class="export-opt" onclick="openPDFReport()">${icon("chart",20)} View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
       <button class="export-cancel" onclick="document.getElementById('exportSheet').classList.remove('open')">Cancel</button>
     </div>`;
   document.body.appendChild(sheet);
@@ -489,7 +489,7 @@ function buildPDFReport(){
     const date=sessDate(dayKey);
     const twinges=(sessMap._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
     const notes=sessMap._notes||"";
-    const twingeBadge=twinges>0?`<span style="display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:6px">⚡ ${twinges} calf twinge${twinges!==1?"s":""}</span>`:"";
+    const twingeBadge=twinges>0?`<span style="display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:6px">${icon("bolt",18)} ${twinges} calf twinge${twinges!==1?"s":""}</span>`:"";
     return`<tr><td style="white-space:nowrap">${fmtDate(date)}</td><td>${twingeBadge}${notes?`<span style="color:#374151">${esc(notes)}</span>`:""}</td></tr>`;
   }).join("");
 
@@ -736,7 +736,7 @@ function sanitizePlan(parsed){
   }
   if(stripped.length){
     parsed.flags=parsed.flags||[];
-    parsed.flags.unshift("⛔ Blocked unsafe AI suggestions (spine rules): "+stripped.join(", "));
+    parsed.flags.unshift("Blocked unsafe AI suggestions (spine rules): "+stripped.join(", "));
   }
   return parsed;
 }
@@ -785,10 +785,10 @@ function showPlanModal(parsed){
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">🗑 ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">${icon("trash",18)} ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else if(upd.action==="add"){
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">➕ ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">${icon("plus",18)} ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else {
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;

@@ -235,20 +235,20 @@ export function renderW(){
   let h=wkNav;
   if(ctx.isPastDay()){
     h+=lockedPast
-      ?`<div class="past-banner lock-banner">🔒 Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">✏️</button></div>`
-      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">✏️ Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">🔓</button></div>`;
+      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
+      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">${icon("pencil",18)} Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">${icon("unlock",18)}</button></div>`;
   }
   if(future){
     // Plans are stored under nextWk(); read the same key (vwk() can differ near the Sunday boundary)
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
-    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
+    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">${icon("calendar",20)} Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">🔥 ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
+    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
   </div>`;
   if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -261,9 +261,9 @@ export function renderW(){
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
-      const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
+      const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">${icon("bolt",18)} Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
-        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
+        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
         <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
         ${calfBtnHtml}
       </div>`;
@@ -278,13 +278,13 @@ export function renderW(){
   const _dowNow=new Date().getDay();
   if(!ctx.isPastDay()&&!ctx.isFuture()&&_dowNow===0&&!(S.weekPlans||{})[ctx.nextWk()]){
     h+=`<div class="plan-nudge">
-      <div><div class="plan-nudge-ttl">📅 Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
+      <div><div class="plan-nudge-ttl">${icon("calendar",20)} Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
       <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
-  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
-  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">🟢 Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?`${icon("gym",20)} Gym`:"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${icon("physio",20)} Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
 
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
@@ -293,7 +293,7 @@ export function renderW(){
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">📂 Logged on previous program</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Logged on previous program</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
@@ -764,7 +764,7 @@ function searchEx(q,day){
     .slice(0,8);
   if(!results.length){
     const banned=ctx.isBannedExercise(q);
-    const warn=banned?`<div class="dd-warn">⚠️ Not spine-safe. Tap for an AI-suggested safe swap</div>`:"";
+    const warn=banned?`<div class="dd-warn">${icon("alert",18)} Not spine-safe. Tap for an AI-suggested safe swap</div>`:"";
     const btn=banned
       ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="free" data-day="${d}">AI Alt</button>`
       :`<button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button>`;
@@ -780,7 +780,7 @@ function searchEx(q,day){
     <div class="dd-item-left">
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)}${e.muscles?.length?" · "+esc(e.muscles.slice(0,2).join(", ")):""}</div>
-      ${banned?`<div class="dd-warn">⚠️ Not spine-safe. Tap for an AI-suggested safe swap</div>`:""}
+      ${banned?`<div class="dd-warn">${icon("alert",18)} Not spine-safe. Tap for an AI-suggested safe swap</div>`:""}
     </div>
     ${btn}
   </div>`;}).join("");
@@ -1005,7 +1005,7 @@ function prHint(exId,i){
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.textContent=prev?(est>prev.est?"🏆 Est. 1RM: "+est+"kg · new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>Est. 1RM: '+est+'kg · new PR!</span>':"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps){

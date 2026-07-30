@@ -922,6 +922,69 @@ ok("icon tiles are not pastel sticker squares",
   !/\.ex-icon\.gym\{background:/.test(APP_CSS));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Cascade safety + icon system
+// ─────────────────────────────────────────────────────────────────────────────
+
+const APP_JS = readFileSync("dist/app.js", "utf8");
+
+// THE REGRESSION GUARD. <div class="nut-card nut-hero"> put a card-material
+// class and a hero class on one element. Both are (0,1,0), so the grouped
+// material rule (later in the cascade) won and the hero lost its dark gradient
+// AND its volt top edge — invisible in dark mode, white-on-white in light.
+// Single-class selectors protect COMPOUND modifiers (.ex-card.done at (0,2,0));
+// they do NOT protect a second independent class on the same element.
+{
+  const rule = APP_CSS.slice(APP_CSS.indexOf("SHARED CARD MATERIAL"));
+  const sel = rule.slice(rule.indexOf("*/") + 2, rule.indexOf("{"));
+  // classes the grouped rule applies to, minus any already excluded via :not()
+  const applied = [...sel.matchAll(/\.([a-z0-9-]+)(?::not\(\.([a-z0-9-]+)\))?/g)]
+    .filter(m => !m[2]).map(m => m[1]);
+  const heroes = ["hero", "quote-card", "nut-hero"];
+  const clashes = [];
+  for (const src of [HTML, APP_JS]) {
+    for (const m of src.matchAll(/class=\\?["'`]([^"'`]*)["'`]/g)) {
+      const cls = m[1].split(/\s+/).filter(Boolean);
+      const card = cls.find(c => applied.includes(c));
+      const hero = cls.find(c => heroes.includes(c));
+      if (card && hero) clashes.push(`${card} + ${hero}`);
+    }
+  }
+  ok(`no element mixes card-material and hero classes${clashes.length ? " — " + [...new Set(clashes)].join(", ") : ""}`,
+    clashes.length === 0);
+}
+
+// Emoji-as-iconography. Mirrors the em-dash sweep's exemption style: toasts and
+// milestones are content, AI prompts are never rendered, the PDF report is
+// exempt by convention, and native confirm() dialogs cannot hold markup.
+{
+  const EMOJI = /[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]\u{FE0F}/u;
+  const exempt = /showToast|showToastBig|showMilestone|confirm\(|^\s*\/\/|^\s*\*|prompt\s*=|`You are/;
+  const offenders = [];
+  for (const [name, src] of [["src/ui.js", null]].concat(
+    ["src/workout.js", "src/nutrition.js", "src/settings.js", "src/chat.js"]
+      .map(p => [p, readFileSync(p, "utf8")]))) {
+    if (!src) continue;
+    const pdf = src.indexOf("function buildPDFReport");
+    const pdfEnd = pdf >= 0 ? src.indexOf("\nfunction ", pdf + 10) : -1;
+    src.split("\n").forEach((line, i) => {
+      if (exempt.test(line) || !EMOJI.test(line)) return;
+      const at = src.split("\n").slice(0, i).join("\n").length;
+      if (pdf >= 0 && at > pdf && (pdfEnd < 0 || at < pdfEnd)) return; // PDF report
+      offenders.push(`${name}:${i + 1}`);
+    });
+  }
+  ok(`no emoji as iconography in UI strings${offenders.length ? " — " + offenders.slice(0, 6).join(", ") : ""}`,
+    offenders.length === 0);
+}
+
+ok("icon set covers the swept categories",
+  ["spark", "trophy", "gear", "trash", "search", "bolt", "calendar", "lock"]
+    .every(n => APP_JS.includes(`${n}:`) || APP_JS.includes(`"${n}"`)));
+
+ok("phase bands use a CSS status dot, not coloured-circle emoji",
+  APP_CSS.includes(".band-dot{") && /band-\$\{|band-green/.test(APP_JS));
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 const total = passed + failed;

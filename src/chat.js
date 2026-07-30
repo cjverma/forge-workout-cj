@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { isoToday } from "./phase.js";
-import { esc, mdLite, showToast } from "./ui.js";
+import { esc, mdLite, showToast, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueMutation } from "./sync.js";
 
@@ -72,11 +72,11 @@ function buildChatContext(){
 }
 function renderAiChatBubbles(){
   if(!S.aiChat||!S.aiChat.length){
-    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">🤖</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain. I've got context on your training and logs.</div></div>`;
+    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">${icon("spark",34)}</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain. I've got context on your training and logs.</div></div>`;
   }
   return S.aiChat.slice(-20).map(m=>m.role==="user"
     ?`<div class="chat-bubble chat-user">${esc(m.text)}</div>`
-    :`<div class="chat-ai-row"><div class="chat-ai-avatar">🤖</div><div class="chat-bubble chat-ai">${mdLite(m.text)}</div></div>`
+    :`<div class="chat-ai-row"><div class="chat-ai-avatar">${icon("spark",14)}</div><div class="chat-bubble chat-ai">${mdLite(m.text)}</div></div>`
   ).join("");
 }
 function scrollChatBottom(){const el=document.getElementById("aiChatMessages");if(el)el.scrollTop=el.scrollHeight;}
@@ -101,7 +101,7 @@ function typewriterBubble(text,onDone){
   if(empty)empty.remove();
   const row=document.createElement("div");
   row.className="chat-ai-row";
-  row.innerHTML='<div class="chat-ai-avatar">🤖</div>';
+  row.innerHTML=`<div class="chat-ai-avatar">${icon("spark",14)}</div>`;
   const bubble=document.createElement("div");
   bubble.className="chat-bubble chat-ai";
   row.appendChild(bubble);

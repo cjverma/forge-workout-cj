@@ -434,7 +434,9 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .st-group{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r-lg);overflow:hidden;margin-bottom:14px;}
 .st-row{display:flex;align-items:center;padding:14px;gap:12px;border-bottom:1px solid var(--b1);cursor:pointer;}
 .st-row:last-child{border:none;}
-.st-icon{font-size:16px;width:28px;text-align:center;flex-shrink:0;}
+/* Holds a 18px SVG, not a 16px emoji glyph. Inherits --mid so the 13 rows
+   read as one quiet system instead of 13 competing colours. */
+.st-icon{width:28px;flex-shrink:0;display:flex;align-items:center;justify-content:center;color:var(--mid);}
 .st-info{flex:1;}
 .st-ttl{font-size:14px;font-weight:600;}
 .st-sub{font-size:12px;color:var(--mid);margin-top:2px;}
@@ -498,12 +500,12 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .forge-chat-drag{width:40px;height:4px;background:var(--b2);border-radius:var(--r-pill);margin:12px auto 0;}
 .ai-chat-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 12px;border-bottom:1px solid var(--b1);}
 .ai-chat-title-wrap{display:flex;align-items:center;gap:8px;}
-.ai-chat-title-icon{font-size:18px;line-height:1;}
+.ai-chat-title-icon{display:flex;align-items:center;justify-content:center;color:var(--accent-text);}
 .ai-chat-title{font-family:var(--font-display);font-size:19px;font-weight:700;color:var(--white);letter-spacing:.3px;text-transform:uppercase;}
 .ai-chat-clear{background:var(--s2);border:1px solid var(--b2);border-radius:8px;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--dim);cursor:pointer;padding:6px 10px;}
 .ai-chat-messages{padding:14px;overflow-y:auto;display:flex;flex-direction:column;justify-content:flex-end;gap:10px;flex:1;}
 .ai-chat-empty{margin:auto 0;text-align:center;padding:20px 16px;color:var(--dim);}
-.ai-chat-empty-icon{font-size:32px;margin-bottom:10px;}
+.ai-chat-empty-icon{display:flex;align-items:center;justify-content:center;margin-bottom:10px;color:var(--accent-text);opacity:.85;}
 .ai-chat-empty-ttl{font-size:14px;font-weight:700;color:var(--lt);margin-bottom:4px;}
 .ai-chat-empty-sub{font-size:12px;line-height:1.5;max-width:260px;margin:0 auto;}
 .ai-chat-empty{font-size:12px;color:var(--dim);text-align:center;padding:20px 0;}
@@ -720,6 +722,14 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* ── PHYSIO REST BANNER ── */
 .physio-banner{margin:var(--sp-3) var(--sp-4) var(--sp-1);background:rgba(34,197,94,0.07);border:1px solid rgba(34,197,94,0.25);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--green);line-height:1.6;}
 
+/* Phase verdict status dot. Replaces the 🟢🟡🟠🔴 emoji, which were literally
+   coloured circles — a CSS dot themes correctly and matches the semantic
+   tokens the rest of the app already uses for the same states. */
+.band-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;}
+.band-green{background:var(--green);}
+.band-yellow,.band-orange{background:var(--amber);}
+.band-red{background:var(--red);}
+
 /* ── SHARED CARD MATERIAL ────────────────────────────────────────────────────
    One place that turns every flat --s1 rectangle into a lit object: a near-
    invisible vertical gradient plus a brighter top edge, the same light-source
@@ -727,11 +737,20 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    beats the earlier per-card `background:var(--s1)` declarations without having
    to edit each one (several are inside minified single-line blocks).
 
-   Deliberately SINGLE-class selectors: any modifier that intentionally recolours
-   a card is `.a.b` (0,2,0) and still wins — .ex-card.done keeps its green wash.
+   Deliberately SINGLE-class selectors, which protects COMPOUND modifiers only:
+   .ex-card.done is (0,2,0) and still wins its green wash.
+
+   It does NOT protect a second INDEPENDENT class on the same element. That is
+   what bit .nut-hero, which rides on <div class="nut-card nut-hero">: it's also
+   (0,1,0), so this later rule won on source order and the hero lost both its
+   dark --grad-nut background and its volt border-top to --card-edge. Invisible
+   in dark mode (--card-grad is dark there) and white-on-white in light. Heroes
+   are theme-independent dark surfaces and must never take card material, hence
+   the :not(). Adding a card class to a hero element needs an exclusion here.
+
    Cards on --s2 (.set-row, .st-subacc, .weekly-note, .pending-food) are excluded
    on purpose: they're recessed surfaces, so a lit top edge would fight them. */
-.ex-card,.nut-card,.ai-card,.custom-form,.st-group,.st-acc,.trend-card,
+.ex-card,.nut-card:not(.nut-hero),.ai-card,.custom-form,.st-group,.st-acc,.trend-card,
 .plan-nudge,.rest-card,.export-card,.rule-item,.pm-notes,.pm-flag,.pm-change{
   background:var(--card-grad);
   border-top-color:var(--card-edge);
@@ -780,7 +799,7 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 <div class="forge-chat-modal" id="forgeChatModal">
   <div class="forge-chat-drag"></div>
   <div class="ai-chat-header">
-    <span class="ai-chat-title-wrap"><span class="ai-chat-title-icon">🤖</span><span class="ai-chat-title">Ask Forge</span></span>
+    <span class="ai-chat-title-wrap"><span class="ai-chat-title-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/></svg></span><span class="ai-chat-title">Ask Forge</span></span>
     <div style="display:flex;align-items:center;gap:6px">
       <button class="ai-chat-clear" onclick="clearAiChat()">Clear</button>
       <button class="ai-chat-clear" onclick="closeForgeChat()" style="font-size:16px;padding:6px 9px;">✕</button>
@@ -1417,12 +1436,58 @@ window.listDailyBackups = listDailyBackups;
 // stroke:currentColor means an icon themes for free — set colour on the parent.
 // No CDN, no icon font, no dependency, no network payload.
 const ICON_PATHS = {
-  // strength: dumbbell
+  // ── exercise categories ──
+  // strength: dumbbell. Doubles for the gym section header and volume card.
   gym: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',
   // cardio: pulse trace
   cardio: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
-  // physio / recovery: heart
+  // physio / recovery: heart. Doubles for the physio section header.
   physio: '<path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"/>',
+
+  // ── AI ──
+  // Four-point sparkle: the conventional AI mark. Deliberately not the nav's
+  // speech bubble, which already means "Ask Forge" one row below.
+  spark: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/>'
+       + '<path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8.8-2.2z"/>',
+
+  // ── section / accordion headers ──
+  trophy: '<path d="M7 4h10v5a5 5 0 0 1-10 0V4zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 1-3 3M9 20h6M12 14v6"/>',
+  shield: '<path d="M12 3l7 3v5c0 4.4-3 8.3-7 9.5C8 19.3 5 15.4 5 11V6l7-3z"/>',
+  bowl: '<path d="M3 11h18a9 9 0 0 1-18 0zM8 8c0-1.5 1.5-2 2-3M13 8c0-1.5 1.5-2 2-3"/>',
+  scale: '<path d="M12 4v16M7 8h10M5 20h14M8 8L5 14a3 3 0 0 0 6 0L8 8zM16 8l-3 6a3 3 0 0 0 6 0l-3-6z"/>',
+  calendar: '<rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M8 3v4M16 3v4M3.5 10h17"/>',
+  chart: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  // Same path the bottom nav already uses, so the two gears match exactly.
+  gear: '<circle cx="12" cy="12" r="3.2"/><path d="M19 12a7 7 0 0 0-.1-1.2l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2-1.2L14.2 3h-4l-.4 2.6a7 7 0 0 0-2 1.2l-2.3-.9-2 3.4 2 1.5a7 7 0 0 0 0 2.4l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2 1.2l.4 2.6h4l.4-2.6a7 7 0 0 0 2-1.2l2.3.9 2-3.4-2-1.5c.07-.4.1-.8.1-1.2z"/>',
+  database: '<ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6M4.5 12c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3"/>',
+  folder: '<path d="M3.5 7a2 2 0 0 1 2-2h3.4l2 2.5h7.6a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2V7z"/>',
+  target: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="4"/><circle cx="12" cy="12" r="1"/>',
+  syringe: '<path d="M18 3l3 3M19.5 4.5L14 10M14 10l-1.5-1.5M14 10l1.5 1.5M12.5 8.5L4 17v3h3l8.5-8.5M9 13l2 2"/>',
+  refresh: '<path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v4h-4"/>',
+  moon: '<path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5z"/>',
+  sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',
+  // theme = auto: half sun, half moon
+  moonHalf: '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 1 0 16z" fill="currentColor" stroke="none"/>',
+
+  // ── settings rows / actions ──
+  play: '<circle cx="12" cy="12" r="8.5"/><path d="M10 8.5l6 3.5-6 3.5v-7z"/>',
+  cloud: '<path d="M17.5 19a4.5 4.5 0 0 0 .3-9 6 6 0 0 0-11.6 1.6A3.7 3.7 0 0 0 6.8 19h10.7z"/>',
+  save: '<path d="M12 3v12M7.5 10.5L12 15l4.5-4.5M4 17v2.5A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5V17"/>',
+  upload: '<path d="M12 21V9M7.5 13.5L12 9l4.5 4.5M4 5V3.5A1.5 1.5 0 0 1 5.5 2h13A1.5 1.5 0 0 1 20 3.5V5"/>',
+  mail: '<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3.5 7l8.5 6 8.5-6"/>',
+  clipboard: '<rect x="8" y="3" width="8" height="4" rx="1.3"/><path d="M9 5H6.5A1.5 1.5 0 0 0 5 6.5v13A1.5 1.5 0 0 0 6.5 21h11a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 17.5 5H15"/>',
+  lock: '<rect x="4.5" y="10" width="15" height="10.5" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>',
+  unlock: '<rect x="4.5" y="10" width="15" height="10.5" rx="2.2"/><path d="M8 10V7a4 4 0 0 1 7.5-2"/>',
+  trash: '<path d="M4 7h16M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7M6.5 7l.8 12.3A1.7 1.7 0 0 0 9 21h6a1.7 1.7 0 0 0 1.7-1.7L17.5 7M10 11v6M14 11v6"/>',
+  file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5z"/><path d="M14 3v5h5"/>',
+  search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.2 15.2L21 21"/>',
+  pencil: '<path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5z"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  bolt: '<path d="M13 2L4.5 13.5H11l-1 8.5L19.5 10H13l0-8z"/>',
+  flame: '<path d="M12 22a6.5 6.5 0 0 0 6.5-6.5c0-5-4-6-5.5-10.5-3 2-4 4.5-4 6.5-1-.5-1.5-1.5-1.5-2.5A6.9 6.9 0 0 0 5.5 15 6.5 6.5 0 0 0 12 22z"/>',
+  flag: '<path d="M5 21V4M5 4.5h11l-2 3.5 2 3.5H5"/>',
+  ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
+  alert: '<path d="M12 4.5L21 19.5H3L12 4.5z"/><path d="M12 10v4M12 17h.01"/>',
 };
 
 // Returns an inline <svg> string. Size is the px box; colour comes from the
@@ -2136,20 +2201,20 @@ function renderW(){
   let h=wkNav;
   if(ctx.isPastDay()){
     h+=lockedPast
-      ?`<div class="past-banner lock-banner">🔒 Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">✏️</button></div>`
-      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">✏️ Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">🔓</button></div>`;
+      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
+      :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">${icon("pencil",18)} Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">${icon("unlock",18)}</button></div>`;
   }
   if(future){
     // Plans are stored under nextWk(); read the same key (vwk() can differ near the Sunday boundary)
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
-    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">📅 Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
+    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">${icon("calendar",20)} Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">🔥 ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
+    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
   </div>`;
   if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -2162,9 +2227,9 @@ function renderW(){
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
-      const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">⚡ Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
+      const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">${icon("bolt",18)} Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
-        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">⚡ Start Workout</button>
+        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
         <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
         ${calfBtnHtml}
       </div>`;
@@ -2179,13 +2244,13 @@ function renderW(){
   const _dowNow=new Date().getDay();
   if(!ctx.isPastDay()&&!ctx.isFuture()&&_dowNow===0&&!(S.weekPlans||{})[ctx.nextWk()]){
     h+=`<div class="plan-nudge">
-      <div><div class="plan-nudge-ttl">📅 Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
+      <div><div class="plan-nudge-ttl">${icon("calendar",20)} Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
       <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
-  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"🏋 Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
-  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">🟢 Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?`${icon("gym",20)} Gym`:"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${icon("physio",20)} Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
 
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
@@ -2194,7 +2259,7 @@ function renderW(){
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">📂 Logged on previous program</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Logged on previous program</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
@@ -2665,7 +2730,7 @@ function searchEx(q,day){
     .slice(0,8);
   if(!results.length){
     const banned=ctx.isBannedExercise(q);
-    const warn=banned?`<div class="dd-warn">⚠️ Not spine-safe. Tap for an AI-suggested safe swap</div>`:"";
+    const warn=banned?`<div class="dd-warn">${icon("alert",18)} Not spine-safe. Tap for an AI-suggested safe swap</div>`:"";
     const btn=banned
       ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="free" data-day="${d}">AI Alt</button>`
       :`<button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button>`;
@@ -2681,7 +2746,7 @@ function searchEx(q,day){
     <div class="dd-item-left">
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)}${e.muscles?.length?" · "+esc(e.muscles.slice(0,2).join(", ")):""}</div>
-      ${banned?`<div class="dd-warn">⚠️ Not spine-safe. Tap for an AI-suggested safe swap</div>`:""}
+      ${banned?`<div class="dd-warn">${icon("alert",18)} Not spine-safe. Tap for an AI-suggested safe swap</div>`:""}
     </div>
     ${btn}
   </div>`;}).join("");
@@ -2906,7 +2971,7 @@ function prHint(exId,i){
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.textContent=prev?(est>prev.est?"🏆 Est. 1RM: "+est+"kg · new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>Est. 1RM: '+est+'kg · new PR!</span>':"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps){
@@ -3083,10 +3148,10 @@ function renderDrawer(){
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
     <div class="st-sec">AI Coaching</div>
-    <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">🔄 Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
-    <div class="ai-card"><div class="ai-card-title">💤 How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
+    <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
+    <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
     <details class="st-acc">
-      <summary><div><div>🏆 Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
+      <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
       // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
@@ -3137,7 +3202,7 @@ function renderDrawer(){
       </div>
     </details>
     <details class="st-acc">
-      <summary><div><div>🦴 Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
+      <summary><div><div>${icon("shield",20)} Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
       <div class="st-acc-inner">
         <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
         <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
@@ -3203,7 +3268,7 @@ function renderNutrition(){
     <div class="nut-head">
       <div><div class="nut-kicker">Nutrition</div><div class="nut-title">${nutDateLabel(date)}</div></div>
       <div class="nut-nav-btns">
-        ${date<isoToday()?`<button onclick="${ro?`unlockNut('${date}')`:`lockNut('${date}')`}" title="${ro?"Unlock editing":"Lock editing"}">${ro?"✏️":"🔓"}</button>`:""}
+        ${date<isoToday()?`<button onclick="${ro?`unlockNut('${date}')`:`lockNut('${date}')`}" title="${ro?"Unlock editing":"Lock editing"}">${ro?`${icon("pencil",18)}`:`${icon("unlock",18)}`}</button>`:""}
         <button onclick="nutShift(-1)">‹</button>
         <button onclick="nutShift(1)" ${date>=isoToday()?"disabled style='opacity:.3'":""}>›</button>
       </div>
@@ -3236,11 +3301,11 @@ function renderNutrition(){
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
         const remain=Math.max(0,aTgt-active);
-        return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">⚡ Active ${active.toLocaleString()} / ${aTgt.toLocaleString()} · ${aPct}%${remain>0?` · ${remain.toLocaleString()} kcal remaining`:""} · ${lbl}</div>`;
+        return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">${icon("bolt",18)} Active ${active.toLocaleString()} / ${aTgt.toLocaleString()} · ${aPct}%${remain>0?` · ${remain.toLocaleString()} kcal remaining`:""} · ${lbl}</div>`;
       })():""}
       ${macroPie(protein,carbs,fat,fibre)}
       <div class="macro-row">
-        <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:var(--hero-pos)":""}">${protein}<span style="font-size:11px;color:var(--hero-fg-faint)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?" ⚡":""}</div></div>
+        <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:var(--hero-pos)":""}">${protein}<span style="font-size:11px;color:var(--hero-fg-faint)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?` ${icon("bolt",18)}`:""}</div></div>
         <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
         <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
       </div>
@@ -3249,7 +3314,7 @@ function renderNutrition(){
         <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sugar>SUGAR_LIMIT?"color:var(--amber)":""}">${sugar}g</div><div class="macro-lbl">Sugar</div></div>
         <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sodium>SODIUM_LIMIT?"color:var(--amber)":""}">${sodium.toLocaleString()}<span style="font-size:10px;color:var(--hero-fg-faint)">mg</span></div><div class="macro-lbl">Sodium</div></div>
       </div>
-      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?"⚡ Shock Day Active · Tap to Disable":"⚡ Shock Day (force 1200 kcal)"}</button>`}
+      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?`${icon("bolt",18)} Shock Day Active · Tap to Disable`:`${icon("bolt",18)} Shock Day (force 1200 kcal)`}</button>`}
     </div>
 
     <!-- Food log card -->
@@ -3291,7 +3356,7 @@ function renderNutrition(){
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:var(--font-body);font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional · e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet · ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
-<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
+<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
     </div>
 
     <!-- Body card: daily burn inputs + weight logging in one place -->
@@ -3323,15 +3388,15 @@ function renderNutrition(){
 
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
-      <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
+      <summary><div><div>${icon("bowl",20)} Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
       <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
-    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
+    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?`${icon("bowl",20)} Reviewing your week…`:`${icon("bowl",20)} Generate Weekly Diet Review`}</button>`}
 
     <!-- Weight history & trend -->
     <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
-      <summary><div><div>⚖️ Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
+      <summary><div><div>${icon("scale",20)} Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
       <div class="st-acc-inner">
       ${sparkHtml}
       ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${fmtDate(k)}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${Number(wts[k]).toFixed(1)} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
@@ -3422,7 +3487,7 @@ function zepCardHtml(){
   const dueLabel=sched.taken?fmtDate(due):overdue?`overdue since ${fmtDate(due)}`:(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
   const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
   return`<div class="nut-card" style="margin-bottom:10px">
-    <div class="nut-card-title">💉 Zepbound</div>
+    <div class="nut-card-title">${icon("syringe",20)} Zepbound</div>
     <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px">
       <span style="color:var(--mid)">Last dose</span><span style="font-weight:600">${lastLabel}</span>
     </div>
@@ -3516,10 +3581,10 @@ function phaseHealth(p,todayIso){
 // End-of-phase colour bands with the user's prescribed actions, verbatim rule
 function phaseVerdict(p,finalAvg){
   const d=finalAvg-p.targetKg;
-  if(d<=1)return{band:"green",title:"🟢 On Target",action:"No changes. Continue to the next phase exactly as planned."};
-  if(d<=2)return{band:"yellow",title:"🟡 Slightly Behind",action:"Keep calories the same. Increase average active calories by 100/day. Recalculate the next phase."};
-  if(d<=4)return{band:"orange",title:"🟠 Moderately Behind",action:"Decision point. Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
-  return{band:"red",title:"🔴 Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, Zepbound dose and response, and any injury or illness. Only then adjust calories, activity, or the timeline."};
+  if(d<=1)return{band:"green",title:"On Target",action:"No changes. Continue to the next phase exactly as planned."};
+  if(d<=2)return{band:"yellow",title:"Slightly Behind",action:"Keep calories the same. Increase average active calories by 100/day. Recalculate the next phase."};
+  if(d<=4)return{band:"orange",title:"Moderately Behind",action:"Decision point. Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
+  return{band:"red",title:"Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, Zepbound dose and response, and any injury or illness. Only then adjust calories, activity, or the timeline."};
 }
 // Exactly one rule-based actionable recommendation (deterministic, no AI)
 function coachRecommendation(p,todayIso,comp){
@@ -3675,7 +3740,7 @@ function phaseCardHtml(){
     const finalAvg=avg??latestWeightLog()??p.startKg;
     const v=phaseVerdict(p,finalAvg);
     verdictHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px">${v.title} · final 7-day avg ${finalAvg} kg vs target ${p.targetKg} kg</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title} · final 7-day avg ${finalAvg} kg vs target ${p.targetKg} kg</div>
       <div style="font-size:12px;color:var(--lt);line-height:1.6">${v.action}</div>
       <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
     </div>`;
@@ -3772,11 +3837,11 @@ function phaseCardHtml(){
   // Live status chip in the collapsed summary
   const chipBits=[`${pctDone}%`];
   if(st==="paused")chipBits.push("⏸ paused");
-  else if(st==="completed")chipBits.push("🏁 verdict ready");
+  else if(st==="completed")chipBits.push(`${icon("flag",18)} verdict ready`);
   else if(avg!=null)chipBits.push(avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:"");
   if(!comp.calculating)chipBits.push(`compliance ${comp.overall}%`);
   return`<details class="st-acc"${st==="completed"?" open":""}>
-    <summary><div><div>🎯 ${p.id.replace("_"," ").replace(/^p/,"P")} · ${chipBits.filter(Boolean).join(" · ")}</div><div class="st-acc-sub">Day ${dayIn} of ${totalDays} · ${fmtD(p.start)} → ${fmtD(end)}${end!==p.plannedEnd?" (extended)":""} · ${p.startKg} → ${p.targetKg} kg · eat ${num(p.eatKcal)}/day</div></div></summary>
+    <summary><div><div>${icon("target",20)} ${p.id.replace("_"," ").replace(/^p/,"P")} · ${chipBits.filter(Boolean).join(" · ")}</div><div class="st-acc-sub">Day ${dayIn} of ${totalDays} · ${fmtD(p.start)} → ${fmtD(end)}${end!==p.plannedEnd?" (extended)":""} · ${p.startKg} → ${p.targetKg} kg · eat ${num(p.eatKcal)}/day</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
         <span style="${nMuted}">Day ${dayIn} of ${totalDays}</span>
@@ -3793,9 +3858,9 @@ function phaseCardHtml(){
       ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift: add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
       ${verdictHtml}
-      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${fmtDate(new Date(S.phaseReview.at).toISOString().slice(0,10))}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
+      ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">${icon("spark",15)} Coach review · ${fmtDate(new Date(S.phaseReview.at).toISOString().slice(0,10))}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":"🤖 Review now"}</button>
+        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":`${icon("spark",15)} Review now`}</button>
         ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
           :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
         ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
@@ -4068,17 +4133,17 @@ function renderST(){
 
     <!-- Group 1: This Week -->
     <details class="st-acc" open>
-      <summary><div><div>📅 This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
+      <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly Plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
           <div class="export-title">Generate Next Week</div>
-          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">📅 Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
+          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">${icon("calendar",20)} Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
           <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="width:100%;margin-bottom:8px">Generate Next Week</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
         </div>
         <details class="st-acc">
-          <summary><div><div>💪 Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
+          <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
           <div class="st-acc-inner">
         ${(()=>{
           const vdata=buildVolumeData();
@@ -4098,7 +4163,7 @@ function renderST(){
 
     <!-- Group 2: Progress -->
     <details class="st-acc" open>
-      <summary><div><div>📊 Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
+      <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly Calorie Deficit</div>
     ${(()=>{
@@ -4185,12 +4250,12 @@ function renderST(){
 
     <!-- Group 3: App (appearance + data) -->
     <details class="st-acc" open>
-      <summary><div><div>⚙️ App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
+      <summary><div><div>${icon("gear",20)} App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Appearance</div>
         <div class="st-group">
-          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?"☀️":S.theme==="dark"?"🌙":"🌗"}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
-          <div class="st-row" onclick="scanDemos()"><div class="st-icon">🎬</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
+          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
+          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>⏪ Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
@@ -4198,34 +4263,34 @@ function renderST(){
         </details>`;})()}
 
         <details class="st-subacc">
-          <summary><div><div>🗄 Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
+          <summary><div><div>${icon("database",20)} Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
           <div class="st-subacc-inner">
 
         <div class="st-sec">Sync &amp; Recovery</div>
         <div class="st-group">
-          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">☁️</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
-          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">🗓</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">📅</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
+          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
         </div>
 
         <div class="st-sec">Backup &amp; Export</div>
         <div class="st-group">
-          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">⚠️</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">💾</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
-          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">📧</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
-          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">📥</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
+          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
+          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
+          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-          <div class="st-row" onclick="copyExp()"><div class="st-icon">📋</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
+          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
         </div>
 
         ${!window.FORGE_API_CFG?`<div class="st-sec">Session</div>
         <div class="st-group">
-          <div class="st-row" onclick="lockApp()"><div class="st-icon">🔒</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
+          <div class="st-row" onclick="lockApp()"><div class="st-icon">${icon("lock",18)}</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
         </div>`:""}
 
         <div class="danger-zone">
           <div class="st-sec">Danger Zone</div>
           <div class="st-group">
-            <div class="st-row" onclick="clearD()"><div class="st-icon">🗑</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
+            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
           </div>
         </div>
 
@@ -4280,7 +4345,7 @@ function buildWeeklyReviewCard(){
   const wtHtml=st.wtChange?`${st.wtChange.delta<=0?"":"+"}${st.wtChange.delta} kg <span style="font-size:10px;color:var(--dim)">(${st.wtChange.from}→${st.wtChange.to})</span>`:"-";
   const wtCol=st.wtChange?(st.wtChange.delta<0?"var(--green)":"var(--red)"):"var(--dim)";
   return`<div class="export-card"${isSunday?' style="border-left-color:var(--green)"':""}>
-    ${isSunday?`<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">🗓 Sunday review time</div>`:""}
+    ${isSunday?`<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">${icon("calendar",20)} Sunday review time</div>`:""}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
       <div style="text-align:center"><div style="font-size:20px;font-weight:700">${st.sessions}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Sessions</div></div>
       <div style="text-align:center"><div style="font-size:20px;font-weight:700;color:${wtCol}">${wtHtml}</div><div style="font-size:9px;color:var(--dim);letter-spacing:1px;text-transform:uppercase">Weight</div></div>
@@ -4404,8 +4469,8 @@ function showExportSheet(){
   sheet.innerHTML=`
     <div class="export-sheet-inner">
       <div class="export-sheet-title">Export My Data</div>
-      <button class="export-opt" onclick="emailCSV()">📄 Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
-      <button class="export-opt" onclick="openPDFReport()">📊 View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
+      <button class="export-opt" onclick="emailCSV()">${icon("file",18)} Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
+      <button class="export-opt" onclick="openPDFReport()">${icon("chart",20)} View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
       <button class="export-cancel" onclick="document.getElementById('exportSheet').classList.remove('open')">Cancel</button>
     </div>`;
   document.body.appendChild(sheet);
@@ -4538,7 +4603,7 @@ function buildPDFReport(){
     const date=sessDate(dayKey);
     const twinges=(sessMap._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
     const notes=sessMap._notes||"";
-    const twingeBadge=twinges>0?`<span style="display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:6px">⚡ ${twinges} calf twinge${twinges!==1?"s":""}</span>`:"";
+    const twingeBadge=twinges>0?`<span style="display:inline-block;background:#fff7ed;color:#ea580c;border:1px solid #fed7aa;border-radius:4px;padding:1px 7px;font-size:11px;font-weight:600;margin-right:6px">${icon("bolt",18)} ${twinges} calf twinge${twinges!==1?"s":""}</span>`:"";
     return`<tr><td style="white-space:nowrap">${fmtDate(date)}</td><td>${twingeBadge}${notes?`<span style="color:#374151">${esc(notes)}</span>`:""}</td></tr>`;
   }).join("");
 
@@ -4785,7 +4850,7 @@ function sanitizePlan(parsed){
   }
   if(stripped.length){
     parsed.flags=parsed.flags||[];
-    parsed.flags.unshift("⛔ Blocked unsafe AI suggestions (spine rules): "+stripped.join(", "));
+    parsed.flags.unshift("Blocked unsafe AI suggestions (spine rules): "+stripped.join(", "));
   }
   return parsed;
 }
@@ -4834,10 +4899,10 @@ function showPlanModal(parsed){
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">🗑 ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">${icon("trash",18)} ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else if(upd.action==="add"){
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">➕ ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">${icon("plus",18)} ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else {
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;
@@ -5011,11 +5076,11 @@ function buildChatContext(){
 }
 function renderAiChatBubbles(){
   if(!S.aiChat||!S.aiChat.length){
-    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">🤖</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain. I've got context on your training and logs.</div></div>`;
+    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">${icon("spark",34)}</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain. I've got context on your training and logs.</div></div>`;
   }
   return S.aiChat.slice(-20).map(m=>m.role==="user"
     ?`<div class="chat-bubble chat-user">${esc(m.text)}</div>`
-    :`<div class="chat-ai-row"><div class="chat-ai-avatar">🤖</div><div class="chat-bubble chat-ai">${mdLite(m.text)}</div></div>`
+    :`<div class="chat-ai-row"><div class="chat-ai-avatar">${icon("spark",14)}</div><div class="chat-bubble chat-ai">${mdLite(m.text)}</div></div>`
   ).join("");
 }
 function scrollChatBottom(){const el=document.getElementById("aiChatMessages");if(el)el.scrollTop=el.scrollHeight;}
@@ -5040,7 +5105,7 @@ function typewriterBubble(text,onDone){
   if(empty)empty.remove();
   const row=document.createElement("div");
   row.className="chat-ai-row";
-  row.innerHTML='<div class="chat-ai-avatar">🤖</div>';
+  row.innerHTML=`<div class="chat-ai-avatar">${icon("spark",14)}</div>`;
   const bubble=document.createElement("div");
   bubble.className="chat-bubble chat-ai";
   row.appendChild(bubble);
