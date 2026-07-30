@@ -99,6 +99,54 @@ HERO TOKENS (theme-independent — hero cards stay dark in BOTH themes):
   (never rendered), and the test sweep skips both.
 - `node test.js` fails the build if an em dash reaches a user-visible string.
 
+### Surface material (what makes it read as premium)
+- **Every surface step must stay distinct.** `--s0/--s1/--s2/--s3/--b1/--b2/--black`
+  are a ramp; if two collapse, the design breaks. Light mode was once
+  `--s0 == --s1 == #FFFFFF` (white cards on grey, the generic-dashboard look)
+  and dark had `--b1 == --s3` (invisible card borders). `node test.js` now fails
+  on any collapse.
+- The light ramp is **warm off-white**, not pure white. A hair of warmth is what
+  reads as paper instead of an unstyled default. Never reintroduce `#FFFFFF` as
+  a card fill (`--s0`, the bottom nav, is the one legitimate exception).
+- **Cards use `--card-grad` + `--card-edge`, never a flat `background:var(--s1)`.**
+  A near-invisible vertical gradient plus a brighter top hairline is the
+  light-source cue that makes a rectangle read as a lit object. It's applied by
+  one grouped rule at the end of the cascade, using single-class selectors so
+  `.a.b` modifiers (`.ex-card.done`) still win. Recessed `--s2` surfaces
+  (`.set-row`, `.st-subacc`, `.weekly-note`) are excluded on purpose.
+- **Overlays use `--scrim` + `--scrim-blur`**, never a raw `rgba(0,0,0,.N)`.
+  Keep the `@supports not (backdrop-filter…)` fallback in sync when adding a
+  blurred surface, or it degrades to washed-out and unreadable.
+
+### Shape, space, elevation scales
+- Radius: `--r-sm/-md/-lg/-xl/--r-pill` only (`50%` stays for true circles).
+  There were once 27 distinct radii and two competing pill idioms.
+- Spacing: `--sp-1`…`--sp-6`. **`--sp-4` (16px) is THE page gutter** — every
+  wrapper uses it, so content aligns down the page edge.
+- Elevation is rationed to three tiers: most cards have **no** shadow (the lit
+  top edge separates them), `--shadow` is for interactive/raised things only,
+  `--shadow-lift` for heroes, sheets, drawer, overlays. Shadow on everything
+  means depth signals nothing; the test caps `--shadow` carriers.
+- **Define each card class once.** A v2/v3 retrofit block once re-declared
+  `.nut-card`/`.st-group`/`.export-card`/`.rule-item`/`.weekly-note` instead of
+  editing them, so two rules fought and the later silently won. Tested.
+
+### Labels: landmarks vs captions
+- **Landmarks** (`.sec`, `.hero-kicker`, `.nut-kicker`, `.st-sec`) keep the
+  uppercase letterspaced `--fs-label`/`--fw-label`/`--ls-label` treatment.
+- **Captions inside a card** use `--fs-cap`/`--fw-cap` in sentence case, no
+  letterspacing, no uppercase. There were ~26 eyebrow treatments and ~60
+  rendered instances, so everything shouted and nothing read as emphasis.
+
+### Icons
+- Use the inline SVG set via `icon(name)` in `src/ui.js`: one 1.5px stroke
+  weight, no fills, 24 grid, `stroke="currentColor"` so it themes for free.
+- **No emoji as iconography.** Emoji render differently on every platform, so
+  the look isn't ours to control, and they read as informal. Emoji are fine as
+  *content* (milestone/celebration toasts).
+- Don't put icons in filled pastel tiles — they read as stickers. Colour the
+  stroke instead (`.ex-icon.gym/.cardio/.physio`).
+
 ### Modals and overlays
 - Background: `var(--black)` — same as the app surface, shifts with theme
 - Cards inside modals: `var(--s1)` with `border: 1px solid var(--b1)`

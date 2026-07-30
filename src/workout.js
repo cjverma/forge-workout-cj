@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { isoToday, isoDate } from "./phase.js";
-import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite } from "./ui.js";
+import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
 import { EX_DB, PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, GYM } from "./constants.js";
@@ -298,14 +298,13 @@ export function renderW(){
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
         const unit=ed.unit||"kg";
-        const icon=ex.cat==="physio"?"🟢":ex.cat==="cardio"?"🚴":"💪";
-        const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
+                const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
         const setRows=doneSets.length
           ?doneSets.map((s,i)=>`<div style="display:flex;gap:8px;font-size:13px;color:var(--mid);padding:2px 0"><span style="color:var(--dim);min-width:40px">Set ${i+1}</span><span>${esc(String(s.weight||"·"))} ${unit} × ${esc(String(s.reps||"·"))}</span></div>`).join("")
           :`<div style="font-size:13px;color:var(--dim)">No sets recorded</div>`;
         h+=`<div class="ex-card ex-card--prev" style="opacity:0.75">
           <div class="ex-top" style="cursor:default">
-            <div class="ex-icon ${iconCls}">${icon}</div>
+            <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
             <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program · read-only</div></div>
           </div>
           <div style="padding:0 15px 14px">${setRows}</div>
@@ -533,8 +532,7 @@ function card(ex,sess,key,rdOnly=false){
   const S=ctx.getS();
   const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
   const isDone=ed.done,isSkip=ed.skipped;
-  const icon=ex.cat==="physio"?"🟢":ex.cat==="cardio"?"🚴":"💪";
-  const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
+    const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
   const sLbl=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
@@ -593,7 +591,7 @@ function card(ex,sess,key,rdOnly=false){
 
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
-      <div class="ex-icon ${iconCls}">${icon}</div>
+      <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
       <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
       <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>

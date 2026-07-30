@@ -837,6 +837,91 @@ ok("mdLite normalises em dash to middot and en dash to hyphen",
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Design system — surface ramp, shape/space scales, elevation, material
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Parse the :root token block once.
+const ROOT = APP_CSS.slice(APP_CSS.indexOf(":root{"), APP_CSS.indexOf("html[data-theme"));
+function token(name) {
+  const m = ROOT.match(new RegExp(`${name.replace(/-/g, "\\-")}:\\s*([^;]+);`));
+  return m ? m[1].trim() : null;
+}
+// light-dark(a,b) -> [a, b]
+function pair(name) {
+  const v = token(name) || "";
+  const m = v.match(/light-dark\(([^,]+),([^)]+)\)/);
+  return m ? [m[1].trim().toUpperCase(), m[2].trim().toUpperCase()] : [v.toUpperCase(), v.toUpperCase()];
+}
+
+// This is the test that would have caught the original bug: --s0 === --s1 in
+// light (pure-white cards on grey, the generic-dashboard look) and --b1 === --s3
+// in dark (invisible card borders). Every step must stay distinct per theme.
+{
+  const steps = ["--s0", "--s1", "--s2", "--s3", "--b1", "--b2", "--black"];
+  const collisions = [];
+  for (const themeIdx of [0, 1]) {
+    const seen = new Map();
+    for (const st of steps) {
+      const v = pair(st)[themeIdx];
+      if (seen.has(v)) collisions.push(`${themeIdx ? "dark" : "light"}: ${seen.get(v)} === ${st} (${v})`);
+      else seen.set(v, st);
+    }
+  }
+  ok(`surface ramp has no collapsed steps${collisions.length ? " — " + collisions.join("; ") : ""}`,
+    collisions.length === 0);
+}
+
+ok("card material tokens defined (gradient + lit top edge)",
+  !!token("--card-grad") && !!token("--card-edge") &&
+  APP_CSS.includes("background:var(--card-grad)") &&
+  APP_CSS.includes("border-top-color:var(--card-edge)"));
+
+ok("shape scale defined and used",
+  ["--r-sm", "--r-md", "--r-lg", "--r-xl", "--r-pill"].every(t => !!token(t)) &&
+  APP_CSS.includes("var(--r-lg)") && APP_CSS.includes("var(--r-xl)"));
+
+ok("spacing scale defined and used as the page gutter",
+  ["--sp-1", "--sp-2", "--sp-3", "--sp-4", "--sp-5"].every(t => !!token(t)) &&
+  APP_CSS.includes("var(--sp-4)"));
+
+// Two competing pill idioms (99px and 999px) both existed; collapse to one.
+ok("no raw pill radii left (99px / 999px)",
+  !/border-radius:\s*99{1,2}9?px/.test(APP_CSS));
+
+// The v2/v3 retrofit re-declared cards instead of editing them, so each had two
+// competing definitions and the later silently won.
+{
+  const dupes = ["nut-card", "export-card", "rule-item", "weekly-note"].filter(c => {
+    const hits = APP_CSS.match(new RegExp(`(^|[},])\\.${c}\\{`, "g")) || [];
+    return hits.length > 1;
+  });
+  ok(`no duplicate card definitions${dupes.length ? " — " + dupes.join(", ") : ""}`, dupes.length === 0);
+}
+
+// Shadow on 19 classes meant depth signalled nothing.
+ok("elevation is rationed (≤6 --shadow carriers)",
+  (APP_CSS.match(/var\(--shadow\)/g) || []).length <= 6);
+
+ok("scrims use the shared --scrim token, not raw black",
+  !!token("--scrim") && (APP_CSS.match(/var\(--scrim\)/g) || []).length >= 4);
+
+ok("backdrop-filter has a no-support fallback",
+  APP_CSS.includes("@supports not ((backdrop-filter") &&
+  APP_CSS.includes("-webkit-backdrop-filter"));
+
+ok("caption scale exists and in-card labels no longer shout",
+  !!token("--fs-cap") && !!token("--fw-cap") &&
+  !/\.nut-card-title\{[^}]*text-transform:uppercase/.test(APP_CSS));
+
+// Emoji-as-iconography: the exercise rows are the most visible instance.
+ok("exercise rows use the inline SVG icon set, not emoji",
+  HTML.includes('stroke="currentColor"') && HTML.includes("ICON_PATHS") &&
+  !/ex-icon \$\{iconCls\}">\$\{icon\}</.test(HTML));
+
+ok("icon tiles are not pastel sticker squares",
+  !/\.ex-icon\.gym\{background:/.test(APP_CSS));
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 const total = passed + failed;

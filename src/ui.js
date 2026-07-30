@@ -1,5 +1,30 @@
 import { ctx } from "./runtime.js";
 
+// ── ICON SET ────────────────────────────────────────────────────────────────
+// Inline SVG, one consistent 1.5px stroke weight, no fills, everything drawn on
+// a 24 grid. Replaces emoji-as-iconography: emoji render differently on every
+// platform (so the app's look wasn't ours to control) and read as informal.
+// stroke:currentColor means an icon themes for free — set colour on the parent.
+// No CDN, no icon font, no dependency, no network payload.
+const ICON_PATHS = {
+  // strength: dumbbell
+  gym: '<path d="M6.5 6.5v11M17.5 6.5v11M3.5 9v6M20.5 9v6M6.5 12h11"/>',
+  // cardio: pulse trace
+  cardio: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
+  // physio / recovery: heart
+  physio: '<path d="M12 20s-7-4.4-7-9a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 4.6-7 9-7 9z"/>',
+};
+
+// Returns an inline <svg> string. Size is the px box; colour comes from the
+// parent's `color` via currentColor.
+export function icon(name, size = 22) {
+  const d = ICON_PATHS[name];
+  if (!d) return "";
+  return `<svg class="icon" width="${size}" height="${size}" viewBox="0 0 24 24" `
+    + `fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" `
+    + `stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+}
+
 // "Aug 27th" — year only when 2027 (the goal year)
 export function fmtDate(iso){
   const d=new Date(iso+"T12:00:00Z");
