@@ -985,6 +985,51 @@ ok("phase bands use a CSS status dot, not coloured-circle emoji",
   APP_CSS.includes(".band-dot{") && /band-\$\{|band-green/.test(APP_JS));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Set add/delete symmetry
+// ─────────────────────────────────────────────────────────────────────────────
+
+// These assert against SOURCE, not dist/app.js: esbuild mangles local function
+// names (setCount -> qe), so a bundle-based regex silently passes whatever the
+// code does, which is worse than no test.
+const WORKOUT = readFileSync("src/workout.js", "utf8");
+
+ok("delSet exists and is exposed on window", APP_JS.includes("window.delSet="));
+
+// Row count must come from setCount(), not Math.max. Math.max can only grow, so
+// deleting a PROGRAMMED set would splice the array and then have the row
+// immediately reappear from ex.sets — add would work, delete silently wouldn't.
+ok("set row count uses the setCount() override, not raw Math.max",
+  /const cnt=setCount\(ex,ed\)/.test(WORKOUT) &&
+  !/const cnt=Math\.max\(ex\.sets/.test(WORKOUT));
+
+// Same override must drive completion, else trimming below the programmed count
+// leaves an exercise that can never be marked done.
+ok("exercise completion threshold follows the effective set count",
+  /ed\.done=ed\.sets\.length>=n&&/.test(WORKOUT) &&
+  !/ed\.done=ed\.sets\.length>=ex\.sets/.test(WORKOUT));
+
+ok("addSet bumps the override rather than pushing a phantom entry",
+  /ed\.nSets=setCount\(ex,ed\)\+1/.test(WORKOUT) &&
+  !/function addSet[\s\S]{0,400}?sets\.push\(\{\}\)/.test(WORKOUT));
+
+ok("delete is blocked on read-only days and keeps a one-set floor",
+  /function delSet\(key,exId,i\)\{[\s\S]{0,120}ctx\.isReadOnly\(key\)/.test(WORKOUT) &&
+  /if\(n<=1\)/.test(WORKOUT));
+
+ok("deleting a set with logged data asks first",
+  /sd\.weight\|\|sd\.reps\)&&!confirm\(/.test(WORKOUT));
+
+ok("delete control is hidden on read-only days",
+  /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
+
+ok("set row and header grids have matching column counts", (() => {
+  const grab = re => (APP_CSS.match(re) || [])[1];
+  const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);
+  const row = grab(/\.set-row\{[\s\S]*?grid-template-columns:([^;]+);/);
+  return !!hdr && !!row && hdr.trim().split(/\s+/).length === row.trim().split(/\s+/).length;
+})());
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 const total = passed + failed;

@@ -315,13 +315,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 
 /* ── SET ROWS ── */
 .sets-wrap{padding:0 var(--sp-4) var(--sp-1);}
-.set-hdr{display:grid;grid-template-columns:42px 1fr 16px 1fr 44px;gap:6px;padding:0 2px 6px;font-size:10px;font-weight:var(--fw-cap);letter-spacing:.4px;color:var(--dim);text-transform:uppercase;text-align:center;}
+.set-hdr{display:grid;grid-template-columns:32px 1fr 16px 1fr 44px 32px;gap:6px;padding:0 2px 6px;font-size:10px;font-weight:var(--fw-cap);letter-spacing:.4px;color:var(--dim);text-transform:uppercase;text-align:center;}
 .unit-chip{background:transparent;border:1px solid var(--b1);border-radius:6px;font-size:9px;font-weight:700;letter-spacing:1px;color:var(--dim);padding:2px 5px;cursor:default;text-transform:uppercase;}
 .unit-chip.tappable{cursor:pointer;border-color:var(--orange);color:var(--orange);}
 .unit-chip.tappable:active{background:var(--orange-lo);}
 
 .set-row{
-  display:grid;grid-template-columns:42px 1fr 16px 1fr 44px;
+  display:grid;grid-template-columns:32px 1fr 16px 1fr 44px 32px;
   gap:6px;align-items:center;min-height:54px;
   background:var(--s2);border-radius:var(--r-md);padding:0 10px;
   margin-bottom:7px;border:1px solid transparent;transition:all .2s;
@@ -349,6 +349,14 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .cardio-chk{width:36px;height:36px;border-radius:6px;border:1px solid var(--b2);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--dim);transition:all .2s;}
 .cardio-row.done .cardio-chk{background:var(--green);border-color:var(--green);color:var(--s1);}
 
+/* Secondary destructive action, so it stays quiet at --dim and only turns
+   --red on press. Full row height for a comfortable touch target without
+   widening the column and squeezing the inputs. */
+.sdel{width:32px;height:44px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;padding:0;cursor:pointer;color:var(--dim);opacity:.7;transition:color .15s,opacity .15s;}
+.sdel:active{color:var(--red);opacity:1;}
+/* Neutral, not green, on completed rows: a success-coloured trash reads as
+   the wrong affordance, and --mid clears contrast on the green wash. */
+.set-row.done .sdel{color:var(--mid);opacity:.6;}
 .add-set-btn{width:100%;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-size:12px;font-weight:500;color:var(--dim);background:transparent;cursor:pointer;font-family:var(--font-body);margin-top:2px;margin-bottom:10px;transition:all .15s;}
 .add-set-btn:active{border-color:var(--orange);color:var(--orange);}
 

@@ -562,9 +562,9 @@ function card(ex,sess,key,rdOnly=false){
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
     <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}${rdOnly?" style='cursor:default'":""}"${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
-    const cnt=Math.max(ex.sets,(ed.sets||[]).length);
+    const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
-    let rows=`<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button></div><div></div><div>Reps</div><div></div></div>`;
+    let rows=`<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
@@ -582,6 +582,7 @@ function card(ex,sess,key,rdOnly=false){
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
+        ${rdOnly?'<div></div>':`<button class="sdel" onclick="delSet('${key}','${ex.id}',${i})" aria-label="Delete set ${i+1}" title="Delete set ${i+1}">${icon("trash",15)}</button>`}
       </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
@@ -610,6 +611,19 @@ function expand(id){
   if(wrap&&open)resolveDemo(wrap);
   const vid=body.querySelector(".demo-wrap video");
   if(vid){if(open)vid.play().catch(()=>{});else vid.pause();}
+}
+
+// How many set rows this exercise has in THIS session.
+//
+// Defaults to max(programmed, logged) so untouched exercises behave exactly as
+// before. Once the user adds or deletes a set we store an explicit `nSets`
+// override on the session entry, because Math.max alone can only ever grow:
+// without the override, deleting a programmed set would splice the array but
+// the row would immediately reappear from ex.sets. Sessions saved before this
+// existed have no nSets and fall through to the old behaviour.
+function setCount(ex,ed){
+  if(ed&&ed.nSets!=null)return ed.nSets;
+  return Math.max(ex.sets,(ed?.sets||[]).length);
 }
 
 function ensure(key,exId,i){
@@ -646,8 +660,9 @@ function updateExerciseDone(key,exId){
   const ex=prog?.exercises.find(e=>e.id===exId);
   const ed=S.sessions[key]?.[exId];
   if(!ex||!ed||ex.sets===1)return;
+  const n=setCount(ex,ed);
   ed.sets.forEach(s=>{if(!s.weight||!s.reps)s.done=false;});
-  ed.done=ed.sets.length>=ex.sets&&ed.sets.slice(0,ex.sets).every(s=>s.weight&&s.reps&&s.done);
+  ed.done=ed.sets.length>=n&&ed.sets.slice(0,n).every(s=>s.weight&&s.reps&&s.done);
 }
 
 function toggleSet(key,exId,i){
@@ -689,13 +704,51 @@ function skipEx(key,exId){
   setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
 }
 
+// Keep the expanded card open across the re-render that add/delete triggers.
+function reopenEx(exId){
+  setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
+}
+
+function exById(exId){
+  return PROG[ctx.cDay]?.exercises.find(e=>e.id===exId);
+}
+
 function addSet(key,exId){
   if(ctx.isReadOnly(key))return;
   ensure(key,exId,0);
   const S=ctx.getS();
-  S.sessions[key][exId].sets.push({});
+  const ed=S.sessions[key][exId];
+  const ex=exById(exId);
+  if(!ex)return;
+  // Bump the override, don't push a blank entry. nSets is what drives the row
+  // count now, and the sets array is filled lazily by ensure() on first input,
+  // so pushing here would only create a phantom entry that makes sets.length
+  // disagree with the visible row count.
+  ed.nSets=setCount(ex,ed)+1;
   save();queueSession(key,exId);renderW();
-  setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
+  reopenEx(exId);
+}
+
+function delSet(key,exId,i){
+  if(ctx.isReadOnly(key))return;
+  const S=ctx.getS();
+  const ed=S.sessions[key]?.[exId];
+  const ex=exById(exId);
+  if(!ed||!ex)return;
+  const n=setCount(ex,ed);
+  // An exercise with no sets has no way back to a set UI, so keep the floor at
+  // one. Use Skip if you're not doing the exercise at all.
+  if(n<=1){showToast("Keep at least one set · use Skip instead");return;}
+  const sd=ed.sets[i];
+  // Silent on empty rows; confirm only when there's logged data to lose. The
+  // app has no undo, so a destructive action on real data needs a beat.
+  if(sd&&(sd.weight||sd.reps)&&!confirm(`Delete set ${i+1}? Logged data for this set will be lost.`))return;
+  if(i<ed.sets.length)ed.sets.splice(i,1);
+  ed.nSets=n-1;
+  updateExerciseDone(key,exId);
+  save();queueSession(key,exId);renderW();
+  reopenEx(exId);
+  showToast("Set removed");
 }
 
 function reCard(key,exId){
@@ -1076,6 +1129,7 @@ window.toggleSet=toggleSet;
 window.toggleCardio=toggleCardio;
 window.skipEx=skipEx;
 window.addSet=addSet;
+window.delSet=delSet;
 window.toggleCF=toggleCF;
 window.searchEx=searchEx;
 window.addFromDB=addFromDB;
