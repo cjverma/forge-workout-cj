@@ -312,7 +312,7 @@ ok("immutable snapshot on completion (S.phaseHistory) + quiet analytics incl. re
   HTML.includes("S.phaseHistory[id]=") && HTML.includes("recoveryDays") && HTML.includes("pauseDays"));
 ok("Sunday summary with one deterministic recommendation",
   HTML.includes("coachRecommendation") && HTML.includes("Stay the course.") &&
-  HTML.includes("avoid the temptation to cut calories further"));
+  HTML.includes("Avoid the temptation to cut calories further"));
 ok("AI review sends completion %, health colour and compliance history",
   HTML.includes("Phase completion:") && HTML.includes("Phase health:") && HTML.includes("Compliance history"));
 
@@ -751,6 +751,90 @@ ok("client has manual generate/regenerate button wired with auth + busy guard",
 
 ok("_localDemosReady declared before first assignment (TDZ guard)",
   HTML.indexOf("let _localDemosReady") < HTML.indexOf("_localDemosReady=fetch"));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Typography — self-hosted Barlow superfamily, no CDN, no Inter, no em dashes
+// ─────────────────────────────────────────────────────────────────────────────
+const SW = readFileSync("sw.js", "utf8");
+
+ok("no Google Fonts CDN link (offline-first: fonts must be self-hosted)",
+  !HTML.includes("fonts.googleapis.com") && !HTML.includes("fonts.gstatic.com"));
+
+ok("no 'Inter' font-family left anywhere",
+  !HTML.includes("'Inter'") && !HTML.includes('"Inter"'));
+
+ok("--font-body token defined as Barlow and used, not hardcoded",
+  /--font-body:\s*'Barlow'/.test(HTML) && HTML.includes("var(--font-body)"));
+
+ok("all four Barlow body weights have an @font-face",
+  ["400", "500", "600", "700"].every(w =>
+    new RegExp(`font-family:'Barlow';[^}]*font-weight:${w};[^}]*barlow-${w}\\.woff2`).test(HTML)));
+
+// Scoped to the app's own <style> block. The PDF print report (buildReportHtml)
+// legitimately uses font-weight:800 — it renders in system fonts on white paper,
+// not Barlow, so it isn't affected by the 400-700 subset.
+const APP_CSS = HTML.slice(HTML.indexOf("<style>"), HTML.indexOf("</style>"));
+ok("no font-weight:800 in app CSS (Barlow subset stops at 700 — 800 would synthesize)",
+  !APP_CSS.includes("font-weight:800"));
+
+ok("all Barlow faces pre-cached in sw.js for offline",
+  ["400", "500", "600", "700"].every(w => SW.includes(`/fonts/barlow-${w}.woff2`)) &&
+  SW.includes("/fonts/barlow-condensed-600.woff2") &&
+  SW.includes("/fonts/barlow-condensed-700.woff2"));
+
+ok("sw.js cache version bumped past v15 so clients pick up the new fonts",
+  /const V = "forge-v(1[6-9]|[2-9]\d)"/.test(SW));
+
+// Preload: only the two first-paint faces, and crossorigin is mandatory even
+// same-origin — without it the browser fetches each font file twice.
+ok("both first-paint fonts preloaded with crossorigin",
+  ["barlow-400.woff2", "barlow-condensed-600.woff2"].every(f =>
+    new RegExp(`<link rel="preload" href="/fonts/${f.replace(".", "\\.")}"[^>]*as="font"[^>]*crossorigin>`).test(HTML)));
+
+ok("preload is limited to the 2 critical faces (not all 6)",
+  (HTML.match(/rel="preload"[^>]*as="font"/g) || []).length === 2);
+
+ok("tabular-nums rule present and NOT applied to body/prose",
+  HTML.includes("font-variant-numeric: tabular-nums") &&
+  !/^body\{[^}]*font-variant-numeric/m.test(HTML));
+
+ok("mdLite normalises em dash to middot and en dash to hyphen",
+  HTML.includes('replace(/[ \\t]*\u2014[ \\t]*/g, " \u00b7 ")') &&
+  HTML.includes('replace(/[ \\t]*\u2013[ \\t]*/g, "-")'));
+
+// A middot-for-em-dash swap in mdLite only fixes AI text. Hand-written strings
+// have to be clean at the source, or the UI shows em dashes the moment a
+// template literal renders. Sweep the bundle for em dashes that survive inside
+// a quoted string / template literal, ignoring comments and the mdLite regex.
+{
+  const offenders = [];
+  let inBlockComment = false, inHtmlComment = false;
+  HTML.split("\n").forEach((line, i) => {
+    // Strip comments before looking for em dashes, tracking /* */ and <!-- -->
+    // across lines so continuation lines don't register as strings.
+    let code = "";
+    for (let j = 0; j < line.length; j++) {
+      if (inHtmlComment) {
+        if (line.startsWith("-->", j)) { inHtmlComment = false; j += 2; }
+        continue;
+      }
+      if (inBlockComment) {
+        if (line.startsWith("*/", j)) { inBlockComment = false; j++; }
+        continue;
+      }
+      if (line.startsWith("<!--", j)) { inHtmlComment = true; j += 3; continue; }
+      if (line.startsWith("/*", j)) { inBlockComment = true; j++; continue; }
+      if (line.startsWith("//", j)) break;   // rest of line is a comment
+      code += line[j];
+    }
+    if (!code.includes("\u2014")) return;
+    if (code.includes("[ \\t]*\u2014[ \\t]*")) return;  // the mdLite normaliser itself
+    if (code.includes("const prompt=")) return;         // AI prompts, sent not rendered
+    offenders.push(`${i + 1}: ${code.trim().slice(0, 80)}`);
+  });
+  ok(`no em dash in user-visible strings${offenders.length ? " — found:\n      " + offenders.join("\n      ") : ""}`,
+    offenders.length === 0);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Summary

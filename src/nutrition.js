@@ -283,7 +283,7 @@ export function renderNutrition(){
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
             <input id="foodSearchInp" type="search" placeholder="Search past foods…" value="${esc(_foodSearchQ)}"
               oninput="filterFoodSearch(this.value,'${date}')"
-              style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 13px;font-size:14px;color:var(--white);font-family:'Inter',sans-serif;outline:none"
+              style="flex:1;background:var(--s2);border:1px solid var(--b2);border-radius:10px;padding:10px 13px;font-size:14px;color:var(--white);font-family:var(--font-body);outline:none"
               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button onclick="_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="background:transparent;border:none;color:var(--dim);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
           </div>
@@ -291,10 +291,10 @@ export function renderNutrition(){
         </div>`;
       })():_foodChatOpen?(()=>{
         const recents=recentFoods(date);
-        const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:'Inter',sans-serif;font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
-        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional — e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
+        const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:var(--font-body);font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
+        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional · e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet · ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
-<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:'Inter',sans-serif;font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
+<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">🔍</button></div>`}
     </div>
 
     <!-- Body card: daily burn inputs + weight logging in one place -->
@@ -308,13 +308,13 @@ export function renderNutrition(){
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
         <div class="burn-sep"></div>
         <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="toggleWtOpen()"`} style="cursor:${ro?"default":"pointer"}">
-          <div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim)"}">${(()=>{if(!allWtKeys.length)return"—";const cur=wts[allWtKeys[allWtKeys.length-1]];const curFmt=Number(cur).toFixed(1);if(allWtKeys.length<2)return curFmt;const delta=cur-wts[allWtKeys[allWtKeys.length-2]];const arrow=delta<0?'<span style="font-size:11px;color:var(--green)"> ↓'+Math.abs(delta).toFixed(1)+"</span>":delta>0?'<span style="font-size:11px;color:var(--red)"> ↑'+delta.toFixed(1)+"</span>":"";return curFmt+arrow;})()}</div>
+          <div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim)"}">${(()=>{if(!allWtKeys.length)return"·";const cur=wts[allWtKeys[allWtKeys.length-1]];const curFmt=Number(cur).toFixed(1);if(allWtKeys.length<2)return curFmt;const delta=cur-wts[allWtKeys[allWtKeys.length-2]];const arrow=delta<0?'<span style="font-size:11px;color:var(--green)"> ↓'+Math.abs(delta).toFixed(1)+"</span>":delta>0?'<span style="font-size:11px;color:var(--red)"> ↑'+delta.toFixed(1)+"</span>":"";return curFmt+arrow;})()}</div>
           <div class="burn-lbl">Weight${allWtKeys.length?" kg":""}</div>
         </div>
       </div>
       ${ro?"":_wtOpen
         ? `<div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="e.g. 138.5" inputmode="decimal" enterkeyhint="done" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="toggleWtOpen()">✕</button></div>`
-        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">${allWtKeys.length?"+ Update Weight":"+ Log Weight"}</button>`
+        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:var(--font-body);font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">${allWtKeys.length?"+ Update Weight":"+ Log Weight"}</button>`
       }
     </div>
 
@@ -328,9 +328,9 @@ export function renderNutrition(){
     <details class="st-acc">
       <summary><div><div>🥗 Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
-      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
+      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
-    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
+    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"🥗 Reviewing your week…":"🥗 Generate Weekly Diet Review"}</button>`}
 
     <!-- Weight history & trend -->
     <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
@@ -422,7 +422,7 @@ function zepCardHtml(){
   const due=sched.dueDate;
   const today=isoToday();
   const overdue=sched.overdue;
-  const dueLabel=sched.taken?fmtDate(due):overdue?`overdue since ${fmtDate(due)}`:(due===today?"today — by 5 PM":fmtDate(due)+" · 5 PM");
+  const dueLabel=sched.taken?fmtDate(due):overdue?`overdue since ${fmtDate(due)}`:(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
   const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
   return`<div class="nut-card" style="margin-bottom:10px">
     <div class="nut-card-title">💉 Zepbound</div>
@@ -434,14 +434,14 @@ function zepCardHtml(){
     </div>
     ${_zepOpen?`<div style="border-top:1px solid var(--b1);padding-top:12px;margin-top:4px">
       <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Date</div>
-      <input type="date" value="${_zepDate}" onchange="_zepDate=this.value" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:9px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--white);outline:none;margin-bottom:10px;-webkit-appearance:none">
+      <input type="date" value="${_zepDate}" onchange="_zepDate=this.value" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:9px 12px;font-family:var(--font-body);font-size:13px;color:var(--white);outline:none;margin-bottom:10px;-webkit-appearance:none">
       <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Dose</div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">${ZEP_DOSES_MG.map(mg=>`<button onclick="_zepMg=${mg};renderNutrition()" style="flex:1;background:${_zepMg===mg?"var(--accent)":"var(--s2)"};color:${_zepMg===mg?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px 4px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">${mg}mg</button>`).join("")}</div>
+      <div style="display:flex;gap:6px;margin-bottom:12px">${ZEP_DOSES_MG.map(mg=>`<button onclick="_zepMg=${mg};renderNutrition()" style="flex:1;background:${_zepMg===mg?"var(--accent)":"var(--s2)"};color:${_zepMg===mg?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px 4px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">${mg}mg</button>`).join("")}</div>
       <div style="display:flex;gap:8px">
-        <button onclick="logZepDose(_zepDate,_zepMg)" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer">Save</button>
-        <button onclick="toggleZepOpen()" style="padding:10px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dim);cursor:pointer">✕</button>
+        <button onclick="logZepDose(_zepDate,_zepMg)" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-size:13px;font-weight:700;cursor:pointer">Save</button>
+        <button onclick="toggleZepOpen()" style="padding:10px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--dim);cursor:pointer">✕</button>
       </div>
-    </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">+ Log Dose</button>`}
+    </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:var(--font-body);font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">+ Log Dose</button>`}
     ${doses.length?`<div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:10px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">History</div>${doses.slice().reverse().slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--mid)">${fmtDate(d.date)}</span><span style="font-weight:600">${d.mg}mg</span><button onclick="delZepDose('${d.date}')" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px 6px">✕</button></div>`).join("")}</div>`:""}
   </div>`;
 }
@@ -458,12 +458,12 @@ async function generateDietReview(){
     const r=await fetchT(API_CFG.baseUrl+"/api/cron-diet-review",{method:"POST",headers:{"Authorization":"Bearer "+API_CFG.token}},30000);
     const d=await r.json().catch(()=>({}));
     if(r.status===401){showToast("❌ Auth failed · app token doesn't match FORGE_API_TOKEN");return;}
-    if(d.skipped){showToast("No food logged this week yet — nothing to review");return;}
+    if(d.skipped){showToast("No food logged this week yet. Nothing to review.");return;}
     if(!r.ok||!d.ok)throw new Error(d.error||"error");
     await loadServerState(false);
     showToast("✅ Diet review ready");
   }catch(e){
-    showToast("❌ Diet review failed — try again");
+    showToast("❌ Diet review failed. Try again.");
   }finally{
     _dietRevBusy=false;renderNutrition();
   }
@@ -514,24 +514,24 @@ function phaseHealth(p,todayIso){
   if(d<=1)return{colour:"green",label:d<-1?"Ahead of schedule":"On track"};
   if(d<=2)return{colour:"yellow",label:"Slightly behind"};
   if(d<=4)return{colour:"orange",label:"Moderately behind"};
-  return{colour:"red",label:"Off track — reassess"};
+  return{colour:"red",label:"Off track: reassess"};
 }
 // End-of-phase colour bands with the user's prescribed actions, verbatim rule
 function phaseVerdict(p,finalAvg){
   const d=finalAvg-p.targetKg;
   if(d<=1)return{band:"green",title:"🟢 On Target",action:"No changes. Continue to the next phase exactly as planned."};
   if(d<=2)return{band:"yellow",title:"🟡 Slightly Behind",action:"Keep calories the same. Increase average active calories by 100/day. Recalculate the next phase."};
-  if(d<=4)return{band:"orange",title:"🟠 Moderately Behind",action:"Decision point — Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
+  if(d<=4)return{band:"orange",title:"🟠 Moderately Behind",action:"Decision point. Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
   return{band:"red",title:"🔴 Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, Zepbound dose and response, and any injury or illness. Only then adjust calories, activity, or the timeline."};
 }
 // Exactly one rule-based actionable recommendation (deterministic, no AI)
 function coachRecommendation(p,todayIso,comp){
   const h=phaseHealth(p,todayIso);
   if(!h||!comp||comp.calculating)return"Log food and weight consistently this week to unlock recommendations.";
-  if(h.colour==="green"&&comp.overall>=90)return"Excellent adherence — avoid the temptation to cut calories further.";
+  if(h.colour==="green"&&comp.overall>=90)return"Excellent adherence. Avoid the temptation to cut calories further.";
   if(h.colour==="green")return"Stay the course.";
   if(comp.active<90)return"Increase active calories by roughly 100/day next week.";
-  if(comp.calories<80)return"Keep more days at or under the calorie target — that's the biggest lever right now.";
+  if(comp.calories<80)return"Keep more days at or under the calorie target. That's the biggest lever right now.";
   return"Hold targets steady and prioritise consistency over intensity.";
 }
 // Append last week's score to the quiet compliance history once it's complete
@@ -680,7 +680,7 @@ function phaseCardHtml(){
     verdictHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
       <div style="font-weight:700;font-size:14px;margin-bottom:4px">${v.title} · final 7-day avg ${finalAvg} kg vs target ${p.targetKg} kg</div>
       <div style="font-size:12px;color:var(--lt);line-height:1.6">${v.action}</div>
-      <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
+      <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
     </div>`;
   }
   const inLastWeek=daysBetween(t,end)<=7&&st!=="completed";
@@ -724,7 +724,7 @@ function phaseCardHtml(){
         '<span style="font-family:var(--font-display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+Number(latest).toFixed(1)+' <span style="font-size:13px;font-weight:600;color:var(--mid)">kg</span></span>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">'+
-        '<span>Target: '+p.targetKg+' kg — '+remaining+' to go</span>'+
+        '<span>Target: '+p.targetKg+' kg · '+remaining+' to go</span>'+
         '<span>Start: '+p.startKg+' kg</span>'+
       '</div>'+
     '</div>';
@@ -753,7 +753,7 @@ function phaseCardHtml(){
 
   const zepOverdue=zepSchedule().overdue;
   const compGridItem=(lbl,v,isZep)=>{
-    if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px dashed var(--b2)"><span style="font-size:15px;font-weight:700;color:var(--dim)">—</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Zepbound<br><span style="font-size:9px">not due</span></span></div>';
+    if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px dashed var(--b2)"><span style="font-size:15px;font-weight:700;color:var(--dim)">·</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Zepbound<br><span style="font-size:9px">not due</span></span></div>';
     const col=v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px"><span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:'+col+'">'+v+'%</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">'+lbl+'</span></div>';
   };
@@ -793,22 +793,22 @@ function phaseCardHtml(){
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
         ${compHtml}
       </div>
-      ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift — add ~100 kcal/day active or revisit the plan.</div>`:""}
+      ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift: add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
       ${verdictHtml}
       ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">🤖 Coach review · ${fmtDate(new Date(S.phaseReview.at).toISOString().slice(0,10))}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":"🤖 Review now"}</button>
-        ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
-          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
-        ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
+        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":"🤖 Review now"}</button>
+        ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
+          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
+        ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
       </div>
       ${openPause?`<div style="${nMuted};margin-top:8px">Paused · ${esc(openPause.reason)} · ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?" · extends phase":" · deadline unchanged"}</div>`:""}
       ${_phasePauseOpen&&!openPause?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px;background:var(--s2)">
         <div style="font-size:12px;font-weight:600;margin-bottom:8px">Pause reason</div>
-        <div style="display:flex;gap:6px;margin-bottom:10px">${["Medical","Vacation","Other"].map(r=>`<button onclick="_phasePauseReason='${r}';renderNutrition()" style="flex:1;background:${_phasePauseReason===r?"var(--accent)":"var(--s1)"};color:${_phasePauseReason===r?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px;font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer">${r}</button>`).join("")}</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px">${["Medical","Vacation","Other"].map(r=>`<button onclick="_phasePauseReason='${r}';renderNutrition()" style="flex:1;background:${_phasePauseReason===r?"var(--accent)":"var(--s1)"};color:${_phasePauseReason===r?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer">${r}</button>`).join("")}</div>
         <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--lt);margin-bottom:10px"><input type="checkbox" id="pauseExtend" ${_phasePauseExtend?"checked":""} onchange="_phasePauseExtend=this.checked"> Extend the phase by the paused days</label>
-        <button onclick="pausePhase('${p.id}',_phasePauseReason,document.getElementById('pauseExtend').checked)" style="width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer">Confirm pause</button>
+        <button onclick="pausePhase('${p.id}',_phasePauseReason,document.getElementById('pauseExtend').checked)" style="width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer">Confirm pause</button>
       </div>`:""}
     </div>
   </details>`;

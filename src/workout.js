@@ -301,7 +301,7 @@ export function renderW(){
         const icon=ex.cat==="physio"?"🟢":ex.cat==="cardio"?"🚴":"💪";
         const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
         const setRows=doneSets.length
-          ?doneSets.map((s,i)=>`<div style="display:flex;gap:8px;font-size:13px;color:var(--mid);padding:2px 0"><span style="color:var(--dim);min-width:40px">Set ${i+1}</span><span>${esc(String(s.weight||"—"))} ${unit} × ${esc(String(s.reps||"—"))}</span></div>`).join("")
+          ?doneSets.map((s,i)=>`<div style="display:flex;gap:8px;font-size:13px;color:var(--mid);padding:2px 0"><span style="color:var(--dim);min-width:40px">Set ${i+1}</span><span>${esc(String(s.weight||"·"))} ${unit} × ${esc(String(s.reps||"·"))}</span></div>`).join("")
           :`<div style="font-size:13px;color:var(--dim)">No sets recorded</div>`;
         h+=`<div class="ex-card ex-card--prev" style="opacity:0.75">
           <div class="ex-top" style="cursor:default">
@@ -766,7 +766,7 @@ function searchEx(q,day){
     .slice(0,8);
   if(!results.length){
     const banned=ctx.isBannedExercise(q);
-    const warn=banned?`<div class="dd-warn">⚠️ Not spine-safe — tap for an AI-suggested safe swap</div>`:"";
+    const warn=banned?`<div class="dd-warn">⚠️ Not spine-safe. Tap for an AI-suggested safe swap</div>`:"";
     const btn=banned
       ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="free" data-day="${d}">AI Alt</button>`
       :`<button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button>`;
@@ -782,7 +782,7 @@ function searchEx(q,day){
     <div class="dd-item-left">
       <div class="dd-name">${esc(e.name)}</div>
       <div class="dd-cat">${esc(e.cat)}${e.muscles?.length?" · "+esc(e.muscles.slice(0,2).join(", ")):""}</div>
-      ${banned?`<div class="dd-warn">⚠️ Not spine-safe — tap for an AI-suggested safe swap</div>`:""}
+      ${banned?`<div class="dd-warn">⚠️ Not spine-safe. Tap for an AI-suggested safe swap</div>`:""}
     </div>
     ${btn}
   </div>`;}).join("");
@@ -1007,7 +1007,7 @@ function prHint(exId,i){
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.textContent=prev?(est>prev.est?"🏆 Est. 1RM: "+est+"kg — new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  el.textContent=prev?(est>prev.est?"🏆 Est. 1RM: "+est+"kg · new PR!":"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps){
@@ -1036,7 +1036,7 @@ function checkMilestones(){
   // ── streak: update longest + fire 3-day toast ──
   const streak=currentStreak();
   if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();queueMilestones();}
-  if(streak===3)showToastBig("🔥 3 days in a row — you're on a streak!");
+  if(streak===3)showToastBig("🔥 3 days in a row. You're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);

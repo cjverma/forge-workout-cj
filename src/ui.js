@@ -24,7 +24,15 @@ export function esc(v) {
 
 export function mdLite(t) {
   let h = esc(t);
-  h = h.replace(/—|–/g, " - ");
+  // No em dashes anywhere in the UI. AI replies are full of them, and mdLite is
+  // the single choke point for every AI-rendered string (chat, diet review,
+  // phase review), so normalise here.
+  //   em dash → " · "  a middot is neutral in prose, list labels AND headings.
+  //     ", " would be wrong in "### Phase 1 — Upper Focus" (comma splice).
+  //   en dash → "-"    these are numeric ranges ("8–12 reps"), where a hyphen
+  //     is correct and a middot would be nonsense.
+  // [ \t]* not \s* on purpose: \s matches \n and would join separate lines.
+  h = h.replace(/[ \t]*—[ \t]*/g, " · ").replace(/[ \t]*–[ \t]*/g, "-");
   h = h.replace(/^#{1,3} (.+)$/gm, "<b>$1</b>");
   h = h.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
   h = h.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, "$1<i>$2</i>");

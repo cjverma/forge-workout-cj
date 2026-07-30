@@ -375,8 +375,8 @@ async function emailCSV(){
       body:JSON.stringify({filename:`forge-export-${isoToday()}.csv`,content:btoa(unescape(encodeURIComponent(csv)))})
     },30000);
     if(res.ok)showToast("CSV emailed to you 📧");
-    else showToast("Email failed — use backup download");
-  }catch(e){showToast("Email failed — use backup download");}
+    else showToast("Email failed. Use backup download.");
+  }catch(e){showToast("Email failed. Use backup download.");}
   finally{if(btn){btn.disabled=false;btn.textContent="Email My Data";}}
 }
 function buildSVGBarChart(title,data,getVal,getCol,legend,pTarget){
@@ -411,9 +411,9 @@ function buildSVGMacrosChart(t){
   // Table: rows = macros, cols = days
   const days=t.map(d=>({lbl:d.lbl,iso:d.iso.slice(5),p:Math.round(d.protein||0),c:Math.round(d.carbs||0),f:Math.round(d.fat||0),today:d.isToday}));
   const cols=days.map(d=>`<th style="text-align:center;padding:5px 6px;font-size:10px;background:#f3f4f6;color:${d.today?"#55700B":"#6b7280"};font-weight:${d.today?"700":"500"}">${d.lbl}<br><span style="font-weight:400;font-size:9px">${d.iso}</span></th>`).join("");
-  const pRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#2E6FD8;font-weight:600">${d.p||"—"}</td>`).join("");
-  const cRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#B8720E;font-weight:600">${d.c||"—"}</td>`).join("");
-  const fRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#178A43;font-weight:600">${d.f||"—"}</td>`).join("");
+  const pRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#2E6FD8;font-weight:600">${d.p||"·"}</td>`).join("");
+  const cRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#B8720E;font-weight:600">${d.c||"·"}</td>`).join("");
+  const fRow=days.map(d=>`<td style="text-align:center;padding:5px 6px;color:#178A43;font-weight:600">${d.f||"·"}</td>`).join("");
   return`<div class="pdf-chart pdf-chart-full" style="grid-column:1/-1"><div class="pdf-chart-title">Daily Macros (grams)</div>
     <table style="width:100%;border-collapse:collapse;font-size:11px">
       <thead><tr><th style="text-align:left;padding:5px 6px;background:#f3f4f6;font-size:10px;color:#6b7280"></th>${cols}</tr></thead>
@@ -481,7 +481,7 @@ function buildPDFReport(){
     return Object.entries(sessMap).filter(([k,ed])=>k[0]!=="_"&&ed?.sets?.some(s=>s.done)).map(([exId,ed])=>{
       const doneSets=ed.sets.filter(s=>s.done);
       const maxW=Math.max(...doneSets.map(s=>s.weight||0));
-      return`<tr><td>${fmtDate(date)}</td><td>${esc(exName(exId))}</td><td>${doneSets.length} sets</td><td>${maxW>0?maxW+"kg":"—"}</td></tr>`;
+      return`<tr><td>${fmtDate(date)}</td><td>${esc(exName(exId))}</td><td>${doneSets.length} sets</td><td>${maxW>0?maxW+"kg":"·"}</td></tr>`;
     });
   }).join("");
   // Session notes and calf twinges
@@ -620,8 +620,8 @@ function findN(id){
 
 const CLEAR_DATA_CONFIRM_NAME="Chiranjay Verma";
 function clearD(){
-  if(!confirm("⚠️ This permanently deletes ALL your data — every workout, nutrition entry, weight log, personal record, and custom exercise — on this device AND in the database.\n\nThis cannot be undone.\n\nContinue?"))return;
-  if(!confirm("⚠️ Are you absolutely sure? There is no way to recover this once deleted — not from backups, not from the cloud, nothing.\n\nYou'll need to type your name on the next screen to confirm."))return;
+  if(!confirm("⚠️ This permanently deletes ALL your data (every workout, nutrition entry, weight log, personal record, and custom exercise) on this device AND in the database.\n\nThis cannot be undone.\n\nContinue?"))return;
+  if(!confirm("⚠️ Are you absolutely sure? There is no way to recover this once deleted. Not from backups, not from the cloud, nothing.\n\nYou'll need to type your name on the next screen to confirm."))return;
   const typed=prompt(`Type your full name exactly ("${CLEAR_DATA_CONFIRM_NAME}") to permanently delete everything:`);
   if(typed===null)return;
   if(typed!==CLEAR_DATA_CONFIRM_NAME){showToast("Name didn't match · nothing was deleted");return;}
@@ -640,7 +640,7 @@ async function wipeAllData(){
     const k=localStorage.key(i);
     if(k&&(k==="f5"||k==="f5_outbox"||k==="f5_snapshots"||k.startsWith("f5_daily_")))localStorage.removeItem(k);
   }
-  if(!dbOk)alert("Local data was cleared, but the database wipe failed (network or server error). Your cloud data may still exist — reopen the app and try Clear All Data again once you're back online.");
+  if(!dbOk)alert("Local data was cleared, but the database wipe failed (network or server error). Your cloud data may still exist. Reopen the app and try Clear All Data again once you're back online.");
   location.reload();
 }
 

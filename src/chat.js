@@ -72,7 +72,7 @@ function buildChatContext(){
 }
 function renderAiChatBubbles(){
   if(!S.aiChat||!S.aiChat.length){
-    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">🤖</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain — I've got context on your training and logs.</div></div>`;
+    return`<div class="ai-chat-empty"><div class="ai-chat-empty-icon">🤖</div><div class="ai-chat-empty-ttl">Ask Forge anything</div><div class="ai-chat-empty-sub">Nutrition, exercises, progress, calf pain. I've got context on your training and logs.</div></div>`;
   }
   return S.aiChat.slice(-20).map(m=>m.role==="user"
     ?`<div class="chat-bubble chat-user">${esc(m.text)}</div>`

@@ -68,7 +68,36 @@ HERO TOKENS (theme-independent — hero cards stay dark in BOTH themes):
 - Used for: hero titles, page titles, big numerals (rest timer, kcal remaining,
   summary stats) — always with `text-transform:uppercase` and
   `font-variant-numeric:tabular-nums` on counters.
-- Body/buttons/inputs/nav stay Inter.
+- Body/buttons/inputs/nav use **Barlow 400/500/600/700** via `var(--font-body)`
+  — the non-condensed sibling of the display font, so the whole app is one
+  superfamily. Also self-hosted in `/fonts/barlow-*.woff2` and pre-cached.
+  Never hardcode a family name; never reintroduce Inter or a CDN font link.
+- Barlow is loaded at **400–700 only**. Don't use `font-weight:800` in app CSS —
+  the browser would synthesize it. (The PDF print report is exempt: it renders
+  in system fonts on white paper.)
+- **Tabular numerals are not automatic.** Barlow defaults to proportional
+  figures, so any number that updates in place (weights, reps, timers, macro
+  counters, table cells) jitters horizontally as digits change — `136.6` and
+  `111.1` differ by ~8px. Add new counters/inputs/cells to the shared
+  `font-variant-numeric:tabular-nums` rule in `index.html`. Never put it on
+  `body` or prose containers: tabular digits in running text read wide and gappy.
+- Any new critical font face needs three things: an `@font-face`, a
+  `<link rel="preload" ... crossorigin>` (crossorigin is mandatory even
+  same-origin, or the file is fetched twice), and an entry in `sw.js` PRECACHE.
+  Keep preloads to the faces that paint on first frame — currently
+  `barlow-400` + `barlow-condensed-600`.
+
+### No em dashes in UI text
+- User-visible strings must not contain `—`. Reword instead: split into two
+  sentences, or use `·` (labels, stats, chips), a colon, or a comma. Never a
+  hyphen between words — that reads as a typo.
+- `·` is also the "no value" placeholder in tables and set rows.
+- `mdLite()` in `src/ui.js` normalises AI output at render time: em dash → ` · `,
+  en dash → `-` (en dashes are numeric ranges like `8–12 reps`). It matches
+  `[ \t]*` not `\s*` on purpose — `\s` would swallow newlines and join lines.
+- Code comments may use em dashes freely. AI *prompt* strings are exempt too
+  (never rendered), and the test sweep skips both.
+- `node test.js` fails the build if an em dash reaches a user-visible string.
 
 ### Modals and overlays
 - Background: `var(--black)` — same as the app surface, shifts with theme

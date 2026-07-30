@@ -1,13 +1,17 @@
 // Cache version — bump this string to force all clients to update immediately.
 // The registration code in index.html detects a new waiting SW and reloads.
-const V = "forge-v15";
+const V = "forge-v16";
 
 // Static assets pre-cached at install so the app renders fully offline
-// (self-hosted display font must never depend on the network mid-session).
+// (self-hosted fonts must never depend on the network mid-session).
 const PRECACHE = [
   "/dist/app.js",
   "/fonts/barlow-condensed-600.woff2",
   "/fonts/barlow-condensed-700.woff2",
+  "/fonts/barlow-400.woff2",
+  "/fonts/barlow-500.woff2",
+  "/fonts/barlow-600.woff2",
+  "/fonts/barlow-700.woff2",
 ];
 
 self.addEventListener("install", e => {
