@@ -1074,10 +1074,36 @@ function checkAndStorePR(exId,weight,reps){
     showToastBig("🏆 New PR! "+est+"kg est. 1RM");
   }
 }
+// A day the active program schedules nothing for. Right now that's Wednesday
+// and Sunday: PROG is PROG_V3 with physio stripped until Aug 11, which leaves
+// both days with zero exercises. There is literally nothing to log, so these
+// must not count against a streak.
+// Caveat: PROG is resolved for TODAY's date, so a streak spanning a program
+// change reads the current week's rest days. Every other PROG consumer in the
+// app has the same limitation; fixing it properly means date-aware program
+// lookup, which is a bigger change than this bug warrants.
+function isProgramRestDay(iso){
+  const d=new Date(iso+"T12:00:00");
+  const day=DAYS[d.getDay()===0?6:d.getDay()-1];
+  return !(PROG[day]?.exercises||[]).length;
+}
+
 function currentStreak(){
   const today=isoToday();
   let n=0;
-  for(let i=0;i<365;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(ctx.trainedOn(isoDate(d)))n++;else break;}
+  for(let i=0;i<365;i++){
+    const d=new Date(today+"T12:00:00");
+    d.setDate(d.getDate()-i);
+    const iso=isoDate(d);
+    // Rest days pass straight through: they neither break the streak nor pad
+    // it. Counting them would make "3 days in a row" fire after two sessions.
+    if(isProgramRestDay(iso))continue;
+    if(ctx.trainedOn(iso)){n++;continue;}
+    // Today not being logged yet is not a broken streak, it's an unfinished
+    // day. Without this the badge vanished every morning until you trained.
+    if(i===0)continue;
+    break;
+  }
   return n;
 }
 function checkMilestones(){

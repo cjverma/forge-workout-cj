@@ -1022,6 +1022,36 @@ ok("deleting a set with logged data asks first",
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Streak: rest days must not break it
+// ─────────────────────────────────────────────────────────────────────────────
+
+// The active program is PROG_V3 with physio stripped until Aug 11, which leaves
+// Wednesday and Sunday with zero exercises. currentStreak() used to `break` on
+// the first untrained day, so a programmed rest day reset the streak to 1.
+ok("currentStreak skips programmed rest days instead of breaking",
+  /function isProgramRestDay/.test(WORKOUT) &&
+  /if\(isProgramRestDay\(iso\)\)continue;/.test(WORKOUT));
+
+ok("an unlogged TODAY does not break the streak",
+  /if\(i===0\)continue;/.test(WORKOUT));
+
+// Rest days must not increment either, or the "3 days in a row" milestone
+// would fire after two actual sessions.
+ok("rest days pass through without padding the count",
+  !/isProgramRestDay\(iso\)\)\{?n\+\+/.test(WORKOUT));
+
+// A genuine missed training day must still end the streak.
+ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WORKOUT));
+
+// Guards the premise: if the program ever gains exercises on every day, the
+// rest-day branch becomes dead code and this test says so out loud.
+{
+  const C = readFileSync("src/constants.js", "utf8");
+  ok("active program still has at least one zero-exercise rest day",
+    /_sp\(_base\)/.test(C) && /filter\(e=>e\.cat!=="physio"\)/.test(C));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);
