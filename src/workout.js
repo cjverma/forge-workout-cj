@@ -3,7 +3,7 @@ import { isoToday, isoDate } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
-import { EX_DB, PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, GYM } from "./constants.js";
+import { EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -248,7 +248,7 @@ export function renderW(){
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
+    ${(()=>{const {days:streak}=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
   </div>`;
   if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -1085,35 +1085,50 @@ function checkAndStorePR(exId,weight,reps){
 function isProgramRestDay(iso){
   const d=new Date(iso+"T12:00:00");
   const day=DAYS[d.getDay()===0?6:d.getDay()-1];
-  return !(PROG[day]?.exercises||[]).length;
+  // programFor(d), not PROG: PROG is a snapshot of TODAY's program, so using it
+  // would judge a past date by a schedule that wasn't in force yet.
+  return !(programFor(d)[day]?.exercises||[]).length;
 }
 
+// Walks back from today and returns both numbers the UI needs:
+//   days     — what the badge shows. Rest days COUNT, because resting on a
+//              scheduled rest day is following the program, not missing it.
+//   sessions — actual workouts in that run, used for milestones so "3 days in
+//              a row" can't fire off two workouts plus a rest day.
 function currentStreak(){
   const today=isoToday();
-  let n=0;
+  let days=0,sessions=0,pendingRest=0;
   for(let i=0;i<365;i++){
     const d=new Date(today+"T12:00:00");
     d.setDate(d.getDate()-i);
     const iso=isoDate(d);
-    // Rest days pass straight through: they neither break the streak nor pad
-    // it. Counting them would make "3 days in a row" fire after two sessions.
-    if(isProgramRestDay(iso))continue;
-    if(ctx.trainedOn(iso)){n++;continue;}
-    // Today not being logged yet is not a broken streak, it's an unfinished
-    // day. Without this the badge vanished every morning until you trained.
+    if(isProgramRestDay(iso)){
+      // Buffered, not counted yet. A rest day may only EXTEND a streak that an
+      // older session already established, never start one — otherwise a fresh
+      // install would read "1 day streak" just for opening the app on a
+      // Wednesday, and a trailing rest day would pad the run by one.
+      pendingRest++;
+      continue;
+    }
+    if(ctx.trainedOn(iso)){
+      days+=pendingRest+1;pendingRest=0;sessions++;
+      continue;
+    }
+    // Today not being logged yet is an unfinished day, not a broken streak.
+    // Without this the badge vanished every morning until the first set.
     if(i===0)continue;
     break;
   }
-  return n;
+  return{days,sessions};
 }
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
   const wkKey=ctx.wk();
   // ── streak: update longest + fire 3-day toast ──
-  const streak=currentStreak();
+  const {days:streak,sessions}=currentStreak();
   if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();queueMilestones();}
-  if(streak===3)showToastBig("🔥 3 days in a row. You're on a streak!");
+  if(sessions===3)showToastBig("🔥 3 days in a row. You're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);

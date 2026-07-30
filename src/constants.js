@@ -505,10 +505,27 @@ export const PROG_V4={
 
 // Active program: V3 return block Jul 28–Aug 3, V4 (Southpaw) from Aug 4 onwards.
 // Physio stripped until Aug 11 — no effect on phase calculations.
+// Memoised on the source object: only four programs can ever be passed in, and
+// programFor() gets called in a loop when walking back over a streak.
+const _spCache=new Map();
+function _sp(p){
+  if(_spCache.has(p))return _spCache.get(p);
+  const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};
+  _spCache.set(p,o);return o;
+}
+
+// Which program was active on a GIVEN date, rather than only "right now".
+// History matters: on Aug 11 physio comes back, which turns Wednesday and
+// Sunday from zero-exercise rest days into training days. Anything reasoning
+// about past dates (the streak) has to ask what was scheduled THEN, or every
+// pre-Aug-11 rest day suddenly reads as a missed workout.
+export function programFor(date){
+  const base=date>=new Date(2026,7,4)?PROG_V4:date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+  return date<new Date(2026,7,11)?_sp(base):base;
+}
+
 const _pd=new Date();
-function _sp(p){const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};return o;}
-const _base=_pd>=new Date(2026,7,4)?PROG_V4:_pd>=new Date(2026,6,28)?PROG_V3:_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
-export const PROG=_pd<new Date(2026,7,11)?_sp(_base):_base;
+export const PROG=programFor(_pd);
 
 export const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 export const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";

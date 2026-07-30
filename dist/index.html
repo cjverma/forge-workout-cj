@@ -1384,10 +1384,27 @@ const PROG_V4={
 
 // Active program: V3 return block Jul 28–Aug 3, V4 (Southpaw) from Aug 4 onwards.
 // Physio stripped until Aug 11 — no effect on phase calculations.
+// Memoised on the source object: only four programs can ever be passed in, and
+// programFor() gets called in a loop when walking back over a streak.
+const _spCache=new Map();
+function _sp(p){
+  if(_spCache.has(p))return _spCache.get(p);
+  const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};
+  _spCache.set(p,o);return o;
+}
+
+// Which program was active on a GIVEN date, rather than only "right now".
+// History matters: on Aug 11 physio comes back, which turns Wednesday and
+// Sunday from zero-exercise rest days into training days. Anything reasoning
+// about past dates (the streak) has to ask what was scheduled THEN, or every
+// pre-Aug-11 rest day suddenly reads as a missed workout.
+function programFor(date){
+  const base=date>=new Date(2026,7,4)?PROG_V4:date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+  return date<new Date(2026,7,11)?_sp(base):base;
+}
+
 const _pd=new Date();
-function _sp(p){const o={};for(const[d,v]of Object.entries(p))o[d]={...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};return o;}
-const _base=_pd>=new Date(2026,7,4)?PROG_V4:_pd>=new Date(2026,6,28)?PROG_V3:_pd>=new Date(2026,5,1)?PROG_V2:PROG_V1;
-const PROG=_pd<new Date(2026,7,11)?_sp(_base):_base;
+const PROG=programFor(_pd);
 
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";
@@ -2222,7 +2239,7 @@ function renderW(){
     <div class="hero-title">${esc(prog.label)}</div>
     ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const streak=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
+    ${(()=>{const {days:streak}=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
   </div>`;
   if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
@@ -3059,35 +3076,50 @@ function checkAndStorePR(exId,weight,reps){
 function isProgramRestDay(iso){
   const d=new Date(iso+"T12:00:00");
   const day=DAYS[d.getDay()===0?6:d.getDay()-1];
-  return !(PROG[day]?.exercises||[]).length;
+  // programFor(d), not PROG: PROG is a snapshot of TODAY's program, so using it
+  // would judge a past date by a schedule that wasn't in force yet.
+  return !(programFor(d)[day]?.exercises||[]).length;
 }
 
+// Walks back from today and returns both numbers the UI needs:
+//   days     — what the badge shows. Rest days COUNT, because resting on a
+//              scheduled rest day is following the program, not missing it.
+//   sessions — actual workouts in that run, used for milestones so "3 days in
+//              a row" can't fire off two workouts plus a rest day.
 function currentStreak(){
   const today=isoToday();
-  let n=0;
+  let days=0,sessions=0,pendingRest=0;
   for(let i=0;i<365;i++){
     const d=new Date(today+"T12:00:00");
     d.setDate(d.getDate()-i);
     const iso=isoDate(d);
-    // Rest days pass straight through: they neither break the streak nor pad
-    // it. Counting them would make "3 days in a row" fire after two sessions.
-    if(isProgramRestDay(iso))continue;
-    if(ctx.trainedOn(iso)){n++;continue;}
-    // Today not being logged yet is not a broken streak, it's an unfinished
-    // day. Without this the badge vanished every morning until you trained.
+    if(isProgramRestDay(iso)){
+      // Buffered, not counted yet. A rest day may only EXTEND a streak that an
+      // older session already established, never start one — otherwise a fresh
+      // install would read "1 day streak" just for opening the app on a
+      // Wednesday, and a trailing rest day would pad the run by one.
+      pendingRest++;
+      continue;
+    }
+    if(ctx.trainedOn(iso)){
+      days+=pendingRest+1;pendingRest=0;sessions++;
+      continue;
+    }
+    // Today not being logged yet is an unfinished day, not a broken streak.
+    // Without this the badge vanished every morning until the first set.
     if(i===0)continue;
     break;
   }
-  return n;
+  return{days,sessions};
 }
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
   const wkKey=ctx.wk();
   // ── streak: update longest + fire 3-day toast ──
-  const streak=currentStreak();
+  const {days:streak,sessions}=currentStreak();
   if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();queueMilestones();}
-  if(streak===3)showToastBig("🔥 3 days in a row. You're on a streak!");
+  if(sessions===3)showToastBig("🔥 3 days in a row. You're on a streak!");
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);

@@ -1029,27 +1029,46 @@ ok("delete control is hidden on read-only days",
 // The active program is PROG_V3 with physio stripped until Aug 11, which leaves
 // Wednesday and Sunday with zero exercises. currentStreak() used to `break` on
 // the first untrained day, so a programmed rest day reset the streak to 1.
-ok("currentStreak skips programmed rest days instead of breaking",
+ok("currentStreak has a rest-day branch that does not break",
   /function isProgramRestDay/.test(WORKOUT) &&
-  /if\(isProgramRestDay\(iso\)\)continue;/.test(WORKOUT));
+  /if\(isProgramRestDay\(iso\)\)\{[\s\S]{0,400}?pendingRest\+\+;[\s\S]{0,40}continue;/.test(WORKOUT));
 
 ok("an unlogged TODAY does not break the streak",
   /if\(i===0\)continue;/.test(WORKOUT));
 
-// Rest days must not increment either, or the "3 days in a row" milestone
-// would fire after two actual sessions.
-ok("rest days pass through without padding the count",
-  !/isProgramRestDay\(iso\)\)\{?n\+\+/.test(WORKOUT));
+// Rest days COUNT, but only once an older session commits them. Incrementing
+// directly would let a rest day start a streak, so a fresh install would read
+// "1 day streak" just for opening the app on a Wednesday.
+ok("a rest day cannot start a streak, only extend one",
+  /days\+=pendingRest\+1;pendingRest=0;/.test(WORKOUT) &&
+  !/isProgramRestDay\(iso\)\)\{days\+\+/.test(WORKOUT));
+
+// Milestones must count real workouts, not padded days, or "3 days in a row"
+// fires off two sessions plus a rest day.
+ok("milestone toast keys off real sessions, not padded days",
+  /if\(sessions===3\)showToastBig/.test(WORKOUT) &&
+  !/if\(streak===3\)showToastBig/.test(WORKOUT));
 
 // A genuine missed training day must still end the streak.
 ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WORKOUT));
 
-// Guards the premise: if the program ever gains exercises on every day, the
-// rest-day branch becomes dead code and this test says so out loud.
 {
   const C = readFileSync("src/constants.js", "utf8");
+  // Rest days are only judged correctly if history is honoured: physio returns
+  // Aug 11, flipping Sunday from a rest day into a training day. Using today's
+  // PROG for a past date would re-read old rest days as missed workouts.
+  ok("rest-day lookup is date-aware, not a snapshot of today",
+    /export function programFor\(date\)/.test(C) &&
+    /programFor\(d\)\[day\]/.test(WORKOUT) &&
+    !/return !\(PROG\[day\]/.test(WORKOUT));
+
+  ok("PROG is still derived from programFor so today's behaviour is unchanged",
+    /export const PROG=programFor\(_pd\)/.test(C));
+
+  // Guards the premise: if every day gains exercises, the rest-day branch is
+  // dead code and this says so out loud rather than passing silently.
   ok("active program still has at least one zero-exercise rest day",
-    /_sp\(_base\)/.test(C) && /filter\(e=>e\.cat!=="physio"\)/.test(C));
+    /filter\(e=>e\.cat!=="physio"\)/.test(C));
 }
 
 ok("set row and header grids have matching column counts", (() => {
