@@ -491,7 +491,7 @@ function weekCompliance(p,weekStartIso,endIso){
   const days=[];
   for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
   if(!days.length)return{calculating:true};
-  let calOk=0,calLogged=0,protSum=0,protDays=0,actSum=0,actTgtSum=0,workoutDays=0,expWorkout=0,weighins=0;
+  let calOk=0,calLogged=0,protSum=0,protDays=0,actSum=0,actTgtSum=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
   for(const d of days){
     const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
     const kcal=items.reduce((s,it)=>s+(it.kcal||0),0);
@@ -500,9 +500,20 @@ function weekCompliance(p,weekStartIso,endIso){
       if(kcal<=p.eatKcal*1.05)calOk++;
       protSum+=items.reduce((s,it)=>s+(it.protein||0),0);protDays++;
     }
-    actSum+=nd.active||0;actTgtSum+=phaseActiveTarget(p,d);
+    // The current day is still in progress, so charging it a FULL day's active
+    // target marks you down for hours that have not happened yet. At 9am on
+    // Thursday you were already "failing" 1500 kcal you had all day to earn.
+    // The calories metric already only counts days with food logged; active and
+    // weigh-ins were not partial-week safe in the same way. Only skip today
+    // when there is at least one completed day to score against, otherwise a
+    // Monday would have no denominator at all.
+    const inProgress=d===isoToday()&&days.length>1;
+    if(!inProgress){
+      actSum+=nd.active||0;actTgtSum+=phaseActiveTarget(p,d);
+      if((S.nutrition.weights||{})[d]!=null)weighins++;
+      weighinDays++;
+    }
     if(!isRestDay(d)){expWorkout++;if(trainedOn(d))workoutDays++;}
-    if((S.nutrition.weights||{})[d]!=null)weighins++;
   }
   if(!calLogged)return{calculating:true};
   // Zepbound: taken this Tuesday cycle (last Tue → now) = 100, else 0
@@ -512,7 +523,7 @@ function weekCompliance(p,weekStartIso,endIso){
     active:Math.min(100,Math.round(actTgtSum?actSum/actTgtSum*100:0)),
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
-    weighins:Math.round(weighins/days.length*100),
+    weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
     zepbound:zepTaken,
   };
   m.overall=Math.round(Object.entries(COMPLIANCE_WEIGHTS).reduce((s,[k,w])=>s+(m[k]||0)*w,0));

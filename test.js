@@ -1257,6 +1257,44 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     !/\.add-food-btn\{[^}]*text-transform:uppercase/.test(APP_CSS));
 }
 
+// Compliance: the in-progress day must not be scored as a completed one.
+{
+  const NUT3 = readFileSync("src/nutrition.js", "utf8");
+  ok("today is excluded from the active/weigh-in denominators",
+    /const inProgress=d===isoToday\(\)&&days\.length>1;/.test(NUT3) &&
+    /if\(!inProgress\)\{[\s\S]{0,200}actTgtSum\+=phaseActiveTarget/.test(NUT3));
+  ok("weigh-in rate divides by scored days, not raw range length",
+    /weighins:Math\.round\(weighinDays\?weighins\/weighinDays/.test(NUT3) &&
+    !/weighins\/days\.length/.test(NUT3));
+  // Guards the distinction that caused the confusion: these are different
+  // metrics with different weights. Training does not feed "active".
+  ok("active and workouts stay separate metrics",
+    /active:0\.25/.test(NUT3) && /workouts:0\.15/.test(NUT3) &&
+    /actSum\+=nd\.active/.test(NUT3) && /if\(trainedOn\(d\)\)workoutDays\+\+/.test(NUT3));
+}
+
+// Settings tab card pass.
+{
+  const SET2 = readFileSync("src/settings.js", "utf8");
+  // Accordion -> bordered card -> list was three levels of container.
+  ok("volume list is not boxed inside its accordion",
+    /class="vol-list"/.test(SET2) &&
+    !/background:var\(--s2\);border:1px solid var\(--b1\);border-radius:12px/.test(SET2) &&
+    !/SETS DONE \/ PLANNED/.test(SET2));
+  ok("export cards are unboxed inside accordions",
+    /\.export-card\{[^}]*background:transparent/.test(APP_CSS) &&
+    /\.export-card\{[^}]*border:none/.test(APP_CSS));
+  // Five landmark labels per screen inside an accordion that already has a
+  // title is the noise the caption scale exists to prevent.
+  ok("nested section labels demote to captions",
+    /\.st-acc-inner \.st-sec\{[^}]*text-transform:none/.test(APP_CSS));
+  // 18 rows of "0/6" is progress data; it should read as progress.
+  ok("volume rows show a visible track and tabular numbers",
+    /\.vol-bar-wrap\{[^}]*var\(--b1\)/.test(APP_CSS) &&
+    /\.vol-num\{[^}]*tabular-nums/.test(APP_CSS) &&
+    /\.vol-row\+\.vol-row\{border-top/.test(APP_CSS));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);

@@ -34,8 +34,8 @@ export function renderST(){
         ${(()=>{
           const vdata=buildVolumeData();
           if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);padding:0 2px">No exercises planned this week.</div>`;
-          return`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;">`+
-            `<div style="font-size:10px;color:var(--dim);margin-bottom:8px;letter-spacing:0.5px">SETS DONE / PLANNED</div>`+
+          return`<div class="vol-list">`+
+            `<div class="lift-cap">Sets done vs planned</div>`+
             vdata.map(({muscle,planned,done})=>{
               const pct=planned?Math.min(100,Math.round(done/planned*100)):0;
               const full=planned&&done>=planned;
