@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V4, PROG, programFor, PR_ALIAS, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, PR_ALIAS, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -27,7 +27,28 @@ if(!S.prs)S.prs={};
 const _prCanonMap={},_prNameMap={};
 // Alias applied HERE so every downstream consumer (the migration, PR reads and
 // PR writes) agrees on one slug and a rename cannot split an exercise's history.
-(function(){for(const P of [PROG,PROG_V4])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[])){const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
+// Built from EVERY program version plus EX_DB, not just the current one: PR
+// history outlives the program that created it, so a slug written under V2 must
+// still resolve to a readable name while V4 is active. Alias applied here so the
+// migration, reads and writes all agree on one slug.
+(function(){
+  const add=ex=>{const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;
+    if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
+    if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
+  for(const P of [PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const ex of EX_DB)add(ex);
+})();
+
+// Display name for a PR slug. The de-slug fallback is the important part: it
+// guarantees a readable name for ANY key, so a slug can never leak into the UI
+// as "tricep_extension_machine" just because its exercise left the program.
+function prName(slug){
+  if(!slug)return "";
+  if(_prNameMap[slug])return _prNameMap[slug];
+  if(String(slug).startsWith("c_"))return "Custom exercise";
+  return String(slug).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+}
+ctx.prName=prName;
 ctx._prCanonMap=_prCanonMap;
 // One-time migration: consolidate all day-keyed PR entries → name-slug keys
 if(!S._prCanonMigrated2){

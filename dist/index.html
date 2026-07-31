@@ -360,6 +360,11 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Rest day: shown INSIDE the hero where the progress bar would be, so the
    day is one element rather than a hero plus a notice bar. Hero tokens
    only, per the hero scope rules. */
+/* Intensity tag. Was baked into the label as "Back & Biceps · Heavy", which
+   in the display face wrapped and orphaned "· HEAVY" onto its own line.
+   As a separate baseline-aligned chip it cannot break the title, and it
+   reads as metadata rather than part of the name. */
+.hero-tag{display:inline-block;vertical-align:middle;margin-left:12px;transform:translateY(-0.32em);font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--hero-accent);border:1px solid var(--hero-line);border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap;}
 .hero-next{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--hero-line);}
 .hero-next-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--hero-fg-faint);}
 .hero-next-day{font-family:var(--font-display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--hero-accent);}
@@ -1290,7 +1295,7 @@ const PROG_V3={
 // PROG_V4 — Southpaw Physique Program (Aug 4+)
 // Push/Pull/Rest split; all exercises seated or chest-supported for lower back safety.
 const PROG_V4={
-  Monday:{label:"Chest, Triceps & Forearms · Heavy",sub:"Chest · Triceps · Forearms · Core",exercises:[
+  Monday:{label:"Chest & Triceps",tag:"Heavy",sub:"Chest · Triceps · Forearms",exercises:[
     {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"m4_cpwu",name:"Warm-Up · Chest Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["chest", "triceps", "front delt"],rest:60},
     {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:4,reps:"8-10",hint:"38-45 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Primary mass builder. Go heavy. Full range, 2-3s eccentric, no arching.",muscles:["chest", "triceps", "front delt"],rest:90},
@@ -1302,7 +1307,7 @@ const PROG_V4={
     {id:"m4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"m4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Tuesday:{label:"Back & Biceps · Heavy",sub:"Back thickness · Lats · Rear delts · Biceps",exercises:[
+  Tuesday:{label:"Back & Biceps",tag:"Heavy",sub:"Back · Lats · Biceps",exercises:[
     {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"t4_csrwu",name:"Warm-Up · Chest Supported Row",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["mid back", "rear delt", "biceps"],rest:60},
     {id:"t4_csr",name:"Chest Supported Row",cat:"gym",sets:4,reps:"8-10",hint:"18-26 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Chest on pad, lower back protected. Pull elbows back.",muscles:["mid back", "rear delt", "biceps"],rest:90},
@@ -1323,7 +1328,7 @@ const PROG_V4={
     {id:"w4_cc",name:"Cat-Cow",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Always last.",muscles:[]},
     {id:"w4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
   ]},
-  Thursday:{label:"Legs, Shoulders & Core · Heavy",sub:"Quads · Hamstrings · Calves · Lateral delts · Core",exercises:[
+  Thursday:{label:"Legs & Shoulders",tag:"Heavy",sub:"Legs · Calves · Delts · Core",exercises:[
     {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"th4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"th4_lp",name:"Leg Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on the plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads", "glutes", "hamstrings"],rest:90},
@@ -1337,7 +1342,7 @@ const PROG_V4={
     {id:"th4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"th4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Friday:{label:"Shoulders, Chest & Triceps · Volume",sub:"Lateral delts · Rear delts · Chest · Triceps",exercises:[
+  Friday:{label:"Shoulders & Chest",tag:"Volume",sub:"Delts · Chest · Triceps",exercises:[
     {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"f4_lrwu",name:"Warm-Up · Lateral Raise",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["side delt"],rest:60},
     {id:"f4_slr",name:"Seated Lateral Raise",cat:"gym",sets:6,reps:"12-15",hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"The most important exercise in the plan. Shoulder width is the differentiator.",muscles:["side delt"],rest:60},
@@ -1349,7 +1354,7 @@ const PROG_V4={
     {id:"f4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"f4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Saturday:{label:"Back, Biceps & Forearms · Volume",sub:"Lats · Back thickness · Biceps · Forearms",exercises:[
+  Saturday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
     {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"sa4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
     {id:"sa4_sap",name:"Straight Arm Pulldown",cat:"gym",sets:4,reps:"12-15",hint:"20-28 kg",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Lat width is the priority today.",muscles:["lats", "triceps"],rest:75},
@@ -1362,7 +1367,7 @@ const PROG_V4={
     {id:"sa4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"sa4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Sunday:{label:"Legs & Core · Volume",sub:"Quads · Hamstrings · Calves · Core",exercises:[
+  Sunday:{label:"Legs & Core",tag:"Volume",sub:"Legs · Calves · Core",exercises:[
     {id:"su4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"su4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"su4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:15,hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Volume day. Lighter than Thursday.",muscles:["quads", "glutes", "hamstrings"],rest:75},
@@ -2302,7 +2307,7 @@ function renderW(){
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
-    <div class="hero-title">${esc(prog.label)}</div>
+    <div class="hero-title">${esc(prog.label)}${prog.tag?`<span class="hero-tag">${esc(prog.tag)}</span>`:""}</div>
     ${!total?(()=>{const nx=nextSession();return nx?`<div class="hero-next">
       <span class="hero-next-lbl">Next</span>
       <span class="hero-next-day">${esc(nx.when)}</span>
@@ -3358,7 +3363,7 @@ function renderDrawer(){
       // Custom exercises live in S.custom (not PROG) — seed their names too so
       // PR entries stored under "c_<ts>" ids resolve to real names
       for(const arr of Object.values(S.custom||{}))for(const ex of(arr||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
-      const exName=id=>EX_NAMES[id]||(id.startsWith("c_")?"Custom exercise":id);
+      const exName=id=>EX_NAMES[id]||ctx.prName(id);
       // Leaderboard card (top 5 by est 1RM across all PRs)
       const allPRs=Object.entries(S.prs||{});
       let leaderHtml="";
@@ -4607,7 +4612,7 @@ function buildFullCSV(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||_prNameMap[id]||id;
+  const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
     const m=weekKey.match(/(\d{4})W(\d+)/);
     if(!m)return "";
@@ -4772,7 +4777,7 @@ function buildPDFReport(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||_prNameMap[id]||id;
+  const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
     const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
     return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${fmtDate(best.date)}</td></tr>`;
@@ -5429,7 +5434,28 @@ if(!S.prs)S.prs={};
 const _prCanonMap={},_prNameMap={};
 // Alias applied HERE so every downstream consumer (the migration, PR reads and
 // PR writes) agrees on one slug and a rename cannot split an exercise's history.
-(function(){for(const P of [PROG,PROG_V4])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[])){const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
+// Built from EVERY program version plus EX_DB, not just the current one: PR
+// history outlives the program that created it, so a slug written under V2 must
+// still resolve to a readable name while V4 is active. Alias applied here so the
+// migration, reads and writes all agree on one slug.
+(function(){
+  const add=ex=>{const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;
+    if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
+    if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
+  for(const P of [PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const ex of EX_DB)add(ex);
+})();
+
+// Display name for a PR slug. The de-slug fallback is the important part: it
+// guarantees a readable name for ANY key, so a slug can never leak into the UI
+// as "tricep_extension_machine" just because its exercise left the program.
+function prName(slug){
+  if(!slug)return "";
+  if(_prNameMap[slug])return _prNameMap[slug];
+  if(String(slug).startsWith("c_"))return "Custom exercise";
+  return String(slug).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+}
+ctx.prName=prName;
 ctx._prCanonMap=_prCanonMap;
 // One-time migration: consolidate all day-keyed PR entries → name-slug keys
 if(!S._prCanonMigrated2){

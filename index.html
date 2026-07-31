@@ -360,6 +360,11 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Rest day: shown INSIDE the hero where the progress bar would be, so the
    day is one element rather than a hero plus a notice bar. Hero tokens
    only, per the hero scope rules. */
+/* Intensity tag. Was baked into the label as "Back & Biceps · Heavy", which
+   in the display face wrapped and orphaned "· HEAVY" onto its own line.
+   As a separate baseline-aligned chip it cannot break the title, and it
+   reads as metadata rather than part of the name. */
+.hero-tag{display:inline-block;vertical-align:middle;margin-left:12px;transform:translateY(-0.32em);font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--hero-accent);border:1px solid var(--hero-line);border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap;}
 .hero-next{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--hero-line);}
 .hero-next-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--hero-fg-faint);}
 .hero-next-day{font-family:var(--font-display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--hero-accent);}

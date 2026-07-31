@@ -98,7 +98,7 @@ function renderDrawer(){
       // Custom exercises live in S.custom (not PROG) — seed their names too so
       // PR entries stored under "c_<ts>" ids resolve to real names
       for(const arr of Object.values(S.custom||{}))for(const ex of(arr||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
-      const exName=id=>EX_NAMES[id]||(id.startsWith("c_")?"Custom exercise":id);
+      const exName=id=>EX_NAMES[id]||ctx.prName(id);
       // Leaderboard card (top 5 by est 1RM across all PRs)
       const allPRs=Object.entries(S.prs||{});
       let leaderHtml="";

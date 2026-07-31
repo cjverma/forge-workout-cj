@@ -1112,8 +1112,15 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
 
   // Legs twice weekly was the whole point of the restructure.
   ok("legs are trained twice a week (Thu + Sun)",
-    /Thursday:\{label:"Legs, Shoulders & Core · Heavy"/.test(v4) &&
-    /Sunday:\{label:"Legs & Core · Volume"/.test(v4));
+    /Thursday:\{label:"Legs & Shoulders",tag:"Heavy"/.test(v4) &&
+    /Sunday:\{label:"Legs & Core",tag:"Volume"/.test(v4));
+
+  // Intensity lives in its own field, not glued to the label with a middot:
+  // in the display face that wrapped and orphaned "· HEAVY" onto its own line.
+  ok("intensity is a separate tag, not part of the title",
+    !/label:"[^"]*· (Heavy|Volume)"/.test(v4) &&
+    (v4.match(/tag:"(Heavy|Volume)"/g) || []).length === 6 &&
+    /hero-tag/.test(WORKOUT) && APP_CSS.includes(".hero-tag{"));
 
   // Dead Bug is physio on Wednesday but programmed core work on the leg days.
   // Left as cat:"physio" there it would be stripped out before Aug 10, silently

@@ -295,7 +295,7 @@ function buildFullCSV(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||_prNameMap[id]||id;
+  const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
     const m=weekKey.match(/(\d{4})W(\d+)/);
     if(!m)return "";
@@ -460,7 +460,7 @@ function buildPDFReport(){
   const exMap={};
   [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
-  const exName=id=>exMap[id]||_prNameMap[id]||id;
+  const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
     const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
     return`<tr><td>${esc(exName(id))}</td><td>${best.est}kg est. 1RM</td><td>${best.weight}kg × ${best.reps}</td><td>${fmtDate(best.date)}</td></tr>`;

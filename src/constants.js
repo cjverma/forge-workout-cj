@@ -404,7 +404,7 @@ export const PROG_V3={
 // PROG_V4 — Southpaw Physique Program (Aug 4+)
 // Push/Pull/Rest split; all exercises seated or chest-supported for lower back safety.
 export const PROG_V4={
-  Monday:{label:"Chest, Triceps & Forearms · Heavy",sub:"Chest · Triceps · Forearms · Core",exercises:[
+  Monday:{label:"Chest & Triceps",tag:"Heavy",sub:"Chest · Triceps · Forearms",exercises:[
     {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"m4_cpwu",name:"Warm-Up · Chest Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["chest", "triceps", "front delt"],rest:60},
     {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:4,reps:"8-10",hint:"38-45 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Primary mass builder. Go heavy. Full range, 2-3s eccentric, no arching.",muscles:["chest", "triceps", "front delt"],rest:90},
@@ -416,7 +416,7 @@ export const PROG_V4={
     {id:"m4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"m4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Tuesday:{label:"Back & Biceps · Heavy",sub:"Back thickness · Lats · Rear delts · Biceps",exercises:[
+  Tuesday:{label:"Back & Biceps",tag:"Heavy",sub:"Back · Lats · Biceps",exercises:[
     {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"t4_csrwu",name:"Warm-Up · Chest Supported Row",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["mid back", "rear delt", "biceps"],rest:60},
     {id:"t4_csr",name:"Chest Supported Row",cat:"gym",sets:4,reps:"8-10",hint:"18-26 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Chest on pad, lower back protected. Pull elbows back.",muscles:["mid back", "rear delt", "biceps"],rest:90},
@@ -437,7 +437,7 @@ export const PROG_V4={
     {id:"w4_cc",name:"Cat-Cow",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Always last.",muscles:[]},
     {id:"w4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
   ]},
-  Thursday:{label:"Legs, Shoulders & Core · Heavy",sub:"Quads · Hamstrings · Calves · Lateral delts · Core",exercises:[
+  Thursday:{label:"Legs & Shoulders",tag:"Heavy",sub:"Legs · Calves · Delts · Core",exercises:[
     {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"th4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"th4_lp",name:"Leg Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on the plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads", "glutes", "hamstrings"],rest:90},
@@ -451,7 +451,7 @@ export const PROG_V4={
     {id:"th4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"th4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Friday:{label:"Shoulders, Chest & Triceps · Volume",sub:"Lateral delts · Rear delts · Chest · Triceps",exercises:[
+  Friday:{label:"Shoulders & Chest",tag:"Volume",sub:"Delts · Chest · Triceps",exercises:[
     {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"f4_lrwu",name:"Warm-Up · Lateral Raise",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["side delt"],rest:60},
     {id:"f4_slr",name:"Seated Lateral Raise",cat:"gym",sets:6,reps:"12-15",hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"The most important exercise in the plan. Shoulder width is the differentiator.",muscles:["side delt"],rest:60},
@@ -463,7 +463,7 @@ export const PROG_V4={
     {id:"f4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"f4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Saturday:{label:"Back, Biceps & Forearms · Volume",sub:"Lats · Back thickness · Biceps · Forearms",exercises:[
+  Saturday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
     {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"sa4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
     {id:"sa4_sap",name:"Straight Arm Pulldown",cat:"gym",sets:4,reps:"12-15",hint:"20-28 kg",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Lat width is the priority today.",muscles:["lats", "triceps"],rest:75},
@@ -476,7 +476,7 @@ export const PROG_V4={
     {id:"sa4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"sa4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Sunday:{label:"Legs & Core · Volume",sub:"Quads · Hamstrings · Calves · Core",exercises:[
+  Sunday:{label:"Legs & Core",tag:"Volume",sub:"Legs · Calves · Core",exercises:[
     {id:"su4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
     {id:"su4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"su4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:15,hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Volume day. Lighter than Thursday.",muscles:["quads", "glutes", "hamstrings"],rest:75},
