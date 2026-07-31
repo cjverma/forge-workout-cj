@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseFor, restingFor } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseFor, phaseRequiredDeficit, restingFor } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
@@ -483,7 +483,13 @@ async function generateDietReview(){
 }
 
 // ── PHASE CARD: compliance, health, pause, verdict, AI review ───────────────
-const COMPLIANCE_WEIGHTS={calories:0.30,active:0.25,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05};
+// "calories" (ate under target) and "active" (burned the target) were two
+// PROXIES for the thing that actually determines the outcome. Both compared
+// logged data against hardcoded phase constants, so when those constants drifted
+// from reality the score was wrong in a way no amount of effort could fix.
+// They collapse into one metric measuring the real deficit you produced against
+// what the phase still needs. Their combined weight (0.55) carries over intact.
+const COMPLIANCE_WEIGHTS={deficit:0.55,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05};
 function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addDaysIso(dateIso,dow===0?-6:1-dow);}
 // Weighted compliance for [weekStartIso .. endIso]. Returns {calculating:true}
 // until at least one day has food logged (NaN-safe denominators throughout).
@@ -491,13 +497,12 @@ function weekCompliance(p,weekStartIso,endIso){
   const days=[];
   for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
   if(!days.length)return{calculating:true};
-  let calOk=0,calLogged=0,protSum=0,protDays=0,actSum=0,actTgtSum=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
+  let calLogged=0,protSum=0,protDays=0,defSum=0,defReq=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
   for(const d of days){
     const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
     const kcal=items.reduce((s,it)=>s+(it.kcal||0),0);
     if(kcal>0){
       calLogged++;
-      if(kcal<=p.eatKcal*1.05)calOk++;
       protSum+=items.reduce((s,it)=>s+(it.protein||0),0);protDays++;
     }
     // The current day is still in progress, so charging it a FULL day's active
@@ -509,7 +514,10 @@ function weekCompliance(p,weekStartIso,endIso){
     // Monday would have no denominator at all.
     const inProgress=d===isoToday()&&days.length>1;
     if(!inProgress){
-      actSum+=nd.active||0;actTgtSum+=phaseActiveTarget(p,d);
+      // Measured, not asserted: what the day actually produced vs what the
+      // phase still needs. Unlogged days are skipped rather than scored as zero.
+      const ad=actualDeficit(d);
+      if(ad!==null){defSum+=ad;defReq+=phaseRequiredDeficit(p,d);}
       if((S.nutrition.weights||{})[d]!=null)weighins++;
       weighinDays++;
     }
@@ -519,8 +527,7 @@ function weekCompliance(p,weekStartIso,endIso){
   // Zepbound: taken this Tuesday cycle (last Tue → now) = 100, else 0
   const zepTaken=zepSchedule().taken?100:0;
   const m={
-    calories:Math.round(calOk/calLogged*100),
-    active:Math.min(100,Math.round(actTgtSum?actSum/actTgtSum*100:0)),
+    deficit:Math.min(100,Math.round(defReq>0?Math.max(0,defSum)/defReq*100:0)),
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
@@ -554,8 +561,7 @@ function coachRecommendation(p,todayIso,comp){
   if(!h||!comp||comp.calculating)return"Log food and weight consistently this week to unlock recommendations.";
   if(h.colour==="green"&&comp.overall>=90)return"Excellent adherence. Avoid the temptation to cut calories further.";
   if(h.colour==="green")return"Stay the course.";
-  if(comp.active<90)return"Increase active calories by roughly 100/day next week.";
-  if(comp.calories<80)return"Keep more days at or under the calorie target. That's the biggest lever right now.";
+  if(comp.deficit<90)return"Deficit is short of what the phase needs. Eat a little less or move a little more.";
   return"Hold targets steady and prioritise consistency over intensity.";
 }
 // Append last week's score to the quiet compliance history once it's complete
@@ -729,7 +735,7 @@ function phaseCardHtml(){
           ${wDelta!=null?row("Weight",`${wDelta>0?"+":""}${wDelta} kg`):""}
           ${banked?row(banked.kg>=0?"Ahead of schedule":"Behind schedule",`${Math.abs(banked.kg)} kg`):""}
           ${row("Calories compliance",wc.calories+"%")}
-          ${row("Active target",wc.active+"%")}
+          ${row("Deficit vs required",wc.deficit+"%")}
           ${row("Protein",wc.protein+"%")}
           <div style="font-size:12px;color:var(--accent-text);font-weight:600;margin-top:6px">→ ${coachRecommendation(p,t,wc)}</div>
         </div>`;
@@ -784,8 +790,7 @@ function phaseCardHtml(){
   const compHtml=comp.calculating
     ?'<div style="'+nMuted+'">Calculating… log a full day of food to start scoring</div>'
     :'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:8px">'+
-        compGridItem('Calories',comp.calories)+
-        compGridItem('Active',comp.active)+
+        compGridItem('Deficit',comp.deficit)+
         compGridItem('Protein',comp.protein)+
         compGridItem('Workouts',comp.workouts)+
         compGridItem('Weigh-ins',comp.weighins)+

@@ -96,6 +96,33 @@ export function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{
 // Now derived from whatever the program actually schedules.
 export function isRestDay(dateIso){return isGymRestDay(dateIso);}
 export function phaseActiveTarget(p,dateIso){return isRestDay(dateIso)?p.activeTargetRest:p.activeTargetWorkout;}
+// ── DEFICIT FROM LOGGED DATA ────────────────────────────────────────────────
+// What the day ACTUALLY produced, from what you logged: resting (per-day
+// override if present, else the phase figure), active calories discounted by
+// ACTIVE_MULT because wearables overstate them, minus what you ate.
+// Returns null when nothing was eaten, i.e. the day is unlogged rather than
+// perfect, so callers can skip it instead of scoring a phantom deficit.
+export function actualDeficit(dateIso){
+  const S=phaseStore();
+  const nd=S.nutrition?.days?.[dateIso]||{};
+  const eaten=(nd.items||[]).reduce((a,i)=>a+(i.kcal||0),0);
+  if(!eaten)return null;
+  return Math.round(restingFor(dateIso,nd)+ACTIVE_MULT*(nd.active||0)-eaten);
+}
+
+// What the phase NEEDS per day to still land targetKg by its end, recomputed
+// from the latest weight and the days remaining. This replaces comparing against
+// a hardcoded restingKcal/eatKcal/activeTarget triple, which silently drifts
+// from reality: the config said 2446 resting and 1600 eaten while the real
+// figures were nearer 3000 and 1300, making an achievable phase look impossible.
+export function phaseRequiredDeficit(p,dateIso){
+  if(!p)return 0;
+  const today=dateIso||isoToday();
+  const lw=sevenDayAvg(today)??p.startKg;
+  const daysLeft=Math.max(1,daysBetween(today,effectiveEnd(p))+1);
+  return Math.max(0,Math.round((lw-p.targetKg)*7700/daysLeft));
+}
+
 export function phaseDayDeficit(p,dateIso){return Math.round(p.restingKcal+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
 export function restingFor(dateIso,dayData){
   if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;

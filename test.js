@@ -309,12 +309,15 @@ ok("verdict bands: 127.5 green · 129.3 yellow · 131 orange · 133 red",
   phaseVerdictFn(P1, 131).band === "orange" && phaseVerdictFn(P1, 133).band === "red");
 
 // Weighted compliance
-ok("compliance weights are 30/25/20/15/5/5 (with zepbound) and sum to 1",
-  HTML.includes("COMPLIANCE_WEIGHTS={calories:0.30,active:0.25,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05}") &&
-  Math.abs(0.30 + 0.25 + 0.20 + 0.15 + 0.05 + 0.05 - 1) < 1e-12);
-ok("compliance is NaN-safe (Calculating placeholder) and caps protein/active at 100",
+// "calories" and "active" were proxies measured against hardcoded phase
+// constants; they collapse into one metric measuring the deficit actually
+// produced against what the phase still needs. Their combined 0.55 carries over.
+ok("compliance weights are 55/20/15/5/5 and sum to 1",
+  HTML.includes("COMPLIANCE_WEIGHTS={deficit:0.55,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05}") &&
+  Math.abs(0.55 + 0.20 + 0.15 + 0.05 + 0.05 - 1) < 1e-12);
+ok("compliance is NaN-safe (Calculating placeholder) and caps protein/deficit at 100",
   HTML.includes("calculating:true") && HTML.includes("Calculating…") &&
-  /protein:Math\.min\(100/.test(HTML) && /active:Math\.min\(100/.test(HTML));
+  /protein:Math\.min\(100/.test(HTML) && /deficit:Math\.min\(100/.test(HTML));
 
 // Dashboard psychology: behaviours, not deficits
 const rnBody = fnBody("renderNutrition");
@@ -1274,17 +1277,27 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
 // Compliance: the in-progress day must not be scored as a completed one.
 {
   const NUT3 = readFileSync("src/nutrition.js", "utf8");
-  ok("today is excluded from the active/weigh-in denominators",
+  ok("today is excluded from the deficit/weigh-in denominators",
     /const inProgress=d===isoToday\(\)&&days\.length>1;/.test(NUT3) &&
-    /if\(!inProgress\)\{[\s\S]{0,200}actTgtSum\+=phaseActiveTarget/.test(NUT3));
+    /if\(!inProgress\)\{[\s\S]{0,300}defReq\+=phaseRequiredDeficit/.test(NUT3));
   ok("weigh-in rate divides by scored days, not raw range length",
     /weighins:Math\.round\(weighinDays\?weighins\/weighinDays/.test(NUT3) &&
     !/weighins\/days\.length/.test(NUT3));
   // Guards the distinction that caused the confusion: these are different
   // metrics with different weights. Training does not feed "active".
-  ok("active and workouts stay separate metrics",
-    /active:0\.25/.test(NUT3) && /workouts:0\.15/.test(NUT3) &&
-    /actSum\+=nd\.active/.test(NUT3) && /if\(trainedOn\(d\)\)workoutDays\+\+/.test(NUT3));
+  // The deficit metric is MEASURED from logged resting/active/eaten, not
+  // asserted from phase constants. That drift is what made an achievable
+  // phase look impossible: config said 2446/1600, reality was nearer 3000/1300.
+  const PH3 = readFileSync("src/phase.js", "utf8");
+  ok("deficit is measured from logged data, not hardcoded constants",
+    /export function actualDeficit/.test(PH3) &&
+    /restingFor\(dateIso,nd\)\+ACTIVE_MULT\*\(nd\.active\|\|0\)-eaten/.test(PH3) &&
+    /if\(!eaten\)return null;/.test(PH3));
+  ok("required deficit is derived from the phase goal and days left",
+    /export function phaseRequiredDeficit/.test(PH3) &&
+    /\(lw-p\.targetKg\)\*7700\/daysLeft/.test(PH3));
+  ok("workouts stays its own metric",
+    /workouts:0\.15/.test(NUT3) && /if\(trainedOn\(d\)\)workoutDays\+\+/.test(NUT3));
 }
 
 // Settings tab card pass.
