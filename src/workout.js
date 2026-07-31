@@ -1221,6 +1221,7 @@ window.toggleCardio=toggleCardio;
 window.skipEx=skipEx;
 window.addSet=addSet;
 window.toggleDayComplete=toggleDayComplete;
+ctx.currentStreak=currentStreak;
 window.delSet=delSet;
 window.toggleCF=toggleCF;
 window.searchEx=searchEx;

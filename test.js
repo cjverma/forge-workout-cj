@@ -312,9 +312,18 @@ ok("verdict bands: 127.5 green · 129.3 yellow · 131 orange · 133 red",
 // "calories" and "active" were proxies measured against hardcoded phase
 // constants; they collapse into one metric measuring the deficit actually
 // produced against what the phase still needs. Their combined 0.55 carries over.
-ok("compliance weights are 55/20/15/5/5 and sum to 1",
-  HTML.includes("COMPLIANCE_WEIGHTS={deficit:0.55,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05}") &&
-  Math.abs(0.55 + 0.20 + 0.15 + 0.05 + 0.05 - 1) < 1e-12);
+ok("compliance weights are 50/20/15/5/5/5 and sum to 1",
+  HTML.includes("COMPLIANCE_WEIGHTS={deficit:0.50,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05,streak:0.05}") &&
+  Math.abs(0.50 + 0.20 + 0.15 + 0.05 + 0.05 + 0.05 - 1) < 1e-12);
+// Streak rewards not breaking the chain, which "workouts" alone does not: you
+// can train 4 of 6 days every week and never build one.
+ok("streak is scored from the workout streak, a full week reading 100",
+  /streak:Math\.min\(100,Math\.round\(\(ctx\.currentStreak/.test(HTML) &&
+  HTML.includes("ctx.currentStreak=currentStreak"));
+// Renamed for privacy. The storage key stays so dose history is not orphaned.
+ok("medication is labelled generically but keeps its storage key",
+  !/>Zepbound</.test(HTML) && !/'Zepbound'/.test(HTML) &&
+  /compGridItem\('Medication'/.test(HTML) && /meds\??\.zepbound/.test(HTML));
 ok("compliance is NaN-safe (Calculating placeholder) and caps protein/deficit at 100",
   HTML.includes("calculating:true") && HTML.includes("Calculating…") &&
   /protein:Math\.min\(100/.test(HTML) && /deficit:Math\.min\(100/.test(HTML));
