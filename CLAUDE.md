@@ -193,6 +193,35 @@ are moss `#55700B`; keep it consistent if editing the report builder.
 - Modals / overlays: 1000
 - Never below 1000 for full-screen takeovers
 
+## Known issue: two different "today" (not yet fixed)
+
+The app disagrees with itself about which calendar day it is:
+
+- `isoDate()` / `isoToday()` in `src/phase.js` hardcode **America/Toronto**.
+  These drive nutrition day keys, weights, phase math and the workout streak.
+- Session keys (`sk()`, `wk()`, the default `cDay`, `isPastDay()`) in
+  `src/main.js` use the **device-local** date via `new Date().getDay()`.
+
+In Toronto the two always agree, which is why this has never bitten. Anywhere
+else they diverge for part of every day, and the consequences are silent:
+a session is written under one day-name while `trainedOn()` looks up another,
+so the day reads as untrained and **the streak breaks**. Verified in-browser:
+
+| device timezone | session key | streak |
+|---|---|---|
+| America/Toronto | Thursday | 1 day streak |
+| Asia/Kolkata    | Friday   | none |
+| UTC             | Friday   | none |
+
+**Travelling is enough to trigger it** — the device timezone changes, the
+hardcoded one does not, and previously-logged days can shift under the app.
+
+Fixing it means choosing one calendar and migrating existing keys, which is why
+it is parked rather than patched. Whichever way it goes, `trainedOn()`,
+`sk()`/`wk()` and `isoDate()` must all read from the SAME source. Do not "fix"
+one of them in isolation: matching two of the three is what produces the silent
+breakage.
+
 ## Testing Before Merging
 - Run `/verify` after every non-trivial change before pushing to main
 - Any `position:fixed` full-screen element: confirm `inset:0` only, no centering transforms
