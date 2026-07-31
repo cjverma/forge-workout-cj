@@ -26,11 +26,14 @@ function hintDisp(hint,unit){
   return hint.replace(/\b(kg|lbs)\b/gi,"").trim()+" "+(unit||"kg");
 }
 
-// ── REST TIMER (background-safe, 30s) ──
+// ── REST TIMER (background-safe) ──
+// Duration comes from the exercise's `rest` field so the plan's own intervals
+// are honoured (90s on heavy compounds, 45s on finishers). Exercises without
+// a rest value fall back to the old fixed 30s.
 const REST_DURATION=30;
 let _restEnd=null,_restInterval=null;
-function startRest(){
-  _restEnd=Date.now()+REST_DURATION*1000;
+function startRest(sec){
+  _restEnd=Date.now()+(Number(sec)>0?Number(sec):REST_DURATION)*1000;
   const o=document.getElementById("restOverlay");if(o)o.classList.add("show");
   updateRestDisplay();
   clearInterval(_restInterval);
@@ -246,11 +249,15 @@ export function renderW(){
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
-    ${future?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
+    ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
     ${(()=>{const {days:streak}=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
   </div>`;
-  if(!future&&!ctx.isPastDay()){
+  // A day the program schedules nothing for. "Start Workout" and a 0 of 0
+  // progress bar both read as broken here, so show the rest-day state instead.
+  if(!prog.exercises.length){
+    h+=`<div class="rest-note">${icon("moon",20)}<div><b>Rest day.</b> Nothing scheduled. Recovery is when the work pays off.</div></div>`;
+  } else if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
     if(allDone&&!stopped){
@@ -556,7 +563,7 @@ function card(ex,sess,key,rdOnly=false){
   }
 
   let body="";
-  if(ex.sets===1){
+  if(ex.cat==="cardio"){
     const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
@@ -659,7 +666,9 @@ function updateExerciseDone(key,exId){
   const prog=PROG[ctx.cDay];
   const ex=prog?.exercises.find(e=>e.id===exId);
   const ed=S.sessions[key]?.[exId];
-  if(!ex||!ed||ex.sets===1)return;
+  // Skip cardio (completion is driven by toggleCardio), not "1 set". Warm-up
+  // sets are single-set GYM work and must still be able to complete.
+  if(!ex||!ed||ex.cat==="cardio")return;
   const n=setCount(ex,ed);
   ed.sets.forEach(s=>{if(!s.weight||!s.reps)s.done=false;});
   ed.done=ed.sets.length>=n&&ed.sets.slice(0,n).every(s=>s.weight&&s.reps&&s.done);
@@ -679,7 +688,7 @@ function toggleSet(key,exId,i){
   if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps));}
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
-  if(sd.done)startRest();
+  if(sd.done)startRest(ex.rest);
   save();queueSession(key,exId);if(sd.done)checkMilestones();reCard(key,exId);
 }
 

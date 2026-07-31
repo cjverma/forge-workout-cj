@@ -1078,6 +1078,66 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /filter\(e=>e\.cat!=="physio"\)/.test(C));
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// PROG_V4 (Southpaw) structure
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const C = readFileSync("src/constants.js", "utf8");
+  const v4 = (C.match(/export const PROG_V4=\{([\s\S]*?)\n\};/) || [])[1] || "";
+  ok("PROG_V4 block located", v4.length > 1000);
+
+  const day = d => (v4.match(new RegExp(`${d}:\\{label:"([^"]+)"[\\s\\S]*?exercises:\\[([\\s\\S]*?)\\n  \\]`)) || []);
+  const counts = {};
+  for (const d of ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"]) {
+    const m = day(d);
+    counts[d] = { label: m[1] || "", n: ((m[2] || "").match(/\{id:"/g) || []).length };
+  }
+
+  // Exercise counts straight from the plan as written.
+  const want = { Monday:8, Tuesday:10, Wednesday:7, Thursday:11, Friday:9, Saturday:10, Sunday:11 };
+  const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
+    .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
+  ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
+
+  ok("Wednesday is rest + physio only (no gym, no cardio)",
+    /Wednesday:\{label:"Rest & Physio"/.test(v4) &&
+    !(day("Wednesday")[2] || "").includes('cat:"gym"') &&
+    !(day("Wednesday")[2] || "").includes('cat:"cardio"'));
+
+  // Legs twice weekly was the whole point of the restructure.
+  ok("legs are trained twice a week (Thu + Sun)",
+    /Thursday:\{label:"Legs & Core · Heavy"/.test(v4) &&
+    /Sunday:\{label:"Legs & Core · Volume"/.test(v4));
+
+  // Dead Bug is physio on Wednesday but programmed core work on the leg days.
+  // Left as cat:"physio" there it would be stripped out before Aug 10, silently
+  // dropping core from both leg sessions.
+  ok("leg-day Dead Bug is core work, not strippable physio",
+    /\{id:"th4_db",name:"Dead Bug",cat:"gym"/.test(v4) &&
+    /\{id:"su4_db",name:"Dead Bug",cat:"gym"/.test(v4));
+
+  ok("every gym exercise carries a rest interval",
+    !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));
+
+  // Warm-up sets are single-set GYM work. Both the layout branch and the
+  // completion guard used to key off sets===1, which would have rendered them
+  // as cardio tick-boxes with no weight field and left them uncompletable.
+  ok("cardio layout keys off cat, not set count",
+    /if\(ex\.cat==="cardio"\)\{/.test(WORKOUT) && !/if\(ex\.sets===1\)\{/.test(WORKOUT));
+  ok("completion guard keys off cat, not set count",
+    /if\(!ex\|\|!ed\|\|ex\.cat==="cardio"\)return;/.test(WORKOUT));
+
+  // A 0-exercise day used to render a full-width "Start Workout" CTA and a
+  // "0 of 0 complete" bar, both of which read as broken on a rest day.
+  ok("rest days suppress the Start Workout CTA and the 0 of 0 bar",
+    /if\(!prog\.exercises\.length\)\{/.test(WORKOUT) &&
+    /rest-note/.test(WORKOUT) &&
+    /\$\{future\|\|!total\?""/.test(WORKOUT));
+
+  ok("rest timer uses the exercise's own interval",
+    /function startRest\(sec\)/.test(WORKOUT) && /startRest\(ex\.rest\)/.test(WORKOUT));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);
