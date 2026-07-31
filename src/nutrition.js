@@ -108,9 +108,9 @@ function renderDrawer(){
           .filter(Boolean)
           .sort((a,b)=>b.best.est-a.best.est)
           .slice(0,5)
-          .map(({id,best},idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px"><span style="color:var(--dim);width:14px">${idx+1}</span><span style="flex:1;color:var(--mid)">${exName(id)}</span><span style="font-weight:700;color:var(--white)">${best.est}kg</span></div>`)
+          .map(({id,best},idx)=>`<div class="lift-row"><span class="lift-rank">${idx+1}</span><span class="lift-name">${esc(exName(id))}</span><span class="lift-val">${best.est}<span class="lift-unit">kg</span></span></div>`)
           .join("");
-        leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
+        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest lifts</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
       const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];

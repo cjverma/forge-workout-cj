@@ -1201,6 +1201,32 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /export const PR_ALIAS/.test(C) && /PR_ALIAS\[raw\]\|\|raw/.test(MAIN));
 }
 
+// One name resolver, built from every program version, with a de-slug fallback
+// so a raw key like "tricep_extension_machine" can never reach the UI.
+{
+  const MAIN2 = readFileSync("src/main.js", "utf8");
+  const NUT = readFileSync("src/nutrition.js", "utf8");
+  const SET = readFileSync("src/settings.js", "utf8");
+  ok("one shared PR name resolver with a de-slug fallback",
+    /ctx\.prName=prName/.test(MAIN2) &&
+    /replace\(\/_\/g," "\)/.test(MAIN2) &&
+    /for\(const P of \[PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
+  ok("no call site falls back to printing the raw slug",
+    !/EX_NAMES\[id\]\|\|\(id\.startsWith/.test(NUT) &&
+    !/_prNameMap\[id\]\|\|id/.test(SET) &&
+    /ctx\.prName\(id\)/.test(NUT) && /ctx\.prName\(id\)/.test(SET));
+
+  // Box-in-box was the clearest generic tell: a bordered --s2 card nested
+  // inside another card, with a rule under every row.
+  ok("strongest-lifts list is not a nested box",
+    /class="lift-board"/.test(NUT) &&
+    !/leaderHtml=`<div style="background:var\(--s2\)/.test(NUT) &&
+    APP_CSS.includes(".lift-board{") && !/\.lift-board\{[^}]*border:/.test(APP_CSS));
+  ok("lift values are display-font and tabular",
+    /\.lift-val\{[^}]*var\(--font-display\)/.test(APP_CSS) &&
+    /\.lift-val\{[^}]*tabular-nums/.test(APP_CSS));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);

@@ -364,6 +364,24 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    in the display face wrapped and orphaned "· HEAVY" onto its own line.
    As a separate baseline-aligned chip it cannot break the title, and it
    reads as metadata rather than part of the name. */
+/* ── DATA LIST ──────────────────────────────────────────────────────────────
+   Same principle as the rest-day hero: stop stacking boxes and let type carry
+   the hierarchy. This replaced a nested --s2 card sitting inside another card,
+   with a shouty uppercase caption and a 1px rule under every row. Box-in-box is
+   the clearest generic-dashboard tell in the app, and the rules made five rows
+   read as a table rather than a ranking. Now: no container, a sentence-case
+   caption, a quiet ordinal, and the number as the only heavy element. */
+.lift-board{margin-bottom:var(--sp-4);}
+.lift-cap{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--mid);margin-bottom:var(--sp-2);}
+.lift-row{display:flex;align-items:baseline;gap:var(--sp-3);padding:9px 0;}
+/* Hairline between rows only, never around them, and never on the last row. */
+.lift-row+.lift-row{border-top:1px solid var(--b1);}
+.lift-rank{width:14px;flex-shrink:0;font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;}
+.lift-name{flex:1;font-size:13px;color:var(--lt);}
+.lift-val{font-family:var(--font-display);font-size:19px;font-weight:600;color:var(--white);
+  font-variant-numeric:tabular-nums;letter-spacing:.3px;}
+/* Unit rides small and muted so the digits stay the thing you read. */
+.lift-unit{font-family:var(--font-body);font-size:11px;font-weight:500;color:var(--dim);margin-left:2px;}
 .hero-tag{display:inline-block;vertical-align:middle;margin-left:12px;transform:translateY(-0.32em);font-family:var(--font-body);font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--hero-accent);border:1px solid var(--hero-line);border-radius:var(--r-pill);padding:4px 10px;white-space:nowrap;}
 .hero-next{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--hero-line);}
 .hero-next-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--hero-fg-faint);}
@@ -3373,9 +3391,9 @@ function renderDrawer(){
           .filter(Boolean)
           .sort((a,b)=>b.best.est-a.best.est)
           .slice(0,5)
-          .map(({id,best},idx)=>`<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--b1);font-size:12px"><span style="color:var(--dim);width:14px">${idx+1}</span><span style="flex:1;color:var(--mid)">${exName(id)}</span><span style="font-weight:700;color:var(--white)">${best.est}kg</span></div>`)
+          .map(({id,best},idx)=>`<div class="lift-row"><span class="lift-rank">${idx+1}</span><span class="lift-name">${esc(exName(id))}</span><span class="lift-val">${best.est}<span class="lift-unit">kg</span></span></div>`)
           .join("");
-        leaderHtml=`<div style="background:var(--s2);border:1px solid var(--b1);border-radius:12px;padding:14px 16px;margin-bottom:12px"><div style="font-size:10px;color:var(--dim);letter-spacing:0.5px;margin-bottom:8px">STRONGEST LIFTS (EST. 1RM)</div>${rows}</div>`;
+        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest lifts</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
       const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];
