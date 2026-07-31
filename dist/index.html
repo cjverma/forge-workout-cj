@@ -357,11 +357,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Neutral, not green, on completed rows: a success-coloured trash reads as
    the wrong affordance, and --mid clears contrast on the green wash. */
 .set-row.done .sdel{color:var(--mid);opacity:.6;}
-/* Rest-day state: replaces the Start Workout CTA on a day the program
-   schedules nothing, where that button and a 0 of 0 bar read as broken. */
-.rest-note{display:flex;gap:12px;align-items:center;margin:0 var(--sp-4) var(--sp-3);padding:14px 16px;border:1px solid var(--b1);border-left:3px solid var(--accent-text);border-radius:var(--r-md);background:var(--s2);color:var(--mid);font-size:13px;line-height:1.6;}
-.rest-note b{color:var(--white);}
-.rest-note svg{flex-shrink:0;color:var(--accent-text);}
+/* Rest day: shown INSIDE the hero where the progress bar would be, so the
+   day is one element rather than a hero plus a notice bar. Hero tokens
+   only, per the hero scope rules. */
+.hero-next{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--hero-line);}
+.hero-next-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--hero-fg-faint);}
+.hero-next-day{font-family:var(--font-display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--hero-accent);}
+.hero-next-ex{font-size:13px;color:var(--hero-fg-dim);flex:1 1 100%;}
 .add-set-btn{width:100%;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-size:12px;font-weight:500;color:var(--dim);background:transparent;cursor:pointer;font-family:var(--font-body);margin-top:2px;margin-bottom:10px;transition:all .15s;}
 .add-set-btn:active{border-color:var(--orange);color:var(--orange);}
 
@@ -1384,7 +1386,6 @@ const PROG_V4={
 // Southpaw week: 6 training days + Wednesday. Wednesday is the rest day, and
 // from Aug 10 it also carries the morning physio sequence, so before Aug 10 it
 // strips to zero exercises and reads as pure rest.
-const _REST_DAY="Wednesday";
 
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
@@ -1413,6 +1414,35 @@ function programFor(date){
 
 const _pd=new Date();
 const PROG=programFor(_pd);
+
+// Is this date a rest day for NUTRITION purposes, i.e. no gym work?
+//
+// Deliberately "no GYM exercises" rather than "no exercises at all", because
+// from Aug 10 Wednesday carries a 25-minute morning physio sequence. That is
+// recovery, not a training session, and it must still get the rest-day active
+// calorie target. The same rule reproduces the old behaviour for V1-V3, whose
+// Sunday is physio-only Active Recovery.
+//
+// Note this is NOT the same question as the workout streak's rest day, which
+// asks "is there anything at all to log here" and so keys off a completely
+// empty day. Wednesday after Aug 10 is a rest day for calories but a day you
+// still tick off for the streak.
+// PR history is keyed by a slug of the exercise NAME, so renaming an exercise
+// orphans its history. Southpaw uses the gym's own names for four machines that
+// already have logged sets under their catalogue names, so those map back.
+// new slug -> the slug the history was actually written under.
+const PR_ALIAS={
+  inner_thigh_machine:"seated_hip_adduction_machine",
+  outer_thigh_machine:"seated_hip_abduction_machine",
+  seated_db_wrist_curl:"seated_wrist_curl",
+  pallof_press:"cable_pallof_press",
+};
+
+function isGymRestDay(dateIso){
+  const d=new Date(dateIso+"T12:00:00Z");
+  const day=DAYS[d.getUTCDay()===0?6:d.getUTCDay()-1];
+  return !(programFor(d)[day]?.exercises||[]).some(e=>e.cat==="gym");
+}
 
 const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";
@@ -1629,6 +1659,7 @@ window.closeMilestone = closeMilestone;
 
 
 
+
 // Personal constants · never rendered in UI
 const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
 const ACTIVE_MULT=0.75;
@@ -1717,7 +1748,12 @@ function phaseCurveKg(p,dateIso){
   return Math.round((p.startKg-lost)*10)/10;
 }
 function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{expected:e,lo:Math.round((e-1)*10)/10,hi:Math.round((e+1)*10)/10};}
-function isRestDay(dateIso){return noonUTC(dateIso).getUTCDay()===0;}
+// Was hardcoded to Sunday. Southpaw makes WEDNESDAY the rest day and Sunday a
+// full Legs & Core session, so the old rule handed out the rest-day active
+// target (650) on leg day and the workout target (1500) on the rest day, an
+// 850 kcal error in both directions every week, plus skewed adherence counts.
+// Now derived from whatever the program actually schedules.
+function isRestDay(dateIso){return isGymRestDay(dateIso);}
 function phaseActiveTarget(p,dateIso){return isRestDay(dateIso)?p.activeTargetRest:p.activeTargetWorkout;}
 function phaseDayDeficit(p,dateIso){return Math.round(p.restingKcal+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
 function restingFor(dateIso,dayData){
@@ -2201,10 +2237,29 @@ function saveNotes(val){
   },500);
 }
 
+// The program for the day being VIEWED, not for today. PROG is a snapshot
+// resolved at load time, so using it made next week render this week's plan:
+// browsing to Aug 3 still showed the V3 return block instead of Southpaw.
+function curProg(day){return programFor(ctx.viewDate())[day||ctx.cDay];}
+
+// Next day from the viewed one that actually schedules gym work. Used to give a
+// rest day somewhere to point instead of a dead end.
+function nextSession(){
+  const from=ctx.viewDate();
+  for(let i=1;i<=7;i++){
+    const d=new Date(from);d.setDate(from.getDate()+i);
+    const day=DAYS[d.getDay()===0?6:d.getDay()-1];
+    const p=programFor(d)[day];
+    if((p?.exercises||[]).some(e=>e.cat==="gym"))
+      return{when:i===1?"Tomorrow":day,label:p.label};
+  }
+  return null;
+}
+
 function renderW(){
   const S=ctx.getS();
   const cDay=ctx.cDay;
-  const prog=PROG[cDay],el=document.getElementById("tc");
+  const prog=curProg(cDay),el=document.getElementById("tc");
   const past=ctx.isPast();
   const future=ctx.isFuture();
   const _key0=ctx.sk(cDay);
@@ -2248,6 +2303,11 @@ function renderW(){
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
+    ${!total?(()=>{const nx=nextSession();return nx?`<div class="hero-next">
+      <span class="hero-next-lbl">Next</span>
+      <span class="hero-next-day">${esc(nx.when)}</span>
+      <span class="hero-next-ex">${esc(nx.label)}</span>
+    </div>`:"";})():""}
     ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
     ${(()=>{const {days:streak}=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
@@ -2255,7 +2315,8 @@ function renderW(){
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
   if(!prog.exercises.length){
-    h+=`<div class="rest-note">${icon("moon",20)}<div><b>Rest day.</b> Nothing scheduled. Recovery is when the work pays off.</div></div>`;
+    // Rest day: the hero already carries the state and what comes next, so
+    // there is deliberately nothing else here. No CTA, no notice bar.
   } else if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
@@ -2656,13 +2717,13 @@ function saveF(key,exId,i,field,val){
   const row=document.getElementById("sr-"+exId+"-"+i);
   if(row){const btn=row.querySelector(".sdone");const hasD=sd.weight&&sd.reps;if(btn){btn.classList.toggle("locked",!hasD);btn.title=hasD?"Done":"Enter weight and reps first";}}
   // Update progress bar without touching the card
-  const prog2=PROG[ctx.cDay];
+  const prog2=curProg();
   if(prog2){const total=prog2.exercises.length;const done=prog2.exercises.filter(e=>(S.sessions[key]||{})[e.id]?.done).length;const pct=total?Math.round((done/total)*100):0;const fill=document.querySelector(".prog-fill");if(fill)fill.style.width=pct+"%";const sub=document.querySelector(".pg-sub");if(sub)sub.textContent=`${prog2.sub} · ${done} of ${total} complete`;}
 }
 
 function updateExerciseDone(key,exId){
   const S=ctx.getS();
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const ex=prog?.exercises.find(e=>e.id===exId);
   const ed=S.sessions[key]?.[exId];
   // Skip cardio (completion is driven by toggleCardio), not "1 set". Warm-up
@@ -2680,7 +2741,7 @@ function toggleSet(key,exId,i){
   const sd=S.sessions[key][exId].sets[i];
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
   sd.done=!sd.done;sd.attempted=true;
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
@@ -2718,7 +2779,7 @@ function reopenEx(exId){
 }
 
 function exById(exId){
-  return PROG[ctx.cDay]?.exercises.find(e=>e.id===exId);
+  return curProg()?.exercises.find(e=>e.id===exId);
 }
 
 function addSet(key,exId){
@@ -2763,7 +2824,7 @@ function reCard(key,exId){
   const S=ctx.getS();
   const active=document.activeElement;
   if(active&&(active.tagName==="INPUT"||active.tagName==="TEXTAREA")&&document.getElementById("ex-"+exId)?.contains(active))return;
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId);
   if(!ex){renderW();return;}
   const sess=S.sessions[key]||{};
@@ -2778,7 +2839,7 @@ function reCard(key,exId){
     const cd=document.getElementById("ex-"+exId);
     if(cd&&!cd.classList.contains("done")&&!cd.classList.contains("skipped"))cd.classList.add("active-card");
   }
-  const prog2=PROG[ctx.cDay];
+  const prog2=curProg();
   const total=prog2.exercises.length;
   const done=prog2.exercises.filter(e=>(S.sessions[key]||{})[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
@@ -2953,7 +3014,7 @@ function stopSess(){
   S.sessions[key]._duration=(S.sessions[key]._duration||0)+el; // accumulate across resumes
   S.sessions[key]._stopped=true;
   save();queueSessionMeta(key);
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const setsDone=prog.exercises.reduce((a,ex)=>a+((S.sessions[key]||{})[ex.id]?.sets?.filter(s=>s.done)?.length||0),0);
   document.getElementById("sumDur").textContent=m+"m "+(s<10?"0":"")+s+"s";
   document.getElementById("sumSets").textContent=setsDone;
@@ -2991,7 +3052,7 @@ async function aiRun(type){
     outId="oo";
   }else if(type==="sub"){
     const v=document.getElementById("si").value.trim();if(!v)return;
-    const todayExNames=(PROG[ctx.cDay]?.exercises||[]).map(e=>e.name||e).join(", ");
+    const todayExNames=(curProg()?.exercises||[]).map(e=>e.name||e).join(", ");
     prompt=`Machine busy. The user was about to do: ${v} (includes the weight they planned to use). Today's routine already includes: ${todayExNames||"none"}. Equipment available: ${GYM}. Suggest exactly ONE alternative not already in today's routine, AND the specific starting weight for it, converted sensibly from the weight they stated (account for machine vs cable vs dumbbell loading differences). Format: exercise name, recommended weight, one short sentence why. No lists.`;
     outId="so";
   }else if(type==="calftrend"){
@@ -3036,7 +3097,7 @@ async function aiRun(type){
   out.className="ai-out show";
   out.innerHTML='<span class="spin"></span>Thinking...';
   try{
-    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:PROG[ctx.cDay]?.title||""}})},60000);
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:curProg()?.label||""}})},60000);
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||"Request failed");
     out.innerHTML=d.text?mdLite(d.text):"No response.";
@@ -5366,7 +5427,9 @@ if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
 if(!S.prs)S.prs={};
 // Build exId→name-slug canonical map from PROG (robust across V1/V2 ID inconsistencies)
 const _prCanonMap={},_prNameMap={};
-(function(){for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const slug=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
+// Alias applied HERE so every downstream consumer (the migration, PR reads and
+// PR writes) agrees on one slug and a rename cannot split an exercise's history.
+(function(){for(const P of [PROG,PROG_V4])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[])){const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
 ctx._prCanonMap=_prCanonMap;
 // One-time migration: consolidate all day-keyed PR entries → name-slug keys
 if(!S._prCanonMigrated2){
@@ -5604,6 +5667,17 @@ function vwk(){
   const wed=new Date(_viewMon);wed.setDate(_viewMon.getDate()+2);
   return _wkFromDate(wed);
 }
+// Date object for the day currently being VIEWED (viewed Monday + weekday
+// offset). Needed because the program changes by date: browsing to next week
+// must render that week's program, not today's.
+function viewDate(){
+  const mon=_viewMon||_todayMonday();
+  const d=new Date(mon);
+  d.setDate(mon.getDate()+Math.max(0,DAYS.indexOf(cDay)));
+  return d;
+}
+ctx.viewDate=viewDate;
+
 function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
 function isPast(){return !!_viewMon&&_viewMon<_todayMonday();}
 function isFuture(){return !!_viewMon&&_viewMon>_todayMonday();}
@@ -5636,7 +5710,10 @@ function goCurrentWeek(){_viewMon=null;updateDayNavDates();renderW();}
 
 // Returns exercises for next week with any queued plan overrides applied (preview only)
 function getPreviewExercises(day){
-  const base=(PROG[day]?.exercises||[]).map(ex=>({...ex}));
+  // programFor(viewDate()), not PROG: PROG is today's snapshot, so previewing a
+  // future week listed THIS week's exercises under next week's heading. That is
+  // why Southpaw did not appear when browsing forward.
+  const base=((programFor(viewDate())[day])?.exercises||[]).map(ex=>({...ex}));
   const overrides=((S.weekPlans||{})[nextWk()]||{})[day]||[];
   let exs=base;
   for(const upd of overrides){

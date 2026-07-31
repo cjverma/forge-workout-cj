@@ -500,7 +500,6 @@ export const PROG_V4={
 // Southpaw week: 6 training days + Wednesday. Wednesday is the rest day, and
 // from Aug 10 it also carries the morning physio sequence, so before Aug 10 it
 // strips to zero exercises and reads as pure rest.
-const _REST_DAY="Wednesday";
 
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
@@ -529,6 +528,35 @@ export function programFor(date){
 
 const _pd=new Date();
 export const PROG=programFor(_pd);
+
+// Is this date a rest day for NUTRITION purposes, i.e. no gym work?
+//
+// Deliberately "no GYM exercises" rather than "no exercises at all", because
+// from Aug 10 Wednesday carries a 25-minute morning physio sequence. That is
+// recovery, not a training session, and it must still get the rest-day active
+// calorie target. The same rule reproduces the old behaviour for V1-V3, whose
+// Sunday is physio-only Active Recovery.
+//
+// Note this is NOT the same question as the workout streak's rest day, which
+// asks "is there anything at all to log here" and so keys off a completely
+// empty day. Wednesday after Aug 10 is a rest day for calories but a day you
+// still tick off for the streak.
+// PR history is keyed by a slug of the exercise NAME, so renaming an exercise
+// orphans its history. Southpaw uses the gym's own names for four machines that
+// already have logged sets under their catalogue names, so those map back.
+// new slug -> the slug the history was actually written under.
+export const PR_ALIAS={
+  inner_thigh_machine:"seated_hip_adduction_machine",
+  outer_thigh_machine:"seated_hip_abduction_machine",
+  seated_db_wrist_curl:"seated_wrist_curl",
+  pallof_press:"cable_pallof_press",
+};
+
+export function isGymRestDay(dateIso){
+  const d=new Date(dateIso+"T12:00:00Z");
+  const day=DAYS[d.getUTCDay()===0?6:d.getUTCDay()-1];
+  return !(programFor(d)[day]?.exercises||[]).some(e=>e.cat==="gym");
+}
 
 export const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 export const GYM="Stationary bike, treadmill, seated cable machine, chest press machine, pec fly machine, tricep extension machine, leg press (feet high 90 deg max), seated leg curl, seated hip abduction, seated calf raise, dumbbells 5-30kg";

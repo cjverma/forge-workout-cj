@@ -357,11 +357,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Neutral, not green, on completed rows: a success-coloured trash reads as
    the wrong affordance, and --mid clears contrast on the green wash. */
 .set-row.done .sdel{color:var(--mid);opacity:.6;}
-/* Rest-day state: replaces the Start Workout CTA on a day the program
-   schedules nothing, where that button and a 0 of 0 bar read as broken. */
-.rest-note{display:flex;gap:12px;align-items:center;margin:0 var(--sp-4) var(--sp-3);padding:14px 16px;border:1px solid var(--b1);border-left:3px solid var(--accent-text);border-radius:var(--r-md);background:var(--s2);color:var(--mid);font-size:13px;line-height:1.6;}
-.rest-note b{color:var(--white);}
-.rest-note svg{flex-shrink:0;color:var(--accent-text);}
+/* Rest day: shown INSIDE the hero where the progress bar would be, so the
+   day is one element rather than a hero plus a notice bar. Hero tokens
+   only, per the hero scope rules. */
+.hero-next{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:18px;padding-top:14px;border-top:1px solid var(--hero-line);}
+.hero-next-lbl{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--hero-fg-faint);}
+.hero-next-day{font-family:var(--font-display);font-size:20px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--hero-accent);}
+.hero-next-ex{font-size:13px;color:var(--hero-fg-dim);flex:1 1 100%;}
 .add-set-btn{width:100%;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-size:12px;font-weight:500;color:var(--dim);background:transparent;cursor:pointer;font-family:var(--font-body);margin-top:2px;margin-bottom:10px;transition:all .15s;}
 .add-set-btn:active{border-color:var(--orange);color:var(--orange);}
 

@@ -1,4 +1,5 @@
 import { ctx } from "./runtime.js";
+import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
 export const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
@@ -88,7 +89,12 @@ export function phaseCurveKg(p,dateIso){
   return Math.round((p.startKg-lost)*10)/10;
 }
 export function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{expected:e,lo:Math.round((e-1)*10)/10,hi:Math.round((e+1)*10)/10};}
-export function isRestDay(dateIso){return noonUTC(dateIso).getUTCDay()===0;}
+// Was hardcoded to Sunday. Southpaw makes WEDNESDAY the rest day and Sunday a
+// full Legs & Core session, so the old rule handed out the rest-day active
+// target (650) on leg day and the workout target (1500) on the rest day, an
+// 850 kcal error in both directions every week, plus skewed adherence counts.
+// Now derived from whatever the program actually schedules.
+export function isRestDay(dateIso){return isGymRestDay(dateIso);}
 export function phaseActiveTarget(p,dateIso){return isRestDay(dateIso)?p.activeTargetRest:p.activeTargetWorkout;}
 export function phaseDayDeficit(p,dateIso){return Math.round(p.restingKcal+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
 export function restingFor(dateIso,dayData){

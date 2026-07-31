@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V4, PROG, programFor, PR_ALIAS, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -25,7 +25,9 @@ if(!S.milestones.longestStreak)S.milestones.longestStreak=0;
 if(!S.prs)S.prs={};
 // Build exId→name-slug canonical map from PROG (robust across V1/V2 ID inconsistencies)
 const _prCanonMap={},_prNameMap={};
-(function(){for(const[,dd] of Object.entries(PROG))for(const ex of(dd.exercises||[])){const slug=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
+// Alias applied HERE so every downstream consumer (the migration, PR reads and
+// PR writes) agrees on one slug and a rename cannot split an exercise's history.
+(function(){for(const P of [PROG,PROG_V4])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[])){const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;if(!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;if(!_prNameMap[slug])_prNameMap[slug]=ex.name;}})();
 ctx._prCanonMap=_prCanonMap;
 // One-time migration: consolidate all day-keyed PR entries → name-slug keys
 if(!S._prCanonMigrated2){
@@ -263,6 +265,17 @@ function vwk(){
   const wed=new Date(_viewMon);wed.setDate(_viewMon.getDate()+2);
   return _wkFromDate(wed);
 }
+// Date object for the day currently being VIEWED (viewed Monday + weekday
+// offset). Needed because the program changes by date: browsing to next week
+// must render that week's program, not today's.
+function viewDate(){
+  const mon=_viewMon||_todayMonday();
+  const d=new Date(mon);
+  d.setDate(mon.getDate()+Math.max(0,DAYS.indexOf(cDay)));
+  return d;
+}
+ctx.viewDate=viewDate;
+
 function wkOrd(w){const m=(w||"").match(/(\d{4})W(\d+)/);return m?+m[1]*100+(+m[2]):0;}
 function isPast(){return !!_viewMon&&_viewMon<_todayMonday();}
 function isFuture(){return !!_viewMon&&_viewMon>_todayMonday();}
@@ -295,7 +308,10 @@ function goCurrentWeek(){_viewMon=null;updateDayNavDates();renderW();}
 
 // Returns exercises for next week with any queued plan overrides applied (preview only)
 function getPreviewExercises(day){
-  const base=(PROG[day]?.exercises||[]).map(ex=>({...ex}));
+  // programFor(viewDate()), not PROG: PROG is today's snapshot, so previewing a
+  // future week listed THIS week's exercises under next week's heading. That is
+  // why Southpaw did not appear when browsing forward.
+  const base=((programFor(viewDate())[day])?.exercises||[]).map(ex=>({...ex}));
   const overrides=((S.weekPlans||{})[nextWk()]||{})[day]||[];
   let exs=base;
   for(const upd of overrides){

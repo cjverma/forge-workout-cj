@@ -202,10 +202,29 @@ function saveNotes(val){
   },500);
 }
 
+// The program for the day being VIEWED, not for today. PROG is a snapshot
+// resolved at load time, so using it made next week render this week's plan:
+// browsing to Aug 3 still showed the V3 return block instead of Southpaw.
+function curProg(day){return programFor(ctx.viewDate())[day||ctx.cDay];}
+
+// Next day from the viewed one that actually schedules gym work. Used to give a
+// rest day somewhere to point instead of a dead end.
+function nextSession(){
+  const from=ctx.viewDate();
+  for(let i=1;i<=7;i++){
+    const d=new Date(from);d.setDate(from.getDate()+i);
+    const day=DAYS[d.getDay()===0?6:d.getDay()-1];
+    const p=programFor(d)[day];
+    if((p?.exercises||[]).some(e=>e.cat==="gym"))
+      return{when:i===1?"Tomorrow":day,label:p.label};
+  }
+  return null;
+}
+
 export function renderW(){
   const S=ctx.getS();
   const cDay=ctx.cDay;
-  const prog=PROG[cDay],el=document.getElementById("tc");
+  const prog=curProg(cDay),el=document.getElementById("tc");
   const past=ctx.isPast();
   const future=ctx.isFuture();
   const _key0=ctx.sk(cDay);
@@ -249,6 +268,11 @@ export function renderW(){
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
     <div class="hero-title">${esc(prog.label)}</div>
+    ${!total?(()=>{const nx=nextSession();return nx?`<div class="hero-next">
+      <span class="hero-next-lbl">Next</span>
+      <span class="hero-next-day">${esc(nx.when)}</span>
+      <span class="hero-next-ex">${esc(nx.label)}</span>
+    </div>`:"";})():""}
     ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
     ${(()=>{const {days:streak}=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
@@ -256,7 +280,8 @@ export function renderW(){
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
   if(!prog.exercises.length){
-    h+=`<div class="rest-note">${icon("moon",20)}<div><b>Rest day.</b> Nothing scheduled. Recovery is when the work pays off.</div></div>`;
+    // Rest day: the hero already carries the state and what comes next, so
+    // there is deliberately nothing else here. No CTA, no notice bar.
   } else if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
@@ -657,13 +682,13 @@ function saveF(key,exId,i,field,val){
   const row=document.getElementById("sr-"+exId+"-"+i);
   if(row){const btn=row.querySelector(".sdone");const hasD=sd.weight&&sd.reps;if(btn){btn.classList.toggle("locked",!hasD);btn.title=hasD?"Done":"Enter weight and reps first";}}
   // Update progress bar without touching the card
-  const prog2=PROG[ctx.cDay];
+  const prog2=curProg();
   if(prog2){const total=prog2.exercises.length;const done=prog2.exercises.filter(e=>(S.sessions[key]||{})[e.id]?.done).length;const pct=total?Math.round((done/total)*100):0;const fill=document.querySelector(".prog-fill");if(fill)fill.style.width=pct+"%";const sub=document.querySelector(".pg-sub");if(sub)sub.textContent=`${prog2.sub} · ${done} of ${total} complete`;}
 }
 
 function updateExerciseDone(key,exId){
   const S=ctx.getS();
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const ex=prog?.exercises.find(e=>e.id===exId);
   const ed=S.sessions[key]?.[exId];
   // Skip cardio (completion is driven by toggleCardio), not "1 set". Warm-up
@@ -681,7 +706,7 @@ function toggleSet(key,exId,i){
   const sd=S.sessions[key][exId].sets[i];
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
   sd.done=!sd.done;sd.attempted=true;
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
@@ -719,7 +744,7 @@ function reopenEx(exId){
 }
 
 function exById(exId){
-  return PROG[ctx.cDay]?.exercises.find(e=>e.id===exId);
+  return curProg()?.exercises.find(e=>e.id===exId);
 }
 
 function addSet(key,exId){
@@ -764,7 +789,7 @@ function reCard(key,exId){
   const S=ctx.getS();
   const active=document.activeElement;
   if(active&&(active.tagName==="INPUT"||active.tagName==="TEXTAREA")&&document.getElementById("ex-"+exId)?.contains(active))return;
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId);
   if(!ex){renderW();return;}
   const sess=S.sessions[key]||{};
@@ -779,7 +804,7 @@ function reCard(key,exId){
     const cd=document.getElementById("ex-"+exId);
     if(cd&&!cd.classList.contains("done")&&!cd.classList.contains("skipped"))cd.classList.add("active-card");
   }
-  const prog2=PROG[ctx.cDay];
+  const prog2=curProg();
   const total=prog2.exercises.length;
   const done=prog2.exercises.filter(e=>(S.sessions[key]||{})[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
@@ -954,7 +979,7 @@ function stopSess(){
   S.sessions[key]._duration=(S.sessions[key]._duration||0)+el; // accumulate across resumes
   S.sessions[key]._stopped=true;
   save();queueSessionMeta(key);
-  const prog=PROG[ctx.cDay];
+  const prog=curProg();
   const setsDone=prog.exercises.reduce((a,ex)=>a+((S.sessions[key]||{})[ex.id]?.sets?.filter(s=>s.done)?.length||0),0);
   document.getElementById("sumDur").textContent=m+"m "+(s<10?"0":"")+s+"s";
   document.getElementById("sumSets").textContent=setsDone;
@@ -992,7 +1017,7 @@ async function aiRun(type){
     outId="oo";
   }else if(type==="sub"){
     const v=document.getElementById("si").value.trim();if(!v)return;
-    const todayExNames=(PROG[ctx.cDay]?.exercises||[]).map(e=>e.name||e).join(", ");
+    const todayExNames=(curProg()?.exercises||[]).map(e=>e.name||e).join(", ");
     prompt=`Machine busy. The user was about to do: ${v} (includes the weight they planned to use). Today's routine already includes: ${todayExNames||"none"}. Equipment available: ${GYM}. Suggest exactly ONE alternative not already in today's routine, AND the specific starting weight for it, converted sensibly from the weight they stated (account for machine vs cable vs dumbbell loading differences). Format: exercise name, recommended weight, one short sentence why. No lists.`;
     outId="so";
   }else if(type==="calftrend"){
@@ -1037,7 +1062,7 @@ async function aiRun(type){
   out.className="ai-out show";
   out.innerHTML='<span class="spin"></span>Thinking...';
   try{
-    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:PROG[ctx.cDay]?.title||""}})},60000);
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:curProg()?.label||""}})},60000);
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||"Request failed");
     out.innerHTML=d.text?mdLite(d.text):"No response.";

@@ -29,6 +29,7 @@
  */
 
 import { readFileSync } from "fs";
+import { isGymRestDay as REAL_IS_GYM_REST_DAY } from "./src/constants.js";
 import { execSync } from "child_process";
 
 execSync("node build.mjs", { stdio: "inherit" });
@@ -195,13 +196,18 @@ ok("phase engine block present with markers", !!engineMatch);
 
 function mkEngine(Sstub) {
   const USERstub = { targetKg: 95, weightKg: 140, goalDate: new Date(2027, 1, 21), heightCm: 190.5, birthDate: new Date(1995, 7, 1) };
-  const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog",
+  // isRestDay now derives from the program (Southpaw rests Wednesday, trains
+  // Sunday), so the engine takes it as a dependency. Stubbed with the REAL
+  // rule rather than the old hardcoded Sunday, so the deficit assertions below
+  // are checked against what actually ships.
+  const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog", "isGymRestDay",
     engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,restingFor,bankedDays,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
     () => "2026-07-28",
     w => Math.round(10 * w + 6.25 * 190.5 - 5 * 31 + 5),
-    () => (Sstub.nutrition && Object.values(Sstub.nutrition.weights || {})[0]) || null);
+    () => (Sstub.nutrition && Object.values(Sstub.nutrition.weights || {})[0]) || null,
+    REAL_IS_GYM_REST_DAY);
 }
 const emptyS = { nutrition: { weights: {}, days: {} } };
 const E = mkEngine(emptyS);
@@ -1133,13 +1139,59 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
 
   // A 0-exercise day used to render a full-width "Start Workout" CTA and a
   // "0 of 0 complete" bar, both of which read as broken on a rest day.
+  // A rest day is a STATE OF THE HERO, not a hero plus a notice bar. The first
+  // attempt bolted on a bordered callout with an icon and a bold lead, which is
+  // the most generic pattern going. No Start Workout CTA, no 0 of 0 bar, and
+  // no separate card: the hero itself says what the day is and what is next.
   ok("rest days suppress the Start Workout CTA and the 0 of 0 bar",
     /if\(!prog\.exercises\.length\)\{/.test(WORKOUT) &&
-    /rest-note/.test(WORKOUT) &&
     /\$\{future\|\|!total\?""/.test(WORKOUT));
+  ok("rest day carries no separate notice card",
+    !/rest-note/.test(WORKOUT) && !/rest-note/.test(APP_CSS));
+  ok("rest day points at the next session from inside the hero",
+    /function nextSession\(\)/.test(WORKOUT) && /hero-next/.test(WORKOUT) &&
+    APP_CSS.includes(".hero-next{"));
+  // Hero scope rule: hero internals must use --hero-* tokens only.
+  ok("hero-next uses hero tokens, not themed surface tokens",
+    /\.hero-next\{[^}]*var\(--hero-line\)/.test(APP_CSS) &&
+    !/\.hero-next[^{]*\{[^}]*var\(--s[0-9]\)/.test(APP_CSS));
 
   ok("rest timer uses the exercise's own interval",
     /function startRest\(sec\)/.test(WORKOUT) && /startRest\(ex\.rest\)/.test(WORKOUT));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pre-merge guards found by auditing the Southpaw switch
+// ─────────────────────────────────────────────────────────────────────────────
+{
+  const C = readFileSync("src/constants.js", "utf8");
+  const PH = readFileSync("src/phase.js", "utf8");
+  const MAIN = readFileSync("src/main.js", "utf8");
+
+  // isRestDay drove the active-calorie target and was hardcoded to Sunday.
+  // Southpaw rests WEDNESDAY and trains Sunday, so it handed out the rest
+  // target (650) on leg day and the workout target (1500) on the rest day.
+  ok("rest day for nutrition is program-derived, not hardcoded to Sunday",
+    /export function isGymRestDay/.test(C) &&
+    /export function isRestDay\(dateIso\)\{return isGymRestDay/.test(PH) &&
+    !/getUTCDay\(\)===0/.test(PH));
+
+  // Physio-only Wednesday (from Aug 10) is recovery, so it must still count as
+  // a rest day for calories even though it is not an empty day.
+  ok("nutrition rest day keys off gym work, not an empty day",
+    /some\(e=>e\.cat==="gym"\)/.test(C));
+
+  // PROG is a snapshot resolved at load. Using it for a future week made next
+  // week render THIS week's exercises, which is why Southpaw never appeared.
+  ok("browsing to another week uses that week's program",
+    /ctx\.viewDate=viewDate/.test(MAIN) &&
+    /programFor\(viewDate\(\)\)\[day\]/.test(MAIN) &&
+    /function curProg\(day\)/.test(WORKOUT) &&
+    !/PROG\[ctx\.cDay\]|PROG\[cDay\]/.test(WORKOUT));
+
+  // PR history is keyed by name-slug, so renaming a machine orphans its log.
+  ok("renamed exercises keep their PR history",
+    /export const PR_ALIAS/.test(C) && /PR_ALIAS\[raw\]\|\|raw/.test(MAIN));
 }
 
 ok("set row and header grids have matching column counts", (() => {
