@@ -493,7 +493,7 @@ async function generateDietReview(){
 // to 1. It rewards not breaking the chain, which "workouts" alone does not:
 // you can train 4 of 6 days every week and never build a streak.
 // The zepbound key is kept as-is because it maps to stored data; only its
-// label is "Medication".
+// label shown on the frontend is "Medication".
 const COMPLIANCE_WEIGHTS={deficit:0.50,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05,streak:0.05};
 function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addDaysIso(dateIso,dow===0?-6:1-dow);}
 // Weighted compliance for [weekStartIso .. endIso]. Returns {calculating:true}
@@ -534,7 +534,7 @@ function weekCompliance(p,weekStartIso,endIso){
     if(!isRestDay(d)){expWorkout++;if(trainedOn(d))workoutDays++;}
   }
   if(!calLogged)return{calculating:true};
-  // Medication: taken this Tuesday cycle (last Tue → now) = 100, else 0
+  // Zepbound: taken this Tuesday cycle (last Tue → now) = 100, else 0
   const zepTaken=zepSchedule().taken?100:0;
   const m={
     deficit:Math.min(100,Math.round(defReq>0?Math.max(0,defSum)/defReq*100:0)),
@@ -762,7 +762,7 @@ function phaseCardHtml(){
     }
   }
 
-  // Fix A+B+C+D: weight block, range row, Medication cell, short chip
+  // Fix A+B+C+D: weight block, range row, medication cell, short chip
   const latestKg=latestWeightLog();
   const latest=latestKg??p.startKg;
   const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);

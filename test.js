@@ -320,10 +320,14 @@ ok("compliance weights are 50/20/15/5/5/5 and sum to 1",
 ok("streak is scored from the workout streak, a full week reading 100",
   /streak:Math\.min\(100,Math\.round\(\(ctx\.currentStreak/.test(HTML) &&
   HTML.includes("ctx.currentStreak=currentStreak"));
-// Renamed for privacy. The storage key stays so dose history is not orphaned.
-ok("medication is labelled generically but keeps its storage key",
+// Renamed on the FRONTEND only. Storage keys keep the real name so dose history
+// is not orphaned, and the AI context keeps it so the GLP-1 class still informs
+// nutrition advice. Only what renders on screen is generic.
+ok("medication reads generically on screen but keeps its real name internally",
   !/>Zepbound</.test(HTML) && !/'Zepbound'/.test(HTML) &&
-  /compGridItem\('Medication'/.test(HTML) && /meds\??\.zepbound/.test(HTML));
+  /compGridItem\('Medication'/.test(HTML) &&
+  /\$\{icon\("syringe",20\)\} Medication/.test(HTML) &&
+  /meds\??\.zepbound/.test(HTML) && /name:"Zepbound"/.test(HTML));
 ok("compliance is NaN-safe (Calculating placeholder) and caps protein/deficit at 100",
   HTML.includes("calculating:true") && HTML.includes("Calculating…") &&
   /protein:Math\.min\(100/.test(HTML) && /deficit:Math\.min\(100/.test(HTML));

@@ -67,7 +67,7 @@ function buildChatContext(){
   const lastZep=zepDoses.length?zepDoses[zepDoses.length-1]:null;
   let nextZepDue=null;
   if(lastZep){const d=new Date(lastZep.date+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+7);nextZepDue=d.toISOString().slice(0,10);}
-  const medication=lastZep?{name:"Medication",currentMg:lastZep.mg,lastDoseDate:lastZep.date,nextDueDate:nextZepDue,schedule:"weekly on Tuesday"}:null;
+  const medication=lastZep?{name:"Zepbound",currentMg:lastZep.mg,lastDoseDate:lastZep.date,nextDueDate:nextZepDue,schedule:"weekly on Tuesday"}:null;
   return{today,goal,sessions,weights,todayItems,medication};
 }
 function renderAiChatBubbles(){
