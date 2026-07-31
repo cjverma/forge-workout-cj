@@ -242,17 +242,30 @@ export function renderNutrition(){
         return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">${icon("bolt",18)} Active ${active.toLocaleString()} / ${aTgt.toLocaleString()} · ${aPct}%${remain>0?` · ${remain.toLocaleString()} kcal remaining`:""} · ${lbl}</div>`;
       })():""}
       ${macroPie(protein,carbs,fat,fibre)}
-      <div class="macro-row">
-        <div class="macro-chip"><div class="macro-val" style="${protein>=pTarget?"color:var(--hero-pos)":""}">${protein}<span style="font-size:11px;color:var(--hero-fg-faint)">/${pTarget}g</span></div><div class="macro-lbl">Protein${trained?` ${icon("bolt",18)}`:""}</div></div>
-        <div class="macro-chip"><div class="macro-val">${carbs}g</div><div class="macro-lbl">Carbs</div></div>
-        <div class="macro-chip"><div class="macro-val">${fat}g</div><div class="macro-lbl">Fat</div></div>
-      </div>
-      <div class="macro-row">
-        <div class="macro-chip"><div class="macro-val" style="font-size:14px;${fibre>=FIBRE_TARGET?"color:var(--hero-pos)":""}">${fibre}<span style="font-size:10px;color:var(--hero-fg-faint)">/${FIBRE_TARGET}g</span></div><div class="macro-lbl">Fibre</div></div>
-        <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sugar>SUGAR_LIMIT?"color:var(--amber)":""}">${sugar}g</div><div class="macro-lbl">Sugar</div></div>
-        <div class="macro-chip"><div class="macro-val" style="font-size:14px;${sodium>SODIUM_LIMIT?"color:var(--amber)":""}">${sodium.toLocaleString()}<span style="font-size:10px;color:var(--hero-fg-faint)">mg</span></div><div class="macro-lbl">Sodium</div></div>
-      </div>
-      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?`${icon("bolt",18)} Shock Day Active · Tap to Disable`:`${icon("bolt",18)} Shock Day (force 1200 kcal)`}</button>`}
+      ${(()=>{
+        // Six identical bordered tiles replaced by a borderless typographic
+        // grid. Four of these numbers have a target or a limit, which the tile
+        // layout threw away, so each of those now carries a 2px track: it fills
+        // toward the target and turns amber past a limit. Carbs and fat have
+        // neither, so they get no track rather than a decorative empty one.
+        const bar=(v,lim,isLimit)=>{
+          const pct=Math.min(100,Math.round((v/lim)*100));
+          const over=isLimit?v>lim:false;
+          const met=!isLimit&&v>=lim;
+          const col=over?"var(--amber)":met?"var(--hero-pos)":"var(--hero-accent)";
+          return`<div class="macro-tr"><span style="width:${pct}%;background:${col}"></span></div>`;
+        };
+        const cell=(k,valHtml,track)=>`<div class="macro"><div class="macro-k">${k}</div><div class="macro-v">${valHtml}</div>${track||""}</div>`;
+        return`<div class="macros">
+          ${cell("Protein",`${protein}<i>/${pTarget}g</i>`,bar(protein,pTarget,false))}
+          ${cell("Carbs",`${carbs}<i>g</i>`,"")}
+          ${cell("Fat",`${fat}<i>g</i>`,"")}
+          ${cell("Fibre",`${fibre}<i>/${FIBRE_TARGET}g</i>`,bar(fibre,FIBRE_TARGET,false))}
+          ${cell("Sugar",`${sugar}<i>g</i>`,bar(sugar,SUGAR_LIMIT,true))}
+          ${cell("Sodium",`${sodium.toLocaleString()}<i>mg</i>`,bar(sodium,SODIUM_LIMIT,true))}
+        </div>`;
+      })()}
+      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?`${icon("bolt",18)} Shock day active · tap to disable`:`${icon("bolt",18)} Shock day · force 1200 kcal`}</button>`}
     </div>
 
     <!-- Food log card -->
@@ -294,7 +307,7 @@ export function renderNutrition(){
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:var(--font-body);font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional · e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet · ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
-<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
+<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
     </div>
 
     <!-- Body card: daily burn inputs + weight logging in one place -->
@@ -302,11 +315,11 @@ export function renderNutrition(){
       <div class="nut-card-title">Body</div>
       <div class="burn-row">
         <div class="burn-col"><input class="burn-inp" id="bvRest" type="number" inputmode="numeric" enterkeyhint="done" value="${resting}" ${ro?'disabled':''} onchange="saveBurn('${date}','resting',this.value)" onfocus="this.select()"><div class="burn-lbl">Resting${restOvr!=null?" (custom)":""}</div></div>
-        <div class="burn-sep"></div>
+        
         <div class="burn-col"><input class="burn-inp" id="bvAct" type="number" inputmode="numeric" enterkeyhint="done" placeholder="0" value="${active||""}" ${ro?'disabled':''} onchange="saveBurn('${date}','active',this.value)" onfocus="this.select()"><div class="burn-lbl">Active</div></div>
-        <div class="burn-sep"></div>
+        
         <div class="burn-col"><div class="burn-val">${totalBurn}</div><div class="burn-lbl">Total</div></div>
-        <div class="burn-sep"></div>
+        
         <div class="burn-col${ro?"":" tappable"}" ${ro?"":`onclick="toggleWtOpen()"`} style="cursor:${ro?"default":"pointer"}">
           <div class="burn-val" style="${allWtKeys.length?"":"color:var(--dim)"}">${(()=>{if(!allWtKeys.length)return"·";const cur=wts[allWtKeys[allWtKeys.length-1]];const curFmt=Number(cur).toFixed(1);if(allWtKeys.length<2)return curFmt;const delta=cur-wts[allWtKeys[allWtKeys.length-2]];const arrow=delta<0?'<span style="font-size:11px;color:var(--green)"> ↓'+Math.abs(delta).toFixed(1)+"</span>":delta>0?'<span style="font-size:11px;color:var(--red)"> ↑'+delta.toFixed(1)+"</span>":"";return curFmt+arrow;})()}</div>
           <div class="burn-lbl">Weight${allWtKeys.length?" kg":""}</div>
@@ -314,7 +327,7 @@ export function renderNutrition(){
       </div>
       ${ro?"":_wtOpen
         ? `<div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="e.g. 138.5" inputmode="decimal" enterkeyhint="done" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="toggleWtOpen()">✕</button></div>`
-        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:var(--font-body);font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">${allWtKeys.length?"+ Update Weight":"+ Log Weight"}</button>`
+        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--lt);cursor:pointer">${allWtKeys.length?"+ Update weight":"+ Log Weight"}</button>`
       }
     </div>
 
@@ -328,9 +341,9 @@ export function renderNutrition(){
     <details class="st-acc">
       <summary><div><div>${icon("bowl",20)} Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
-      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
+      <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
-    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px dashed var(--b2);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?`${icon("bowl",20)} Reviewing your week…`:`${icon("bowl",20)} Generate Weekly Diet Review`}</button>`}
+    <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin:0 0 14px;background:transparent;border:1px solid var(--b1);border-radius:10px;padding:12px 14px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?`${icon("bowl",20)} Reviewing your week…`:`${icon("bowl",20)} Generate Weekly Diet Review`}</button>`}
 
     <!-- Weight history & trend -->
     <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
@@ -441,7 +454,7 @@ function zepCardHtml(){
         <button onclick="logZepDose(_zepDate,_zepMg)" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-size:13px;font-weight:700;cursor:pointer">Save</button>
         <button onclick="toggleZepOpen()" style="padding:10px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--dim);cursor:pointer">✕</button>
       </div>
-    </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px dashed var(--b2);border-radius:8px;font-family:var(--font-body);font-size:12px;font-weight:600;letter-spacing:1px;color:var(--dim);cursor:pointer;text-transform:uppercase">+ Log Dose</button>`}
+    </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--lt);cursor:pointer">+ Log Dose</button>`}
     ${doses.length?`<div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:10px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">History</div>${doses.slice().reverse().slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--mid)">${fmtDate(d.date)}</span><span style="font-weight:600">${d.mg}mg</span><button onclick="delZepDose('${d.date}')" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px 6px">✕</button></div>`).join("")}</div>`:""}
   </div>`;
 }
@@ -753,7 +766,7 @@ function phaseCardHtml(){
 
   const zepOverdue=zepSchedule().overdue;
   const compGridItem=(lbl,v,isZep)=>{
-    if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px dashed var(--b2)"><span style="font-size:15px;font-weight:700;color:var(--dim)">·</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Zepbound<br><span style="font-size:9px">not due</span></span></div>';
+    if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px solid var(--b1)"><span style="font-size:15px;font-weight:700;color:var(--dim)">·</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Zepbound<br><span style="font-size:9px">not due</span></span></div>';
     const col=v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px"><span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:'+col+'">'+v+'%</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">'+lbl+'</span></div>';
   };
@@ -798,10 +811,10 @@ function phaseCardHtml(){
       ${verdictHtml}
       ${S.phaseReview?.phase===p.id&&S.phaseReview.text?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">${icon("spark",15)} Coach review · ${fmtDate(new Date(S.phaseReview.at).toISOString().slice(0,10))}</div><div style="font-size:12px;color:var(--lt);line-height:1.6">${mdLite(S.phaseReview.text)}</div></div>`:""}
       <div style="display:flex;gap:8px;margin-top:12px">
-        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":`${icon("spark",15)} Review now`}</button>
+        <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":`${icon("spark",15)} Review now`}</button>
         ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
-          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
-        ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px dashed var(--b2);border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
+          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
+        ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
       </div>
       ${openPause?`<div style="${nMuted};margin-top:8px">Paused · ${esc(openPause.reason)} · ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?" · extends phase":" · deadline unchanged"}</div>`:""}
       ${_phasePauseOpen&&!openPause?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px;background:var(--s2)">

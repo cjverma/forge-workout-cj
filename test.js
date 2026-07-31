@@ -1227,6 +1227,36 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /\.lift-val\{[^}]*tabular-nums/.test(APP_CSS));
 }
 
+// Nutrition tab card pass. Guards the specific generic patterns removed.
+{
+  const NUT2 = readFileSync("src/nutrition.js", "utf8");
+
+  // Dashed outlines read as a drop zone or an unfinished placeholder, and the
+  // tab had them on every "add" affordance plus two inline buttons.
+  ok("no dashed borders remain in the nutrition tab or app CSS",
+    !/border:1px dashed/.test(NUT2) && !/border(-bottom)?:[^;]*dashed/.test(APP_CSS));
+
+  // Six identical bordered tiles, which also discarded the fact that four of
+  // the six numbers have a target or a limit.
+  ok("macros are a borderless grid with progress tracks, not six tiles",
+    /class="macros"/.test(NUT2) && !/class="macro-chip"/.test(NUT2) &&
+    APP_CSS.includes(".macros{") && APP_CSS.includes(".macro-tr{") &&
+    !/\.macros\{[^}]*border:/.test(APP_CSS));
+
+  // The Body row mixed two idioms: volt-outlined boxes on the editable numbers
+  // and plain type on the read-only ones.
+  ok("Body row is one consistent stat idiom",
+    /\.burn-inp\{[^}]*background:transparent/.test(APP_CSS) &&
+    /\.burn-inp\{[^}]*var\(--font-display\)/.test(APP_CSS) &&
+    !/\.burn-inp\{[^}]*border:1\.5px solid var\(--orange\)/.test(APP_CSS) &&
+    !/burn-sep/.test(NUT2));
+
+  // Uppercase letterspaced full-width buttons outshouted the primary action.
+  ok("secondary nutrition actions are not shouting",
+    !/\.shock-btn\{[^}]*text-transform:uppercase/.test(APP_CSS) &&
+    !/\.add-food-btn\{[^}]*text-transform:uppercase/.test(APP_CSS));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);
