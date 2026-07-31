@@ -85,11 +85,11 @@ function renderDrawer(){
     ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained · <span style="color:var(--b2)">▮</span> rest`)}
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
-    <div class="st-sec">AI coaching</div>
-    <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find alternative</button><div class="ai-out" id="so"></div></div>
-    <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How hard should I train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse recovery</button><div class="ai-out" id="ro"></div></div>
+    <div class="st-sec">AI Coaching</div>
+    <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
+    <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
     <details class="st-acc">
-      <summary><div><div>${icon("trophy",20)} Personal records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
+      <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
       // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
@@ -110,7 +110,7 @@ function renderDrawer(){
           .slice(0,5)
           .map(({id,best},idx)=>`<div class="lift-row"><span class="lift-rank">${idx+1}</span><span class="lift-name">${esc(exName(id))}</span><span class="lift-val">${best.est}<span class="lift-unit">kg</span></span></div>`)
           .join("");
-        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest lifts</div>${rows}</div>`;
+        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
       const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];
@@ -140,7 +140,7 @@ function renderDrawer(){
       </div>
     </details>
     <details class="st-acc">
-      <summary><div><div>${icon("shield",20)} Spine rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
+      <summary><div><div>${icon("shield",20)} Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
       <div class="st-acc-inner">
         <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
         <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
@@ -307,7 +307,7 @@ export function renderNutrition(){
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:var(--font-body);font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional · e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
       })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet · ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
-<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
+<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
     </div>
 
     <!-- Body card: daily burn inputs + weight logging in one place -->
@@ -339,7 +339,7 @@ export function renderNutrition(){
 
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
-      <summary><div><div>${icon("bowl",20)} Weekly diet review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
+      <summary><div><div>${icon("bowl",20)} Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
       <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
@@ -347,7 +347,7 @@ export function renderNutrition(){
 
     <!-- Weight history & trend -->
     <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
-      <summary><div><div>${icon("scale",20)} Weight history</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
+      <summary><div><div>${icon("scale",20)} Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
       <div class="st-acc-inner">
       ${sparkHtml}
       ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${fmtDate(k)}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${Number(wts[k]).toFixed(1)} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}

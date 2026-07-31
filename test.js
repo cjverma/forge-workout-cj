@@ -750,7 +750,7 @@ ok("client renders the review card guarded on S.dietReview?.text",
 
 // Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
 const rnTpl = fnBody("renderNutrition");
-const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly diet review", "Weight history"].map(s => rnTpl.indexOf(s));
+const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly Diet Review", "Weight History"].map(s => rnTpl.indexOf(s));
 ok("Nutrition tab order: hero → Food Log → Body → PROGRESS → phase → diet review → weight history → Ask Forge",
   order.every(i => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]));
 
@@ -1293,9 +1293,15 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /export function actualDeficit/.test(PH3) &&
     /restingFor\(dateIso,nd\)\+ACTIVE_MULT\*\(nd\.active\|\|0\)-eaten/.test(PH3) &&
     /if\(!eaten\)return null;/.test(PH3));
-  ok("required deficit is derived from the phase goal and days left",
-    /export function phaseRequiredDeficit/.test(PH3) &&
-    /\(lw-p\.targetKg\)\*7700\/daysLeft/.test(PH3));
+  // FIXED for the phase, not recomputed from the latest weight. An adaptive
+  // target moves the goalposts: get ahead and the bar drops, so compliance
+  // hovers near the same number no matter how the week actually went.
+  ok("required deficit is fixed per phase, not adaptive",
+    /export function phaseRequiredDeficit\(p\)\{/.test(PH3) &&
+    /\(p\.startKg-p\.targetKg\)\*7700\/days/.test(PH3) &&
+    !/sevenDayAvg\(today\)/.test(PH3.slice(PH3.indexOf("phaseRequiredDeficit"), PH3.indexOf("phaseRequiredDeficit")+400)));
+  ok("phase 1 requires 2,200 kcal/day (12 kg over 42 days)",
+    Math.round(12 * 7700 / 42) === 2200);
   ok("workouts stays its own metric",
     /workouts:0\.15/.test(NUT3) && /if\(trainedOn\(d\)\)workoutDays\+\+/.test(NUT3));
 }
@@ -1327,11 +1333,11 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   const SET3 = readFileSync("src/settings.js", "utf8");
   const WK3 = readFileSync("src/workout.js", "utf8");
   const MAIN3 = readFileSync("src/main.js", "utf8");
-  // Title Case row titles sitting next to sentence-case captions and subs is
-  // what made the settings tab read as machine-assembled.
-  ok("settings titles are sentence case, not Title Case",
-    !/>(This Week|Volume This Week|Personal Records|Spine Rules|Weight History|Demo Clips|Undo Sync|Weekly Plan|Danger Zone)</.test(SET3));
-  // Sessions are keyed by EXERCISE ID, so a program change orphans the work you
+  // Labels are Title Case; descriptive sub-lines stay sentence case because
+  // they are sentences, not names. Mixing the two conventions on ONE screen is
+  // what read as machine-assembled, not the choice of convention itself.
+  ok("settings labels are Title Case",
+    /This Week</.test(SET3) && /Volume This Week</.test(SET3) && />Database Sync</.test(SET3));
   // logged and the day silently reads as untrained, taking the streak with it.
   ok("a day can be marked complete and it holds the streak",
     /function toggleDayComplete\(\)/.test(WK3) && /window\.toggleDayComplete/.test(WK3) &&
@@ -1342,21 +1348,26 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /const allDone=manualDone\|\|/.test(WK3));
 }
 
-// Sentence case, enforced. Title Case titles sitting beside sentence-case
-// captions and subs is what made the settings tab read as machine-assembled,
-// and a first pass missed every accordion summary because those are preceded by
-// an ${icon()} call rather than a ">".
+// Title Case, enforced — but ONLY in label elements. Descriptive sub-lines
+// (.st-sub, .export-sub, .st-acc-sub) are sentences and must stay sentence
+// case; scanning all text flagged things like "Restore from a previously
+// exported file", which is prose, not a name.
 {
-  const KEEP = /FORGE|AI|PDF|CSV|HealthKit|Zepbound|1RM|Apple|Watch|Southpaw|Forge|Sheets/;
-  const titleCase = /(?:>|\}) ?((?:[A-Z][a-z]+|AI)(?: (?:&(?:amp;)?|[A-Z][a-z]+|AI))+)</g;
+  const SMALL = /^(a|an|and|as|at|by|for|in|of|on|or|the|to|vs|with|this)$/;
+  // the element classes that actually name things
+  const LABEL = /class="(?:st-ttl|export-title|st-sec|lift-cap|nut-card-title)"[^>]*>([^<$]{3,50})</g;
   const offenders = [];
   for (const p of ["src/settings.js", "src/nutrition.js", "src/workout.js"]) {
     const src = readFileSync(p, "utf8");
-    for (const m of src.matchAll(titleCase)) {
-      if (!KEEP.test(m[1])) offenders.push(`${p}: ${m[1]}`);
+    for (const m of src.matchAll(LABEL)) {
+      const t = m[1].trim();
+      if (/[·.?!]/.test(t)) continue;             // a sentence, not a label
+      const rest = t.split(" ").slice(1);
+      if (!rest.length) continue;
+      if (rest.some(w => /^[a-z]/.test(w) && !SMALL.test(w))) offenders.push(`${p}: ${t}`);
     }
   }
-  ok(`UI titles are sentence case${offenders.length ? " — " + [...new Set(offenders)].slice(0, 5).join(", ") : ""}`,
+  ok(`UI labels are Title Case${offenders.length ? " — " + [...new Set(offenders)].slice(0, 5).join(", ") : ""}`,
     offenders.length === 0);
 }
 

@@ -19,23 +19,23 @@ export function renderST(){
 
     <!-- Group 1: This Week -->
     <details class="st-acc" open>
-      <summary><div><div>${icon("calendar",20)} This week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
+      <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
       <div class="st-acc-inner">
-        <div class="st-sec">Weekly plan</div>
+        <div class="st-sec">Weekly Plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
-          <div class="export-title">Generate next week</div>
+          <div class="export-title">Generate Next Week</div>
           <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">${icon("calendar",20)} Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
-          <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="width:100%;margin-bottom:8px">Generate next week</button>
-          ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
+          <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="margin-bottom:8px">Generate</button>
+          ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()">Reset to Default</button>`:''}
         </div>
         <details class="st-acc">
-          <summary><div><div>${icon("gym",20)} Volume this week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
+          <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
           <div class="st-acc-inner">
         ${(()=>{
           const vdata=buildVolumeData();
           if(!vdata.length)return`<div style="font-size:12px;color:var(--dim);padding:0 2px">No exercises planned this week.</div>`;
           return`<div class="vol-list">`+
-            `<div class="lift-cap">Sets done vs planned</div>`+
+            `<div class="lift-cap">Sets Done vs Planned</div>`+
             vdata.map(({muscle,planned,done})=>{
               const pct=planned?Math.min(100,Math.round(done/planned*100)):0;
               const full=planned&&done>=planned;
@@ -51,7 +51,7 @@ export function renderST(){
     <details class="st-acc" open>
       <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
       <div class="st-acc-inner">
-        <div class="st-sec">Weekly calorie deficit</div>
+        <div class="st-sec">Weekly Calorie Deficit</div>
     ${(()=>{
       const todayIso=isoToday();
       const now=new Date();
@@ -135,7 +135,7 @@ export function renderST(){
       </div>`;
     })()}
 
-        <div class="st-sec">Weekly review</div>
+        <div class="st-sec">Weekly Review</div>
         ${buildWeeklyReviewCard()}
       </div>
     </details>
@@ -147,10 +147,10 @@ export function renderST(){
         <div class="st-sec">Appearance</div>
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
-          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
+          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
-          <summary><div><div>${icon("refresh",20)} Undo sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
+          <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
           <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">${icon("refresh",18)}</div><div class="st-info"><div class="st-ttl">${fmtDate(new Date(s.ts).toISOString().slice(0,10))} · ${new Date(s.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("")}</div></div>
         </details>`;})()}
 
@@ -158,31 +158,31 @@ export function renderST(){
           <summary><div><div>${icon("database",20)} Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
           <div class="st-subacc-inner">
 
-        <div class="st-sec">Sync &amp; recovery</div>
+        <div class="st-sec">Sync &amp; Recovery</div>
         <div class="st-group">
-          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
-          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
+          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
         </div>
 
-        <div class="st-sec">Backup &amp; export</div>
+        <div class="st-sec">Backup &amp; Export</div>
         <div class="st-group">
-          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
-          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email my data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
-          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
+          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No Recent Manual Backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
+          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
+          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy last 3 months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
+          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
         </div>
 
         ${!window.FORGE_API_CFG?`<div class="st-sec">Session</div>
         <div class="st-group">
-          <div class="st-row" onclick="lockApp()"><div class="st-icon">${icon("lock",18)}</div><div class="st-info"><div class="st-ttl">Lock app</div><div class="st-sub">Sign out and require access token</div></div></div>
+          <div class="st-row" onclick="lockApp()"><div class="st-icon">${icon("lock",18)}</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
         </div>`:""}
 
         <div class="danger-zone">
-          <div class="st-sec">Danger zone</div>
+          <div class="st-sec">Danger Zone</div>
           <div class="st-group">
-            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear all data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
+            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
           </div>
         </div>
 
@@ -360,7 +360,7 @@ function showExportSheet(){
   sheet.className="export-sheet";
   sheet.innerHTML=`
     <div class="export-sheet-inner">
-      <div class="export-sheet-title">Export my data</div>
+      <div class="export-sheet-title">Export My Data</div>
       <button class="export-opt" onclick="emailCSV()">${icon("file",18)} Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
       <button class="export-opt" onclick="openPDFReport()">${icon("chart",20)} View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
       <button class="export-cancel" onclick="document.getElementById('exportSheet').classList.remove('open')">Cancel</button>
@@ -527,9 +527,9 @@ function buildPDFReport(){
       <div style="text-align:right"><div style="font-size:13px;font-weight:600">${esc(USER.targetKg?`Goal: ${USER.targetKg}kg`:"")}</div><div style="font-size:12px;color:#6b7280">Current: ${lw}kg</div></div>
     </div>
     <div class="stats-row">
-      <div class="stat-box"><div class="stat-val" style="color:#55700B">🔥 ${streak}</div><div class="stat-lbl">Day streak</div></div>
-      <div class="stat-box"><div class="stat-val">${weeklySessions}</div><div class="stat-lbl">Sessions this week</div></div>
-      <div class="stat-box"><div class="stat-val">${lw}kg</div><div class="stat-lbl">Current weight</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:#55700B">🔥 ${streak}</div><div class="stat-lbl">Day Streak</div></div>
+      <div class="stat-box"><div class="stat-val">${weeklySessions}</div><div class="stat-lbl">Sessions This Week</div></div>
+      <div class="stat-box"><div class="stat-val">${lw}kg</div><div class="stat-lbl">Current Weight</div></div>
       <div class="stat-box"><div class="stat-val">${Object.keys(S.prs||{}).length}</div><div class="stat-lbl">Exercises PR'd</div></div>
     </div>
     <div class="section">
@@ -542,9 +542,9 @@ function buildPDFReport(){
         <div class="pdf-chart">${buildSVGSparkline(wtKeys,wts).replace('<div class="pdf-chart">','').replace('</div>','')}</div>
       </div>
     </div>
-    ${prRows?`<div class="section"><div class="section-title">Personal records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
-    ${workoutRows?`<div class="section"><div class="section-title">Recent workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets done</th><th>Top weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
-    ${sessionLogRows?`<div class="section"><div class="section-title">Session notes &amp; calf twinges</div><table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>${sessionLogRows}</tbody></table></div>`:""}
+    ${prRows?`<div class="section"><div class="section-title">Personal Records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best Set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
+    ${workoutRows?`<div class="section"><div class="section-title">Recent Workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets Done</th><th>Top Weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
+    ${sessionLogRows?`<div class="section"><div class="section-title">Session Notes &amp; Calf Twinges</div><table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>${sessionLogRows}</tbody></table></div>`:""}
     <div style="margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Generated by FORGE · ${new Date().toISOString()} · Print this page to save as PDF</div>
   </body></html>`;
   return html;
@@ -813,13 +813,13 @@ function showPlanModal(parsed){
   modal.innerHTML=`
     <div class="pm-title">Next Week's Plan</div>
     <div class="pm-sub">Effective from week of ${esc(weekLabel(nextWk()))}. Review then apply.</div>
-    ${notes?`<div class="pm-section">Coaching notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
+    ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
     ${changesHtml||`<div class="pm-notes">No changes needed · program looks good for next week.</div>`}
     <div class="pm-btns">
       <button class="pm-cancel" onclick="closePlanModal()">Cancel</button>
-      <button class="pm-apply" onclick="applyPendingPlan()">Apply plan</button>
+      <button class="pm-apply" onclick="applyPendingPlan()">Apply Plan</button>
     </div>`;
   modal.classList.add("show");
 }

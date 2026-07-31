@@ -110,17 +110,21 @@ export function actualDeficit(dateIso){
   return Math.round(restingFor(dateIso,nd)+ACTIVE_MULT*(nd.active||0)-eaten);
 }
 
-// What the phase NEEDS per day to still land targetKg by its end, recomputed
-// from the latest weight and the days remaining. This replaces comparing against
-// a hardcoded restingKcal/eatKcal/activeTarget triple, which silently drifts
-// from reality: the config said 2446 resting and 1600 eaten while the real
-// figures were nearer 3000 and 1300, making an achievable phase look impossible.
-export function phaseRequiredDeficit(p,dateIso){
+// What the phase requires per day, FIXED for the whole phase: the weight it has
+// to shed divided by its length. Phase 1 is 12 kg over 42 days = 2,200 kcal/day.
+//
+// Deliberately not recomputed from the latest weight and days remaining. An
+// adaptive figure moves the goalposts under you: get ahead and the bar drops,
+// so a good week quietly lowers the standard and compliance always hovers near
+// the same number regardless of effort. A fixed target means being ahead
+// actually reads as ahead.
+//
+// Derived from the phase definition rather than typed in as a constant, so it
+// can never contradict that phase's own startKg/targetKg/dates.
+export function phaseRequiredDeficit(p){
   if(!p)return 0;
-  const today=dateIso||isoToday();
-  const lw=sevenDayAvg(today)??p.startKg;
-  const daysLeft=Math.max(1,daysBetween(today,effectiveEnd(p))+1);
-  return Math.max(0,Math.round((lw-p.targetKg)*7700/daysLeft));
+  const days=Math.max(1,daysBetween(p.start,p.plannedEnd)+1);
+  return Math.max(0,Math.round((p.startKg-p.targetKg)*7700/days));
 }
 
 export function phaseDayDeficit(p,dateIso){return Math.round(p.restingKcal+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
