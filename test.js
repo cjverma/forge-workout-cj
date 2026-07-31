@@ -1094,7 +1094,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   }
 
   // Exercise counts straight from the plan as written.
-  const want = { Monday:8, Tuesday:10, Wednesday:7, Thursday:11, Friday:9, Saturday:10, Sunday:11 };
+  const want = { Monday:10, Tuesday:10, Wednesday:7, Thursday:12, Friday:10, Saturday:11, Sunday:11 };
   const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
     .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
   ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
@@ -1106,15 +1106,19 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
 
   // Legs twice weekly was the whole point of the restructure.
   ok("legs are trained twice a week (Thu + Sun)",
-    /Thursday:\{label:"Legs & Core · Heavy"/.test(v4) &&
+    /Thursday:\{label:"Legs, Shoulders & Core · Heavy"/.test(v4) &&
     /Sunday:\{label:"Legs & Core · Volume"/.test(v4));
 
   // Dead Bug is physio on Wednesday but programmed core work on the leg days.
   // Left as cat:"physio" there it would be stripped out before Aug 10, silently
   // dropping core from both leg sessions.
-  ok("leg-day Dead Bug is core work, not strippable physio",
-    /\{id:"th4_db",name:"Dead Bug",cat:"gym"/.test(v4) &&
-    /\{id:"su4_db",name:"Dead Bug",cat:"gym"/.test(v4));
+  {
+    const bugs = [...v4.matchAll(/\{id:"([a-z0-9]+)_[a-z]+",name:"Dead Bug",cat:"(\w+)"/g)]
+      .map(m => [m[1], m[2]]);
+    const wrong = bugs.filter(([p, c]) => (p === "w4") !== (c === "physio"));
+    ok(`Dead Bug is core on training days, physio only on Wednesday${wrong.length ? " — " + JSON.stringify(wrong) : ""}`,
+      bugs.length === 7 && wrong.length === 0);
+  }
 
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));
