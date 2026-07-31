@@ -1371,6 +1371,18 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     offenders.length === 0);
 }
 
+// Folding calories+active into one deficit score is right for SCORING but hid
+// which lever is moving, and removed the active figure from view entirely.
+// The breakdown shows the working without scoring anything twice.
+{
+  const NUT4 = readFileSync("src/nutrition.js", "utf8");
+  ok("compliance shows the inputs that produce the deficit",
+    /avgEat:/.test(NUT4) && /avgResting:/.test(NUT4) && /avgActive:/.test(NUT4) &&
+    /class="comp-inputs"/.test(NUT4) && APP_CSS.includes(".comp-inputs{"));
+  ok("the breakdown states the result against the requirement",
+    /deficit vs '\+comp\.reqDeficit/.test(NUT4) && /avgDeficit:/.test(NUT4));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);

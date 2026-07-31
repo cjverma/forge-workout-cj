@@ -376,6 +376,15 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .mark-done:active{color:var(--accent-text);border-bottom-color:var(--accent-text);}
 .sess-undo{margin-left:10px;background:transparent;border:none;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--hero-fg-faint);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
 
+/* The deficit score folds intake, resting and active into one number, which
+   is right for SCORING but hides which lever is moving. This shows the
+   working: the three daily averages that produce it, and the result against
+   what the phase needs. Active is visible again without being scored twice. */
+.comp-inputs{display:flex;flex-wrap:wrap;gap:4px var(--sp-3);padding:8px 0 4px;font-size:11px;color:var(--dim);line-height:1.6;}
+.comp-inputs b{font-weight:600;color:var(--lt);font-variant-numeric:tabular-nums;}
+.comp-inputs-out{flex:1 1 100%;color:var(--mid);}
+.comp-inputs-out b{color:var(--accent-text);}
+
 /* ── MACRO GRID ─────────────────────────────────────────────────────────────
    Was six identical bordered --s2 tiles in a 3x2 grid, which is the "six
    little boxes" dashboard pattern and, worse, discarded the fact that four of
@@ -3884,7 +3893,7 @@ function weekCompliance(p,weekStartIso,endIso){
   const days=[];
   for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
   if(!days.length)return{calculating:true};
-  let calLogged=0,protSum=0,protDays=0,defSum=0,defReq=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
+  let calLogged=0,protSum=0,protDays=0,defSum=0,defReq=0,inEat=0,inRest=0,inAct=0,inDays=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
   for(const d of days){
     const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
     const kcal=items.reduce((s,it)=>s+(it.kcal||0),0);
@@ -3904,7 +3913,12 @@ function weekCompliance(p,weekStartIso,endIso){
       // Measured, not asserted: what the day actually produced vs what the
       // phase still needs. Unlogged days are skipped rather than scored as zero.
       const ad=actualDeficit(d);
-      if(ad!==null){defSum+=ad;defReq+=phaseRequiredDeficit(p,d);}
+      if(ad!==null){
+        defSum+=ad;defReq+=phaseRequiredDeficit(p);
+        // Kept for display: the deficit is intake/resting/active, and showing
+        // only the result hides which lever is actually moving.
+        inEat+=kcal;inRest+=restingFor(d,nd);inAct+=nd.active||0;inDays++;
+      }
       if((S.nutrition.weights||{})[d]!=null)weighins++;
       weighinDays++;
     }
@@ -3915,6 +3929,12 @@ function weekCompliance(p,weekStartIso,endIso){
   const zepTaken=zepSchedule().taken?100:0;
   const m={
     deficit:Math.min(100,Math.round(defReq>0?Math.max(0,defSum)/defReq*100:0)),
+    // daily averages of the three inputs, for the breakdown line
+    avgEat:inDays?Math.round(inEat/inDays):0,
+    avgResting:inDays?Math.round(inRest/inDays):0,
+    avgActive:inDays?Math.round(inAct/inDays):0,
+    avgDeficit:inDays?Math.round(defSum/inDays):0,
+    reqDeficit:inDays?Math.round(defReq/inDays):0,
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
@@ -4182,6 +4202,12 @@ function phaseCardHtml(){
         compGridItem('Workouts',comp.workouts)+
         compGridItem('Weigh-ins',comp.weighins)+
         compGridItem('Zepbound',comp.zepbound??0,true)+
+      '</div>'+
+      '<div class="comp-inputs">'+
+        '<span><b>'+comp.avgEat.toLocaleString()+'</b> eaten</span>'+
+        '<span><b>'+comp.avgResting.toLocaleString()+'</b> resting</span>'+
+        '<span><b>'+comp.avgActive.toLocaleString()+'</b> active</span>'+
+        '<span class="comp-inputs-out"><b>'+comp.avgDeficit.toLocaleString()+'</b> deficit vs '+comp.reqDeficit.toLocaleString()+' needed</span>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 2px;border-top:1px solid var(--b1)">'+
         '<span style="font-size:13px;font-weight:700;color:var(--mid)">Overall</span>'+

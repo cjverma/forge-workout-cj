@@ -497,7 +497,7 @@ function weekCompliance(p,weekStartIso,endIso){
   const days=[];
   for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
   if(!days.length)return{calculating:true};
-  let calLogged=0,protSum=0,protDays=0,defSum=0,defReq=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
+  let calLogged=0,protSum=0,protDays=0,defSum=0,defReq=0,inEat=0,inRest=0,inAct=0,inDays=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
   for(const d of days){
     const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
     const kcal=items.reduce((s,it)=>s+(it.kcal||0),0);
@@ -517,7 +517,12 @@ function weekCompliance(p,weekStartIso,endIso){
       // Measured, not asserted: what the day actually produced vs what the
       // phase still needs. Unlogged days are skipped rather than scored as zero.
       const ad=actualDeficit(d);
-      if(ad!==null){defSum+=ad;defReq+=phaseRequiredDeficit(p,d);}
+      if(ad!==null){
+        defSum+=ad;defReq+=phaseRequiredDeficit(p);
+        // Kept for display: the deficit is intake/resting/active, and showing
+        // only the result hides which lever is actually moving.
+        inEat+=kcal;inRest+=restingFor(d,nd);inAct+=nd.active||0;inDays++;
+      }
       if((S.nutrition.weights||{})[d]!=null)weighins++;
       weighinDays++;
     }
@@ -528,6 +533,12 @@ function weekCompliance(p,weekStartIso,endIso){
   const zepTaken=zepSchedule().taken?100:0;
   const m={
     deficit:Math.min(100,Math.round(defReq>0?Math.max(0,defSum)/defReq*100:0)),
+    // daily averages of the three inputs, for the breakdown line
+    avgEat:inDays?Math.round(inEat/inDays):0,
+    avgResting:inDays?Math.round(inRest/inDays):0,
+    avgActive:inDays?Math.round(inAct/inDays):0,
+    avgDeficit:inDays?Math.round(defSum/inDays):0,
+    reqDeficit:inDays?Math.round(defReq/inDays):0,
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
@@ -795,6 +806,12 @@ function phaseCardHtml(){
         compGridItem('Workouts',comp.workouts)+
         compGridItem('Weigh-ins',comp.weighins)+
         compGridItem('Zepbound',comp.zepbound??0,true)+
+      '</div>'+
+      '<div class="comp-inputs">'+
+        '<span><b>'+comp.avgEat.toLocaleString()+'</b> eaten</span>'+
+        '<span><b>'+comp.avgResting.toLocaleString()+'</b> resting</span>'+
+        '<span><b>'+comp.avgActive.toLocaleString()+'</b> active</span>'+
+        '<span class="comp-inputs-out"><b>'+comp.avgDeficit.toLocaleString()+'</b> deficit vs '+comp.reqDeficit.toLocaleString()+' needed</span>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0 2px;border-top:1px solid var(--b1)">'+
         '<span style="font-size:13px;font-weight:700;color:var(--mid)">Overall</span>'+

@@ -376,6 +376,15 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .mark-done:active{color:var(--accent-text);border-bottom-color:var(--accent-text);}
 .sess-undo{margin-left:10px;background:transparent;border:none;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--hero-fg-faint);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
 
+/* The deficit score folds intake, resting and active into one number, which
+   is right for SCORING but hides which lever is moving. This shows the
+   working: the three daily averages that produce it, and the result against
+   what the phase needs. Active is visible again without being scored twice. */
+.comp-inputs{display:flex;flex-wrap:wrap;gap:4px var(--sp-3);padding:8px 0 4px;font-size:11px;color:var(--dim);line-height:1.6;}
+.comp-inputs b{font-weight:600;color:var(--lt);font-variant-numeric:tabular-nums;}
+.comp-inputs-out{flex:1 1 100%;color:var(--mid);}
+.comp-inputs-out b{color:var(--accent-text);}
+
 /* ── MACRO GRID ─────────────────────────────────────────────────────────────
    Was six identical bordered --s2 tiles in a 3x2 grid, which is the "six
    little boxes" dashboard pattern and, worse, discarded the fact that four of
