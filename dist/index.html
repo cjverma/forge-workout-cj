@@ -369,6 +369,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    shouted in uppercase letterspacing. Solid hairline, sentence case. */
 .add-set-btn:active,.add-food-btn:active,.custom-trigger:active{background:var(--s2);border-color:var(--b2);color:var(--white);}
 
+/* Escape hatch for a session the app cannot see: work logged under a previous
+   program's exercise ids, or a session done away from the phone. Quiet on
+   purpose, it must never compete with Start Workout. */
+.mark-done{display:block;margin:var(--sp-3) auto 0;background:transparent;border:none;font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--dim);cursor:pointer;padding:6px 10px;border-bottom:1px solid transparent;}
+.mark-done:active{color:var(--accent-text);border-bottom-color:var(--accent-text);}
+.sess-undo{margin-left:10px;background:transparent;border:none;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--hero-fg-faint);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
 /* ── MACRO GRID ─────────────────────────────────────────────────────────────
    Was six identical bordered --s2 tiles in a 3x2 grid, which is the "six
    little boxes" dashboard pattern and, worse, discarded the fact that four of
@@ -1754,13 +1761,13 @@ function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targ
 const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
-   eatKcal:1600,restingKcal:2446,activeTargetWorkout:1500,activeTargetRest:650},
+   eatKcal:1600,restingKcal:2446,activeTargetWorkout:900,activeTargetRest:390},
   {id:"phase_2",version:1,strategy:"fat_loss",curve:"linear",
    start:"2026-09-08",plannedEnd:"2026-11-30",startKg:128,targetKg:110,
-   eatKcal:1600,restingKcal:2321,activeTargetWorkout:1400,activeTargetRest:600},
+   eatKcal:1600,restingKcal:2321,activeTargetWorkout:840,activeTargetRest:360},
   {id:"phase_3",version:1,strategy:"fat_loss",curve:"linear",
    start:"2026-12-01",plannedEnd:"2027-02-21",startKg:110,targetKg:95,
-   eatKcal:1600,restingKcal:2141,activeTargetWorkout:1300,activeTargetRest:550},
+   eatKcal:1600,restingKcal:2141,activeTargetWorkout:780,activeTargetRest:330},
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;
@@ -2356,7 +2363,8 @@ function renderW(){
   const sess=S.sessions[key]||{};
   const dispExs=future?getPreviewExercises(cDay):prog.exercises;
   const total=dispExs.length;
-  const done=dispExs.filter(e=>sess[e.id]?.done).length;
+  const manualDone=!!sess._complete;
+  const done=manualDone?total:dispExs.filter(e=>sess[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
   const gymExs=dispExs.filter(e=>e.cat!=="physio");
   const physioExs=dispExs.filter(e=>e.cat==="physio");
@@ -2391,9 +2399,9 @@ function renderW(){
     // there is deliberately nothing else here. No CTA, no notice bar.
   } else if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
-    const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
+    const allDone=manualDone||(nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done));
     if(allDone&&!stopped){
-      h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete</div></div>`;
+      h+=`<div class="session-bar"><div class="sess-complete">✓ Session complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
       h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
     } else {
@@ -2405,7 +2413,8 @@ function renderW(){
         <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
         <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
         ${calfBtnHtml}
-      </div>`;
+      </div>
+      <button class="mark-done" onclick="toggleDayComplete()">Mark day complete</button>`;
     }
   }
 
@@ -2852,6 +2861,20 @@ function reopenEx(exId){
 
 function exById(exId){
   return curProg()?.exercises.find(e=>e.id===exId);
+}
+
+// Marks the VIEWED day trained without needing every exercise ticked. Stored as
+// session meta alongside _stopped and _notes, and read by trainedOn(), so it
+// holds the streak too.
+function toggleDayComplete(){
+  const S=ctx.getS();
+  const key=ctx.sk(ctx.cDay);
+  if(ctx.isReadOnly(key)&&!ctx.unlocked[key])return;
+  if(!S.sessions[key])S.sessions[key]={};
+  const now=!S.sessions[key]._complete;
+  if(now)S.sessions[key]._complete=true;else delete S.sessions[key]._complete;
+  save();queueSessionMeta(key);renderW();
+  showToast(now?"Day marked complete":"Completion removed");
 }
 
 function addSet(key,exId){
@@ -3311,6 +3334,7 @@ window.toggleSet=toggleSet;
 window.toggleCardio=toggleCardio;
 window.skipEx=skipEx;
 window.addSet=addSet;
+window.toggleDayComplete=toggleDayComplete;
 window.delSet=delSet;
 window.toggleCF=toggleCF;
 window.searchEx=searchEx;
@@ -4130,7 +4154,7 @@ function phaseCardHtml(){
 
   // Live status chip in the collapsed summary
   const chipBits=[`${pctDone}%`];
-  if(st==="paused")chipBits.push("⏸ paused");
+  if(st==="paused")chipBits.push("paused");
   else if(st==="completed")chipBits.push(`${icon("flag",18)} verdict ready`);
   else if(avg!=null)chipBits.push(avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:"");
   if(!comp.calculating)chipBits.push(`compliance ${comp.overall}%`);
@@ -4156,7 +4180,7 @@ function phaseCardHtml(){
       <div style="display:flex;gap:8px;margin-top:12px">
         <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":`${icon("spark",15)} Review now`}</button>
         ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
-          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
+          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${icon("moon",16)} Pause phase</button>`:""}
         ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
       </div>
       ${openPause?`<div style="${nMuted};margin-top:8px">Paused · ${esc(openPause.reason)} · ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?" · extends phase":" · deadline unchanged"}</div>`:""}
@@ -4429,11 +4453,11 @@ function renderST(){
     <details class="st-acc" open>
       <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
       <div class="st-acc-inner">
-        <div class="st-sec">Weekly Plan</div>
+        <div class="st-sec">Weekly plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
-          <div class="export-title">Generate Next Week</div>
+          <div class="export-title">Generate next week</div>
           <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">${icon("calendar",20)} Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
-          <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="width:100%;margin-bottom:8px">Generate Next Week</button>
+          <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="width:100%;margin-bottom:8px">Generate next week</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
         </div>
         <details class="st-acc">
@@ -4459,7 +4483,7 @@ function renderST(){
     <details class="st-acc" open>
       <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
       <div class="st-acc-inner">
-        <div class="st-sec">Weekly Calorie Deficit</div>
+        <div class="st-sec">Weekly calorie deficit</div>
     ${(()=>{
       const todayIso=isoToday();
       const now=new Date();
@@ -4537,7 +4561,7 @@ function renderST(){
       </div>`;
     })()}
 
-        <div class="st-sec">Weekly Review</div>
+        <div class="st-sec">Weekly review</div>
         ${buildWeeklyReviewCard()}
       </div>
     </details>
@@ -4549,18 +4573,18 @@ function renderST(){
         <div class="st-sec">Appearance</div>
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
-          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
+          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
-          <summary><div><div>⏪ Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
-          <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">⏪</div><div class="st-info"><div class="st-ttl">${fmtDate(new Date(s.ts).toISOString().slice(0,10))} · ${new Date(s.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("")}</div></div>
+          <summary><div><div>${icon("refresh",20)} Undo sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
+          <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">${icon("refresh",18)}</div><div class="st-info"><div class="st-ttl">${fmtDate(new Date(s.ts).toISOString().slice(0,10))} · ${new Date(s.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("")}</div></div>
         </details>`;})()}
 
         <details class="st-subacc">
           <summary><div><div>${icon("database",20)} Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
           <div class="st-subacc-inner">
 
-        <div class="st-sec">Sync &amp; Recovery</div>
+        <div class="st-sec">Sync &amp; recovery</div>
         <div class="st-group">
           <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
           ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
@@ -4582,7 +4606,7 @@ function renderST(){
         </div>`:""}
 
         <div class="danger-zone">
-          <div class="st-sec">Danger Zone</div>
+          <div class="st-sec">Danger zone</div>
           <div class="st-group">
             <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
           </div>
@@ -4944,7 +4968,7 @@ function buildPDFReport(){
         <div class="pdf-chart">${buildSVGSparkline(wtKeys,wts).replace('<div class="pdf-chart">','').replace('</div>','')}</div>
       </div>
     </div>
-    ${prRows?`<div class="section"><div class="section-title">Personal Records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best Set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
+    ${prRows?`<div class="section"><div class="section-title">Personal records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best Set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
     ${workoutRows?`<div class="section"><div class="section-title">Recent Workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets Done</th><th>Top Weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
     ${sessionLogRows?`<div class="section"><div class="section-title">Session Notes &amp; Calf Twinges</div><table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>${sessionLogRows}</tbody></table></div>`:""}
     <div style="margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Generated by FORGE · ${new Date().toISOString()} · Print this page to save as PDF</div>
@@ -5600,7 +5624,16 @@ function trainedOn(dateIso){
   const j=new Date(d.getFullYear(),0,1);
   const wkKey=d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
   const sess=S.sessions[dayName+"_"+wkKey];
-  return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)));
+  if(!sess)return false;
+  // Manual completion counts as trained. Sessions are keyed by EXERCISE ID, so
+  // when the program changes the work you logged under the old plan's ids stops
+  // matching the new plan's exercises and the day silently reads as untrained,
+  // taking the streak with it. This is the escape hatch for that, and for any
+  // session done away from the app.
+  if(sess._complete)return true;
+  // Note this already ignores ids: any entry with a completed set counts, so
+  // orphaned data from a previous program still holds the streak.
+  return Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done));
 }
 function applyPlanOverrides(){
   // Migrate legacy S.plan → S.weekPlans keyed by ISO week

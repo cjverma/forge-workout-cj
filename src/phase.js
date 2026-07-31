@@ -23,13 +23,13 @@ export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-US
 export const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
-   eatKcal:1600,restingKcal:2446,activeTargetWorkout:1500,activeTargetRest:650},
+   eatKcal:1600,restingKcal:2446,activeTargetWorkout:900,activeTargetRest:390},
   {id:"phase_2",version:1,strategy:"fat_loss",curve:"linear",
    start:"2026-09-08",plannedEnd:"2026-11-30",startKg:128,targetKg:110,
-   eatKcal:1600,restingKcal:2321,activeTargetWorkout:1400,activeTargetRest:600},
+   eatKcal:1600,restingKcal:2321,activeTargetWorkout:840,activeTargetRest:360},
   {id:"phase_3",version:1,strategy:"fat_loss",curve:"linear",
    start:"2026-12-01",plannedEnd:"2027-02-21",startKg:110,targetKg:95,
-   eatKcal:1600,restingKcal:2141,activeTargetWorkout:1300,activeTargetRest:550},
+   eatKcal:1600,restingKcal:2141,activeTargetWorkout:780,activeTargetRest:330},
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;

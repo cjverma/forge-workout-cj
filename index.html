@@ -369,6 +369,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    shouted in uppercase letterspacing. Solid hairline, sentence case. */
 .add-set-btn:active,.add-food-btn:active,.custom-trigger:active{background:var(--s2);border-color:var(--b2);color:var(--white);}
 
+/* Escape hatch for a session the app cannot see: work logged under a previous
+   program's exercise ids, or a session done away from the phone. Quiet on
+   purpose, it must never compete with Start Workout. */
+.mark-done{display:block;margin:var(--sp-3) auto 0;background:transparent;border:none;font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--dim);cursor:pointer;padding:6px 10px;border-bottom:1px solid transparent;}
+.mark-done:active{color:var(--accent-text);border-bottom-color:var(--accent-text);}
+.sess-undo{margin-left:10px;background:transparent;border:none;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--hero-fg-faint);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
+
 /* ── MACRO GRID ─────────────────────────────────────────────────────────────
    Was six identical bordered --s2 tiles in a 3x2 grid, which is the "six
    little boxes" dashboard pattern and, worse, discarded the fact that four of

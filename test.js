@@ -260,14 +260,19 @@ ok("front_loaded midpoint sits below the linear midpoint (early water loss)",
 const cor = E.phaseCorridor(E.PHASES[0], "2026-08-17");
 ok("corridor is expected ±1 kg", Math.abs((cor.hi - cor.lo) - 2) < 0.01 && cor.lo < cor.expected && cor.expected < cor.hi);
 
-// Day deficits — Phase 1: resting 2446, eatKcal 1600, active 1500/650
-// workout: 2446 + 0.75*1500 - 1600 = 1971 · rest: 2446 + 0.75*650 - 1600 = 1334
-ok("phaseDayDeficit: 1,971 workout day · 1,334 Sunday · week ≈ 13,160",
-  E.phaseDayDeficit(E.PHASES[0], "2026-07-28") === 1971 &&
-  E.phaseDayDeficit(E.PHASES[0], "2026-08-02") === 1334 &&
-  (6 * 1971 + 1334) === 13160);
-ok("active targets: 1,500 Mon–Sat · 650 Sunday",
-  E.phaseActiveTarget(E.PHASES[0], "2026-07-28") === 1500 && E.phaseActiveTarget(E.PHASES[0], "2026-08-02") === 650);
+// Day deficits — Phase 1: resting 2446, eatKcal 1600, active 900/390.
+// The active target was lowered from 1500/650 to a figure that is actually
+// reachable. It is not only a compliance number: phaseDayDeficit consumes it,
+// so it drives the projected loss rate too.
+// training: 2446 + 0.75*900 - 1600 = 1521 · rest: 2446 + 0.75*390 - 1600 = 1139
+ok("phaseDayDeficit: 1,521 training day · 1,139 rest day · week ≈ 10,265",
+  E.phaseDayDeficit(E.PHASES[0], "2026-07-28") === 1521 &&
+  E.phaseDayDeficit(E.PHASES[0], "2026-08-05") === 1139 &&
+  (6 * 1521 + 1139) === 10265);
+// Wednesday, not Sunday: the rest day now comes from the program.
+ok("active targets: 900 on training days · 390 on the rest day",
+  E.phaseActiveTarget(E.PHASES[0], "2026-07-28") === 900 &&
+  E.phaseActiveTarget(E.PHASES[0], "2026-08-05") === 390);
 ok("restingFor: phase default 2,446 · per-day override wins",
   E.restingFor("2026-07-28", {}) === 2446 && E.restingFor("2026-07-28", { restingOverride: 3000 }) === 3000);
 
@@ -537,8 +542,8 @@ ok("Card resting uses restingFor() (phase 2,446 default, override wins)",
 ok("Pace status shown in UI (ahead/on/behind)",
   HTML.includes("Ahead of pace") && HTML.includes("Behind pace"));
 
-ok("Phase 1 weekly deficit target ≈ 13,160 (6×1,971 + 1,334)",
-  6 * 1971 + 1334 === 13160);
+ok("Phase 1 weekly deficit target ≈ 10,265 (6×1,521 + 1,139)",
+  6 * 1521 + 1139 === 10265);
 
 ok("Outside a phase the date-driven fallback still applies (dailyReq via requiredDeficit)",
   HTML.includes("dailyReq=requiredDeficit(lw,daysLeft)"));
@@ -970,7 +975,16 @@ const APP_JS = readFileSync("dist/app.js", "utf8");
 // milestones are content, AI prompts are never rendered, the PDF report is
 // exempt by convention, and native confirm() dialogs cannot hold markup.
 {
-  const EMOJI = /[\u{1F300}-\u{1FAFF}]|[\u{2600}-\u{27BF}]\u{FE0F}/u;
+  // Widened after a rewind glyph (U+23EA) shipped straight through: it sits in
+  // Miscellaneous Technical, which the original 1F300-1FAFF + 2600-27BF range
+  // did not touch. Covers the pictographic blocks a keyboard can actually
+  // produce, while leaving plain typographic arrows and checks alone.
+  // Widened after a rewind glyph (U+23EA) shipped straight through. The gap was
+  // U+23E9-U+23FA, the media-control block, which is unconditionally emoji.
+  // The variation selector stays REQUIRED for U+2600-U+27BF: those are text
+  // dingbats by default (the app's plain checks and crosses live there) and
+  // only render as emoji when followed by FE0F.
+  const EMOJI = /[\u{1F300}-\u{1FAFF}]|[\u{23E9}-\u{23FA}]|[\u{2600}-\u{27BF}]\u{FE0F}/u;
   const exempt = /showToast|showToastBig|showMilestone|confirm\(|^\s*\/\/|^\s*\*|prompt\s*=|`You are/;
   const offenders = [];
   for (const [name, src] of [["src/ui.js", null]].concat(
@@ -1293,6 +1307,26 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /\.vol-bar-wrap\{[^}]*var\(--b1\)/.test(APP_CSS) &&
     /\.vol-num\{[^}]*tabular-nums/.test(APP_CSS) &&
     /\.vol-row\+\.vol-row\{border-top/.test(APP_CSS));
+}
+
+// Casing + manual completion.
+{
+  const SET3 = readFileSync("src/settings.js", "utf8");
+  const WK3 = readFileSync("src/workout.js", "utf8");
+  const MAIN3 = readFileSync("src/main.js", "utf8");
+  // Title Case row titles sitting next to sentence-case captions and subs is
+  // what made the settings tab read as machine-assembled.
+  ok("settings titles are sentence case, not Title Case",
+    !/>(This Week|Volume This Week|Personal Records|Spine Rules|Weight History|Demo Clips|Undo Sync|Weekly Plan|Danger Zone)</.test(SET3));
+  // Sessions are keyed by EXERCISE ID, so a program change orphans the work you
+  // logged and the day silently reads as untrained, taking the streak with it.
+  ok("a day can be marked complete and it holds the streak",
+    /function toggleDayComplete\(\)/.test(WK3) && /window\.toggleDayComplete/.test(WK3) &&
+    /if\(sess\._complete\)return true;/.test(MAIN3));
+  ok("manual completion drives the hero count and the complete state",
+    /const manualDone=!!sess\._complete;/.test(WK3) &&
+    /const done=manualDone\?total:/.test(WK3) &&
+    /const allDone=manualDone\|\|/.test(WK3));
 }
 
 ok("set row and header grids have matching column counts", (() => {

@@ -798,7 +798,7 @@ function phaseCardHtml(){
 
   // Live status chip in the collapsed summary
   const chipBits=[`${pctDone}%`];
-  if(st==="paused")chipBits.push("⏸ paused");
+  if(st==="paused")chipBits.push("paused");
   else if(st==="completed")chipBits.push(`${icon("flag",18)} verdict ready`);
   else if(avg!=null)chipBits.push(avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:"");
   if(!comp.calculating)chipBits.push(`compliance ${comp.overall}%`);
@@ -824,7 +824,7 @@ function phaseCardHtml(){
       <div style="display:flex;gap:8px;margin-top:12px">
         <button onclick="aiPhaseReview('${p.id}')" ${_phaseRevBusy?"disabled":""} style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${_phaseRevBusy?"Reviewing…":`${icon("spark",15)} Review now`}</button>
         ${openPause?`<button onclick="resumePhase('${p.id}')" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:9px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">▶ Resume</button>`
-          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">⏸ Pause phase</button>`:""}
+          :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${icon("moon",16)} Pause phase</button>`:""}
         ${inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
       </div>
       ${openPause?`<div style="${nMuted};margin-top:8px">Paused · ${esc(openPause.reason)} · ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?" · extends phase":" · deadline unchanged"}</div>`:""}

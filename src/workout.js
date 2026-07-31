@@ -249,7 +249,8 @@ export function renderW(){
   const sess=S.sessions[key]||{};
   const dispExs=future?getPreviewExercises(cDay):prog.exercises;
   const total=dispExs.length;
-  const done=dispExs.filter(e=>sess[e.id]?.done).length;
+  const manualDone=!!sess._complete;
+  const done=manualDone?total:dispExs.filter(e=>sess[e.id]?.done).length;
   const pct=total?Math.round((done/total)*100):0;
   const gymExs=dispExs.filter(e=>e.cat!=="physio");
   const physioExs=dispExs.filter(e=>e.cat==="physio");
@@ -284,9 +285,9 @@ export function renderW(){
     // there is deliberately nothing else here. No CTA, no notice bar.
   } else if(!future&&!ctx.isPastDay()){
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
-    const allDone=nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done);
+    const allDone=manualDone||(nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done));
     if(allDone&&!stopped){
-      h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete</div></div>`;
+      h+=`<div class="session-bar"><div class="sess-complete">✓ Session complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
       h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
     } else {
@@ -298,7 +299,8 @@ export function renderW(){
         <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
         <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
         ${calfBtnHtml}
-      </div>`;
+      </div>
+      <button class="mark-done" onclick="toggleDayComplete()">Mark day complete</button>`;
     }
   }
 
@@ -745,6 +747,20 @@ function reopenEx(exId){
 
 function exById(exId){
   return curProg()?.exercises.find(e=>e.id===exId);
+}
+
+// Marks the VIEWED day trained without needing every exercise ticked. Stored as
+// session meta alongside _stopped and _notes, and read by trainedOn(), so it
+// holds the streak too.
+function toggleDayComplete(){
+  const S=ctx.getS();
+  const key=ctx.sk(ctx.cDay);
+  if(ctx.isReadOnly(key)&&!ctx.unlocked[key])return;
+  if(!S.sessions[key])S.sessions[key]={};
+  const now=!S.sessions[key]._complete;
+  if(now)S.sessions[key]._complete=true;else delete S.sessions[key]._complete;
+  save();queueSessionMeta(key);renderW();
+  showToast(now?"Day marked complete":"Completion removed");
 }
 
 function addSet(key,exId){
@@ -1204,6 +1220,7 @@ window.toggleSet=toggleSet;
 window.toggleCardio=toggleCardio;
 window.skipEx=skipEx;
 window.addSet=addSet;
+window.toggleDayComplete=toggleDayComplete;
 window.delSet=delSet;
 window.toggleCF=toggleCF;
 window.searchEx=searchEx;

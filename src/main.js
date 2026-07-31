@@ -102,7 +102,16 @@ function trainedOn(dateIso){
   const j=new Date(d.getFullYear(),0,1);
   const wkKey=d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
   const sess=S.sessions[dayName+"_"+wkKey];
-  return!!(sess&&Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done)));
+  if(!sess)return false;
+  // Manual completion counts as trained. Sessions are keyed by EXERCISE ID, so
+  // when the program changes the work you logged under the old plan's ids stops
+  // matching the new plan's exercises and the day silently reads as untrained,
+  // taking the streak with it. This is the escape hatch for that, and for any
+  // session done away from the app.
+  if(sess._complete)return true;
+  // Note this already ignores ids: any entry with a completed set counts, so
+  // orphaned data from a previous program still holds the streak.
+  return Object.values(sess).some(e=>e&&typeof e==="object"&&((e.sets||[]).some(s=>s.done)||e.done));
 }
 function applyPlanOverrides(){
   // Migrate legacy S.plan → S.weekPlans keyed by ISO week
