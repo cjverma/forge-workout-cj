@@ -750,7 +750,7 @@ ok("client renders the review card guarded on S.dietReview?.text",
 
 // Nutrition tab layout: Today zone (hero → food → Body) then Progress zone
 const rnTpl = fnBody("renderNutrition");
-const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly Diet Review", "Weight History"].map(s => rnTpl.indexOf(s));
+const order = ["nut-hero", "Food Log", ">Body<", ">Progress<", "phaseCardHtml()", "Weekly diet review", "Weight history"].map(s => rnTpl.indexOf(s));
 ok("Nutrition tab order: hero → Food Log → Body → PROGRESS → phase → diet review → weight history → Ask Forge",
   order.every(i => i >= 0) && order.every((v, i) => i === 0 || v > order[i - 1]));
 
@@ -1340,6 +1340,24 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /const manualDone=!!sess\._complete;/.test(WK3) &&
     /const done=manualDone\?total:/.test(WK3) &&
     /const allDone=manualDone\|\|/.test(WK3));
+}
+
+// Sentence case, enforced. Title Case titles sitting beside sentence-case
+// captions and subs is what made the settings tab read as machine-assembled,
+// and a first pass missed every accordion summary because those are preceded by
+// an ${icon()} call rather than a ">".
+{
+  const KEEP = /FORGE|AI|PDF|CSV|HealthKit|Zepbound|1RM|Apple|Watch|Southpaw|Forge|Sheets/;
+  const titleCase = /(?:>|\}) ?((?:[A-Z][a-z]+|AI)(?: (?:&(?:amp;)?|[A-Z][a-z]+|AI))+)</g;
+  const offenders = [];
+  for (const p of ["src/settings.js", "src/nutrition.js", "src/workout.js"]) {
+    const src = readFileSync(p, "utf8");
+    for (const m of src.matchAll(titleCase)) {
+      if (!KEEP.test(m[1])) offenders.push(`${p}: ${m[1]}`);
+    }
+  }
+  ok(`UI titles are sentence case${offenders.length ? " — " + [...new Set(offenders)].slice(0, 5).join(", ") : ""}`,
+    offenders.length === 0);
 }
 
 ok("set row and header grids have matching column counts", (() => {

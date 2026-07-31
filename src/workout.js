@@ -289,15 +289,15 @@ export function renderW(){
     if(allDone&&!stopped){
       h+=`<div class="session-bar"><div class="sess-complete">✓ Session complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
-      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
+      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume workout</button></div>`;
     } else {
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
       const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">${icon("bolt",18)} Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
-        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
-        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
+        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start workout</button>
+        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop workout</button>
         ${calfBtnHtml}
       </div>
       <button class="mark-done" onclick="toggleDayComplete()">Mark day complete</button>`;
@@ -352,7 +352,7 @@ export function renderW(){
   if(!readOnly){
     const savedNotes=sess._notes||"";
     h+=`<div class="notes-wrap">
-      <span class="notes-label">Session Notes</span>
+      <span class="notes-label">Session notes</span>
       <textarea class="notes-area" id="sessNotes" placeholder="Session notes..." oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
     </div>`;
   }
@@ -869,7 +869,7 @@ function searchEx(q,day){
     const banned=ctx.isBannedExercise(q);
     const warn=banned?`<div class="dd-warn">${icon("alert",18)} Not spine-safe. Tap for an AI-suggested safe swap</div>`:"";
     const btn=banned
-      ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="free" data-day="${d}">AI Alt</button>`
+      ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="free" data-day="${d}">AI alt</button>`
       :`<button class="dd-add-btn" data-action="freeform" data-day="${d}" data-q="${esc(q)}">Add</button>`;
     dd.innerHTML=`<div class="dd-item" id="dd-row-free"><div class="dd-item-left"><div class="dd-name" style="color:var(--dim)">No matches · tap below to add "${esc(q)}" anyway</div>${warn}</div>${btn}</div>`;
     dd.dataset.r=JSON.stringify([]);dd.classList.add("show");return;
@@ -877,7 +877,7 @@ function searchEx(q,day){
   dd.innerHTML=results.map(({e},idx)=>{
     const banned=ctx.isBannedExercise(e.name);
     const btn=banned
-      ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="db" data-idx="${idx}" data-day="${d}">AI Alt</button>`
+      ?`<button class="dd-add-btn dd-alt-btn" data-action="suggestalt" data-kind="db" data-idx="${idx}" data-day="${d}">AI alt</button>`
       :`<button class="dd-add-btn" data-action="fromdb" data-idx="${idx}" data-day="${d}">+</button>`;
     return`<div class="dd-item" id="dd-row-${idx}">
     <div class="dd-item-left">

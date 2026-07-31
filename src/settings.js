@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseFor, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
+import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseRequiredDeficit, phaseFor, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
@@ -19,7 +19,7 @@ export function renderST(){
 
     <!-- Group 1: This Week -->
     <details class="st-acc" open>
-      <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
+      <summary><div><div>${icon("calendar",20)} This week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
@@ -29,7 +29,7 @@ export function renderST(){
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()" style="width:100%">Reset to Default Program</button>`:''}
         </div>
         <details class="st-acc">
-          <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
+          <summary><div><div>${icon("gym",20)} Volume this week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
           <div class="st-acc-inner">
         ${(()=>{
           const vdata=buildVolumeData();
@@ -60,16 +60,22 @@ export function renderST(){
       const monday=new Date(now);
       monday.setDate(now.getDate()+mondayOffset);
       const DAY_NAMES=["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
-      // Weekly target: background deficit verification. In a phase, each day's
-      // expected deficit comes from phaseDayDeficit() (workout vs Sunday) and
-      // the weekly target is their sum; outside a phase, the date-driven
-      // fallback with the 6.5-share heuristic applies.
+      // Weekly target = what the phase REQUIRES to land its target weight,
+      // recomputed from the latest weight and days remaining.
+      //
+      // It used to come from phaseDayDeficit(), i.e. the phase's hardcoded
+      // restingKcal/activeTarget/eatKcal. Those drift from reality, and the
+      // error runs both ways: with resting understated (2446 vs a real 3000)
+      // and intake overstated (1600 vs a real 1300) the card showed a 10,265
+      // target against a real 16,243 produced, congratulating you on beating it
+      // by ~6,000 when the honest margin over what is actually needed was 843.
+      // Same fault that made phase compliance read 44%, just inverted.
       const lw=latestWeightLog()||USER.weightKg;
       const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
       const dailyReq=requiredDeficit(lw,daysLeft);
       const mondayIso=isoDate(monday);
       const weekPhase=phaseFor(mondayIso)||phaseFor(todayIso);
-      const dayShare=i=>{const iso=addDaysIso(mondayIso,i);return weekPhase?phaseDayDeficit(weekPhase,iso):(i===6?dailyReq*0.5:dailyReq);};
+      const dayShare=i=>{const iso=addDaysIso(mondayIso,i);return weekPhase?phaseRequiredDeficit(weekPhase,iso):(i===6?dailyReq*0.5:dailyReq);};
       const WEEKLY_TARGET=Math.round([0,1,2,3,4,5,6].reduce((s,i)=>s+dayShare(i),0));
       let runningTotal=0;
       let rows="";
@@ -154,29 +160,29 @@ export function renderST(){
 
         <div class="st-sec">Sync &amp; recovery</div>
         <div class="st-group">
-          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
-          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
+          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
         </div>
 
-        <div class="st-sec">Backup &amp; Export</div>
+        <div class="st-sec">Backup &amp; export</div>
         <div class="st-group">
           ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No recent manual backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
-          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
-          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
+          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email my data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
+          <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
+          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy last 3 months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
         </div>
 
         ${!window.FORGE_API_CFG?`<div class="st-sec">Session</div>
         <div class="st-group">
-          <div class="st-row" onclick="lockApp()"><div class="st-icon">${icon("lock",18)}</div><div class="st-info"><div class="st-ttl">Lock App</div><div class="st-sub">Sign out and require access token</div></div></div>
+          <div class="st-row" onclick="lockApp()"><div class="st-icon">${icon("lock",18)}</div><div class="st-info"><div class="st-ttl">Lock app</div><div class="st-sub">Sign out and require access token</div></div></div>
         </div>`:""}
 
         <div class="danger-zone">
           <div class="st-sec">Danger zone</div>
           <div class="st-group">
-            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
+            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear all data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
           </div>
         </div>
 
@@ -239,7 +245,7 @@ function buildWeeklyReviewCard(){
     </div>
     <div style="font-size:12px;color:var(--mid);margin-bottom:10px">${arrivalEst()}</div>
     ${verdict?`<div class="weekly-note" style="margin-bottom:10px"><div class="weekly-note-title">Coach's Verdict</div>${mdLite(verdict)}</div>`:""}
-    <button class="btn-o" id="wkRevBtn" onclick="aiWeeklyReview()">${verdict?"Regenerate Verdict":"Get AI Verdict · Am I on track?"}</button>
+    <button class="btn-o" id="wkRevBtn" onclick="aiWeeklyReview()">${verdict?"Regenerate Verdict":"Get AI verdict · Am I on track?"}</button>
   </div>`;
 }
 async function aiWeeklyReview(){
@@ -276,7 +282,7 @@ async function aiWeeklyReview(){
   const lw=latestWeightLog()||USER.weightKg;
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const _wp=phaseFor(isoToday());
-  const req=_wp?phaseDayDeficit(_wp,isoToday()):requiredDeficit(lw,daysLeft);
+  const req=_wp?phaseRequiredDeficit(_wp,isoToday()):requiredDeficit(lw,daysLeft);
   const prompt=`Weekly summary (last 7 days):\nWorkouts: ${sessCount} sessions\nAvg intake: ${avgKcal} kcal/day | Avg protein: ${avgProtein}g | Avg fibre: ${avgFibre}g\nAvg active burn: ${avgActive} kcal | Avg total burn: ${avgBurn} kcal | Avg deficit: ${avgDeficit} kcal/day\nRequired deficit to hit goal: ${req} kcal/day\nWeight: ${wtLine}\nCurrent: ${lw}kg → Target: ${USER.targetKg}kg | ${daysLeft} days left\n\nFood log (last 7 days):\n${foodLines.slice(0,60).join("\n")}\n\nAssess in 4-5 sentences: (1) is the actual deficit on track vs the required ${req} kcal/day? (2) given the deficit numbers, explain whether the weight change is water retention (assume this first — glycogen, sodium, hormonal shifts are common causes, especially with training) or genuine fat gain; do NOT question logging accuracy. (3) workout consistency. (4) one food habit observation from the log. (5) one specific action for next week. Cite actual numbers. Plain text only.`;
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
@@ -354,7 +360,7 @@ function showExportSheet(){
   sheet.className="export-sheet";
   sheet.innerHTML=`
     <div class="export-sheet-inner">
-      <div class="export-sheet-title">Export My Data</div>
+      <div class="export-sheet-title">Export my data</div>
       <button class="export-opt" onclick="emailCSV()">${icon("file",18)} Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
       <button class="export-opt" onclick="openPDFReport()">${icon("chart",20)} View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
       <button class="export-cancel" onclick="document.getElementById('exportSheet').classList.remove('open')">Cancel</button>
@@ -521,9 +527,9 @@ function buildPDFReport(){
       <div style="text-align:right"><div style="font-size:13px;font-weight:600">${esc(USER.targetKg?`Goal: ${USER.targetKg}kg`:"")}</div><div style="font-size:12px;color:#6b7280">Current: ${lw}kg</div></div>
     </div>
     <div class="stats-row">
-      <div class="stat-box"><div class="stat-val" style="color:#55700B">🔥 ${streak}</div><div class="stat-lbl">Day Streak</div></div>
-      <div class="stat-box"><div class="stat-val">${weeklySessions}</div><div class="stat-lbl">Sessions This Week</div></div>
-      <div class="stat-box"><div class="stat-val">${lw}kg</div><div class="stat-lbl">Current Weight</div></div>
+      <div class="stat-box"><div class="stat-val" style="color:#55700B">🔥 ${streak}</div><div class="stat-lbl">Day streak</div></div>
+      <div class="stat-box"><div class="stat-val">${weeklySessions}</div><div class="stat-lbl">Sessions this week</div></div>
+      <div class="stat-box"><div class="stat-val">${lw}kg</div><div class="stat-lbl">Current weight</div></div>
       <div class="stat-box"><div class="stat-val">${Object.keys(S.prs||{}).length}</div><div class="stat-lbl">Exercises PR'd</div></div>
     </div>
     <div class="section">
@@ -536,9 +542,9 @@ function buildPDFReport(){
         <div class="pdf-chart">${buildSVGSparkline(wtKeys,wts).replace('<div class="pdf-chart">','').replace('</div>','')}</div>
       </div>
     </div>
-    ${prRows?`<div class="section"><div class="section-title">Personal records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best Set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
-    ${workoutRows?`<div class="section"><div class="section-title">Recent Workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets Done</th><th>Top Weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
-    ${sessionLogRows?`<div class="section"><div class="section-title">Session Notes &amp; Calf Twinges</div><table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>${sessionLogRows}</tbody></table></div>`:""}
+    ${prRows?`<div class="section"><div class="section-title">Personal records</div><table><thead><tr><th>Exercise</th><th>Est. 1RM</th><th>Best set</th><th>Date</th></tr></thead><tbody>${prRows}</tbody></table></div>`:""}
+    ${workoutRows?`<div class="section"><div class="section-title">Recent workouts</div><table><thead><tr><th>Date</th><th>Exercise</th><th>Sets done</th><th>Top weight</th></tr></thead><tbody>${workoutRows}</tbody></table></div>`:""}
+    ${sessionLogRows?`<div class="section"><div class="section-title">Session notes &amp; calf twinges</div><table><thead><tr><th>Date</th><th>Notes</th></tr></thead><tbody>${sessionLogRows}</tbody></table></div>`:""}
     <div style="margin-top:32px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#9ca3af;text-align:center">Generated by FORGE · ${new Date().toISOString()} · Print this page to save as PDF</div>
   </body></html>`;
   return html;
@@ -807,13 +813,13 @@ function showPlanModal(parsed){
   modal.innerHTML=`
     <div class="pm-title">Next Week's Plan</div>
     <div class="pm-sub">Effective from week of ${esc(weekLabel(nextWk()))}. Review then apply.</div>
-    ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
+    ${notes?`<div class="pm-section">Coaching notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
     ${changesHtml||`<div class="pm-notes">No changes needed · program looks good for next week.</div>`}
     <div class="pm-btns">
       <button class="pm-cancel" onclick="closePlanModal()">Cancel</button>
-      <button class="pm-apply" onclick="applyPendingPlan()">Apply Plan</button>
+      <button class="pm-apply" onclick="applyPendingPlan()">Apply plan</button>
     </div>`;
   modal.classList.add("show");
 }
