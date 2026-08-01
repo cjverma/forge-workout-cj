@@ -779,6 +779,25 @@ function addSet(key,exId){
   reopenEx(exId);
 }
 
+// Removes the PR entry a specific set produced, matched on the same weight and
+// reps that generated it. Deliberately narrow: only an exact match is removed,
+// so an identical lift logged on another day keeps its record.
+function dropPRForSet(exId,weight,reps){
+  const S=ctx.getS();
+  const cid=canonicalId(exId);
+  const list=S.prs?.[cid];
+  if(!list||!list.length)return;
+  const w=Number(weight),r=Number(reps);
+  const idx=list.findIndex(e=>Number(e.weight)===w&&Number(e.reps)===r);
+  if(idx<0)return;
+  const gone=list[idx];
+  list.splice(idx,1);
+  if(!list.length)delete S.prs[cid];
+  queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
+  const next=(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  showToast(next?`PR removed · now ${next.est}kg`:"PR removed with the set");
+}
+
 function delSet(key,exId,i){
   if(ctx.isReadOnly(key))return;
   const S=ctx.getS();
@@ -793,6 +812,10 @@ function delSet(key,exId,i){
   // Silent on empty rows; confirm only when there's logged data to lose. The
   // app has no undo, so a destructive action on real data needs a beat.
   if(sd&&(sd.weight||sd.reps)&&!confirm(`Delete set ${i+1}? Logged data for this set will be lost.`))return;
+  // A PR is written when a set is logged but S.prs is append-only, so deleting
+  // the set used to leave the record behind. That is how a mistyped weight
+  // became a permanent PR. Drop any entry this exact set produced.
+  if(sd&&sd.weight&&sd.reps)dropPRForSet(exId,sd.weight,sd.reps);
   if(i<ed.sets.length)ed.sets.splice(i,1);
   ed.nSets=n-1;
   updateExerciseDone(key,exId);

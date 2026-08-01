@@ -1396,6 +1396,28 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /deficit vs '\+comp\.reqDeficit/.test(NUT4) && /avgDeficit:/.test(NUT4));
 }
 
+// PRs were an append-only log: nothing ever removed an entry, so deleting the
+// set that produced one left the record behind. A mistyped weight became a
+// permanent PR with no way to clear it.
+{
+  const WK5 = readFileSync("src/workout.js", "utf8");
+  const NUT5 = readFileSync("src/nutrition.js", "utf8");
+  ok("deleting a set removes the PR that set produced",
+    /function dropPRForSet\(exId,weight,reps\)/.test(WK5) &&
+    /if\(sd&&sd\.weight&&sd\.reps\)dropPRForSet\(exId,sd\.weight,sd\.reps\)/.test(WK5));
+  // Narrow on purpose: an identical lift logged another day keeps its record.
+  ok("PR removal matches the exact weight and reps, not the exercise",
+    /Number\(e\.weight\)===w&&Number\(e\.reps\)===r/.test(WK5));
+  ok("a bad PR can be removed from the PR list",
+    /function dropPR\(cid\)/.test(NUT5) && /window\.dropPR=dropPR/.test(NUT5) &&
+    /class="pr-del"/.test(NUT5) && APP_CSS.includes(".pr-del{"));
+  // Drops only the best entry so the next-best resurfaces, rather than wiping
+  // the exercise's history.
+  ok("removing a PR keeps the rest of that exercise's history",
+    /list\.forEach\(\(e,i\)=>\{if\(e\.est>list\[bi\]\.est\)bi=i;\}\)/.test(NUT5) &&
+    /list\.splice\(bi,1\)/.test(NUT5));
+}
+
 ok("set row and header grids have matching column counts", (() => {
   const grab = re => (APP_CSS.match(re) || [])[1];
   const hdr = grab(/\.set-hdr\{display:grid;grid-template-columns:([^;]+);/);

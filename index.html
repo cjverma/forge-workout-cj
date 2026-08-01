@@ -385,6 +385,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .comp-inputs-out{flex:1 1 100%;color:var(--mid);}
 .comp-inputs-out b{color:var(--accent-text);}
 
+/* PR row: tapping the body still jumps to the exercise, the trash removes a
+   bad entry. Quiet at --dim so it never competes with the record itself. */
+.pr-head{display:flex;align-items:flex-start;gap:var(--sp-2);}
+.pr-open{flex:1;cursor:pointer;min-width:0;}
+.pr-del{flex:0 0 auto;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;padding:0;cursor:pointer;color:var(--dim);opacity:.7;transition:color .15s,opacity .15s;}
+.pr-del:active{color:var(--red);opacity:1;}
+
 /* ── MACRO GRID ─────────────────────────────────────────────────────────────
    Was six identical bordered --s2 tiles in a 3x2 grid, which is the "six
    little boxes" dashboard pattern and, worse, discarded the fact that four of

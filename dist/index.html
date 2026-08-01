@@ -385,6 +385,13 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .comp-inputs-out{flex:1 1 100%;color:var(--mid);}
 .comp-inputs-out b{color:var(--accent-text);}
 
+/* PR row: tapping the body still jumps to the exercise, the trash removes a
+   bad entry. Quiet at --dim so it never competes with the record itself. */
+.pr-head{display:flex;align-items:flex-start;gap:var(--sp-2);}
+.pr-open{flex:1;cursor:pointer;min-width:0;}
+.pr-del{flex:0 0 auto;width:32px;height:32px;display:flex;align-items:center;justify-content:center;background:transparent;border:none;padding:0;cursor:pointer;color:var(--dim);opacity:.7;transition:color .15s,opacity .15s;}
+.pr-del:active{color:var(--red);opacity:1;}
+
 /* ── MACRO GRID ─────────────────────────────────────────────────────────────
    Was six identical bordered --s2 tiles in a 3x2 grid, which is the "six
    little boxes" dashboard pattern and, worse, discarded the fact that four of
@@ -2933,6 +2940,25 @@ function addSet(key,exId){
   reopenEx(exId);
 }
 
+// Removes the PR entry a specific set produced, matched on the same weight and
+// reps that generated it. Deliberately narrow: only an exact match is removed,
+// so an identical lift logged on another day keeps its record.
+function dropPRForSet(exId,weight,reps){
+  const S=ctx.getS();
+  const cid=canonicalId(exId);
+  const list=S.prs?.[cid];
+  if(!list||!list.length)return;
+  const w=Number(weight),r=Number(reps);
+  const idx=list.findIndex(e=>Number(e.weight)===w&&Number(e.reps)===r);
+  if(idx<0)return;
+  const gone=list[idx];
+  list.splice(idx,1);
+  if(!list.length)delete S.prs[cid];
+  queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
+  const next=(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  showToast(next?`PR removed · now ${next.est}kg`:"PR removed with the set");
+}
+
 function delSet(key,exId,i){
   if(ctx.isReadOnly(key))return;
   const S=ctx.getS();
@@ -2947,6 +2973,10 @@ function delSet(key,exId,i){
   // Silent on empty rows; confirm only when there's logged data to lose. The
   // app has no undo, so a destructive action on real data needs a beat.
   if(sd&&(sd.weight||sd.reps)&&!confirm(`Delete set ${i+1}? Logged data for this set will be lost.`))return;
+  // A PR is written when a set is logged but S.prs is append-only, so deleting
+  // the set used to leave the record behind. That is how a mistyped weight
+  // became a permanent PR. Drop any entry this exact set produced.
+  if(sd&&sd.weight&&sd.reps)dropPRForSet(exId,sd.weight,sd.reps);
   if(i<ed.sets.length)ed.sets.splice(i,1);
   ed.nSets=n-1;
   updateExerciseDone(key,exId);
@@ -3526,9 +3556,14 @@ function renderDrawer(){
         prEntries.forEach(e=>{if(!dateMap[e.date]||e.est>dateMap[e.date])dateMap[e.date]=e.est;});
         const sparkKeys=Object.keys(dateMap).sort();
         const sparkHtml=sparkKeys.length>=2?buildSparkline(sparkKeys,dateMap,false):"";
-        return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
-          <div class="rule-ttl">${name}</div>
-          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${fmtDate(pr.date)}`:"No PR recorded yet"}</div>
+        return `<div class="rule-item">
+          <div class="pr-head">
+            <div class="pr-open" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)">
+              <div class="rule-ttl">${name}</div>
+              <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${fmtDate(pr.date)}`:"No PR recorded yet"}</div>
+            </div>
+            ${pr?`<button class="pr-del" onclick="event.stopPropagation();dropPR('${id}')" title="Remove this PR" aria-label="Remove PR for ${esc(name)}">${icon("trash",15)}</button>`:""}
+          </div>
           ${sparkHtml}
         </div>`;
       }).join("");
@@ -3787,6 +3822,28 @@ function saveBurn(date,field,val){
 // ── ZEPBOUND ─────────────────────────────────────────────────────────────────
 const ZEP_DOSES_MG=[5,7.5,10,12.5,15];
 let _zepOpen=false,_zepDate="",_zepMg=10;
+// PRs are an append-only log, so deleting the set that produced one never
+// removed it. This drops the single BEST entry, which is the one a mistyped
+// weight creates, and lets the next-best legitimately resurface. Removing just
+// the top entry rather than clearing the exercise keeps real history intact.
+function dropPR(cid){
+  const S=ctx.getS();
+  const list=S.prs?.[cid]||[];
+  if(!list.length)return;
+  let bi=0;
+  list.forEach((e,i)=>{if(e.est>list[bi].est)bi=i;});
+  const gone=list[bi];
+  if(!confirm(`Remove this PR?\n\n${gone.est}kg est. 1RM (${gone.weight}kg × ${gone.reps})\n\nThe next best result becomes your PR.`))return;
+  list.splice(bi,1);
+  if(!list.length)delete S.prs[cid];
+  save();queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
+  const next=(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  showToast(next?`PR removed · now ${next.est}kg`:"PR removed");
+  renderNutrition();
+  if(typeof openDrawer==="function")setTimeout(()=>openDrawer(),0);
+}
+window.dropPR=dropPR;
+
 function zepDoses(){return(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
 function zepSchedule(){
   // Fixed schedule: every Tuesday at 17:00 America/Toronto

@@ -129,9 +129,14 @@ function renderDrawer(){
         prEntries.forEach(e=>{if(!dateMap[e.date]||e.est>dateMap[e.date])dateMap[e.date]=e.est;});
         const sparkKeys=Object.keys(dateMap).sort();
         const sparkHtml=sparkKeys.length>=2?buildSparkline(sparkKeys,dateMap,false):"";
-        return `<div class="rule-item" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)" style="cursor:pointer">
-          <div class="rule-ttl">${name}</div>
-          <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${fmtDate(pr.date)}`:"No PR recorded yet"}</div>
+        return `<div class="rule-item">
+          <div class="pr-head">
+            <div class="pr-open" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)">
+              <div class="rule-ttl">${name}</div>
+              <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${fmtDate(pr.date)}`:"No PR recorded yet"}</div>
+            </div>
+            ${pr?`<button class="pr-del" onclick="event.stopPropagation();dropPR('${id}')" title="Remove this PR" aria-label="Remove PR for ${esc(name)}">${icon("trash",15)}</button>`:""}
+          </div>
           ${sparkHtml}
         </div>`;
       }).join("");
@@ -390,6 +395,28 @@ function saveBurn(date,field,val){
 // ── ZEPBOUND ─────────────────────────────────────────────────────────────────
 const ZEP_DOSES_MG=[5,7.5,10,12.5,15];
 let _zepOpen=false,_zepDate="",_zepMg=10;
+// PRs are an append-only log, so deleting the set that produced one never
+// removed it. This drops the single BEST entry, which is the one a mistyped
+// weight creates, and lets the next-best legitimately resurface. Removing just
+// the top entry rather than clearing the exercise keeps real history intact.
+function dropPR(cid){
+  const S=ctx.getS();
+  const list=S.prs?.[cid]||[];
+  if(!list.length)return;
+  let bi=0;
+  list.forEach((e,i)=>{if(e.est>list[bi].est)bi=i;});
+  const gone=list[bi];
+  if(!confirm(`Remove this PR?\n\n${gone.est}kg est. 1RM (${gone.weight}kg × ${gone.reps})\n\nThe next best result becomes your PR.`))return;
+  list.splice(bi,1);
+  if(!list.length)delete S.prs[cid];
+  save();queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
+  const next=(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  showToast(next?`PR removed · now ${next.est}kg`:"PR removed");
+  renderNutrition();
+  if(typeof openDrawer==="function")setTimeout(()=>openDrawer(),0);
+}
+window.dropPR=dropPR;
+
 function zepDoses(){return(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
 function zepSchedule(){
   // Fixed schedule: every Tuesday at 17:00 America/Toronto
