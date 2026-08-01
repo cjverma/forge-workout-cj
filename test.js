@@ -1416,6 +1416,17 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("removing a PR keeps the rest of that exercise's history",
     /list\.forEach\(\(e,i\)=>\{if\(e\.est>list\[bi\]\.est\)bi=i;\}\)/.test(NUT5) &&
     /list\.splice\(bi,1\)/.test(NUT5));
+  // checkAndStorePR only writes when you BEAT the current best, so while a bogus
+  // PR stands every real lift under it is silently discarded. Falling back to the
+  // previous stored PR would therefore ignore everything lifted since the
+  // mistake; the log has to be re-read. Sessions are never pruned, so it can be.
+  ok("removing a PR recomputes the real best from logged sets",
+    /function bestFromSessions\(cid\)/.test(WK5) &&
+    /function recoverPRFromLog\(cid\)/.test(WK5) &&
+    /ctx\.recoverPRFromLog\?\.\(cid\)/.test(NUT5));
+  ok("a recovered PR carries the date it was actually lifted",
+    /function sessionKeyToIso\(key\)/.test(WK5) &&
+    /sessionKeyToIso\(key\)\|\|isoToday\(\)/.test(WK5));
 }
 
 ok("set row and header grids have matching column counts", (() => {

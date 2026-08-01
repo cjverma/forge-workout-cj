@@ -782,6 +782,63 @@ function addSet(key,exId){
 // Removes the PR entry a specific set produced, matched on the same weight and
 // reps that generated it. Deliberately narrow: only an exact match is removed,
 // so an identical lift logged on another day keeps its record.
+// ISO date for a session key like "Monday_2026W31", so a PR recovered from the
+// log carries the date it was actually lifted.
+function sessionKeyToIso(key){
+  const m=/^([A-Za-z]+)_(\d{4})W(\d+)$/.exec(key);
+  if(!m)return null;
+  const di=DAYS.indexOf(m[1]);
+  if(di<0)return null;
+  const yr=+m[2],wn=+m[3];
+  const jan1=new Date(yr,0,1),dow=jan1.getDay()||7;
+  const mon=new Date(yr,0,1+(wn-1)*7-(dow-1));
+  mon.setDate(mon.getDate()+di);
+  return isoDate(mon);
+}
+
+// The true best for an exercise, read back out of every logged session.
+//
+// Needed because checkAndStorePR only writes when you BEAT the current best.
+// While a bogus PR stands, every real lift underneath it is silently discarded,
+// so simply deleting the bad entry would drop you back to whatever preceded the
+// mistake and ignore everything you have actually lifted since. Sessions are
+// never pruned, so the log is the reliable source.
+function bestFromSessions(cid){
+  const S=ctx.getS();
+  let best=null;
+  for(const[key,sess]of Object.entries(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    for(const[exId,ed]of Object.entries(sess)){
+      if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
+      if(canonicalId(exId)!==cid)continue;
+      for(const st of(ed.sets||[])){
+        if(!st||!st.done||!st.weight||!st.reps)continue;
+        const w=Number(st.weight),r=Number(st.reps);
+        if(!w||!r||r>30)continue;
+        const est=epley1RM(w,r);
+        if(!best||est>best.est)best={date:sessionKeyToIso(key)||isoToday(),weight:w,reps:r,est};
+      }
+    }
+  }
+  return best;
+}
+
+// After removing a bad entry, put back the best real lift the log can prove,
+// if it beats what is left in the stored history.
+function recoverPRFromLog(cid){
+  const S=ctx.getS();
+  const found=bestFromSessions(cid);
+  if(!found)return null;
+  const list=S.prs[cid]||[];
+  const cur=list.reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  if(cur&&cur.est>=found.est)return cur;
+  if(!S.prs[cid])S.prs[cid]=[];
+  S.prs[cid].push(found);
+  queueMutation("pr",{exerciseId:cid,date:found.date,weight:found.weight,reps:found.reps,est:found.est});
+  return found;
+}
+ctx.recoverPRFromLog=recoverPRFromLog;
+
 function dropPRForSet(exId,weight,reps){
   const S=ctx.getS();
   const cid=canonicalId(exId);
@@ -794,7 +851,7 @@ function dropPRForSet(exId,weight,reps){
   list.splice(idx,1);
   if(!list.length)delete S.prs[cid];
   queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
-  const next=(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  const next=recoverPRFromLog(cid)||(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
   showToast(next?`PR removed · now ${next.est}kg`:"PR removed with the set");
 }
 

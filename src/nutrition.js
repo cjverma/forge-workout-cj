@@ -409,8 +409,11 @@ function dropPR(cid){
   if(!confirm(`Remove this PR?\n\n${gone.est}kg est. 1RM (${gone.weight}kg × ${gone.reps})\n\nThe next best result becomes your PR.`))return;
   list.splice(bi,1);
   if(!list.length)delete S.prs[cid];
-  save();queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
-  const next=(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
+  // Recompute from the logged sets rather than just falling back to the previous
+  // stored PR: while the bad entry stood, every real lift under it was skipped.
+  const next=ctx.recoverPRFromLog?.(cid)||(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
+  save();
   showToast(next?`PR removed · now ${next.est}kg`:"PR removed");
   renderNutrition();
   if(typeof openDrawer==="function")setTimeout(()=>openDrawer(),0);
