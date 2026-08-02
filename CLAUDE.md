@@ -230,6 +230,21 @@ one of them in isolation: matching two of the three is what produces the silent
 breakage.
 
 ## Testing Before Merging
+- `node test.js` runs BOTH the static suite and the runtime checks. The runtime
+  half boots its own server, renders every tab in both themes with data seeded,
+  and fails on: template placeholders reaching the DOM, a hero losing its
+  gradient or dropping below 4.5:1, and any JS error. It skips loudly (not
+  silently) when Playwright is unavailable.
+- Static tests read source and CSS, so they structurally cannot see a cascade
+  conflict or an un-interpolated `${...}`. Both classes have shipped from this
+  repo. If a change touches render code or the cascade, the runtime half is the
+  part that matters.
+- **Seed the states that only exist with data.** The "Plan queued for …" string
+  shipped broken because it does not render until a plan exists, and every
+  screenshot until then had no plan. `verify-runtime.mjs` seeds plans, PRs,
+  nutrition, weights, doses and milestones for exactly this reason.
+- **Dark mode hides an entire class of bug.** The white-on-white hero passes in
+  dark and fails at 1:1 in light. Always check light.
 - Run `/verify` after every non-trivial change before pushing to main
 - Any `position:fixed` full-screen element: confirm `inset:0` only, no centering transforms
 - Any new colour: confirm it uses a CSS variable, not a hex literal

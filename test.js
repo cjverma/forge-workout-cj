@@ -1437,6 +1437,42 @@ ok("set row and header grids have matching column counts", (() => {
 })());
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Runtime checks
+//
+// Everything above reads source and CSS. Two classes of bug this project has
+// actually shipped are invisible to that: template placeholders reaching the
+// DOM as literal text, and cascade conflicts that wash out a hero while every
+// token in the stylesheet is still correct. Both need a rendered page, so they
+// run here rather than being a script someone has to remember.
+//
+// Skips (loudly) rather than fails when no browser is available, so the static
+// suite still runs in environments without Playwright.
+// ─────────────────────────────────────────────────────────────────────────────
+section("Runtime (rendered DOM)");
+{
+  let haveBrowser = true;
+  try {
+    execSync("node -e \"import('playwright').then(()=>process.exit(0),()=>process.exit(1))\"", { stdio: "pipe" });
+  } catch { haveBrowser = false; }
+
+  if (!haveBrowser) {
+    console.log("  ~  skipped: playwright not available (static checks only)");
+  } else {
+    try {
+      const out = execSync("node verify-runtime.mjs", { stdio: "pipe" }).toString();
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      // each ✓ line from the child counts as a passing check
+      const n = (out.match(/✓/g) || []).length;
+      for (let i = 0; i < n; i++) passed++;
+    } catch (e) {
+      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      ok("runtime checks", false, "see output above");
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Summary
 // ─────────────────────────────────────────────────────────────────────────────
 const total = passed + failed;
