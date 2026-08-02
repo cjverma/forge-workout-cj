@@ -157,6 +157,13 @@ HERO TOKENS (theme-independent — hero cards stay dark in BOTH themes):
   *content* (milestone/celebration toasts). `node test.js` sweeps for this;
   exemptions are toasts/milestones, AI prompt strings, `confirm()` dialogs
   (native, cannot hold markup) and the PDF report.
+- **`${...}` only interpolates inside backticks.** In a plain `'...'` or `"..."`
+  string it is inert and ships to the user as literal text. This has now bitten
+  twice, both times inserting an `icon()` call into a concatenated string. Use
+  `'...'+icon("x",20)+'...'` there, not `${}`. A static regex cannot catch it
+  (quoted HTML attributes inside a template literal look identical, ~460 false
+  positives), so `node verify-render.mjs` renders every tab and fails if a
+  placeholder reaches the DOM. Run it after touching render code.
 - **`icon()` returns markup, so the call site must be able to render it.**
   Three traps, all of which bit during the sweep: a plain `"..."` string can't
   interpolate `${...}` (promote it to a template literal), `textContent` won't
