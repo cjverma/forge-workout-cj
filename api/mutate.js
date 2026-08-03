@@ -119,6 +119,17 @@ export default async function handler(req, res) {
         await q`DELETE FROM med_doses WHERE date=${delDate} AND med=${delMed || "zepbound"}`;
         break;
       }
+      case "pr_delete": {
+        // Shipped on the client without this case. The default branch returns
+        // 400, flushOutbox breaks on any non-OK, and the whole queue froze for
+        // days: 73 mutations stranded, the server left stale, and
+        // loadServerState early-returning on the non-empty outbox so it stopped
+        // taking snapshots too.
+        const { exerciseId, date, est } = payload;
+        if (!exerciseId) break;
+        await q`DELETE FROM prs WHERE exercise_id=${exerciseId} AND date=${date} AND est=${est}`;
+        break;
+      }
       case "custom_exercise_delete": {
         const { id } = payload;
         if (!id) break;

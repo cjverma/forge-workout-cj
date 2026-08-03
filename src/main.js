@@ -127,8 +127,24 @@ function restoreDailyBackup(dateStr){
   let state;
   try{state=JSON.parse(raw);}catch{showToast("Backup is corrupted");return;}
   const w=dataWeight(state);
-  if(!confirm(`Restore local backup from ${fmtDate(dateStr)} (~${w} entries)?\n\nThis REPLACES all current data on this device.`))return;
-  S=state;save();queueMutation("restore_all",{state:S});showToast("Backup restored ✓");location.reload();
+  const now=dataWeight(S);
+  const loss=now-w;
+  if(!confirm(
+    `Restore local backup from ${fmtDate(dateStr)}?\n\n`
+    +`Now: ~${now} entries\nBackup: ~${w} entries\n`
+    +(loss>0?`\nYou will LOSE about ${loss} entries.\n`:"")
+    +`\nThis replaces your data on this device AND in the database, on every device. It cannot be undone.`
+  ))return;
+  // Preserve TODAY's backup before overwriting state. The restored state carries
+  // an old _lastAutoBackupDay, so the very next save() would rewrite today's
+  // backup with the restored data and destroy the only copy of today's work.
+  const today=isoToday();
+  const todayBak=localStorage.getItem("f5_daily_"+today);
+  S=state;
+  S._lastAutoBackupDay=today;
+  save();
+  if(todayBak)localStorage.setItem("f5_daily_"+today,todayBak);
+  queueMutation("restore_all",{state:S});showToast("Backup restored ✓");location.reload();
 }
 
 // True when the session for that calendar date has at least one completed set

@@ -1473,6 +1473,56 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       /if\(!S\._wtRound1\)\{/.test(MAIN) && /const r=kg1\(v\);/.test(MAIN));
   }
 
+  // ── Outbox integrity ───────────────────────────────────────────────────
+  // pr_delete shipped on the client with no server case. The default branch
+  // returns 400, flushOutbox breaks on any non-OK, and the queue froze: 73
+  // mutations stranded for days, the server left stale, and loadServerState
+  // early-returning on the non-empty outbox so snapshots stopped too. Every
+  // downstream failure came from one missing switch case.
+  {
+    const SYNC = readFileSync("src/sync.js", "utf8");
+    const MUT3 = readFileSync("api/mutate.js", "utf8");
+    const queued = [...new Set([...["src/main.js","src/workout.js","src/nutrition.js","src/settings.js","src/sync.js"]
+      .flatMap(f => [...readFileSync(f, "utf8").matchAll(/queueMutation\("([a-z_]+)"/g)].map(m => m[1]))])];
+    const handled = new Set([...MUT3.matchAll(/case "([a-z_]+)":/g)].map(m => m[1]));
+    const orphans = queued.filter(e => !handled.has(e));
+    ok(`every queued mutation has a server handler${orphans.length ? " — " + orphans.join(", ") : ""}`,
+      orphans.length === 0 && queued.length > 15);
+
+      // Restores wipe the DATABASE too, not just the device, and the old confirm
+    // said "on this device". It also has to show what is being given up.
+    const MAIN3 = readFileSync("src/main.js", "utf8");
+    ok("both restore paths warn that the database is replaced too",
+      (SYNC.match(/AND in the database, on every device/g) || []).length === 1 &&
+      (MAIN3.match(/AND in the database, on every device/g) || []).length === 1 &&
+      /You will LOSE about \$\{loss\} entries/.test(SYNC) &&
+      /You will LOSE about \$\{loss\} entries/.test(MAIN3));
+    // A restore that cannot itself be undone is a trap.
+    ok("the state being replaced is snapshotted first",
+      /pushSnapshot\(ctx\.getS\(\)\);\s*ctx\.setS\(snap\.state\)/.test(SYNC));
+    // The restored state carries an old _lastAutoBackupDay, so the next save()
+    // rewrote today's backup with it and destroyed the only copy of today.
+    ok("restoring preserves today's daily backup",
+      /const todayBak=localStorage\.getItem\("f5_daily_"\+today\)/.test(MAIN3) &&
+      /S\._lastAutoBackupDay=today;/.test(MAIN3) &&
+      /if\(todayBak\)localStorage\.setItem\("f5_daily_"\+today,todayBak\)/.test(MAIN3));
+    // Snapshots stopped entirely while the outbox was stalled — precisely when
+    // a restore is most likely to be reached for.
+    ok("a stalled outbox still gets snapshotted, but not on every launch",
+      /pushSnapshot\(ctx\.getS\(\)\);\s*flushOutbox\(\);/.test(SYNC) &&
+      /top\.weight === w \|\| Date\.now\(\) - top\.ts < 30 \* 60 \* 1000/.test(SYNC));
+
+  // Belt and braces: even with every entity handled, one permanently-rejected
+    // payload must not strand the queue behind it forever.
+    ok("a 4xx mutation is dropped, not left to freeze the queue",
+      /r\.status >= 400 && r\.status < 500/.test(SYNC) &&
+      /list\.shift\(\); setOutbox\(list\);\s*continue;/.test(SYNC));
+    ok("a 5xx or network error still stops and retries later",
+      /\} catch \(e\) \{ break; \}/.test(SYNC) && /if \(!ok\) break;/.test(SYNC));
+    ok("dropped mutations are surfaced, not silent",
+      /could not sync · skipped/.test(SYNC));
+  }
+
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));
 

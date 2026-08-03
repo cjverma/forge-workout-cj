@@ -396,6 +396,40 @@ exactly that reasoning the first time.
 
 `S._wtRound1` cleans values already in `localStorage`, once.
 
+## The outbox freezes on one bad mutation
+
+`flushOutbox()` walks the queue in order and `break`s on any non-OK response.
+`pr_delete` shipped on the client with **no `case` in `api/mutate.js`**, so the
+server answered `400 Unknown entity` and the queue froze at entry #1 for days:
+73 mutations stranded, the database left stale, and `loadServerState()`
+early-returning on the non-empty outbox so **snapshots stopped being taken
+too**. Every later failure traced back to that one missing switch case.
+
+- `node test.js` now fails if **any** `queueMutation(...)` entity has no server
+  handler. Adding a mutation means adding both halves.
+- A **4xx is permanent** — the payload will be rejected forever, so it is
+  dropped and the queue continues, with a toast. A 5xx or network error is
+  transient and still stops for retry.
+- Snapshots are taken **before** the outbox-backlog early return, so the safety
+  net keeps working exactly when it is most needed. `pushSnapshot` dedupes on
+  unchanged `dataWeight` and a 30-minute floor, or five launches would evict
+  every genuinely different snapshot.
+
+## Restores replace the DATABASE, not just the device
+
+`restoreSnapshot()` and `restoreDailyBackup()` both queue `restore_all`, which
+wipes every table and repopulates from the restored state. The confirm used to
+say only "This REPLACES all current data on this device", which is wrong and
+cost a day of training data.
+
+- Both dialogs now show current vs restored entry counts, the approximate loss,
+  and that it reaches every device.
+- The state being replaced is `pushSnapshot`ed first, so a restore is itself
+  undoable.
+- **Restoring preserves today's `f5_daily_` backup.** The restored state carries
+  an old `_lastAutoBackupDay`, so the next `save()` rewrote today's backup with
+  the restored data and destroyed the only copy of that day's work.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,

@@ -21,10 +21,17 @@ function dataWeight(st) {
   return n;
 }
 
+// Five slots, so what goes in them matters. Snapshotting on every launch would
+// fill all five with near-identical states within an hour and evict the older,
+// genuinely different ones — the same failure as not snapshotting at all.
+// Skip when nothing has changed since the newest, or when it is very recent.
 function pushSnapshot(state) {
   try {
     const list = JSON.parse(localStorage.getItem("f5_snapshots") || "[]");
-    list.unshift({ ts: Date.now(), weight: dataWeight(state), state });
+    const w = dataWeight(state);
+    const top = list[0];
+    if (top && (top.weight === w || Date.now() - top.ts < 30 * 60 * 1000)) return;
+    list.unshift({ ts: Date.now(), weight: w, state });
     localStorage.setItem("f5_snapshots", JSON.stringify(list.slice(0, 5)));
   } catch (e) {}
 }
@@ -37,7 +44,19 @@ export function restoreSnapshot(ts) {
   const list = listSnapshots();
   const snap = list.find(s => s.ts === ts);
   if (!snap) { showToast("Snapshot not found"); return; }
-  if (!confirm(`Restore snapshot from ${fmtDate(new Date(snap.ts).toISOString().slice(0,10))} · ${new Date(snap.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})} (~${snap.weight} entries)?\n\nThis REPLACES all current data on this device.`)) return;
+  // The old wording said "on this device". It also queues restore_all, which
+  // WIPES the database and repopulates it from this snapshot, so a restore
+  // propagates to every device. Say so, and say what is being given up.
+  const now = dataWeight(ctx.getS());
+  const loss = now - snap.weight;
+  if (!confirm(
+    `Restore snapshot from ${fmtDate(new Date(snap.ts).toISOString().slice(0,10))} · ${new Date(snap.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}?\n\n`
+    + `Now: ~${now} entries\nSnapshot: ~${snap.weight} entries\n`
+    + (loss > 0 ? `\nYou will LOSE about ${loss} entries.\n` : "")
+    + `\nThis replaces your data on this device AND in the database, on every device. It cannot be undone.`
+  )) return;
+  // Snapshot the CURRENT state first, so the restore itself is reversible.
+  pushSnapshot(ctx.getS());
   ctx.setS(snap.state);
   save();
   queueMutation("restore_all", { state: ctx.getS() });
@@ -81,6 +100,7 @@ export async function flushOutbox() {
   let list = getOutbox();
   if (!list.length) return;
   ctx.syncBusy = true;
+  const dropped = [];
   try {
     while (list.length) {
       const m = list[0];
@@ -90,12 +110,26 @@ export async function flushOutbox() {
         if (r.status === 501) { ctx.syncAvailable = false; break; }
         ok = r.ok;
         if (r.ok) ctx.syncAvailable = true;
+        // A 4xx is permanent: the server will reject this payload every time,
+        // so breaking means the queue never moves again and every later change
+        // is stranded behind it. Drop it and keep going. A 5xx or a network
+        // error is transient, so those still stop and retry later.
+        else if (r.status >= 400 && r.status < 500) {
+          ctx.syncAvailable = true;
+          console.warn("[sync] dropping unacceptable mutation:", m.entity, r.status);
+          dropped.push(m.entity);
+          list.shift(); setOutbox(list);
+          continue;
+        }
       } catch (e) { break; }
       if (!ok) break;
       list.shift();
       setOutbox(list);
     }
-  } finally { ctx.syncBusy = false; setSyncDot(); }
+  } finally {
+    ctx.syncBusy = false; setSyncDot();
+    if (dropped.length) showToast(dropped.length + " change" + (dropped.length !== 1 ? "s" : "") + " could not sync · skipped");
+  }
 }
 
 export async function loadServerState(showStatus) {
@@ -109,6 +143,11 @@ export async function loadServerState(showStatus) {
     ctx.syncAvailable = true; setSyncDot();
     const d = await r.json();
     if (getOutbox().length) {
+      // Snapshot BEFORE bailing out. This used to return first, so during a
+      // stalled outbox — exactly when a restore is most likely to be needed —
+      // no snapshots were taken at all. Five days of backlog produced five
+      // snapshots all from the same evening.
+      pushSnapshot(ctx.getS());
       flushOutbox();
       if (showStatus) showToast("⏳ Finishing pending sync first…");
       return;
