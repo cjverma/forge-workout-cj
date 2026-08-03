@@ -29,7 +29,7 @@
  */
 
 import { readFileSync } from "fs";
-import { isGymRestDay as REAL_IS_GYM_REST_DAY } from "./src/constants.js";
+import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR } from "./src/constants.js";
 import { execSync } from "child_process";
 
 execSync("node build.mjs", { stdio: "inherit" });
@@ -1135,7 +1135,9 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   }
 
   // Exercise counts straight from the plan as written.
-  const want = { Monday:10, Tuesday:10, Wednesday:12, Thursday:10, Friday:11, Saturday:11, Sunday:7 };
+  // Sizes at FULL rollout. Staged movements (from:"…") are absent earlier, so
+  // reading this off the app before Aug 17 will show fewer.
+  const want = { Monday:10, Tuesday:11, Wednesday:13, Thursday:11, Friday:12, Saturday:13, Sunday:7 };
   const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
     .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
   ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
@@ -1195,6 +1197,41 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       !/Mon–Sat|Mon-Sat/.test(P));
     ok("the plan prompt forbids scheduling work on a rest day",
       /NEVER put any exercise on a rest day/.test(P) && /rest":true/.test(P));
+  }
+
+  // One new movement per week: an unfamiliar pattern is where a flare comes
+  // from, and a delayed nerve reaction is only attributable if one thing
+  // changed. from:"ISO" means the exercise does not exist before that date.
+  ok("new movements are staged in one week at a time",
+    /const _stCache=new Map\(\);/.test(C) && /function _stage\(p,date\)/.test(C) &&
+    /_stage\(date<new Date\(2026,7,10\)\?_sp\(base\):base,date\)/.test(C) &&
+    (C.match(/from:"2026-08-(10|17)"/g) || []).length === 4);
+  {
+    const at = iso => {
+      const p = REAL_PROGRAM_FOR(new Date(iso));
+      return new Set(Object.values(p).flatMap(d => d.exercises.map(e => e.name)));
+    };
+    const w0 = at("2026-08-05T12:00:00"), w1 = at("2026-08-12T12:00:00"), w2 = at("2026-08-19T12:00:00");
+    ok("staging order: pulldown now, pullover Aug 10, glutes Aug 17",
+      w0.has("Seated Pulldown (Neutral Grip)") &&
+      !w0.has("Seated Cable Rope Pullover") && !w0.has("Weighted Glute Bridge") &&
+      w1.has("Seated Cable Rope Pullover") && !w1.has("Weighted Glute Bridge") &&
+      w2.has("Weighted Glute Bridge") && w2.has("Cable Glute Kickback"));
+  }
+  // The vertical pull that closes the lat-width gap. The spine rules ban a
+  // standard lat pulldown, so the grip is part of the name, not a footnote.
+  ok("the only pulldown in the plan is neutral or close grip",
+    /Seated Pulldown \(Neutral Grip\)/.test(v4) &&
+    !/name:"Lat Pulldown"/.test(v4));
+  // Supersets are paired by a shared ss key and must come in twos.
+  {
+    const pairs = {};
+    for (const m of v4.matchAll(/ss:"([a-z0-9_]+)"/g)) pairs[m[1]] = (pairs[m[1]] || 0) + 1;
+    const keys = Object.keys(pairs);
+    ok(`supersets are paired, never orphaned — ${JSON.stringify(pairs)}`,
+      keys.length === 3 && keys.every(k => pairs[k] === 2));
+    ok("a superset renders a chip on the exercise card",
+      /ex\.ss\?/.test(WORKOUT) && APP_CSS.includes(".ss-chip{"));
   }
 
   ok("every gym exercise carries a rest interval",

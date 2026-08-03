@@ -249,6 +249,25 @@ breakage.
   renumbering exercise-id prefixes** (`m4_`/`t4_`/`w4_`/`th4_`/`f4_`/`sa4_`/`su4_`)
   so ids match their day; `node test.js` checks for duplicates.
 
+### Staged introduction (`from:"ISO"`)
+A new movement carries `from:"2026-08-17"` and **does not exist** before that
+date. `_stage()` in `programFor` filters it out, the same way `_sp()` strips
+physio. One new pattern per week is a safety rule, not a preference: an
+unfamiliar movement is where a flare comes from, and a delayed nerve reaction
+is only attributable if exactly one thing changed. Day sizes therefore differ
+by week, so read counts at full rollout, not from today's render.
+
+### Supersets (`ss:"key"`)
+Two exercises sharing an `ss` key are performed back to back and render a volt
+`.ss-chip` on the card. **They must come in pairs** — an orphaned key is a
+plan bug, and `node test.js` fails on one.
+
+### Vertical pulling
+A standard lat pulldown is banned by the spine rules. The only pulldown in the
+plan is `Seated Pulldown (Neutral Grip)`, and the grip belongs **in the name**:
+`isBannedExercise()` allows a pulldown only when the name says neutral or
+close, so renaming it re-bans it.
+
 ### What the AI is told
 `genWeeklyPlan()` plans **next** week, so `buildPlanSnapshot()`,
 `buildApprovedExercises()` and `buildProgramMeta()` all read
