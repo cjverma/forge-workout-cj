@@ -154,6 +154,10 @@ export async function loadServerState(showStatus) {
     }
     pushSnapshot(ctx.getS());
     ctx.setS(d.state);
+    // The pull replaces state wholesale, so the custom-exercise name registry
+    // has to be rebuilt into the new object before it is persisted, or PR rows
+    // for custom lifts fall back to the generic "Custom exercise" label.
+    ctx.seedCustomNames?.();
     localStorage.setItem("f5", JSON.stringify(ctx.getS()));
     ctx.applyTheme();
     const cTab = ctx.getTab();

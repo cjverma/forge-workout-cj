@@ -2416,6 +2416,10 @@ async function loadServerState(showStatus) {
     }
     pushSnapshot(ctx.getS());
     ctx.setS(d.state);
+    // The pull replaces state wholesale, so the custom-exercise name registry
+    // has to be rebuilt into the new object before it is persisted, or PR rows
+    // for custom lifts fall back to the generic "Custom exercise" label.
+    ctx.seedCustomNames?.();
     localStorage.setItem("f5", JSON.stringify(ctx.getS()));
     ctx.applyTheme();
     const cTab = ctx.getTab();
@@ -6264,12 +6268,29 @@ const _prCanonMap={},_prNameMap={};
 // history outlives the program that created it, so a slug written under V2 must
 // still resolve to a readable name while V4 is active. Alias applied here so the
 // migration, reads and writes all agree on one slug.
+// Custom exercises keep their "c_<ts>" id as the PR key, so without a name
+// registry they resolved to the generic "Custom exercise" label in the PR list,
+// the PDF report and the CSV export. S._exNames is the durable half: S.custom
+// loses an entry when the exercise is removed from a day, but its PR history
+// outlives it and still needs a readable name.
+function seedCustomNames(){
+  const s=S;
+  for(const arr of Object.values(s.custom||{}))for(const ex of(arr||[])){
+    if(ex&&ex.id&&ex.name){_prNameMap[ex.id]=ex.name;(s._exNames=s._exNames||{})[ex.id]=ex.name;}
+  }
+  // A sync replaces state wholesale, so names for exercises no longer in
+  // S.custom live only in the in-memory map. Write them back into the new S.
+  for(const[id,nm] of Object.entries(_prNameMap))if(id.startsWith("c_"))(s._exNames=s._exNames||{})[id]=nm;
+  for(const[id,nm] of Object.entries(s._exNames||{}))if(!_prNameMap[id])_prNameMap[id]=nm;
+}
+ctx.seedCustomNames=seedCustomNames;
 (function(){
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
   for(const P of [PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
+  seedCustomNames();
 })();
 
 // Display name for a PR slug. The de-slug fallback is the important part: it
@@ -6286,6 +6307,8 @@ function prName(slug){
   const norm=String(slug).replace(/^_+|_+$/g,"");
   const canon=PR_ALIAS[norm]||norm;
   if(_prNameMap[canon])return _prNameMap[canon];
+  const S2=ctx.getS?.();
+  if(S2?._exNames?.[canon])return S2._exNames[canon];
   if(canon.startsWith("c_"))return "Custom exercise";
   return canon.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 }
@@ -6498,6 +6521,8 @@ function rememberCustom(day,ex){
   if(!S.custom[day])S.custom[day]=[];
   if(!S.custom[day].some(e=>e.id===ex.id)){
     S.custom[day].push(ex);
+    _prNameMap[ex.id]=ex.name;
+    (S._exNames=S._exNames||{})[ex.id]=ex.name;
     queueMutation("custom_exercise",{id:ex.id,dayName:day,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint,url:ex.url,cue:ex.cue,muscles:ex.muscles||[]});
   }
 }

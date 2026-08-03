@@ -1374,6 +1374,18 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /const canon=PR_ALIAS\[norm\]\|\|norm;/.test(MAIN) &&
     /if\(_prNameMap\[canon\]\)return _prNameMap\[canon\];/.test(MAIN));
 
+  // A custom exercise keeps its "c_<ts>" id as the PR key, so with no name
+  // registry every custom PR rendered as the generic "Custom exercise" in the
+  // drawer list, the PDF report and the CSV. seedCustomNames() registers the
+  // name at add time and rebuilds the registry after a sync replaces state.
+  ok("custom exercise PRs resolve to their real name",
+    /function seedCustomNames\(\)/.test(MAIN) &&
+    /ctx\.seedCustomNames=seedCustomNames;/.test(MAIN) &&
+    /_prNameMap\[ex\.id\]=ex\.name;/.test(MAIN) &&
+    /if\(S2\?\._exNames\?\.\[canon\]\)return S2\._exNames\[canon\];/.test(MAIN) &&
+    MAIN.indexOf("_exNames?.[canon]") < MAIN.indexOf('return "Custom exercise"') &&
+    /ctx\.seedCustomNames\?\.\(\);/.test(readFileSync("src/sync.js", "utf8")));
+
   // A sync replaces state wholesale (ctx.setS(d.state)), so anything held only
   // in localStorage is undone by the next pull. Drops and custom-exercise
   // deletions both have to reach the server.
