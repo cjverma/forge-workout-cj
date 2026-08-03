@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, PR_ALIAS, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, programKeyFor, PR_ALIAS, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -123,12 +123,25 @@ function applyPlanOverrides(){
   }
   const weekPlan=(S.weekPlans||{})[wk()];
   if(!weekPlan)return;
+  // A plan references exercise ids from the program it was generated against.
+  // Once the program switches those ids are stale: "update" and "remove" fail
+  // safe because they look the id up first, but "add" trusted it blindly and
+  // pushed a phantom exercise into the new week. Reproduced turning Southpaw
+  // Monday from 10 exercises into 11. Refuse a plan built for another program.
+  const activeKey=programKeyFor(new Date());
+  if(weekPlan._prog&&weekPlan._prog!==activeKey)return;
   for(const[day,updates]of Object.entries(weekPlan)){
+    if(day==="_prog")continue;
     if(!PROG[day]||!Array.isArray(updates))continue;
+    // Unstamped legacy plans get the same protection from the id itself: every
+    // exercise on a day shares its day prefix, so an id from another program
+    // cannot match and is dropped rather than added.
+    const dayPrefix=(PROG[day].exercises[0]?.id||"").split("_")[0];
     for(const upd of updates){
       if(upd.action==="remove"){
         PROG[day].exercises=PROG[day].exercises.filter(e=>e.id!==upd.id);
       } else if(upd.action==="add"){
+        if(!weekPlan._prog&&dayPrefix&&!String(upd.id||"").startsWith(dayPrefix+"_"))continue;
         if(!PROG[day].exercises.find(e=>e.id===upd.id)){
           PROG[day].exercises.push({id:upd.id,name:upd.name,cat:upd.cat||"gym",sets:upd.sets,reps:upd.reps,hint:upd.hint||"",url:upd.url||"",cue:upd.cue||"",muscles:upd.muscles||[]});
         }
@@ -342,7 +355,11 @@ function getPreviewExercises(day){
   // future week listed THIS week's exercises under next week's heading. That is
   // why Southpaw did not appear when browsing forward.
   const base=((programFor(viewDate())[day])?.exercises||[]).map(ex=>({...ex}));
-  const overrides=((S.weekPlans||{})[nextWk()]||{})[day]||[];
+  const plan=(S.weekPlans||{})[nextWk()]||{};
+  // Same staleness guard as applyPlanOverrides: a plan generated against another
+  // program has ids that cannot match, and "add" would inject phantom exercises.
+  if(plan._prog&&plan._prog!==programKeyFor(viewDate()))return base;
+  const overrides=plan[day]||[];
   let exs=base;
   for(const upd of overrides){
     if(upd.action==="remove"){exs=exs.filter(e=>e.id!==upd.id);}

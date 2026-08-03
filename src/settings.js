@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS } from "./constants.js";
+import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -834,6 +834,9 @@ function applyPendingPlan(){
   const nwk=nextWk();
   S.weekPlans=S.weekPlans||{};
   S.weekPlans[nwk]=S.weekPlans[nwk]||{};
+  // Stamp with the program this plan was generated against, so it is refused
+  // rather than misapplied if the program changes before the week arrives.
+  {const mon=new Date();mon.setDate(mon.getDate()+7);S.weekPlans[nwk]._prog=programKeyFor(mon);}
   for(const[day,exercises]of Object.entries(_pendingPlan.week_plan)){
     if(!Array.isArray(exercises)||!PROG[day])continue;
     if(!S.weekPlans[nwk][day])S.weekPlans[nwk][day]=[];

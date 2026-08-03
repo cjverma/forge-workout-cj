@@ -1112,6 +1112,11 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // dead code and this says so out loud rather than passing silently.
   ok("active program still has at least one zero-exercise rest day",
     /filter\(e=>e\.cat!=="physio"\)/.test(C));
+  // The Sunday physio exemption exists for LEGACY programs, whose physio block
+  // sits on Sunday. Southpaw rests on Wednesday, so it must not be exempted.
+  ok("the Sunday physio exemption is scoped to legacy programs",
+    /const legacySunday=p!==PROG_V4;/.test(C) &&
+    /d==="Sunday"&&legacySunday/.test(C));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

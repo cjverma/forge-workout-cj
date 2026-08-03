@@ -511,9 +511,12 @@ export const PROG_V4={
 const _spCache=new Map();
 function _sp(p){
   if(_spCache.has(p))return _spCache.get(p);
+  // Legacy programs put the physio block on Sunday, so stripping physio there
+  // would empty the day. Southpaw rests on Wednesday and has no such Sunday.
+  const legacySunday=p!==PROG_V4;
   const o={};
   for(const[d,v]of Object.entries(p))
-    o[d]=d==="Sunday"?{...v}:{...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};
+    o[d]=(d==="Sunday"&&legacySunday)?{...v}:{...v,exercises:v.exercises.filter(e=>e.cat!=="physio")};
   _spCache.set(p,o);return o;
 }
 
@@ -521,6 +524,14 @@ function _sp(p){
 // History matters: physio returns Aug 10, so anything reasoning about past
 // dates (the streak) has to ask what was scheduled THEN, or days that were
 // legitimately lighter get re-read against a later, fuller schedule.
+// Which program version a plan was generated against. Stamped onto weekPlans so
+// an override written for an older program cannot inject into a newer one.
+export function programKeyFor(date){
+  return date>=new Date(2026,7,3)?"v4"
+    :date>=new Date(2026,6,28)?"v3"
+    :date>=new Date(2026,5,1)?"v2":"v1";
+}
+
 export function programFor(date){
   const base=date>=new Date(2026,7,3)?PROG_V4:date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
   return date<new Date(2026,7,10)?_sp(base):base;
