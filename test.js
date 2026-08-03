@@ -1284,9 +1284,13 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /function applyDroppedExercises\(\)/.test(MAIN) &&
     /S\.dropped/.test(WORKOUT) && /applyDroppedExercises\(\);/.test(MAIN));
   // Was a 12px grey text link under the session bar and got missed.
-  ok("mark-day-complete is a progress card, not a text link",
-    /class="daydone/.test(WORKOUT) && APP_CSS.includes(".daydone-ring{") &&
-    APP_CSS.includes(".daydone.ready .daydone-btn{") && !APP_CSS.includes(".mark-done{"));
+  // Was a 12px grey text link under the session bar and got missed. It now
+  // reuses .btn-start and renders above the notes, at the end of the session.
+  ok("mark-complete uses the Start Workout treatment, above the notes",
+    /markdone-bar[\s\S]{0,120}btn-start[\s\S]{0,80}toggleDayComplete/.test(WORKOUT) &&
+    APP_CSS.includes(".markdone-bar{") &&
+    !APP_CSS.includes(".mark-done{") && !APP_CSS.includes(".daydone{") &&
+    WORKOUT.indexOf("markdone-bar") < WORKOUT.indexOf('id="sessNotes"'));
 
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));

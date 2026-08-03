@@ -280,12 +280,18 @@ export function renderW(){
   </div>`;
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
+  // Set when the day is live and unfinished, so the mark-complete button can
+  // render further down the page (above the notes) instead of directly under
+  // the session bar, where it competed with Start Workout.
+  let showMarkDone=false;
   if(!prog.exercises.length){
     // Rest day: the hero already carries the state and what comes next, so
     // there is deliberately nothing else here. No CTA, no notice bar.
   } else if(!future&&!ctx.isPastDay()){
+    showMarkDone=true;
     const nonPhysio=prog.exercises.filter(e=>e.cat!=="physio");
     const allDone=manualDone||(nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done));
+    if(allDone||stopped)showMarkDone=false;
     if(allDone&&!stopped){
       h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
@@ -299,29 +305,7 @@ export function renderW(){
         <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
         <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
         ${calfBtnHtml}
-      </div>
-      ${(()=>{
-        // The old control was a 12px grey text link under the session bar, which
-        // read as a footnote and got missed. Progress ring + a real button: the
-        // ring answers "how far am I", the button fills volt once every
-        // exercise is ticked so finishing the day is unmissable.
-        const total=nonPhysio.length;
-        const done=nonPhysio.filter(e=>sess[e.id]?.done||sess[e.id]?.skipped).length;
-        const pct=total?Math.round(done/total*100):0;
-        const left=total-done;
-        // Reachable only when the remainder were SKIPPED: all-done flips to the
-        // Session Complete bar above before this renders. That is the case worth
-        // highlighting anyway, since nothing else prompts you to close the day.
-        const ready=total>0&&left===0;
-        return `<div class="daydone${ready?" ready":""}">
-          <div class="daydone-ring" style="--p:${pct}"><span>${done}/${total}</span></div>
-          <div class="daydone-txt">
-            <div class="daydone-title">${ready?"Everything logged":left+" to go"}</div>
-            <div class="daydone-sub">${ready?"Lock the day in":"Or finish early"}</div>
-          </div>
-          <button class="daydone-btn" onclick="toggleDayComplete()">${icon("flag",16)}<span>Done</span></button>
-        </div>`;
-      })()}`;
+      </div>`;
     }
   }
 
@@ -367,6 +351,13 @@ export function renderW(){
       });
       h+=`</details>`;
     }
+  }
+
+  // Mark complete sits here, immediately above the notes: the end of the
+  // session content, where you actually are when the day is finished. Same
+  // treatment as Start Workout so it reads as the other end of the same action.
+  if(showMarkDone){
+    h+=`<div class="session-bar markdone-bar"><button class="btn-start" onclick="toggleDayComplete()">Mark Complete</button></div>`;
   }
 
   // Session notes
