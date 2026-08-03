@@ -354,6 +354,21 @@ Four surfaces resolve those keys back to names, and all four must agree:
   name-slugs, so every PR lookup missed and the CSV emailed raw slugs. Do not
   reintroduce a literal map.
 
+## Calf twinge makes the session note mandatory
+
+`stopSess()` refuses to stop while `_calfTwinges` is non-empty and `_notes` is
+blank. The count alone records THAT something happened, not what you were doing
+or how it felt, and reconstructed days later it is unattributable, which is the
+only reason the button exists.
+
+- The requirement is visible **before** you try to stop: a `required` chip on
+  the label, an amber textarea border, and a hint line. Amber is the warnings
+  colour and this is a needs-input state, so it qualifies.
+- `refreshNotesRequirement()` updates it **in place**. A `renderW()` would
+  rebuild the textarea and drop focus mid-sentence, which is exactly when
+  `saveNotes` fires. It is called from `logCalfTwinge`, `undoCalfTwinge` and
+  `saveNotes` — three call sites, asserted by the suite.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,

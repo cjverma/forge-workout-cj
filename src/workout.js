@@ -113,6 +113,40 @@ function overloadDir(exId,sess){
 }
 
 // ── CALF LOGGER ──
+// Toggles the mandatory-note state in place. renderW() would rebuild the
+// textarea and drop focus mid-sentence, which is exactly when this fires.
+function refreshNotesRequirement(){
+  const S=ctx.getS();
+  const sess=S.sessions[ctx.sk(ctx.cDay)]||{};
+  const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
+  const ta=document.getElementById("sessNotes");
+  if(!ta)return;
+  const filled=!!String(ta.value||"").trim();
+  const need=twinges>0&&!filled;
+  ta.classList.toggle("needed",need);
+  const wrap=ta.closest(".notes-wrap");
+  if(!wrap)return;
+  const lbl=wrap.querySelector(".notes-label");
+  if(lbl){
+    let tag=lbl.querySelector(".notes-req");
+    if(twinges&&!tag){tag=document.createElement("span");tag.className="notes-req";lbl.appendChild(tag);}
+    if(tag){
+      if(!twinges)tag.remove();
+      else{tag.textContent=need?"required":"noted";tag.classList.toggle("met",!need);}
+    }
+  }
+  let hint=wrap.querySelector(".notes-hint");
+  if(need&&!hint){
+    hint=document.createElement("div");hint.className="notes-hint";
+    wrap.appendChild(hint);
+  }
+  if(hint){
+    if(!need)hint.remove();
+    else hint.innerHTML=icon("alert",15)+"You logged "+twinges+" calf twinge"+(twinges===1?"":"s")+". Describe it before stopping the workout.";
+  }
+  if(twinges)ta.placeholder="What were you doing when the calf twinged? How did it feel?";
+}
+
 function logCalfTwinge(){
   const S=ctx.getS();
   const key=ctx.sk(ctx.cDay);
@@ -133,6 +167,7 @@ function logCalfTwinge(){
   } else {
     showToast("Calf twinge logged");
   }
+  refreshNotesRequirement();
 }
 function undoCalfTwinge(){
   const S=ctx.getS();
@@ -143,6 +178,7 @@ function undoCalfTwinge(){
   save();queueSessionMeta(key);
   showToast("Twinge removed");
   renderW();
+  refreshNotesRequirement();
 }
 
 // ── VOLUME DATA ──
@@ -199,6 +235,7 @@ function saveNotes(val){
     if(!S.sessions[key])S.sessions[key]={};
     S.sessions[key]._notes=val;
     save();queueSessionMeta(key);
+    refreshNotesRequirement();
   },500);
 }
 
@@ -360,12 +397,18 @@ export function renderW(){
     h+=`<div class="session-bar markdone-bar"><button class="btn-start" onclick="toggleDayComplete()">Mark Complete</button></div>`;
   }
 
-  // Session notes
+  // Session notes. A logged calf twinge makes them mandatory: the twinge count
+  // alone records THAT something happened, not what you were doing or how it
+  // felt, and that context is the whole point of logging it. Amber, because
+  // this is a warning state and nothing else in the app may use amber.
   if(!readOnly){
     const savedNotes=sess._notes||"";
+    const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
+    const needNote=twinges>0&&!savedNotes.trim();
     h+=`<div class="notes-wrap">
-      <span class="notes-label">Session Notes</span>
-      <textarea class="notes-area" id="sessNotes" placeholder="Session notes..." oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
+      <span class="notes-label">Session Notes${twinges?`<span class="notes-req${needNote?"":" met"}">${needNote?"required":"noted"}</span>`:""}</span>
+      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Session notes..."}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
+      ${needNote?`<div class="notes-hint">${icon("alert",15)}You logged ${twinges} calf twinge${twinges===1?"":"s"}. Describe it before stopping the workout.</div>`:""}
     </div>`;
   }
 
@@ -1144,6 +1187,22 @@ function startSess(){
 
 function stopSess(){
   const S=ctx.getS();
+  const sKey=ctx.sk(ctx.cDay);
+  const sess=S.sessions[sKey]||{};
+  // A twinge with no note is the one thing worth blocking on. Written up days
+  // later it is unattributable, and attribution is the only reason the twinge
+  // button exists.
+  if((sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length&&!String(sess._notes||"").trim()){
+    showToast("Describe the calf twinge before stopping");
+    const ta=document.getElementById("sessNotes");
+    if(ta){
+      ta.scrollIntoView({behavior:"smooth",block:"center"});
+      ta.classList.add("needed");
+      setTimeout(()=>ta.focus(),350);
+    }
+    if(navigator.vibrate)navigator.vibrate([60,40,60]);
+    return;
+  }
   if(!confirm("Stop workout and save session?"))return;
   ctx.workoutOn=false;clearInterval(ctx.sessTimer);
   const el=Math.floor((Date.now()-ctx.sessStart)/1000);

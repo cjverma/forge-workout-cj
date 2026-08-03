@@ -1399,6 +1399,28 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /function removeCustomEx\(day,id\)/.test(WORKOUT) &&
     /ex\.custom&&!rdOnly\?/.test(WORKOUT) && APP_CSS.includes(".ex-del{"));
 
+  // A twinge count records THAT something happened, not what you were doing or
+  // how it felt, and written up days later it is unattributable. Attribution is
+  // the only reason the twinge button exists, so the note is mandatory.
+  ok("a logged calf twinge blocks stopping until the note is written",
+    /_calfTwinges\|\|\[\]\)\.filter\(ts=>Number\.isFinite\(ts\)\)\.length&&!String\(sess\._notes\|\|""\)\.trim\(\)/.test(WORKOUT) &&
+    /Describe the calf twinge before stopping/.test(WORKOUT) &&
+    WORKOUT.indexOf("Describe the calf twinge") < WORKOUT.indexOf('confirm("Stop workout and save session?")'));
+  ok("the requirement is shown before you try to stop",
+    /const needNote=twinges>0&&!savedNotes\.trim\(\);/.test(WORKOUT) &&
+    /class="notes-req/.test(WORKOUT) && /class="notes-hint"/.test(WORKOUT) &&
+    APP_CSS.includes(".notes-area.needed{") && APP_CSS.includes(".notes-hint{"));
+  // Amber is reserved for warnings. A needs-input state is exactly that, and
+  // nothing else in the app may claim it.
+  ok("the mandatory-note state uses amber, not the brand accent",
+    /\.notes-hint\{[^}]*color:var\(--amber\)/.test(APP_CSS) &&
+    /\.notes-area\.needed\{border-color:var\(--amber\)/.test(APP_CSS));
+  // renderW() would rebuild the textarea and drop focus mid-sentence, which is
+  // precisely when saveNotes fires.
+  ok("the requirement updates in place, not via a full re-render",
+    /function refreshNotesRequirement\(\)/.test(WORKOUT) &&
+    (WORKOUT.match(/refreshNotesRequirement\(\);/g) || []).length === 3);
+
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));
 

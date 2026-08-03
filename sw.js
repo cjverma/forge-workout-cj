@@ -1,6 +1,6 @@
 // Cache version — bump this string to force all clients to update immediately.
 // The registration code in index.html detects a new waiting SW and reloads.
-const V = "forge-v48";
+const V = "forge-v49";
 
 // Static assets pre-cached at install so the app renders fully offline
 // (self-hosted fonts must never depend on the network mid-session).
