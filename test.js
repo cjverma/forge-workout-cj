@@ -1400,6 +1400,17 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /queueMutation\("pr_delete",\{exerciseId:key,date:e\.date,est:oldEst\}\);/.test(MAIN) &&
     /queueMutation\("pr",\{exerciseId:cid,date:e\.date,weight:e\.weight,reps:e\.reps,est:e\.est\}\);/.test(MAIN));
 
+  // An inflated PR is not harmless: checkAndStorePR only writes when you BEAT
+  // the current best, so every real lift under a phantom is discarded. The
+  // rebuild only touches an exercise that HAS logged sets, since with no
+  // evidence there is nothing better to put back and dropping the entry would
+  // destroy history rather than correct it.
+  ok("unverifiable PRs are rebuilt from the log, and only where the log has data",
+    /if\(!S\._prRecompute1\)/.test(MAIN) &&
+    /const sets=setsFor\(cid\);\s*\n\s*if\(!sets\.length\)continue;/.test(MAIN) &&
+    /const bad=list\.filter\(e=>!verifiable\(sets,e\)\);/.test(MAIN) &&
+    /for\(const e of bad\)queueMutation\("pr_delete"/.test(MAIN));
+
   // A PR list still keyed by a RETIRED slug could never match the canonical
   // slug the sessions resolve to, so "hip_abduction_machine" stayed in lbs
   // while its "outer_thigh_machine" sibling was healed, and the PR list showed

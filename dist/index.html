@@ -6422,6 +6422,63 @@ if(!S._prLbFix3){
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
 }
+// The lbs heal converts only what it can PROVE, by matching a PR to the exact
+// logged set it came from. Entries whose set was later edited or deleted are
+// unverifiable, so they were left standing in lbs: a 203kg seated leg curl, a
+// 120kg tricep extension. An inflated best is not harmless. checkAndStorePR
+// only writes when you BEAT the current best, so every real lift underneath a
+// phantom is silently discarded.
+//
+// This pass rebuilds those from the log, which is unit-aware and therefore
+// truthful whichever unit was typed. It only touches an exercise that HAS
+// logged sets to rebuild from: with no evidence there is nothing better to put
+// back, and dropping the entry would destroy history rather than correct it.
+if(!S._prRecompute1){
+  const LB=0.45359237;
+  const canon=exId=>{const c=_prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");return PR_ALIAS[c]||c;};
+  const setsFor=cid=>{
+    const out=[];
+    for(const[key,sess]of Object.entries(S.sessions||{})){
+      if(!sess||typeof sess!=="object")continue;
+      for(const[exId,ed]of Object.entries(sess)){
+        if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
+        if(canon(exId)!==cid)continue;
+        for(const st of(ed.sets||[])){
+          if(!st||!st.done||!st.weight||!st.reps)continue;
+          const w=ed.unit==="lbs"?Math.round(Number(st.weight)*LB*10)/10:Number(st.weight);
+          const r=Number(st.reps);
+          if(!w||!r||r>30)continue;
+          out.push({key,weight:w,reps:r,est:r===1?w:Math.round(w*(1+r/30))});
+        }
+      }
+    }
+    return out;
+  };
+  const verifiable=(sets,e)=>sets.some(s=>s.weight===Number(e.weight)&&s.reps===Number(e.reps));
+  let rebuilt=0;
+  for(const[cid,list]of Object.entries(S.prs||{})){
+    if(!Array.isArray(list)||!list.length)continue;
+    const sets=setsFor(cid);
+    if(!sets.length)continue;
+    const bad=list.filter(e=>!verifiable(sets,e));
+    if(!bad.length)continue;
+    const kept=list.filter(e=>verifiable(sets,e));
+    for(const e of bad)queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
+    // Put back the best the log can actually prove, if nothing verified beats it.
+    const best=sets.reduce((b,s)=>!b||s.est>b.est?s:b,null);
+    const bestKept=kept.reduce((b,e)=>!b||e.est>b.est?e:b,null);
+    if(best&&(!bestKept||best.est>bestKept.est)){
+      const date=sessionKeyToIso(best.key)||isoToday();
+      kept.push({date,weight:best.weight,reps:best.reps,est:best.est});
+      queueMutation("pr",{exerciseId:cid,date,weight:best.weight,reps:best.reps,est:best.est});
+    }
+    if(kept.length)S.prs[cid]=kept;else delete S.prs[cid];
+    rebuilt+=bad.length;
+  }
+  S._prRecompute1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(rebuilt)setTimeout(()=>showToast(rebuilt+" unverified PR"+(rebuilt===1?"":"s")+" rebuilt from your logged sets"),4000);
+}
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.

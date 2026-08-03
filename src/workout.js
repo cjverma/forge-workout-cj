@@ -839,7 +839,7 @@ function addSet(key,exId){
 // so an identical lift logged on another day keeps its record.
 // ISO date for a session key like "Monday_2026W31", so a PR recovered from the
 // log carries the date it was actually lifted.
-function sessionKeyToIso(key){
+export function sessionKeyToIso(key){
   const m=/^([A-Za-z]+)_(\d{4})W(\d+)$/.exec(key);
   if(!m)return null;
   const di=DAYS.indexOf(m[1]);
