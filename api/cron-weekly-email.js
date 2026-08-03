@@ -1,7 +1,7 @@
 // Vercel Cron: runs every Sunday at 20:00 UTC (~1:30 AM IST Monday)
 // Reads state from Postgres, builds CSV, emails to recipient via Resend.
 import { assembleState } from "./state.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PR_ALIAS, prSlug } from "../src/constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PR_ALIAS, prSlug, kg1 } from "../src/constants.js";
 
 const RECIPIENT = "chiranjay.verma@gmail.com";
 
@@ -99,7 +99,7 @@ function buildCSV(S) {
   rows.push("");
 
   rows.push("WEIGHT", "Date,Weight(kg)");
-  for (const [date, kg] of Object.entries(S.nutrition?.weights || {}).sort()) rows.push(`${date},${kg}`);
+  for (const [date, kg] of Object.entries(S.nutrition?.weights || {}).sort()) rows.push(`${date},${kg1(kg)}`);
   rows.push("");
 
   rows.push("PERSONAL RECORDS", "Exercise,Weight(kg),Reps,Est1RM(kg),Date");

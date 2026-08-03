@@ -1,5 +1,6 @@
 import { setCors, checkAuth } from "./_shared.js";
 import { sql, ensureSchema } from "./db.js";
+import { kg1 } from "../src/constants.js";
 
 export async function assembleState() {
   await ensureSchema();
@@ -55,7 +56,7 @@ export async function assembleState() {
   const weights = {};
   for (const r of weightRows) {
     const d = r.date.toISOString ? r.date.toISOString().slice(0, 10) : r.date;
-    weights[d] = Number(r.kg);
+    weights[d] = kg1(r.kg);
   }
 
   const prs = {};

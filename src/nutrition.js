@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToda
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
-import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT, PROG, PR_ALIAS } from "./constants.js";
+import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT, PROG, PR_ALIAS, kg1 } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -1050,7 +1050,8 @@ function wtPage(n){_wtPage=n;_wtExpanded=true;renderNutrition();}
 function saveWeight(date){
   if(nutLocked(date))return;
   const inp=document.getElementById("wtInp");if(!inp)return;
-  const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
+  const raw=parseFloat(inp.value);if(isNaN(raw)||raw<30||raw>300){showToast("Enter a valid weight");return;}
+  const val=kg1(raw);
   _wtPage=0;S.nutrition.weights[date]=val;_wtOpen=false;save();queueMutation("weight",{date,kg:val},"weight:"+date);checkMilestones();showToast("Weight logged ✓");renderNutrition();
 }
 function delWeight(date){
@@ -1058,7 +1059,10 @@ function delWeight(date){
 }
 export function buildSparkline(keys,wts,summary){
   if(keys.length<2)return"";
-  const vals=keys.map(k=>wts[k]);
+  // Rounded once at source. The footer prints vals[0] and vals[n] directly, so
+  // rounding only the labels would leave the same noise in the delta and the
+  // per-month figure. Harmless for the PR sparklines, whose est 1RMs are whole.
+  const vals=keys.map(k=>kg1(wts[k]));
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
   const W=320,H=60,pad=6;
   const pts=vals.map((v,i)=>{const x=pad+(i/(vals.length-1))*(W-pad*2);const y=H-pad-((v-mn)/range)*(H-pad*2);return`${x.toFixed(1)},${y.toFixed(1)}`;});
@@ -1077,7 +1081,8 @@ export function buildSparkline(keys,wts,summary){
       footer=`<div class="wt-recent">${vals[0]}kg → ${vals[vals.length-1]}kg · monthly avg unlocks in ${30-Math.round(days)} days</div>`;
     }
   }else{
-    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
+    // Reads wts directly rather than vals, so it needs its own rounding.
+    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${kg1(wts[k])}kg</span>`).join(" · ")}</div>`;
   }
   return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tLine}<polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}</svg></div>${footer}`;
 }

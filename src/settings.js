@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor, programFor, PROG_NAME } from "./constants.js";
+import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor, programFor, PROG_NAME, kg1 } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -217,7 +217,7 @@ function weekStats(){
   if(keys.length>=2){
     const last=keys[keys.length-1];
     const ref=keys.filter(k=>k<=new Date(new Date(last).getTime()-5*86400000).toISOString().slice(0,10)).pop()||keys[0];
-    if(ref!==last)wtChange={from:ws[ref],to:ws[last],delta:+(ws[last]-ws[ref]).toFixed(1)};
+    if(ref!==last)wtChange={from:kg1(ws[ref]),to:kg1(ws[last]),delta:+(ws[last]-ws[ref]).toFixed(1)};
   }
   let defTotal=0,defDays=0;
   for(let i=0;i<7;i++){
@@ -277,8 +277,8 @@ async function aiWeeklyReview(){
   for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))sessCount++;}
   const wtEntries=days.length?Object.entries(S.nutrition.weights||{}).filter(([k])=>k>=days[0][0]).sort(([a],[b])=>a.localeCompare(b)):[];
   let wtLine="No weight logged this week";
-  if(wtEntries.length>=2){const[d0,w0]=wtEntries[0],[d1,w1]=wtEntries[wtEntries.length-1];const delta=(+w1-+w0).toFixed(1);wtLine=`${w0}kg (${d0}) → ${w1}kg (${d1}), change: ${delta>0?"+":""}${delta}kg`;}
-  else if(wtEntries.length===1){wtLine=`${wtEntries[0][1]}kg (${wtEntries[0][0]}), only one weigh-in`;}
+  if(wtEntries.length>=2){const[d0,w0]=wtEntries[0],[d1,w1]=wtEntries[wtEntries.length-1];const delta=(+w1-+w0).toFixed(1);wtLine=`${kg1(w0)}kg (${d0}) → ${kg1(w1)}kg (${d1}), change: ${delta>0?"+":""}${delta}kg`;}
+  else if(wtEntries.length===1){wtLine=`${kg1(wtEntries[0][1])}kg (${wtEntries[0][0]}), only one weigh-in`;}
   const lw=latestWeightLog()||USER.weightKg;
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const _wp=phaseFor(isoToday());
@@ -334,7 +334,7 @@ function buildFullCSV(){
   }
   rows.push("");
   rows.push("WEIGHT","Date,Weight(kg)");
-  for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg}`);
+  for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg1(kg)}`);
   rows.push("");
   rows.push("SESSION NOTES & CALF TWINGES","Date,Day,Twinges,Notes");
   for(const [dayKey,sessMap] of Object.entries(S.sessions||{})){
@@ -433,7 +433,7 @@ function buildSVGMacrosChart(t){
 }
 function buildSVGSparkline(keys,wts){
   if(keys.length<2)return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days</div><p style="color:#6b7280;font-size:12px">Need at least 2 weigh-ins.</p></div>`;
-  const vals=keys.map(k=>wts[k]);
+  const vals=keys.map(k=>kg1(wts[k]));
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
   const W=320,H=70,pad=8;
   const pts=vals.map((v,i)=>{const x=pad+(i/(vals.length-1))*(W-pad*2);const y=H-pad-((v-mn)/range)*(H-pad*2);return[x.toFixed(1),y.toFixed(1)];});

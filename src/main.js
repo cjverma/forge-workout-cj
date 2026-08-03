@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -84,6 +84,17 @@ if(!S._prCanonMigrated3){
   for(const k of Object.keys(merged))
     merged[k].sort((a,b)=>(b.est||0)-(a.est||0)||String(b.date).localeCompare(String(a.date)));
   S.prs=merged;S._prCanonMigrated3=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
+// The HealthKit shortcut wrote raw floats ("136.00000001") for months. Round
+// what is already stored, and re-queue it so the server copy is fixed too.
+if(!S._wtRound1){
+  const ws=S.nutrition?.weights||{};
+  for(const[d,v]of Object.entries(ws)){
+    const r=kg1(v);
+    if(r!==null&&r!==v)ws[d]=r;
+  }
+  S._wtRound1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
 if(!S.aiChat)S.aiChat=[];

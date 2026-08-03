@@ -20,6 +20,8 @@ function validDate(date) {
   return typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date);
 }
 
+const round1 = v => (v == null ? v : Math.round(Number(v) * 10) / 10);
+
 function numberInRange(value, min, max) {
   if (value == null) return undefined;
   const n = Number(typeof value === "string" ? value.replace(/[a-zA-Z\s]+$/, "") : value);
@@ -35,7 +37,8 @@ export function normalizeHealthKitPayload(body = {}, fallbackDate = todayToronto
 
   const active = numberInRange(body.active, 0, 6000);
   const resting = numberInRange(body.resting, 200, 6000);
-  const weightKg = numberInRange(body.weightKg, 30, 300);
+  // Rounded at the door: the shortcut is the source of the float noise.
+  const weightKg = round1(numberInRange(body.weightKg, 30, 300));
 
   if (active === null) errors.push("active must be 0-6000");
   if (resting === null) errors.push("resting must be 200-6000");

@@ -30,7 +30,7 @@
 
 import { readFileSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, EX_DB as REAL_EX_DB,
-  prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS,
+  prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
   PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4 } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // settings.js assigns to window at import time, so isBannedExercise cannot be
@@ -600,16 +600,20 @@ ok(`Found numeric columns in schema (${numericCols.join(", ")})`, numericCols.le
 // (query results are destructured into r for most tables, s for app_settings).
 const ROW_VARS = ["r", "s"];
 
-// A read is "safe" if it's inside Number(...), or if it's a plain null-guard
-// (`x.col != null` / `x.col == null`) — comparing to null doesn't do string
+// A read is "safe" if it's inside Number(...), inside a coercing helper such
+// as kg1() (which does Number() itself and additionally rounds), or if it's a
+// plain null-guard (`x.col != null`) — comparing to null doesn't do string
 // concatenation, so it's fine left unwrapped.
+const COERCERS = ["Number", "kg1"];
 function unsafeNumericReads(source, col) {
   let count = 0;
   for (const v of ROW_VARS) {
     const all = source.match(new RegExp(`${v}\\.${col}\\b`, "g")) || [];
-    const wrapped = source.match(new RegExp(`Number\\(${v}\\.${col}\\)`, "g")) || [];
+    let wrapped = 0;
+    for (const fn of COERCERS)
+      wrapped += (source.match(new RegExp(`${fn}\\(${v}\\.${col}\\)`, "g")) || []).length;
     const nullGuards = source.match(new RegExp(`${v}\\.${col}\\s*[!=]=\\s*null`, "g")) || [];
-    count += all.length - wrapped.length - nullGuards.length;
+    count += all.length - wrapped - nullGuards.length;
   }
   return count;
 }
@@ -1420,6 +1424,54 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("the requirement updates in place, not via a full re-render",
     /function refreshNotesRequirement\(\)/.test(WORKOUT) &&
     (WORKOUT.match(/refreshNotesRequirement\(\);/g) || []).length === 3);
+
+  // ── Weight precision ───────────────────────────────────────────────────
+  // The HealthKit shortcut sends float noise ("136.00000001"). It is stored
+  // verbatim and every consumer prints it verbatim, including the PDF.
+  {
+    const HK = readFileSync("api/healthkit.js", "utf8");
+    const MUT2 = readFileSync("api/mutate.js", "utf8");
+    const ST2 = readFileSync("api/state.js", "utf8");
+    const NUT2 = readFileSync("src/nutrition.js", "utf8");
+    const PHASE2 = readFileSync("src/phase.js", "utf8");
+
+    ok("kg1 rounds to one decimal and keeps null null",
+      REAL_KG1(136.00000001) === 136 && REAL_KG1(135.94) === 135.9 &&
+      REAL_KG1(135.95) === 136 && REAL_KG1("137.049") === 137 &&
+      REAL_KG1(0) === 0 &&
+      REAL_KG1(null) === null && REAL_KG1(undefined) === null &&
+      REAL_KG1("") === null && REAL_KG1("abc") === null);
+
+    // Ingest: the shortcut and the manual form are the only two ways in.
+    ok("both weight ingest points round",
+      /round1\(numberInRange\(body\.weightKg, 30, 300\)\)/.test(HK) &&
+      /const val=kg1\(raw\);/.test(NUT2));
+    // Storage, both ends of the sync.
+    ok("weight is rounded on write and again on read",
+      /VALUES \(\$\{date\}, \$\{kg1\(kg\)\}, now\(\)\)/.test(MUT2) &&
+      /weights\[d\] = kg1\(r\.kg\)/.test(ST2));
+    // Read path: everything downstream goes through latestWeightLog.
+    ok("latestWeightLog rounds",
+      /return keys\.length\?kg1\(ws\[keys\[keys\.length-1\]\]\):null;/.test(PHASE2));
+    // Every chart derives labels, deltas and scale from vals, so rounding the
+    // labels alone would leave the noise in the arithmetic.
+    ok("both sparklines round at source, not at the label",
+      /const vals=keys\.map\(k=>kg1\(wts\[k\]\)\);/.test(NUT2) &&
+      /const vals=keys\.map\(k=>kg1\(wts\[k\]\)\);/.test(SETTINGS));
+    // This one reads wts directly and was missed by the vals fix.
+    ok("the recent-weights footer rounds too",
+      !/<span>\$\{wts\[k\]\}kg<\/span>/.test(NUT2) &&
+      /<span>\$\{kg1\(wts\[k\]\)\}kg<\/span>/.test(NUT2));
+    // Exports and AI prompts.
+    ok("every export and AI prompt rounds weight",
+      /rows\.push\(`\$\{date\},\$\{kg1\(kg\)\}`\)/.test(SETTINGS) &&
+      /rows\.push\(`\$\{date\},\$\{kg1\(kg\)\}`\)/.test(readFileSync("api/cron-weekly-email.js", "utf8")) &&
+      /weights\[d\] = kg1\(/.test(readFileSync("api/cron-diet-review.js", "utf8")) &&
+      /\$\{kg1\(w0\)\}kg/.test(SETTINGS));
+    // Values already stored wrong are healed rather than left for the user.
+    ok("existing stored weights are rounded once on load",
+      /if\(!S\._wtRound1\)\{/.test(MAIN) && /const r=kg1\(v\);/.test(MAIN));
+  }
 
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));

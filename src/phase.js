@@ -1,4 +1,5 @@
 import { ctx } from "./runtime.js";
+import { kg1 } from "./constants.js";
 import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
@@ -170,7 +171,9 @@ export function projectedFinish(todayIso){
 
 export function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 export function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
-export function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
+// Rounded here too. Every renderer, prompt and export reads through this, so
+// one stale unrounded value cannot leak past it.
+export function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?kg1(ws[keys[keys.length-1]]):null;}
 export function calcTarget(bmr,active,dateIso){
   const t=dateIso||isoToday();
   const lw=latestWeightLog()||USER.weightKg;

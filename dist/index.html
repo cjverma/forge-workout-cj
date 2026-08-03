@@ -1777,6 +1777,19 @@ const PROG=programFor(_pd);
 // The one slug rule. Trailing/leading separators are stripped: 30 exercise
 // names end in ")" and without the trim they produced keys like
 // "cable_crossover_high_to_low_", which read back as a name with a stray gap.
+// Weight rounded to one decimal. The HealthKit shortcut sends float noise
+// ("136.00000001"), which is meaningless precision on a bathroom scale and
+// leaks into the PDF, the CSV and the AI prompts verbatim. Applied at every
+// write AND on read, so rows already stored wrong are healed rather than
+// needing a migration everyone has to run.
+function kg1(v){
+  // null/undefined/"" must stay null, not become 0: Number(null) is 0 and
+  // finite, so a missing weigh-in would render as 0 kg and drag every average.
+  if(v===null||v===undefined||v==="")return null;
+  const n=Number(v);
+  return Number.isFinite(n)?Math.round(n*10)/10:null;
+}
+
 function prSlug(name){
   return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
 }
@@ -2014,6 +2027,7 @@ window.closeMilestone = closeMilestone;
 
 
 
+
 // Personal constants · never rendered in UI
 const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
 const ACTIVE_MULT=0.75;
@@ -2183,7 +2197,9 @@ function projectedFinish(todayIso){
 
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
-function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?ws[keys[keys.length-1]]:null;}
+// Rounded here too. Every renderer, prompt and export reads through this, so
+// one stale unrounded value cannot leak past it.
+function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?kg1(ws[keys[keys.length-1]]):null;}
 function calcTarget(bmr,active,dateIso){
   const t=dateIso||isoToday();
   const lw=latestWeightLog()||USER.weightKg;
@@ -4934,7 +4950,8 @@ function wtPage(n){_wtPage=n;_wtExpanded=true;renderNutrition();}
 function saveWeight(date){
   if(nutLocked(date))return;
   const inp=document.getElementById("wtInp");if(!inp)return;
-  const val=parseFloat(inp.value);if(isNaN(val)||val<30||val>300){showToast("Enter a valid weight");return;}
+  const raw=parseFloat(inp.value);if(isNaN(raw)||raw<30||raw>300){showToast("Enter a valid weight");return;}
+  const val=kg1(raw);
   _wtPage=0;S.nutrition.weights[date]=val;_wtOpen=false;save();queueMutation("weight",{date,kg:val},"weight:"+date);checkMilestones();showToast("Weight logged ✓");renderNutrition();
 }
 function delWeight(date){
@@ -4942,7 +4959,10 @@ function delWeight(date){
 }
 function buildSparkline(keys,wts,summary){
   if(keys.length<2)return"";
-  const vals=keys.map(k=>wts[k]);
+  // Rounded once at source. The footer prints vals[0] and vals[n] directly, so
+  // rounding only the labels would leave the same noise in the delta and the
+  // per-month figure. Harmless for the PR sparklines, whose est 1RMs are whole.
+  const vals=keys.map(k=>kg1(wts[k]));
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
   const W=320,H=60,pad=6;
   const pts=vals.map((v,i)=>{const x=pad+(i/(vals.length-1))*(W-pad*2);const y=H-pad-((v-mn)/range)*(H-pad*2);return`${x.toFixed(1)},${y.toFixed(1)}`;});
@@ -4961,7 +4981,8 @@ function buildSparkline(keys,wts,summary){
       footer=`<div class="wt-recent">${vals[0]}kg → ${vals[vals.length-1]}kg · monthly avg unlocks in ${30-Math.round(days)} days</div>`;
     }
   }else{
-    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${wts[k]}kg</span>`).join(" · ")}</div>`;
+    // Reads wts directly rather than vals, so it needs its own rounding.
+    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${kg1(wts[k])}kg</span>`).join(" · ")}</div>`;
   }
   return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tLine}<polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}</svg></div>${footer}`;
 }
@@ -5243,7 +5264,7 @@ function weekStats(){
   if(keys.length>=2){
     const last=keys[keys.length-1];
     const ref=keys.filter(k=>k<=new Date(new Date(last).getTime()-5*86400000).toISOString().slice(0,10)).pop()||keys[0];
-    if(ref!==last)wtChange={from:ws[ref],to:ws[last],delta:+(ws[last]-ws[ref]).toFixed(1)};
+    if(ref!==last)wtChange={from:kg1(ws[ref]),to:kg1(ws[last]),delta:+(ws[last]-ws[ref]).toFixed(1)};
   }
   let defTotal=0,defDays=0;
   for(let i=0;i<7;i++){
@@ -5303,8 +5324,8 @@ async function aiWeeklyReview(){
   for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))sessCount++;}
   const wtEntries=days.length?Object.entries(S.nutrition.weights||{}).filter(([k])=>k>=days[0][0]).sort(([a],[b])=>a.localeCompare(b)):[];
   let wtLine="No weight logged this week";
-  if(wtEntries.length>=2){const[d0,w0]=wtEntries[0],[d1,w1]=wtEntries[wtEntries.length-1];const delta=(+w1-+w0).toFixed(1);wtLine=`${w0}kg (${d0}) → ${w1}kg (${d1}), change: ${delta>0?"+":""}${delta}kg`;}
-  else if(wtEntries.length===1){wtLine=`${wtEntries[0][1]}kg (${wtEntries[0][0]}), only one weigh-in`;}
+  if(wtEntries.length>=2){const[d0,w0]=wtEntries[0],[d1,w1]=wtEntries[wtEntries.length-1];const delta=(+w1-+w0).toFixed(1);wtLine=`${kg1(w0)}kg (${d0}) → ${kg1(w1)}kg (${d1}), change: ${delta>0?"+":""}${delta}kg`;}
+  else if(wtEntries.length===1){wtLine=`${kg1(wtEntries[0][1])}kg (${wtEntries[0][0]}), only one weigh-in`;}
   const lw=latestWeightLog()||USER.weightKg;
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const _wp=phaseFor(isoToday());
@@ -5360,7 +5381,7 @@ function buildFullCSV(){
   }
   rows.push("");
   rows.push("WEIGHT","Date,Weight(kg)");
-  for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg}`);
+  for(const [date,kg] of Object.entries(S.nutrition?.weights||{}).sort())rows.push(`${date},${kg1(kg)}`);
   rows.push("");
   rows.push("SESSION NOTES & CALF TWINGES","Date,Day,Twinges,Notes");
   for(const [dayKey,sessMap] of Object.entries(S.sessions||{})){
@@ -5459,7 +5480,7 @@ function buildSVGMacrosChart(t){
 }
 function buildSVGSparkline(keys,wts){
   if(keys.length<2)return`<div class="pdf-chart"><div class="pdf-chart-title">Weight · 30 days</div><p style="color:#6b7280;font-size:12px">Need at least 2 weigh-ins.</p></div>`;
-  const vals=keys.map(k=>wts[k]);
+  const vals=keys.map(k=>kg1(wts[k]));
   const mn=Math.min(...vals),mx=Math.max(...vals),range=mx-mn||1;
   const W=320,H=70,pad=8;
   const pts=vals.map((v,i)=>{const x=pad+(i/(vals.length-1))*(W-pad*2);const y=H-pad-((v-mn)/range)*(H-pad*2);return[x.toFixed(1),y.toFixed(1)];});
@@ -6240,6 +6261,17 @@ if(!S._prCanonMigrated3){
   for(const k of Object.keys(merged))
     merged[k].sort((a,b)=>(b.est||0)-(a.est||0)||String(b.date).localeCompare(String(a.date)));
   S.prs=merged;S._prCanonMigrated3=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
+// The HealthKit shortcut wrote raw floats ("136.00000001") for months. Round
+// what is already stored, and re-queue it so the server copy is fixed too.
+if(!S._wtRound1){
+  const ws=S.nutrition?.weights||{};
+  for(const[d,v]of Object.entries(ws)){
+    const r=kg1(v);
+    if(r!==null&&r!==v)ws[d]=r;
+  }
+  S._wtRound1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
 if(!S.aiChat)S.aiChat=[];

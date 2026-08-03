@@ -369,6 +369,33 @@ only reason the button exists.
   `saveNotes` fires. It is called from `logCalfTwinge`, `undoCalfTwinge` and
   `saveNotes` — three call sites, asserted by the suite.
 
+## Weight precision (`kg1`)
+
+The HealthKit shortcut sends float noise (`136.00000001`). A bathroom scale has
+no business reporting eight decimals, and the raw value leaks into the PDF, the
+CSV and the AI prompts verbatim.
+
+`kg1()` in `src/constants.js` is the single rounder, imported by the client and
+the api. It returns **null for null/undefined/""** on purpose: `Number(null)` is
+`0` and finite, so a naive version turns a missing weigh-in into 0 kg and drags
+every average.
+
+Rounding is applied at **three** layers, and all three are needed:
+
+1. **Ingest** — `api/healthkit.js` and the manual form in `src/nutrition.js`.
+2. **Storage** — `api/mutate.js` on write, `api/state.js` on read (so rows
+   already stored wrong are healed without a migration everyone must run).
+3. **Render/export** — both sparklines, the PDF report, both CSVs, the AI
+   prompts, and `latestWeightLog()`.
+
+**Round at the source of a chart, not at its labels.** Both sparklines derive
+labels, deltas, per-month rate and the y-scale from one `vals` array. Rounding
+only the label leaves the noise in the arithmetic. The recent-weights footer in
+`buildSparkline` reads `wts` directly rather than `vals` and was missed by
+exactly that reasoning the first time.
+
+`S._wtRound1` cleans values already in `localStorage`, once.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,

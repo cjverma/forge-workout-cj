@@ -1,5 +1,6 @@
 import { setCors, checkAuth } from "./_shared.js";
 import { sql, ensureSchema } from "./db.js";
+import { kg1 } from "../src/constants.js";
 
 export default async function handler(req, res) {
   setCors(res);
@@ -54,7 +55,7 @@ export default async function handler(req, res) {
       }
       case "weight": {
         const { date, kg } = payload;
-        await q`INSERT INTO weights(date, kg, updated_at) VALUES (${date}, ${kg}, now())
+        await q`INSERT INTO weights(date, kg, updated_at) VALUES (${date}, ${kg1(kg)}, now())
                 ON CONFLICT (date) DO UPDATE SET kg=EXCLUDED.kg, updated_at=now()`;
         break;
       }

@@ -5,6 +5,7 @@
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
 import { sql, ensureSchema } from "./db.js";
 import { assembleState } from "./state.js";
+import { kg1 } from "../src/constants.js";
 
 // Mirrors the client's goal constants (index.html USER / PHASES / limits) —
 // keep in sync if those change.
@@ -141,7 +142,7 @@ export default async function handler(req, res) {
     }
     const weights = {};
     for (const d of range) {
-      if (state.nutrition?.weights?.[d] != null) weights[d] = state.nutrition.weights[d];
+      if (state.nutrition?.weights?.[d] != null) weights[d] = kg1(state.nutrition.weights[d]);
     }
 
     const totalItems = Object.values(weekDays).reduce((n, day) => n + (day.items || []).length, 0);

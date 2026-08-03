@@ -759,6 +759,19 @@ export const PROG=programFor(_pd);
 // The one slug rule. Trailing/leading separators are stripped: 30 exercise
 // names end in ")" and without the trim they produced keys like
 // "cable_crossover_high_to_low_", which read back as a name with a stray gap.
+// Weight rounded to one decimal. The HealthKit shortcut sends float noise
+// ("136.00000001"), which is meaningless precision on a bathroom scale and
+// leaks into the PDF, the CSV and the AI prompts verbatim. Applied at every
+// write AND on read, so rows already stored wrong are healed rather than
+// needing a migration everyone has to run.
+export function kg1(v){
+  // null/undefined/"" must stay null, not become 0: Number(null) is 0 and
+  // finite, so a missing weigh-in would render as 0 kg and drag every average.
+  if(v===null||v===undefined||v==="")return null;
+  const n=Number(v);
+  return Number.isFinite(n)?Math.round(n*10)/10:null;
+}
+
 export function prSlug(name){
   return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
 }
