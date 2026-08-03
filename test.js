@@ -266,13 +266,13 @@ ok("corridor is expected ±1 kg", Math.abs((cor.hi - cor.lo) - 2) < 0.01 && cor.
 // so it drives the projected loss rate too.
 // training: 2446 + 0.75*900 - 1600 = 1521 · rest: 2446 + 0.75*390 - 1600 = 1139
 ok("phaseDayDeficit: 1,521 training day · 1,139 rest day · week ≈ 10,265",
-  E.phaseDayDeficit(E.PHASES[0], "2026-07-28") === 1521 &&
-  E.phaseDayDeficit(E.PHASES[0], "2026-08-05") === 1139 &&
+  E.phaseDayDeficit(E.PHASES[0], "2026-08-05") === 1521 &&
+  E.phaseDayDeficit(E.PHASES[0], "2026-08-09") === 1139 &&
   (6 * 1521 + 1139) === 10265);
-// Wednesday, not Sunday: the rest day now comes from the program.
+// The rest day is read from the program, not hardcoded, so moving it moves this.
 ok("active targets: 900 on training days · 390 on the rest day",
-  E.phaseActiveTarget(E.PHASES[0], "2026-07-28") === 900 &&
-  E.phaseActiveTarget(E.PHASES[0], "2026-08-05") === 390);
+  E.phaseActiveTarget(E.PHASES[0], "2026-08-05") === 900 &&
+  E.phaseActiveTarget(E.PHASES[0], "2026-08-09") === 390);
 ok("restingFor: phase default 2,446 · per-day override wins",
   E.restingFor("2026-07-28", {}) === 2446 && E.restingFor("2026-07-28", { restingOverride: 3000 }) === 3000);
 
@@ -1135,20 +1135,21 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   }
 
   // Exercise counts straight from the plan as written.
-  const want = { Monday:10, Tuesday:10, Wednesday:7, Thursday:12, Friday:10, Saturday:11, Sunday:11 };
+  const want = { Monday:10, Tuesday:10, Wednesday:12, Thursday:10, Friday:11, Saturday:11, Sunday:7 };
   const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
     .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
   ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
 
-  ok("Wednesday is rest + physio only (no gym, no cardio)",
-    /Wednesday:\{label:"Rest & Physio"/.test(v4) &&
-    !(day("Wednesday")[2] || "").includes('cat:"gym"') &&
-    !(day("Wednesday")[2] || "").includes('cat:"cardio"'));
+  ok("Sunday is rest + physio only (no gym, no cardio)",
+    /Sunday:\{label:"Rest & Physio"/.test(v4) &&
+    !(day("Sunday")[2] || "").includes('cat:"gym"') &&
+    !(day("Sunday")[2] || "").includes('cat:"cardio"'));
 
-  // Legs twice weekly was the whole point of the restructure.
-  ok("legs are trained twice a week (Thu + Sun)",
-    /Thursday:\{label:"Legs & Shoulders",tag:"Heavy"/.test(v4) &&
-    /Sunday:\{label:"Legs & Core",tag:"Volume"/.test(v4));
+  // Legs twice weekly was the whole point of the restructure, and the two leg
+  // days must stay apart: Wed and Sat are three days either side of each other.
+  ok("legs are trained twice a week (Wed + Sat)",
+    /Wednesday:\{label:"Legs & Shoulders",tag:"Heavy"/.test(v4) &&
+    /Saturday:\{label:"Legs & Core",tag:"Volume"/.test(v4));
 
   // Intensity lives in its own field, not glued to the label with a middot:
   // in the display face that wrapped and orphaned "· HEAVY" onto its own line.
@@ -1157,15 +1158,43 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     (v4.match(/tag:"(Heavy|Volume)"/g) || []).length === 6 &&
     /hero-tag/.test(WORKOUT) && APP_CSS.includes(".hero-tag{"));
 
-  // Dead Bug is physio on Wednesday but programmed core work on the leg days.
+  // Dead Bug is physio on Sunday but programmed core work on the leg days.
   // Left as cat:"physio" there it would be stripped out before Aug 10, silently
   // dropping core from both leg sessions.
   {
     const bugs = [...v4.matchAll(/\{id:"([a-z0-9]+)_[a-z]+",name:"Dead Bug",cat:"(\w+)"/g)]
       .map(m => [m[1], m[2]]);
-    const wrong = bugs.filter(([p, c]) => (p === "w4") !== (c === "physio"));
-    ok(`Dead Bug is core on training days, physio only on Wednesday${wrong.length ? " — " + JSON.stringify(wrong) : ""}`,
+    const wrong = bugs.filter(([p, c]) => (p === "su4") !== (c === "physio"));
+    ok(`Dead Bug is core on training days, physio only on Sunday${wrong.length ? " — " + JSON.stringify(wrong) : ""}`,
       bugs.length === 7 && wrong.length === 0);
+  }
+
+  // The AI plans NEXT week, so everything describing "the plan" must come from
+  // next week's program. Built from PROG (today's) it showed a physio-stripped
+  // week and hid the rest day entirely, so the AI scheduled work on it.
+  const SETTINGS = readFileSync("src/settings.js", "utf8");
+  ok("the AI sees next week's program, not today's",
+    /function planWeekStart\(\)/.test(SETTINGS) &&
+    /buildPlanSnapshot\(\)\{\s*const prog=programFor\(planWeekStart\(\)\)/.test(SETTINGS) &&
+    /buildApprovedExercises[\s\S]{0,200}programFor\(planWeekStart\(\)\)/.test(SETTINGS));
+  // Rest days used to be dropped from the snapshot, which reads to the AI as an
+  // unplanned day rather than a protected one.
+  ok("rest days are sent to the AI as rest, not omitted",
+    /rest:!exs\.some\(e=>e\.cat==="gym"\)/.test(SETTINGS) &&
+    !/if\(!dayData\.exercises\?\.length\)continue;/.test(SETTINGS));
+  ok("the AI is told which program and which day is off-limits",
+    /function buildProgramMeta\(\)/.test(SETTINGS) &&
+    /program:buildProgramMeta\(\)/.test(SETTINGS) &&
+    /PROG_NAME/.test(C) && /Southpaw/.test(C));
+  {
+    const P = readFileSync("api/weekly-plan.js", "utf8");
+    // The schedule was hardcoded as "Mon–Sat train, Sunday rest". When the rest
+    // day moves, a hardcoded prompt keeps describing the old week.
+    ok("the plan prompt derives the schedule from the payload",
+      /profile\.program/.test(P) && /trainingDays/.test(P) && /restDays/.test(P) &&
+      !/Mon–Sat|Mon-Sat/.test(P));
+    ok("the plan prompt forbids scheduling work on a rest day",
+      /NEVER put any exercise on a rest day/.test(P) && /rest":true/.test(P));
   }
 
   ok("every gym exercise carries a rest interval",

@@ -17,7 +17,18 @@ export default async function handler(req, res) {
 
   const weeksProvided = sessionHistory.length;
 
+  // The schedule is data, not a constant. It used to be written into the prompt
+  // as a fixed six-day week with one named rest day; when the rest day moved,
+  // the prompt kept describing the old week and the AI planned work on it.
+  const prog = profile.program || {};
+  const training = Array.isArray(prog.trainingDays) && prog.trainingDays.length
+    ? prog.trainingDays : ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const rest = Array.isArray(prog.restDays) ? prog.restDays : ["Sunday"];
+  const schedule = `The user is on the ${prog.name || "current program"}${prog.weekStarting ? `, and you are planning the week starting ${prog.weekStarting}` : ""}. Training days: ${training.join(", ")}. Rest day(s): ${rest.join(", ") || "none"}. profile.currentPlan is that exact week and is the ONLY plan you may edit — build every change from it, not from any program you have seen before.`;
+
   const system = `You are a careful strength coach analysing up to ${weeksProvided} weeks of training history to plan next week with intelligent progressive overload.
+
+${schedule}
 
 Hard restrictions (non-negotiable): ${HARD_RULES}
 
@@ -55,7 +66,9 @@ Rules:
 - Adds must have a unique id prefixed "ai_", name, cat, sets, reps, hint, cue, muscles. Must respect all spine restrictions.
 - Removes: only gym exercises — never physio or cardio.
 - Max 4 gym exercises per body-part group per day.
-- Every training day (Mon–Sat) must cover exactly 2 distinct body-part groups.
+- Every training day (${training.join(", ")}) must cover exactly 2 distinct body-part groups.
+- NEVER put any exercise on a rest day (${rest.join(", ") || "none"}), and never remove or alter what is already there. A day marked "rest":true in profile.currentPlan is off-limits. Its physio block returns on its own schedule and is not yours to plan.
+- Do not restructure the split. Keep each day's body-part pairing as it is in profile.currentPlan; your changes are loads, reps, sets, and same-muscle swaps.
 - Omit days with no changes.`;
 
   const user = JSON.stringify({

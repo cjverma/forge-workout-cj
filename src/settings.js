@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor } from "./constants.js";
+import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor, programFor, PROG_NAME } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -690,10 +690,21 @@ function buildSessionHistory(maxWeeks=4){
   return history;
 }
 
+// The Monday of the week being planned. Plans are always generated for NEXT
+// week, so anything describing "the plan" must be built from that week's
+// program, not today's. Today (Aug 3) still has physio stripped; next week
+// does not, and a snapshot taken from today would hide that from the AI.
+function planWeekStart(){
+  const d=new Date();
+  d.setDate(d.getDate()+(8-(d.getDay()||7)));
+  d.setHours(0,0,0,0);
+  return d;
+}
+
 function buildApprovedExercises(){
   const seen=new Set();
   const list=[];
-  for(const[,dayData]of Object.entries(PROG)){
+  for(const[,dayData]of Object.entries(programFor(planWeekStart()))){
     for(const ex of(dayData.exercises||[])){
       if(ex.cat==="cardio"||ex.cat==="physio")continue;
       const key=ex.name.toLowerCase().trim();
@@ -705,13 +716,33 @@ function buildApprovedExercises(){
   return list;
 }
 
+// Rest days are included with an empty exercise list, not dropped. Dropping
+// them let the AI assume the missing day was simply unplanned and schedule
+// work on it.
 function buildPlanSnapshot(){
+  const prog=programFor(planWeekStart());
   const snap={};
-  for(const[day,dayData]of Object.entries(PROG)){
-    if(!dayData.exercises?.length)continue;
-    snap[day]={label:dayData.label,exercises:dayData.exercises.map(ex=>({id:ex.id,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint,muscles:ex.muscles||[]}))};
+  for(const[day,dayData]of Object.entries(prog)){
+    const exs=dayData.exercises||[];
+    snap[day]={label:dayData.label,rest:!exs.some(e=>e.cat==="gym"),
+      exercises:exs.map(ex=>({id:ex.id,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint,muscles:ex.muscles||[]}))};
   }
   return snap;
+}
+
+// Tells the AI which program it is editing and which day it must not touch,
+// instead of leaving the schedule to be inferred from the snapshot.
+function buildProgramMeta(){
+  const mon=planWeekStart();
+  const prog=programFor(mon);
+  const rest=Object.keys(prog).filter(d=>!(prog[d].exercises||[]).some(e=>e.cat==="gym"));
+  return {
+    name:PROG_NAME[programKeyFor(mon)]||"current program",
+    version:programKeyFor(mon),
+    weekStarting:isoDate(mon),
+    restDays:rest,
+    trainingDays:Object.keys(prog).filter(d=>!rest.includes(d))
+  };
 }
 
 let _pendingPlan=null;
@@ -758,7 +789,7 @@ async function genWeeklyPlan(){
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         sessionHistory:buildSessionHistory(4),
-        profile:{equipment:GYM,currentPlan:buildPlanSnapshot(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
+        profile:{equipment:GYM,program:buildProgramMeta(),currentPlan:buildPlanSnapshot(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
       })
     },60000);
     if(!r.ok)throw new Error("Request failed");

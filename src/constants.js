@@ -428,66 +428,66 @@ export const PROG_V4={
     {id:"t4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"t4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Wednesday:{label:"Rest & Physio",sub:"Morning physio · no gym",exercises:[
-    {id:"w4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:3,reps:"30s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
-    {id:"w4_gb",name:"Glute Bridge (Modified)",cat:"physio",sets:3,reps:15,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"No lockout at the top. Push with glutes.",muscles:[]},
-    {id:"w4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level.",muscles:[]},
-    {id:"w4_db",name:"Dead Bug",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time.",muscles:[]},
-    {id:"w4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:3,reps:"45s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"45 full seconds each side.",muscles:[]},
-    {id:"w4_cc",name:"Cat-Cow",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Always last.",muscles:[]},
-    {id:"w4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  Wednesday:{label:"Legs & Shoulders",tag:"Heavy",sub:"Legs · Calves · Delts · Core",exercises:[
+    {id:"w4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"w4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
+    {id:"w4_lp",name:"Leg Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on the plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads", "glutes", "hamstrings"],rest:90},
+    {id:"w4_slc",name:"Seated Leg Curl",cat:"gym",sets:4,reps:"12-15",hint:"24-32 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:75},
+    {id:"w4_le",name:"Leg Extension Machine",cat:"gym",sets:3,reps:"12-15",hint:"24-34 kg",url:"https://www.youtube.com/watch?v=YyvSfVjQeL0",cue:"Full extension, 1s squeeze at the top. Controlled descent.",muscles:["quads"],rest:60},
+    {id:"w4_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range. Glute medius and hip stability.",muscles:["glutes", "hip abductors"],rest:60},
+    {id:"w4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
+    {id:"w4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:"15-20",hint:"22-32 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45},
+    {id:"w4_slr",name:"Seated Lateral Raise",cat:"gym",sets:4,reps:15,hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Placed here because nothing pre-fatigues the shoulders on leg day.",muscles:["side delt"],rest:60},
+    {id:"w4_pp",name:"Pallof Press",cat:"gym",sets:3,reps:"12 each side",hint:"12-18 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:60},
+    {id:"w4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
+    {id:"w4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Thursday:{label:"Legs & Shoulders",tag:"Heavy",sub:"Legs · Calves · Delts · Core",exercises:[
+  Thursday:{label:"Shoulders & Chest",tag:"Volume",sub:"Delts · Chest · Triceps",exercises:[
     {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
-    {id:"th4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
-    {id:"th4_lp",name:"Leg Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on the plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads", "glutes", "hamstrings"],rest:90},
-    {id:"th4_slc",name:"Seated Leg Curl",cat:"gym",sets:4,reps:"12-15",hint:"24-32 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:75},
-    {id:"th4_le",name:"Leg Extension Machine",cat:"gym",sets:3,reps:"12-15",hint:"24-34 kg",url:"https://www.youtube.com/watch?v=YyvSfVjQeL0",cue:"Full extension, 1s squeeze at the top. Controlled descent.",muscles:["quads"],rest:60},
-    {id:"th4_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range. Glute medius and hip stability.",muscles:["glutes", "hip abductors"],rest:60},
-    {id:"th4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
-    {id:"th4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:"15-20",hint:"22-32 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45},
-    {id:"th4_slr",name:"Seated Lateral Raise",cat:"gym",sets:4,reps:15,hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Placed here because nothing pre-fatigues the shoulders on leg day.",muscles:["side delt"],rest:60},
-    {id:"th4_pp",name:"Pallof Press",cat:"gym",sets:3,reps:"12 each side",hint:"12-18 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:60},
+    {id:"th4_lrwu",name:"Warm-Up · Lateral Raise",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["side delt"],rest:60},
+    {id:"th4_slr",name:"Seated Lateral Raise",cat:"gym",sets:6,reps:"12-15",hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"The most important exercise in the plan. Shoulder width is the differentiator.",muscles:["side delt"],rest:60},
+    {id:"th4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:4,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows soft. Squeeze rear delts.",muscles:["rear delt", "traps"],rest:60},
+    {id:"th4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:3,reps:"12-15",hint:"32-38 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest. Controlled descent.",muscles:["upper chest", "front delt", "triceps"],rest:75},
+    {id:"th4_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"38-45 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Volume day. Lighter than Monday.",muscles:["chest", "triceps", "front delt"],rest:75},
+    {id:"th4_pf",name:"Pec Fly Machine",cat:"gym",sets:2,reps:15,hint:"25-32 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return.",muscles:["chest"],rest:60},
+    {id:"th4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:4,reps:15,hint:"20-28 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60},
     {id:"th4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"th4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Friday:{label:"Shoulders & Chest",tag:"Volume",sub:"Delts · Chest · Triceps",exercises:[
+  Friday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
     {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
-    {id:"f4_lrwu",name:"Warm-Up · Lateral Raise",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["side delt"],rest:60},
-    {id:"f4_slr",name:"Seated Lateral Raise",cat:"gym",sets:6,reps:"12-15",hint:"6-8 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"The most important exercise in the plan. Shoulder width is the differentiator.",muscles:["side delt"],rest:60},
-    {id:"f4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:4,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows soft. Squeeze rear delts.",muscles:["rear delt", "traps"],rest:60},
-    {id:"f4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:3,reps:"12-15",hint:"32-38 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest. Controlled descent.",muscles:["upper chest", "front delt", "triceps"],rest:75},
-    {id:"f4_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:12,hint:"38-45 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Volume day. Lighter than Monday.",muscles:["chest", "triceps", "front delt"],rest:75},
-    {id:"f4_pf",name:"Pec Fly Machine",cat:"gym",sets:2,reps:15,hint:"25-32 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return.",muscles:["chest"],rest:60},
-    {id:"f4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:4,reps:15,hint:"20-28 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60},
+    {id:"f4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
+    {id:"f4_sap",name:"Straight Arm Pulldown",cat:"gym",sets:4,reps:"12-15",hint:"20-28 kg",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Lat width is the priority today.",muscles:["lats", "triceps"],rest:75},
+    {id:"f4_csr",name:"Chest Supported Row",cat:"gym",sets:3,reps:12,hint:"18-26 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Chest on pad, lower back protected. Pull elbows back.",muscles:["mid back", "rear delt", "biceps"],rest:75},
+    {id:"f4_scr",name:"Seated Cable Row",cat:"gym",sets:3,reps:"12-15",hint:"24-32 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Elbows tight. Do not lean back.",muscles:["mid back", "lats", "biceps"],rest:60},
+    {id:"f4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:2,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Maintenance volume only.",muscles:["rear delt", "traps"],rest:45},
+    {id:"f4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"8-10 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
+    {id:"f4_cbc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:15,hint:"12-18 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Constant cable tension. Full supination.",muscles:["biceps"],rest:45},
+    {id:"f4_wc",name:"Seated DB Wrist Curl",cat:"gym",sets:3,reps:15,hint:"5-10 kg",url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range. Slow.",muscles:["forearms"],rest:45},
     {id:"f4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"f4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Saturday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
+  Saturday:{label:"Legs & Core",tag:"Volume",sub:"Legs · Calves · Core",exercises:[
     {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
-    {id:"sa4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
-    {id:"sa4_sap",name:"Straight Arm Pulldown",cat:"gym",sets:4,reps:"12-15",hint:"20-28 kg",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Lat width is the priority today.",muscles:["lats", "triceps"],rest:75},
-    {id:"sa4_csr",name:"Chest Supported Row",cat:"gym",sets:3,reps:12,hint:"18-26 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Chest on pad, lower back protected. Pull elbows back.",muscles:["mid back", "rear delt", "biceps"],rest:75},
-    {id:"sa4_scr",name:"Seated Cable Row",cat:"gym",sets:3,reps:"12-15",hint:"24-32 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Elbows tight. Do not lean back.",muscles:["mid back", "lats", "biceps"],rest:60},
-    {id:"sa4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:2,reps:15,hint:"14-20 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Maintenance volume only.",muscles:["rear delt", "traps"],rest:45},
-    {id:"sa4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"8-10 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
-    {id:"sa4_cbc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:15,hint:"12-18 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Constant cable tension. Full supination.",muscles:["biceps"],rest:45},
-    {id:"sa4_wc",name:"Seated DB Wrist Curl",cat:"gym",sets:3,reps:15,hint:"5-10 kg",url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range. Slow.",muscles:["forearms"],rest:45},
+    {id:"sa4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
+    {id:"sa4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:15,hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Volume day. Lighter than Thursday.",muscles:["quads", "glutes", "hamstrings"],rest:75},
+    {id:"sa4_slc",name:"Seated Leg Curl",cat:"gym",sets:3,reps:15,hint:"24-32 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:60},
+    {id:"sa4_le",name:"Leg Extension Machine",cat:"gym",sets:2,reps:15,hint:"24-34 kg",url:"https://www.youtube.com/watch?v=YyvSfVjQeL0",cue:"Full extension, 1s squeeze at the top. Controlled descent.",muscles:["quads"],rest:60},
+    {id:"sa4_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range. Glute medius and hip stability.",muscles:["glutes", "hip abductors"],rest:60},
+    {id:"sa4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
+    {id:"sa4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:20,hint:"22-32 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Higher reps on the volume day.",muscles:["calves"],rest:45},
+    {id:"sa4_pp",name:"Pallof Press",cat:"gym",sets:3,reps:"12 each side",hint:"12-18 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:60},
     {id:"sa4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
     {id:"sa4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
   ]},
-  Sunday:{label:"Legs & Core",tag:"Volume",sub:"Legs · Calves · Core",exercises:[
-    {id:"su4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
-    {id:"su4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
-    {id:"su4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:15,hint:"50-70 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Volume day. Lighter than Thursday.",muscles:["quads", "glutes", "hamstrings"],rest:75},
-    {id:"su4_slc",name:"Seated Leg Curl",cat:"gym",sets:3,reps:15,hint:"24-32 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:60},
-    {id:"su4_le",name:"Leg Extension Machine",cat:"gym",sets:2,reps:15,hint:"24-34 kg",url:"https://www.youtube.com/watch?v=YyvSfVjQeL0",cue:"Full extension, 1s squeeze at the top. Controlled descent.",muscles:["quads"],rest:60},
-    {id:"su4_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range. Glute medius and hip stability.",muscles:["glutes", "hip abductors"],rest:60},
-    {id:"su4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"25-45 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
-    {id:"su4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:20,hint:"22-32 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Higher reps on the volume day.",muscles:["calves"],rest:45},
-    {id:"su4_pp",name:"Pallof Press",cat:"gym",sets:3,reps:"12 each side",hint:"12-18 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:60},
-    {id:"su4_dbg",name:"Dead Bug",cat:"gym",sets:2,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time. Spine-safe core.",muscles:["core"],rest:45},
-    {id:"su4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+  Sunday:{label:"Rest & Physio",sub:"Morning physio · no gym",exercises:[
+    {id:"su4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:3,reps:"30s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"su4_gb",name:"Glute Bridge (Modified)",cat:"physio",sets:3,reps:15,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"No lockout at the top. Push with glutes.",muscles:[]},
+    {id:"su4_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level.",muscles:[]},
+    {id:"su4_db",name:"Dead Bug",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time.",muscles:[]},
+    {id:"su4_hf",name:"Hip Flexor Stretch",cat:"physio",sets:3,reps:"45s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"45 full seconds each side.",muscles:[]},
+    {id:"su4_cc",name:"Cat-Cow",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Always last.",muscles:[]},
+    {id:"su4_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
   ]},
 };
 
@@ -512,7 +512,7 @@ const _spCache=new Map();
 function _sp(p){
   if(_spCache.has(p))return _spCache.get(p);
   // Legacy programs put the physio block on Sunday, so stripping physio there
-  // would empty the day. Southpaw rests on Wednesday and has no such Sunday.
+  // would empty the day. Southpaw's own Sunday is the rest day and carries that physio itself.
   const legacySunday=p!==PROG_V4;
   const o={};
   for(const[d,v]of Object.entries(p))
@@ -538,6 +538,11 @@ export function programFor(date){
 }
 
 const _pd=new Date();
+// Human-readable name per program version, so the AI can be told what it is
+// editing rather than inferring it from the exercise list.
+export const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
+  v4:"Southpaw (Jake Gyllenhaal) hypertrophy program"};
+
 export const PROG=programFor(_pd);
 
 // Is this date a rest day for NUTRITION purposes, i.e. no gym work?

@@ -229,6 +229,35 @@ it is parked rather than patched. Whichever way it goes, `trainedOn()`,
 one of them in isolation: matching two of the three is what produces the silent
 breakage.
 
+## The active program (Southpaw)
+
+`PROG_V4` in `src/constants.js`, live from Mon 3 Aug 2026.
+
+- **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
+  never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts
+  as rest once its physio block returns.
+- **Physio is hidden until Mon 10 Aug 2026** (`_sp()` in `programFor`). Before
+  that date Sunday renders as a true rest day with zero exercises and no Start
+  Workout button; after it, Sunday is a 7-item physio session.
+- `_sp()`'s Sunday exemption is for **legacy** programs only (`p!==PROG_V4`),
+  whose physio block sits on Sunday and would be emptied by the strip. Left
+  unscoped it protects Southpaw's rest day too, which then renders as a
+  training day.
+- Split: Mon Chest & Triceps · Tue Back & Biceps · Wed Legs & Shoulders ·
+  Thu Shoulders & Chest · Fri Back & Biceps · Sat Legs & Core · Sun rest.
+  Each muscle group's two days are three days apart. **Reordering days means
+  renumbering exercise-id prefixes** (`m4_`/`t4_`/`w4_`/`th4_`/`f4_`/`sa4_`/`su4_`)
+  so ids match their day; `node test.js` checks for duplicates.
+
+### What the AI is told
+`genWeeklyPlan()` plans **next** week, so `buildPlanSnapshot()`,
+`buildApprovedExercises()` and `buildProgramMeta()` all read
+`programFor(planWeekStart())`, not `PROG` (today's). Built from `PROG` the AI
+saw a physio-stripped week with the rest day missing entirely, and scheduled
+work on it. Rest days are sent as `rest:true` with their exercises, never
+omitted. `api/weekly-plan.js` builds its schedule sentence from
+`profile.program` rather than naming days in the prompt.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,
