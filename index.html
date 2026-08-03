@@ -389,6 +389,10 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Mark complete reuses .btn-start verbatim and sits above the session notes,
    not under the session bar, where it competed with Start Workout. */
 .markdone-bar{margin-top:var(--sp-4);}
+/* Custom exercises could only be removed via the swap sheet, which needs you to
+   add something first. This is the direct route. */
+.ex-del{background:transparent;border:none;padding:4px;margin-right:2px;color:var(--dim);cursor:pointer;display:inline-flex;align-items:center;border-radius:var(--r-sm);}
+.ex-del:active{color:var(--red);background:var(--s2);}
 .sess-undo{margin-left:10px;background:transparent;border:none;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--hero-fg-faint);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
 
 /* The deficit score folds intake, resting and active into one number, which

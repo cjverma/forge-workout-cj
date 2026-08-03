@@ -295,6 +295,22 @@ name so a machine can be found by the label on it.
   re-merges history written under the old slug. Flipping a `PR_ALIAS`
   canonical without a migration orphans that exercise's PR history.
 
+## A sync replaces state wholesale
+
+`loadServerState()` does `ctx.setS(d.state)` — the whole object, not a merge.
+Anything that lives only in `localStorage` is undone by the next pull. So every
+user action that changes structure needs three things, not one:
+
+1. the local mutation,
+2. a `queueMutation(...)` so it reaches Postgres,
+3. a column/table in `assembleState()` so it comes back.
+
+`S.dropped` and custom-exercise deletion both shipped with only step 1 and were
+silently reverted on the next sync. `dropped_exercises` is now a table, and
+`custom_exercise_delete` / `dropped_exercise` / `dropped_exercise_restore` are
+mutations. The two full-wipe paths in `api/mutate.js` clear and repopulate it
+alongside `custom_exercises`.
+
 ## Swapping an exercise out (`S.dropped`)
 
 Adding a custom exercise offers to drop one from that day. The drop is stored
@@ -305,6 +321,11 @@ itself stays as planned, so a drop never silently rewrites `PROG_V4`.
 All three add paths (`addFromDB`, `addFreeform`, `addFromAlt`) funnel through
 `afterCustomAdd()`. Wire new add paths there too, or the offer silently does
 not appear for them. Tested.
+
+A custom exercise also has a **direct** remove button on its card
+(`removeCustomEx`). Without it the only route was the swap sheet, which needs
+you to add something first, so anything added by mistake was stranded on that
+day permanently.
 
 ## Exercise names must never render as slugs
 

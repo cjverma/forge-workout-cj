@@ -1360,6 +1360,45 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       /replace\(\/_\/g," "\)/.test(MAIN));
   }
 
+  // prName() looked the slug up in a map that only ever holds CANONICAL slugs,
+  // so a key stored under a retired name missed and fell through to the
+  // de-slug, printing the retired name straight back. That is how
+  // "seated_hip_adduction_machine" reached the PDF as "Seated Hip Adduction
+  // Machine" after the rename.
+  ok("prName resolves the alias before the de-slug fallback",
+    /const norm=String\(slug\)\.replace\(\/\^_\+\|_\+\$\/g,""\);/.test(MAIN) &&
+    /const canon=PR_ALIAS\[norm\]\|\|norm;/.test(MAIN) &&
+    /if\(_prNameMap\[canon\]\)return _prNameMap\[canon\];/.test(MAIN));
+
+  // A sync replaces state wholesale (ctx.setS(d.state)), so anything held only
+  // in localStorage is undone by the next pull. Drops and custom-exercise
+  // deletions both have to reach the server.
+  {
+    const DB = readFileSync("api/db.js", "utf8");
+    const STATE = readFileSync("api/state.js", "utf8");
+    const MUT = readFileSync("api/mutate.js", "utf8");
+    ok("dropped exercises are persisted server-side",
+      /CREATE TABLE IF NOT EXISTS dropped_exercises/.test(DB) &&
+      /FROM dropped_exercises/.test(STATE) && /sessions, custom, dropped,/.test(STATE));
+    ok("drop, restore and custom-delete all have mutations",
+      ['"dropped_exercise"', '"dropped_exercise_restore"', '"custom_exercise_delete"']
+        .every(c => MUT.includes("case " + c + ":")));
+    ok("the client queues every one of them",
+      /queueMutation\("dropped_exercise",\{id,dayName:day\}\)/.test(WORKOUT) &&
+      /queueMutation\("dropped_exercise_restore",\{id\}\)/.test(WORKOUT) &&
+      (WORKOUT.match(/queueMutation\("custom_exercise_delete",\{id\}\)/g) || []).length === 2);
+    // A restore or reset that clears custom_exercises but not dropped_exercises
+    // leaves stale drops hiding exercises from the freshly restored program.
+    ok("both wipe paths clear dropped_exercises too",
+      (MUT.match(/DELETE FROM dropped_exercises/g) || []).length >= 3 &&
+      /INSERT INTO dropped_exercises\(ex_id, day_name\)[\s\S]{0,120}ON CONFLICT \(ex_id\) DO NOTHING/.test(MUT));
+  }
+  // Removing a custom exercise previously required adding another one first,
+  // so anything added by mistake was stranded on that day permanently.
+  ok("a custom exercise can be removed directly from its card",
+    /function removeCustomEx\(day,id\)/.test(WORKOUT) &&
+    /ex\.custom&&!rdOnly\?/.test(WORKOUT) && APP_CSS.includes(".ex-del{"));
+
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));
 

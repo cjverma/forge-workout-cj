@@ -640,7 +640,7 @@ function card(ex,sess,key,rdOnly=false){
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
       <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}${ex.ss?' · <span class="ss-chip">'+icon("bolt",11)+"superset</span>":""}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
-      <div class="ex-right"><div class="ex-chev" id="chev-${ex.id}">▾</div></div>
+      <div class="ex-right">${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}<div class="ex-chev" id="chev-${ex.id}">▾</div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;
@@ -1082,18 +1082,41 @@ function dropForSwap(id){
   if(!S.dropped)S.dropped={};
   if(!S.dropped[day])S.dropped[day]=[];
   if(!S.dropped[day].includes(id))S.dropped[day].push(id);
+  queueMutation("dropped_exercise",{id,dayName:day});
   // A custom exercise the user drops is gone outright, not remembered and
-  // re-hydrated on the next load.
-  if(S.custom&&S.custom[day])S.custom[day]=S.custom[day].filter(e=>e.id!==id);
+  // re-hydrated on the next load. It also has to be deleted server-side, or
+  // the next sync replaces state wholesale and brings it straight back.
+  if(S.custom&&S.custom[day]&&S.custom[day].some(e=>e.id===id)){
+    S.custom[day]=S.custom[day].filter(e=>e.id!==id);
+    queueMutation("custom_exercise_delete",{id});
+  }
   PROG[day].exercises=PROG[day].exercises.filter(e=>e.id!==id);
   save();closeSwap();
   showToast((ex?ex.name:"Exercise")+" removed from "+day);
   renderW();
 }
+// A custom exercise could previously only be removed by adding another one and
+// using the swap sheet, so anything added by mistake was stranded on that day
+// forever. This is the direct route.
+function removeCustomEx(day,id){
+  const S=ctx.getS();
+  if(!PROG[day])return;
+  const ex=PROG[day].exercises.find(e=>e.id===id);
+  if(!ex)return;
+  if(!confirm("Remove "+ex.name+" from "+day+"?"))return;
+  if(S.custom&&S.custom[day])S.custom[day]=S.custom[day].filter(e=>e.id!==id);
+  queueMutation("custom_exercise_delete",{id});
+  if(S.dropped&&S.dropped[day])S.dropped[day]=S.dropped[day].filter(x=>x!==id);
+  PROG[day].exercises=PROG[day].exercises.filter(e=>e.id!==id);
+  save();showToast(ex.name+" removed");
+  renderW();
+}
+
 function restoreDropped(day,id){
   const S=ctx.getS();
   if(!S.dropped||!S.dropped[day])return;
   S.dropped[day]=S.dropped[day].filter(x=>x!==id);
+  queueMutation("dropped_exercise_restore",{id});
   save();
   showToast("Restored · reload to see it");
   renderW();
@@ -1367,6 +1390,7 @@ window.addCustom=addCustom;
 window.closeSwap=closeSwap;
 window.dropForSwap=dropForSwap;
 window.restoreDropped=restoreDropped;
+window.removeCustomEx=removeCustomEx;
 window.startSess=startSess;
 window.stopSess=stopSess;
 window.resumeSess=resumeSess;

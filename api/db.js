@@ -91,6 +91,12 @@ export async function ensureSchema() {
     name text, cat text, sets int, reps text,
     hint text, url text, cue text, muscles jsonb DEFAULT '[]'
   )`;
+  // Exercises swapped out of a day. Without this, a sync replaces state
+  // wholesale and every drop comes back.
+  await q`CREATE TABLE IF NOT EXISTS dropped_exercises(
+    ex_id text PRIMARY KEY,
+    day_name text NOT NULL
+  )`;
   await q`CREATE TABLE IF NOT EXISTS week_plan_updates(
     id serial PRIMARY KEY,
     week_key text NOT NULL,

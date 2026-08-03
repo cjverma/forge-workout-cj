@@ -44,9 +44,17 @@ const _prCanonMap={},_prNameMap={};
 // as "tricep_extension_machine" just because its exercise left the program.
 function prName(slug){
   if(!slug)return "";
-  if(_prNameMap[slug])return _prNameMap[slug];
-  if(String(slug).startsWith("c_"))return "Custom exercise";
-  return String(slug).replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
+  // Alias FIRST. _prNameMap only ever holds canonical slugs, so a key stored
+  // under a retired name misses the map and falls through to the de-slug,
+  // which prints the retired name back verbatim: "seated_hip_adduction_machine"
+  // rendered as "Seated Hip Adduction Machine" in the PDF report and the
+  // backup export. Resolving here fixes every caller at once, and works
+  // whether or not the storage migration has run yet.
+  const norm=String(slug).replace(/^_+|_+$/g,"");
+  const canon=PR_ALIAS[norm]||norm;
+  if(_prNameMap[canon])return _prNameMap[canon];
+  if(canon.startsWith("c_"))return "Custom exercise";
+  return canon.replace(/_/g," ").replace(/\b\w/g,c=>c.toUpperCase());
 }
 ctx.prName=prName;
 ctx._prCanonMap=_prCanonMap;

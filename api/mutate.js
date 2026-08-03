@@ -118,6 +118,26 @@ export default async function handler(req, res) {
         await q`DELETE FROM med_doses WHERE date=${delDate} AND med=${delMed || "zepbound"}`;
         break;
       }
+      case "custom_exercise_delete": {
+        const { id } = payload;
+        if (!id) break;
+        await q`DELETE FROM custom_exercises WHERE id=${id}`;
+        await q`DELETE FROM dropped_exercises WHERE ex_id=${id}`;
+        break;
+      }
+      case "dropped_exercise": {
+        const { id, dayName } = payload;
+        if (!id || !dayName) break;
+        await q`INSERT INTO dropped_exercises(ex_id, day_name) VALUES(${id}, ${dayName})
+                ON CONFLICT (ex_id) DO UPDATE SET day_name=EXCLUDED.day_name`;
+        break;
+      }
+      case "dropped_exercise_restore": {
+        const { id } = payload;
+        if (!id) break;
+        await q`DELETE FROM dropped_exercises WHERE ex_id=${id}`;
+        break;
+      }
       case "settings": {
         const { theme, aiDeficitModifier, weeklySnapshots, weeklyVerdict, demoCache, demoCacheV, lastBackup } = payload;
         await q`UPDATE app_settings SET
@@ -149,6 +169,7 @@ export default async function handler(req, res) {
         await q`DELETE FROM weights`;
         await q`DELETE FROM prs`;
         await q`DELETE FROM custom_exercises`;
+        await q`DELETE FROM dropped_exercises`;
         await q`DELETE FROM week_plan_updates`;
         await q`DELETE FROM ai_chat`;
         // Repopulate
@@ -200,6 +221,12 @@ export default async function handler(req, res) {
                     ON CONFLICT (id) DO NOTHING`;
           }
         }
+        for (const [dayName, ids] of Object.entries(st.dropped || {})) {
+          for (const id of (ids || [])) {
+            await q`INSERT INTO dropped_exercises(ex_id, day_name) VALUES(${id}, ${dayName})
+                    ON CONFLICT (ex_id) DO NOTHING`;
+          }
+        }
         for (const [weekKey, days] of Object.entries(st.weekPlans || {})) {
           for (const [dayName, updates] of Object.entries(days || {})) {
             for (const upd of (updates || [])) {
@@ -241,6 +268,7 @@ export default async function handler(req, res) {
         await q`DELETE FROM weights`;
         await q`DELETE FROM prs`;
         await q`DELETE FROM custom_exercises`;
+        await q`DELETE FROM dropped_exercises`;
         await q`DELETE FROM week_plan_updates`;
         await q`DELETE FROM ai_chat`;
         await q`DELETE FROM diet_reviews`;
