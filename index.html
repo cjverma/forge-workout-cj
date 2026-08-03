@@ -389,16 +389,20 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Mark-day-complete was a 12px grey text link and read as a footnote. It is
    now a card: a conic-gradient ring for "how far am I", and a real button that
    fills volt the moment every exercise is ticked. */
-.daydone{display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-3);padding:12px 14px;border-radius:var(--r-lg);background:var(--card-grad);border:1px solid var(--b1);border-top-color:var(--card-edge);}
-.daydone-ring{--p:0;flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+.daydone{display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-3);padding:10px 12px;border-radius:var(--r-lg);background:var(--card-grad);border:1px solid var(--b1);border-top-color:var(--card-edge);}
+.daydone-ring{--p:0;flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;
   background:conic-gradient(var(--accent-text) calc(var(--p)*1%),var(--b2) 0);}
-.daydone-ring span{width:36px;height:36px;border-radius:50%;background:var(--s1);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--white);font-variant-numeric:tabular-nums;}
-.daydone-ring i{font-style:normal;color:var(--dim);font-weight:500;}
+.daydone-ring span{width:32px;height:32px;border-radius:50%;background:var(--s1);display:grid;place-items:center;
+  font-size:10px;font-weight:700;color:var(--mid);white-space:nowrap;letter-spacing:-.02em;font-variant-numeric:tabular-nums;}
 .daydone-txt{flex:1 1 auto;min-width:0;}
-.daydone-title{font-size:13px;font-weight:600;color:var(--white);}
-.daydone-sub{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--dim);margin-top:1px;}
-.daydone-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;background:var(--s2);color:var(--lt);border:1px solid var(--b2);border-radius:var(--r-pill);padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer;}
+.daydone-title{font-size:13px;font-weight:600;color:var(--white);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.daydone-sub{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--dim);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.daydone-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;background:transparent;color:var(--accent-text);
+  border:1.5px solid var(--accent-text);border-radius:var(--r-pill);padding:8px 14px;font-family:var(--font-body);
+  font-size:12px;font-weight:700;cursor:pointer;}
+.daydone-btn:active{background:var(--accent-lo);}
 .daydone.ready{border-color:var(--accent-text);}
+.daydone.ready .daydone-ring span{color:var(--accent-text);}
 .daydone.ready .daydone-btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:var(--shadow);animation:daydone-pulse 2s ease-in-out infinite;}
 @keyframes daydone-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
 @media (prefers-reduced-motion:reduce){.daydone.ready .daydone-btn{animation:none;}}

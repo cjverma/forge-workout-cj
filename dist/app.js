@@ -22,12 +22,12 @@ This REPLACES all current data on this device.`)&&(l.setS(s.state),E(),Z("restor
         ${G}
       </div>
       ${(()=>{let j=M.length,ee=M.filter(ne=>y[ne.id]?.done||y[ne.id]?.skipped).length,me=j?Math.round(ee/j*100):0,ae=j-ee,te=j>0&&ae===0;return`<div class="daydone${te?" ready":""}">
-          <div class="daydone-ring" style="--p:${me}"><span>${ee}<i>/${j}</i></span></div>
+          <div class="daydone-ring" style="--p:${me}"><span>${ee}/${j}</span></div>
           <div class="daydone-txt">
-            <div class="daydone-title">${te?"Everything logged":ae+" exercise"+(ae===1?"":"s")+" to go"}</div>
-            <div class="daydone-sub">${te?"Lock the day in":"Or mark the day complete anyway"}</div>
+            <div class="daydone-title">${te?"Everything logged":ae+" to go"}</div>
+            <div class="daydone-sub">${te?"Lock the day in":"Or finish early"}</div>
           </div>
-          <button class="daydone-btn" onclick="toggleDayComplete()">${k("trophy",18)}<span>Complete</span></button>
+          <button class="daydone-btn" onclick="toggleDayComplete()">${k("flag",16)}<span>Done</span></button>
         </div>`})()}`}}}t==="Sunday"&&(P+='<div class="physio-banner">Rest day \xB7 physio only. Recovery is where adaptation happens.</div>');let A=new Date().getDay();if(!l.isPastDay()&&!l.isFuture()&&A===0&&!(e.weekPlans||{})[l.nextWk()]&&(P+=`<div class="plan-nudge">
       <div><div class="plan-nudge-ttl">${k("calendar",20)} Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
       <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>

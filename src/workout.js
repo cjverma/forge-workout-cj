@@ -314,12 +314,12 @@ export function renderW(){
         // highlighting anyway, since nothing else prompts you to close the day.
         const ready=total>0&&left===0;
         return `<div class="daydone${ready?" ready":""}">
-          <div class="daydone-ring" style="--p:${pct}"><span>${done}<i>/${total}</i></span></div>
+          <div class="daydone-ring" style="--p:${pct}"><span>${done}/${total}</span></div>
           <div class="daydone-txt">
-            <div class="daydone-title">${ready?"Everything logged":left+" exercise"+(left===1?"":"s")+" to go"}</div>
-            <div class="daydone-sub">${ready?"Lock the day in":"Or mark the day complete anyway"}</div>
+            <div class="daydone-title">${ready?"Everything logged":left+" to go"}</div>
+            <div class="daydone-sub">${ready?"Lock the day in":"Or finish early"}</div>
           </div>
-          <button class="daydone-btn" onclick="toggleDayComplete()">${icon("trophy",18)}<span>Complete</span></button>
+          <button class="daydone-btn" onclick="toggleDayComplete()">${icon("flag",16)}<span>Done</span></button>
         </div>`;
       })()}`;
     }
