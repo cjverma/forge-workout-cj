@@ -1333,10 +1333,15 @@ function bestPR(exId){
   return entries.reduce((best,e)=>e.est>best.est?e:best,entries[0]);
 }
 function prHint(exId,i){
-  const w=parseFloat(document.getElementById("wi-"+exId+"-"+i)?.value);
+  const raw=parseFloat(document.getElementById("wi-"+exId+"-"+i)?.value);
   const r=parseFloat(document.getElementById("ri-"+exId+"-"+i)?.value);
   const el=document.getElementById("pr-hint-"+exId+"-"+i);
   if(!el)return;
+  // The typed number is in the exercise's own unit, but the stored PR is kg
+  // (always). Without this the hint read 120 lbs as "160kg est. 1RM" and, worse,
+  // compared that inflated number against the real kg PR, so it announced a new
+  // PR on a lift that was nowhere near one.
+  const w=toKg(raw,getExUnit(ctx.sk(ctx.cDay),exId));
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);

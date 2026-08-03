@@ -120,14 +120,20 @@ if(!S._wtRound1){
 // became a "120 kg" PR reading 160kg est. 1RM. Heal them by finding the logged
 // set each PR came from and converting when that set was in lbs. Matched on
 // exact weight+reps so an entry that was already kg is left alone.
-if(!S._prLbFix1){
+// _prLbFix1 healed localStorage ONLY. A sync replaces state wholesale, so the
+// still-wrong server rows came straight back on the next pull and the PR looked
+// unfixed (Leg Extension). This pass queues the correction so it reaches
+// Postgres, and matches the canonical id the same way canonicalId() does, since
+// an exercise whose id is not in _prCanonMap was never even considered.
+if(!S._prLbFix2){
   const LB=0.45359237;
+  const canon=exId=>_prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");
   const unitFor=(cid,w,r)=>{
     for(const sess of Object.values(S.sessions||{})){
       if(!sess||typeof sess!=="object")continue;
       for(const[exId,ed]of Object.entries(sess)){
         if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
-        if((_prCanonMap[exId]||exId)!==cid)continue;
+        if(canon(exId)!==cid)continue;
         for(const st of(ed.sets||[]))
           if(Number(st?.weight)===Number(w)&&Number(st?.reps)===Number(r))return ed.unit||"kg";
       }
@@ -138,13 +144,21 @@ if(!S._prLbFix1){
   for(const[cid,list]of Object.entries(S.prs||{})){
     if(!Array.isArray(list))continue;
     for(const e of list){
+      // Matched on exact weight+reps against a logged set, so a PR that is
+      // already in kg finds no lbs set and is left alone. That is also what
+      // makes this safe to re-run: a converted 54.4 no longer matches the 120
+      // that was typed, so it cannot be halved twice.
       if(unitFor(cid,e.weight,e.reps)!=="lbs")continue;
+      const oldEst=e.est;
       e.weight=Math.round(e.weight*LB*10)/10;
       e.est=Math.round(e.weight*(1+e.reps/30));
+      queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:oldEst});
+      queueMutation("pr",{exerciseId:cid,date:e.date,weight:e.weight,reps:e.reps,est:e.est});
       fixed++;
     }
   }
   S._prLbFix1=true;
+  S._prLbFix2=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
 }

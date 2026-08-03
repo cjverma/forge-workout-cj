@@ -1386,6 +1386,20 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     MAIN.indexOf("_exNames?.[canon]") < MAIN.indexOf('return "Custom exercise"') &&
     /ctx\.seedCustomNames\?\.\(\);/.test(readFileSync("src/sync.js", "utf8")));
 
+  // The live hint read the typed number as kg, so 120 lbs previewed as "160kg
+  // est. 1RM" and, comparing that against the real kg PR, announced a new PR on
+  // a lift nowhere near one.
+  ok("the PR hint converts the typed weight to kg before comparing",
+    /const w=toKg\(raw,getExUnit\(ctx\.sk\(ctx\.cDay\),exId\)\);/.test(WORKOUT));
+
+  // _prLbFix1 wrote localStorage only. A sync replaces state wholesale, so the
+  // uncorrected server rows came back on the next pull and the PR read wrong
+  // again. The heal has to reach Postgres.
+  ok("the lbs to kg PR heal reaches the server",
+    /if\(!S\._prLbFix2\)/.test(MAIN) &&
+    /queueMutation\("pr_delete",\{exerciseId:cid,date:e\.date,est:oldEst\}\);/.test(MAIN) &&
+    /queueMutation\("pr",\{exerciseId:cid,date:e\.date,weight:e\.weight,reps:e\.reps,est:e\.est\}\);/.test(MAIN));
+
   // A sync replaces state wholesale (ctx.setS(d.state)), so anything held only
   // in localStorage is undone by the next pull. Drops and custom-exercise
   // deletions both have to reach the server.
