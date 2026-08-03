@@ -306,6 +306,33 @@ All three add paths (`addFromDB`, `addFreeform`, `addFromAlt`) funnel through
 `afterCustomAdd()`. Wire new add paths there too, or the offer silently does
 not appear for them. Tested.
 
+## Exercise names must never render as slugs
+
+`S.prs` is keyed by **name-slug** (`outer_thigh_machine`), not by exercise id.
+Four surfaces resolve those keys back to names, and all four must agree:
+
+| surface | resolver |
+|---|---|
+| PR list (drawer) | `exName()` in `src/nutrition.js` → `ctx.prName` |
+| PDF report + backup | `exName()` in `src/settings.js` (x2) → `ctx.prName` |
+| weekly email CSV | `exName()` in `api/cron-weekly-email.js` |
+
+- **`prSlug()` in `src/constants.js` is the one slug rule.** It strips leading
+  and trailing separators: 30 exercise names end in `)`, which without the trim
+  slugged to `cable_crossover_high_to_low_`.
+- **Every resolver must apply `PR_ALIAS` before lookup.** A non-canonical slug
+  that skips it renders a phantom row under the retired name that can never
+  hold a PR, because writes go to the canonical key.
+- **`KEY_IDS` in `src/nutrition.js` seeds "not yet PR'd" rows.** Canonical
+  slugs only.
+- The **de-slug fallback** in `prName()` (and its mirror in the email) is the
+  backstop: it guarantees a readable label for ANY key, including exercises
+  that have left the program entirely.
+- `api/cron-weekly-email.js` imports from `src/constants.js`. It used to carry
+  a hand-written 166-entry map keyed by day-prefixed ids, none from V4 and none
+  name-slugs, so every PR lookup missed and the CSV emailed raw slugs. Do not
+  reintroduce a literal map.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,

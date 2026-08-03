@@ -29,7 +29,9 @@
  */
 
 import { readFileSync } from "fs";
-import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, EX_DB as REAL_EX_DB } from "./src/constants.js";
+import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, EX_DB as REAL_EX_DB,
+  prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS,
+  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4 } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // settings.js assigns to window at import time, so isBannedExercise cannot be
 // imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
@@ -1292,6 +1294,72 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     !APP_CSS.includes(".mark-done{") && !APP_CSS.includes(".daydone{") &&
     WORKOUT.indexOf("markdone-bar") < WORKOUT.indexOf('id="sessNotes"'));
 
+  // ── Exercise names must never surface as raw slugs ─────────────────────
+  // The weekly email kept its own hand-written EX_NAMES map keyed by
+  // day-prefixed ids (m_cp, t2_scr). S.prs was migrated to name-slug keys long
+  // ago, so every PR lookup missed and the CSV fell through to `|| exId`,
+  // emailing "outer_thigh_machine" as the exercise name.
+  {
+    const EMAIL = readFileSync("api/cron-weekly-email.js", "utf8");
+    ok("the weekly email builds names from the programs, not a hand-written map",
+      /from "\.\.\/src\/constants\.js"/.test(EMAIL) &&
+      /const EX_NAMES = \(\(\) => \{/.test(EMAIL) &&
+      !/m_bike:"Stationary Bike"/.test(EMAIL));
+    ok("the weekly email has no raw-id fallback left",
+      !/\|\| exId/.test(EMAIL) && (EMAIL.match(/exName\(S, exId\)/g) || []).length === 2);
+    ok("the weekly email de-slugs anything it cannot resolve",
+      /function exName\(S, id\)/.test(EMAIL) &&
+      /replace\(\/_\/g, " "\)/.test(EMAIL));
+
+    // One slug rule shared by the app and the email, so a PR written by one is
+    // readable by the other.
+    ok("there is a single exported slug rule",
+      /export function prSlug\(name\)/.test(C) &&
+      /replace\(\/\^_\+\|_\+\$\/g,""\)/.test(C) &&
+      /prSlug\(ex\.name\)/.test(MAIN) && /prSlug\(ex\.name\)/.test(EMAIL));
+
+    // 30 exercise names end in ")". Without the trim they slugged to
+    // "cable_crossover_high_to_low_", which de-slugs back with a stray gap.
+    const names = [...EXDB_NAMES,
+      ...Object.values(REAL_PROGRAM_FOR(new Date("2026-08-19T12:00:00"))).flatMap(d => d.exercises.map(e => e.name))];
+    const malformed = [...new Set(names.filter(n => /^_|_$/.test(REAL_PR_SLUG(n))))];
+    ok(`no exercise name produces a malformed slug${malformed.length ? " — " + malformed.slice(0, 3).join(", ") : ""}`,
+      malformed.length === 0);
+
+    // Every PR key the app can produce must resolve to a real name, in the app
+    // AND on the server. Built the same way both sides do it.
+    const server = (() => {
+      const out = {}; const put = (k, v) => { if (k && !out[k]) out[k] = v; };
+      for (const P of [REAL_V4, REAL_V3, REAL_V2, REAL_V1])
+        for (const d of Object.values(P)) for (const ex of (d.exercises || [])) {
+          put(ex.id, ex.name);
+          const raw = REAL_PR_SLUG(ex.name); put(REAL_PR_ALIAS[raw] || raw, ex.name);
+        }
+      for (const ex of REAL_EX_DB) { const raw = REAL_PR_SLUG(ex.name); put(REAL_PR_ALIAS[raw] || raw, ex.name); }
+      return out;
+    })();
+    const allSlugs = [...new Set(names.map(n => { const r = REAL_PR_SLUG(n); return REAL_PR_ALIAS[r] || r; }))];
+    const unresolved = allSlugs.filter(sl => !server[sl]);
+    ok(`every PR slug resolves to a real name server-side${unresolved.length ? " — " + unresolved.slice(0, 3).join(", ") : ""}`,
+      unresolved.length === 0 && allSlugs.length > 200);
+
+    // The specific case that was reported.
+    for (const [slug, want] of [["outer_thigh_machine", "Outer Thigh Machine"],
+                                ["inner_thigh_machine", "Inner Thigh Machine"],
+                                ["seated_hip_abduction_machine", "Outer Thigh Machine"],
+                                ["hip_abduction_machine", "Outer Thigh Machine"]]) {
+      const canon = REAL_PR_ALIAS[slug] || slug;
+      ok(`"${slug}" reads as "${want}"`, server[canon] === want);
+    }
+
+    // The PDF report and the PR list both go through prName(), whose de-slug
+    // fallback is the guarantee that no key can ever render with underscores.
+    ok("the PDF report and PR list resolve names through prName",
+      (SETTINGS.match(/const exName=id=>exMap\[id\]\|\|ctx\.prName\(id\)/g) || []).length === 2 &&
+      /function prName\(slug\)/.test(MAIN) &&
+      /replace\(\/_\/g," "\)/.test(MAIN));
+  }
+
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));
 
@@ -1373,7 +1441,14 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("no call site falls back to printing the raw slug",
     !/EX_NAMES\[id\]\|\|\(id\.startsWith/.test(NUT) &&
     !/_prNameMap\[id\]\|\|id/.test(SET) &&
-    /ctx\.prName\(id\)/.test(NUT) && /ctx\.prName\(id\)/.test(SET));
+    // nutrition.js resolves the alias first, so it reads prName(c) not prName(id).
+    /const c=PR_ALIAS\[id\]\|\|id;return EX_NAMES\[c\]\|\|ctx\.prName\(c\)/.test(NUT) &&
+    /ctx\.prName\(id\)/.test(SET));
+  // A retired slug left in KEY_IDS renders a row that can never hold a PR,
+  // because every write goes to the canonical key.
+  ok("the PR list seeds only canonical slugs",
+    !/"hip_abduction_machine"/.test(NUT) &&
+    /KEY_IDS=\[[^\]]*"outer_thigh_machine"[^\]]*\]\.map\(id=>PR_ALIAS\[id\]\|\|id\)/.test(NUT));
 
   // Box-in-box was the clearest generic tell: a bordered --s2 card nested
   // inside another card, with a rule under every row.

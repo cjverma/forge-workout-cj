@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToda
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
-import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT, PROG, PR_ALIAS } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -98,7 +98,9 @@ function renderDrawer(){
       // Custom exercises live in S.custom (not PROG) — seed their names too so
       // PR entries stored under "c_<ts>" ids resolve to real names
       for(const arr of Object.values(S.custom||{}))for(const ex of(arr||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
-      const exName=id=>EX_NAMES[id]||ctx.prName(id);
+      // Alias-aware: a non-canonical slug must resolve to the canonical name,
+      // or it renders a phantom row under the retired name.
+      const exName=id=>{const c=PR_ALIAS[id]||id;return EX_NAMES[c]||ctx.prName(c);};
       // Leaderboard card (top 5 by est 1RM across all PRs)
       const allPRs=Object.entries(S.prs||{});
       let leaderHtml="";
@@ -113,7 +115,10 @@ function renderDrawer(){
         leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
-      const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];
+      // Canonical slugs only. The retired hip-abduction slug lived here after
+      // the rename and rendered a phantom Hip Abduction Machine row that could
+      // never hold a PR, because every write goes to the canonical key.
+      const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","seated_pulldown_neutral_grip","tricep_extension_machine","leg_press_machine","seated_leg_curl","outer_thigh_machine","inner_thigh_machine","seated_calf_raise","hammer_curl"].map(id=>PR_ALIAS[id]||id);
       const withPR=Object.keys(S.prs||{});
       // Merge: PRd exercises + key exercises not yet PR'd (dedupe by name)
       const seenNames=new Set();

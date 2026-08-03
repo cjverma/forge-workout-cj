@@ -1762,6 +1762,13 @@ const PROG=programFor(_pd);
 // orphans its history. Southpaw uses the gym's own names for four machines that
 // already have logged sets under their catalogue names, so those map back.
 // new slug -> the slug the history was actually written under.
+// The one slug rule. Trailing/leading separators are stripped: 30 exercise
+// names end in ")" and without the trim they produced keys like
+// "cable_crossover_high_to_low_", which read back as a name with a stray gap.
+function prSlug(name){
+  return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+}
+
 const PR_ALIAS={
   // Canonical is the name on the machine in the actual gym. There is no hip
   // abduction/adduction machine there, so the clinical names are the aliases.
@@ -3880,7 +3887,9 @@ function renderDrawer(){
       // Custom exercises live in S.custom (not PROG) — seed their names too so
       // PR entries stored under "c_<ts>" ids resolve to real names
       for(const arr of Object.values(S.custom||{}))for(const ex of(arr||[])){const cid=canonicalId(ex.id);if(!EX_NAMES[cid])EX_NAMES[cid]=ex.name;}
-      const exName=id=>EX_NAMES[id]||ctx.prName(id);
+      // Alias-aware: a non-canonical slug must resolve to the canonical name,
+      // or it renders a phantom row under the retired name.
+      const exName=id=>{const c=PR_ALIAS[id]||id;return EX_NAMES[c]||ctx.prName(c);};
       // Leaderboard card (top 5 by est 1RM across all PRs)
       const allPRs=Object.entries(S.prs||{});
       let leaderHtml="";
@@ -3895,7 +3904,10 @@ function renderDrawer(){
         leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
-      const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","tricep_extension_machine","leg_press_machine","seated_leg_curl","hip_abduction_machine","seated_calf_raise","hammer_curl"];
+      // Canonical slugs only. The retired hip-abduction slug lived here after
+      // the rename and rendered a phantom Hip Abduction Machine row that could
+      // never hold a PR, because every write goes to the canonical key.
+      const KEY_IDS=["chest_press_machine","incline_chest_press_machine","pec_fly_machine","seated_cable_row","chest_supported_row","seated_pulldown_neutral_grip","tricep_extension_machine","leg_press_machine","seated_leg_curl","outer_thigh_machine","inner_thigh_machine","seated_calf_raise","hammer_curl"].map(id=>PR_ALIAS[id]||id);
       const withPR=Object.keys(S.prs||{});
       // Merge: PRd exercises + key exercises not yet PR'd (dedupe by name)
       const seenNames=new Set();
@@ -6081,7 +6093,7 @@ const _prCanonMap={},_prNameMap={};
 // still resolve to a readable name while V4 is active. Alias applied here so the
 // migration, reads and writes all agree on one slug.
 (function(){
-  const add=ex=>{const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;
+  const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
   for(const P of [PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
@@ -6117,7 +6129,8 @@ if(!S._prCanonMigrated2){
 if(!S._prCanonMigrated3){
   const merged={};
   Object.entries(S.prs||{}).forEach(([id,entries])=>{
-    const cid=PR_ALIAS[id]||id;
+    const norm=String(id).replace(/^_+|_+$/g,"");
+    const cid=PR_ALIAS[norm]||norm;
     if(!merged[cid])merged[cid]=[];
     merged[cid].push(...entries);
   });

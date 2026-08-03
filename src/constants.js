@@ -756,6 +756,13 @@ export const PROG=programFor(_pd);
 // orphans its history. Southpaw uses the gym's own names for four machines that
 // already have logged sets under their catalogue names, so those map back.
 // new slug -> the slug the history was actually written under.
+// The one slug rule. Trailing/leading separators are stripped: 30 exercise
+// names end in ")" and without the trim they produced keys like
+// "cable_crossover_high_to_low_", which read back as a name with a stray gap.
+export function prSlug(name){
+  return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+}
+
 export const PR_ALIAS={
   // Canonical is the name on the machine in the actual gym. There is no hip
   // abduction/adduction machine there, so the clinical names are the aliases.

@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, programKeyFor, PR_ALIAS, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -32,7 +32,7 @@ const _prCanonMap={},_prNameMap={};
 // still resolve to a readable name while V4 is active. Alias applied here so the
 // migration, reads and writes all agree on one slug.
 (function(){
-  const add=ex=>{const raw=ex.name.toLowerCase().replace(/[^a-z0-9]+/g,"_");const slug=PR_ALIAS[raw]||raw;
+  const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
   for(const P of [PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
@@ -68,7 +68,8 @@ if(!S._prCanonMigrated2){
 if(!S._prCanonMigrated3){
   const merged={};
   Object.entries(S.prs||{}).forEach(([id,entries])=>{
-    const cid=PR_ALIAS[id]||id;
+    const norm=String(id).replace(/^_+|_+$/g,"");
+    const cid=PR_ALIAS[norm]||norm;
     if(!merged[cid])merged[cid]=[];
     merged[cid].push(...entries);
   });
