@@ -6367,9 +6367,14 @@ if(!S._wtRound1){
 // unfixed (Leg Extension). This pass queues the correction so it reaches
 // Postgres, and matches the canonical id the same way canonicalId() does, since
 // an exercise whose id is not in _prCanonMap was never even considered.
-if(!S._prLbFix2){
+// A third pass because fix2 compared the PR key raw. A list still stored under
+// a RETIRED slug ("hip_abduction_machine") can never equal the canonical slug
+// the sessions resolve to ("outer_thigh_machine"), so those entries were never
+// examined and stayed in lbs while their canonical sibling was healed. Alias
+// the PR key first, then match.
+if(!S._prLbFix3){
   const LB=0.45359237;
-  const canon=exId=>_prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");
+  const canon=exId=>{const c=_prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");return PR_ALIAS[c]||c;};
   const unitFor=(cid,w,r)=>{
     for(const sess of Object.values(S.sessions||{})){
       if(!sess||typeof sess!=="object")continue;
@@ -6383,8 +6388,9 @@ if(!S._prLbFix2){
     return null;
   };
   let fixed=0;
-  for(const[cid,list]of Object.entries(S.prs||{})){
+  for(const[key,list]of Object.entries(S.prs||{})){
     if(!Array.isArray(list))continue;
+    const cid=PR_ALIAS[key]||key;
     for(const e of list){
       // Matched on exact weight+reps against a logged set, so a PR that is
       // already in kg finds no lbs set and is left alone. That is also what
@@ -6394,13 +6400,25 @@ if(!S._prLbFix2){
       const oldEst=e.est;
       e.weight=Math.round(e.weight*LB*10)/10;
       e.est=Math.round(e.weight*(1+e.reps/30));
-      queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:oldEst});
+      // Delete under the key the server actually stored it under, insert under
+      // the canonical one, so the alias merge reaches Postgres as well.
+      queueMutation("pr_delete",{exerciseId:key,date:e.date,est:oldEst});
       queueMutation("pr",{exerciseId:cid,date:e.date,weight:e.weight,reps:e.reps,est:e.est});
       fixed++;
     }
   }
+  // Fold any list still sitting under a retired slug into its canonical key, or
+  // the PR list renders two rows for one exercise and only one of them can ever
+  // receive a new PR.
+  for(const key of Object.keys(S.prs||{})){
+    const cid=PR_ALIAS[key];
+    if(!cid||cid===key)continue;
+    S.prs[cid]=(S.prs[cid]||[]).concat(S.prs[key]);
+    delete S.prs[key];
+  }
   S._prLbFix1=true;
   S._prLbFix2=true;
+  S._prLbFix3=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
 }

@@ -1396,9 +1396,18 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // uncorrected server rows came back on the next pull and the PR read wrong
   // again. The heal has to reach Postgres.
   ok("the lbs to kg PR heal reaches the server",
-    /if\(!S\._prLbFix2\)/.test(MAIN) &&
-    /queueMutation\("pr_delete",\{exerciseId:cid,date:e\.date,est:oldEst\}\);/.test(MAIN) &&
+    /if\(!S\._prLbFix3\)/.test(MAIN) &&
+    /queueMutation\("pr_delete",\{exerciseId:key,date:e\.date,est:oldEst\}\);/.test(MAIN) &&
     /queueMutation\("pr",\{exerciseId:cid,date:e\.date,weight:e\.weight,reps:e\.reps,est:e\.est\}\);/.test(MAIN));
+
+  // A PR list still keyed by a RETIRED slug could never match the canonical
+  // slug the sessions resolve to, so "hip_abduction_machine" stayed in lbs
+  // while its "outer_thigh_machine" sibling was healed, and the PR list showed
+  // both as separate exercises.
+  ok("the PR heal aliases the stored key before matching",
+    /const cid=PR_ALIAS\[key\]\|\|key;/.test(MAIN) &&
+    /return PR_ALIAS\[c\]\|\|c;\};/.test(MAIN) &&
+    /S\.prs\[cid\]=\(S\.prs\[cid\]\|\|\[\]\)\.concat\(S\.prs\[key\]\);/.test(MAIN));
 
   // A sync replaces state wholesale (ctx.setS(d.state)), so anything held only
   // in localStorage is undone by the next pull. Drops and custom-exercise
