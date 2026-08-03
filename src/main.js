@@ -97,6 +97,38 @@ if(!S._wtRound1){
   S._wtRound1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// PRs were written in whatever unit the set was typed in, so a 120 lbs lift
+// became a "120 kg" PR reading 160kg est. 1RM. Heal them by finding the logged
+// set each PR came from and converting when that set was in lbs. Matched on
+// exact weight+reps so an entry that was already kg is left alone.
+if(!S._prLbFix1){
+  const LB=0.45359237;
+  const unitFor=(cid,w,r)=>{
+    for(const sess of Object.values(S.sessions||{})){
+      if(!sess||typeof sess!=="object")continue;
+      for(const[exId,ed]of Object.entries(sess)){
+        if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
+        if((_prCanonMap[exId]||exId)!==cid)continue;
+        for(const st of(ed.sets||[]))
+          if(Number(st?.weight)===Number(w)&&Number(st?.reps)===Number(r))return ed.unit||"kg";
+      }
+    }
+    return null;
+  };
+  let fixed=0;
+  for(const[cid,list]of Object.entries(S.prs||{})){
+    if(!Array.isArray(list))continue;
+    for(const e of list){
+      if(unitFor(cid,e.weight,e.reps)!=="lbs")continue;
+      e.weight=Math.round(e.weight*LB*10)/10;
+      e.est=Math.round(e.weight*(1+e.reps/30));
+      fixed++;
+    }
+  }
+  S._prLbFix1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
+}
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.

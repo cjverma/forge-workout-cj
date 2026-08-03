@@ -767,7 +767,7 @@ function toggleSet(key,exId,i){
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps));}
+  if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   if(sd.done)startRest(ex.rest);
@@ -858,6 +858,17 @@ function sessionKeyToIso(key){
 // so simply deleting the bad entry would drop you back to whatever preceded the
 // mistake and ignore everything you have actually lifted since. Sessions are
 // never pruned, so the log is the reliable source.
+// PRs are stored in KG, always. The set inputs accept lbs per exercise, and
+// every PR path used to take the typed number at face value: 120 lbs logged as
+// a 120 kg PR, then rendered "160kg est. 1RM". The unit lives on the session
+// entry (ed.unit), so it has to be applied wherever a set becomes a PR.
+export const LB_TO_KG=0.45359237;
+function toKg(weight,unit){
+  const w=Number(weight);
+  if(!Number.isFinite(w))return null;
+  return unit==="lbs"?Math.round(w*LB_TO_KG*10)/10:w;
+}
+
 function bestFromSessions(cid){
   const S=ctx.getS();
   let best=null;
@@ -868,7 +879,7 @@ function bestFromSessions(cid){
       if(canonicalId(exId)!==cid)continue;
       for(const st of(ed.sets||[])){
         if(!st||!st.done||!st.weight||!st.reps)continue;
-        const w=Number(st.weight),r=Number(st.reps);
+        const w=toKg(st.weight,ed.unit),r=Number(st.reps);
         if(!w||!r||r>30)continue;
         const est=epley1RM(w,r);
         if(!best||est>best.est)best={date:sessionKeyToIso(key)||isoToday(),weight:w,reps:r,est};
@@ -894,12 +905,12 @@ function recoverPRFromLog(cid){
 }
 ctx.recoverPRFromLog=recoverPRFromLog;
 
-function dropPRForSet(exId,weight,reps){
+function dropPRForSet(exId,weight,reps,unit){
   const S=ctx.getS();
   const cid=canonicalId(exId);
   const list=S.prs?.[cid];
   if(!list||!list.length)return;
-  const w=Number(weight),r=Number(reps);
+  const w=toKg(weight,unit),r=Number(reps);
   const idx=list.findIndex(e=>Number(e.weight)===w&&Number(e.reps)===r);
   if(idx<0)return;
   const gone=list[idx];
@@ -927,9 +938,13 @@ function delSet(key,exId,i){
   // A PR is written when a set is logged but S.prs is append-only, so deleting
   // the set used to leave the record behind. That is how a mistyped weight
   // became a permanent PR. Drop any entry this exact set produced.
-  if(sd&&sd.weight&&sd.reps)dropPRForSet(exId,sd.weight,sd.reps);
+  // Remove the set BEFORE dropping its PR. dropPRForSet recomputes the best
+  // remaining lift from the logged sessions, so with the set still present it
+  // recovered the very PR it had just deleted and nothing appeared to change.
+  const unit=ed.unit;
   if(i<ed.sets.length)ed.sets.splice(i,1);
   ed.nSets=n-1;
+  if(sd&&sd.weight&&sd.reps)dropPRForSet(exId,sd.weight,sd.reps,unit);
   updateExerciseDone(key,exId);
   save();queueSession(key,exId);renderW();
   reopenEx(exId);
@@ -1328,10 +1343,12 @@ function prHint(exId,i){
   el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>Est. 1RM: '+est+'kg · new PR!</span>':"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
-function checkAndStorePR(exId,weight,reps){
+function checkAndStorePR(exId,weight,reps,unit){
   const S=ctx.getS();
-  if(!weight||!reps||reps>30)return;
+  const kg=toKg(weight,unit);
+  if(!kg||!reps||reps>30)return;
   const cid=canonicalId(exId);
+  weight=kg;
   const est=epley1RM(weight,reps);
   const prev=bestPR(cid);
   if(!prev||est>prev.est){

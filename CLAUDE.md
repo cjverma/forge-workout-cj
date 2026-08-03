@@ -430,6 +430,26 @@ cost a day of training data.
   an old `_lastAutoBackupDay`, so the next `save()` rewrote today's backup with
   the restored data and destroyed the only copy of that day's work.
 
+## PRs are stored in KG, always
+
+The set inputs take lbs per exercise (`ed.unit`), and every PR path used to take
+the typed number at face value. 120 lbs logged as a 120 kg PR, rendered
+"160kg est. 1RM". `toKg(weight, unit)` in `src/workout.js` is the one
+conversion, and it must be applied at all three places a set becomes a PR:
+
+1. `checkAndStorePR` — the write, on ticking a set.
+2. `bestFromSessions` — the recompute, which reads `ed.unit` per session.
+3. `dropPRForSet` — the delete, since the stored PR is kg and the set may be lbs.
+
+`S._prLbFix1` heals PRs already written wrong: it finds the logged set each PR
+came from and converts only when that set was in lbs, so a genuine kg entry is
+left alone.
+
+**`delSet` must splice the set BEFORE dropping its PR.** `dropPRForSet` calls
+`recoverPRFromLog`, which recomputes the best remaining lift from the logged
+sessions — with the set still present it recovered the very PR it had just
+deleted, and the badge never changed.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,

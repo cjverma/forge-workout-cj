@@ -1770,8 +1770,11 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   const WK5 = readFileSync("src/workout.js", "utf8");
   const NUT5 = readFileSync("src/nutrition.js", "utf8");
   ok("deleting a set removes the PR that set produced",
-    /function dropPRForSet\(exId,weight,reps\)/.test(WK5) &&
-    /if\(sd&&sd\.weight&&sd\.reps\)dropPRForSet\(exId,sd\.weight,sd\.reps\)/.test(WK5));
+    /function dropPRForSet\(exId,weight,reps,unit\)/.test(WK5) &&
+    /if\(sd&&sd\.weight&&sd\.reps\)dropPRForSet\(exId,sd\.weight,sd\.reps,unit\)/.test(WK5) &&
+    // The splice must come FIRST: dropPRForSet recomputes the best remaining
+    // lift, so with the set still in place it recovers the PR it just deleted.
+    WK5.indexOf("ed.sets.splice(i,1)") < WK5.indexOf("dropPRForSet(exId,sd.weight"));
   // Narrow on purpose: an identical lift logged another day keeps its record.
   ok("PR removal matches the exact weight and reps, not the exercise",
     /Number\(e\.weight\)===w&&Number\(e\.reps\)===r/.test(WK5));
