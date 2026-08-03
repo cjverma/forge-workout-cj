@@ -62,6 +62,21 @@ if(!S._prCanonMigrated2){
   // Direct write — save() isn't safe yet (_appReady/queueSync not initialised at this point)
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// PR_ALIAS canonical for the thigh machines flipped to the names actually on
+// the equipment. Re-run the alias merge so history written under the old
+// clinical slug lands on the new key instead of being orphaned.
+if(!S._prCanonMigrated3){
+  const merged={};
+  Object.entries(S.prs||{}).forEach(([id,entries])=>{
+    const cid=PR_ALIAS[id]||id;
+    if(!merged[cid])merged[cid]=[];
+    merged[cid].push(...entries);
+  });
+  for(const k of Object.keys(merged))
+    merged[k].sort((a,b)=>(b.est||0)-(a.est||0)||String(b.date).localeCompare(String(a.date)));
+  S.prs=merged;S._prCanonMigrated3=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).
 // Only fills dates that have no entry; never overwrites logged data.
@@ -78,6 +93,7 @@ if(!S._wtBackfill2){
   localStorage.setItem("f5",JSON.stringify(S));
 }
 hydrateCustomExercises();
+applyDroppedExercises();
 applyPlanOverrides();
 applyTheme();
 // Auto mode: re-resolve theme-color when the device theme flips
@@ -164,6 +180,18 @@ function hydrateCustomExercises(){
   });
 }
 
+// Exercises the user swapped out when adding a custom one. Kept as a separate
+// list rather than mutating the program, so the drop survives a reload without
+// the program itself drifting away from what was planned.
+function applyDroppedExercises(){
+  Object.entries(S.dropped||{}).forEach(([day,ids])=>{
+    if(!PROG[day]||!Array.isArray(ids)||!ids.length)return;
+    const drop=new Set(ids);
+    PROG[day].exercises=PROG[day].exercises.filter(ex=>!drop.has(ex.id));
+  });
+}
+ctx.applyDroppedExercises=applyDroppedExercises;
+
 function rememberCustom(day,ex){
   if(!S.custom)S.custom={};
   if(!S.custom[day])S.custom[day]=[];
@@ -244,6 +272,8 @@ function initApp(){
     else if(action==="fromdb")addFromDB(Number(idx),day);
     else if(action==="suggestalt")suggestSafeAlt(kind,day,idx!==undefined?Number(idx):undefined);
     else if(action==="fromalt")addFromAlt(day);
+    else if(action==="swapkeep")closeSwap();
+    else if(action==="swapdrop")dropForSwap(btn.dataset.drop);
   });
 }
 

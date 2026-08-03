@@ -250,6 +250,18 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .hero-streak{font-size:11px;font-weight:600;margin-top:4px;color:var(--hero-accent);}
 .pr-badge{font-size:10px;font-weight:600;color:var(--accent-text);margin-top:3px;}
 .ss-chip{display:inline-flex;align-items:center;gap:2px;color:var(--accent-text);font-weight:600;}
+.swap-modal{position:fixed;inset:0;z-index:1000;display:none;align-items:flex-end;background:var(--scrim);backdrop-filter:var(--scrim-blur);-webkit-backdrop-filter:var(--scrim-blur);}
+.swap-modal.show{display:flex;}
+.swap-sheet{width:100%;max-height:78vh;overflow-y:auto;background:var(--black);border-top:1px solid var(--b1);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:var(--sp-4);padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--sp-4));box-shadow:var(--shadow-lift);}
+.swap-head{margin-bottom:var(--sp-3);}
+.swap-title{font-family:var(--font-display);font-weight:600;text-transform:uppercase;font-size:20px;color:var(--white);letter-spacing:.01em;}
+.swap-sub{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--mid);margin-top:2px;}
+.swap-list{display:flex;flex-direction:column;gap:var(--sp-2);}
+.swap-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;text-align:left;background:var(--s2);border:1px solid var(--b1);border-radius:var(--r-md);padding:12px 14px;cursor:pointer;color:var(--white);font-family:var(--font-body);}
+.swap-item:active{border-color:var(--accent-text);}
+.swap-name{font-size:14px;font-weight:600;}
+.swap-meta{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;}
+.swap-keep{width:100%;margin-top:var(--sp-3);background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--r-pill);padding:14px;font-family:var(--font-body);font-size:14px;font-weight:700;cursor:pointer;}
 .ss-chip .icon{stroke-width:2;}
 
 /* ── PROGRESS ── */
@@ -374,8 +386,22 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Escape hatch for a session the app cannot see: work logged under a previous
    program's exercise ids, or a session done away from the phone. Quiet on
    purpose, it must never compete with Start Workout. */
-.mark-done{display:block;margin:var(--sp-3) auto 0;background:transparent;border:none;font-family:var(--font-body);font-size:12px;font-weight:500;color:var(--dim);cursor:pointer;padding:6px 10px;border-bottom:1px solid transparent;}
-.mark-done:active{color:var(--accent-text);border-bottom-color:var(--accent-text);}
+/* Mark-day-complete was a 12px grey text link and read as a footnote. It is
+   now a card: a conic-gradient ring for "how far am I", and a real button that
+   fills volt the moment every exercise is ticked. */
+.daydone{display:flex;align-items:center;gap:var(--sp-3);margin-top:var(--sp-3);padding:12px 14px;border-radius:var(--r-lg);background:var(--card-grad);border:1px solid var(--b1);border-top-color:var(--card-edge);}
+.daydone-ring{--p:0;flex:0 0 auto;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;
+  background:conic-gradient(var(--accent-text) calc(var(--p)*1%),var(--b2) 0);}
+.daydone-ring span{width:36px;height:36px;border-radius:50%;background:var(--s1);display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--white);font-variant-numeric:tabular-nums;}
+.daydone-ring i{font-style:normal;color:var(--dim);font-weight:500;}
+.daydone-txt{flex:1 1 auto;min-width:0;}
+.daydone-title{font-size:13px;font-weight:600;color:var(--white);}
+.daydone-sub{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--dim);margin-top:1px;}
+.daydone-btn{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;background:var(--s2);color:var(--lt);border:1px solid var(--b2);border-radius:var(--r-pill);padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer;}
+.daydone.ready{border-color:var(--accent-text);}
+.daydone.ready .daydone-btn{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);box-shadow:var(--shadow);animation:daydone-pulse 2s ease-in-out infinite;}
+@keyframes daydone-pulse{0%,100%{transform:scale(1);}50%{transform:scale(1.04);}}
+@media (prefers-reduced-motion:reduce){.daydone.ready .daydone-btn{animation:none;}}
 .sess-undo{margin-left:10px;background:transparent;border:none;font-family:var(--font-body);font-size:11px;font-weight:600;color:var(--hero-fg-faint);cursor:pointer;text-decoration:underline;text-underline-offset:2px;}
 
 /* The deficit score folds intake, resting and active into one number, which
@@ -954,6 +980,16 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 </div>
 
 <div class="plan-modal" id="planModal"></div>
+<div class="swap-modal" id="swapModal">
+  <div class="swap-sheet">
+    <div class="swap-head">
+      <div class="swap-title">Drop one in exchange?</div>
+      <div class="swap-sub">Keeps the session the same length. Optional.</div>
+    </div>
+    <div class="swap-list" id="swapList"></div>
+    <button class="swap-keep" data-action="swapkeep">Keep everything</button>
+  </div>
+</div>
 
 <div class="summary" id="sum">
   <div class="sum-inner">

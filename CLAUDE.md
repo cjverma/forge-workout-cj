@@ -277,6 +277,35 @@ work on it. Rest days are sent as `rest:true` with their exercises, never
 omitted. `api/weekly-plan.js` builds its schedule sentence from
 `profile.program` rather than naming days in the prompt.
 
+## The exercise library (`EX_DB`)
+
+The list the custom-exercise search reads from. ~235 entries across Gym, Cardio
+and Physio, including the **Precor** and **Hoist** machine lines by product
+name so a machine can be found by the label on it.
+
+- **Every entry must pass `isBannedExercise()`.** Two once shipped that the
+  app's own spine filter refused to add ("Underhand Lat Pulldown",
+  "Seated Bent-Over Lateral Raise"), so the search offered exercises that
+  could not be added. `node test.js` now fails on any such entry, on duplicate
+  names, and if the library drops below 200.
+- A pulldown needs `neutral` or `close` **in the name** or it is banned.
+- **The gym has inner and outer thigh machines, not hip abduction/adduction.**
+  Canonical PR slugs are `outer_thigh_machine` / `inner_thigh_machine`; the
+  clinical names alias onto them via `PR_ALIAS`, and `_prCanonMigrated3`
+  re-merges history written under the old slug. Flipping a `PR_ALIAS`
+  canonical without a migration orphans that exercise's PR history.
+
+## Swapping an exercise out (`S.dropped`)
+
+Adding a custom exercise offers to drop one from that day. The drop is stored
+in `S.dropped[day]` and re-applied by `applyDroppedExercises()` on load, next
+to `hydrateCustomExercises()`. It is a separate list on purpose: the program
+itself stays as planned, so a drop never silently rewrites `PROG_V4`.
+
+All three add paths (`addFromDB`, `addFreeform`, `addFromAlt`) funnel through
+`afterCustomAdd()`. Wire new add paths there too, or the offer silently does
+not appear for them. Tested.
+
 ## Testing Before Merging
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,

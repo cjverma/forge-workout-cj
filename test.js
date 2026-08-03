@@ -29,7 +29,22 @@
  */
 
 import { readFileSync } from "fs";
-import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR } from "./src/constants.js";
+import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, EX_DB as REAL_EX_DB } from "./src/constants.js";
+const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
+// settings.js assigns to window at import time, so isBannedExercise cannot be
+// imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
+// so it cannot drift away from the rule the app actually enforces.
+const REAL_IS_BANNED = (() => {
+  const src = readFileSync("src/settings.js", "utf8");
+  const list = (src.match(/const BANNED_EX=\[([\s\S]*?)\];/) || [])[1] || "";
+  const rx = [...list.matchAll(/\/((?:[^/\\]|\\.)+)\/([a-z]*)/g)].map(m => new RegExp(m[1], m[2]));
+  if (!rx.length) throw new Error("could not read BANNED_EX from src/settings.js");
+  return name => {
+    const n = String(name || "");
+    if (/lat\s*pulldown/i.test(n) && !/neutral|close/i.test(n)) return true;
+    return rx.some(r => r.test(n));
+  };
+})();
 import { execSync } from "child_process";
 
 execSync("node build.mjs", { stdio: "inherit" });
@@ -1175,6 +1190,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // next week's program. Built from PROG (today's) it showed a physio-stripped
   // week and hid the rest day entirely, so the AI scheduled work on it.
   const SETTINGS = readFileSync("src/settings.js", "utf8");
+  const MAIN = readFileSync("src/main.js", "utf8");
   ok("the AI sees next week's program, not today's",
     /function planWeekStart\(\)/.test(SETTINGS) &&
     /buildPlanSnapshot\(\)\{\s*const prog=programFor\(planWeekStart\(\)\)/.test(SETTINGS) &&
@@ -1233,6 +1249,44 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     ok("a superset renders a chip on the exercise card",
       /ex\.ss\?/.test(WORKOUT) && APP_CSS.includes(".ss-chip{"));
   }
+
+  // The library is what the custom-exercise search reads from. Two entries
+  // once shipped that the app's own spine filter would refuse to add.
+  {
+    const blocked = EXDB_NAMES.filter(n => REAL_IS_BANNED(n));
+    ok(`no EX_DB entry is blocked by the app's own spine filter${blocked.length ? " — " + blocked.join(", ") : ""}`,
+      blocked.length === 0);
+    const dupes = EXDB_NAMES.filter((n, i) => EXDB_NAMES.indexOf(n) !== i);
+    ok(`no duplicate exercise names in EX_DB${dupes.length ? " — " + dupes.join(", ") : ""}`, dupes.length === 0);
+    ok(`EX_DB is large enough to search usefully (${EXDB_NAMES.length})`, EXDB_NAMES.length >= 200);
+    for (const brand of ["precor", "hoist"]) {
+      ok(`EX_DB covers the ${brand} machine line`,
+        EXDB_NAMES.filter(n => n.toLowerCase().includes(brand)).length >= 15);
+    }
+    // The gym has inner/outer thigh machines, not a hip abduction machine.
+    ok("no hip abduction/adduction machine is offered as a custom exercise",
+      !EXDB_NAMES.some(n => /hip (ab|ad)duction machine/i.test(n)) &&
+      EXDB_NAMES.includes("Outer Thigh Machine") && EXDB_NAMES.includes("Inner Thigh Machine"));
+    // Canonical PR slug is the name on the machine; the clinical name aliases in.
+    ok("PR history for the thigh machines resolves to one slug",
+      /seated_hip_abduction_machine:"outer_thigh_machine"/.test(C) &&
+      /seated_hip_adduction_machine:"inner_thigh_machine"/.test(C) &&
+      /S\._prCanonMigrated3/.test(MAIN));
+  }
+  // Adding an exercise lengthens an already six-day week. All three add paths
+  // funnel through one tail so the offer cannot be wired into two and missed
+  // on the third.
+  ok("adding a custom exercise offers to drop one in exchange",
+    /function offerSwapOut\(day,addedId\)/.test(WORKOUT) &&
+    (WORKOUT.match(/\n  afterCustomAdd\(day,ex,/g) || []).length === 3 &&
+    /offerSwapOut\(day,ex\.id\)/.test(WORKOUT));
+  ok("a dropped exercise stays dropped across a reload",
+    /function applyDroppedExercises\(\)/.test(MAIN) &&
+    /S\.dropped/.test(WORKOUT) && /applyDroppedExercises\(\);/.test(MAIN));
+  // Was a 12px grey text link under the session bar and got missed.
+  ok("mark-day-complete is a progress card, not a text link",
+    /class="daydone/.test(WORKOUT) && APP_CSS.includes(".daydone-ring{") &&
+    APP_CSS.includes(".daydone.ready .daydone-btn{") && !APP_CSS.includes(".mark-done{"));
 
   ok("every gym exercise carries a rest interval",
     !/\{id:"[^"]+",name:"[^"]+",cat:"gym"(?:(?!rest:)[^}])*\}/.test(v4));

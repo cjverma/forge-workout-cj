@@ -300,7 +300,28 @@ export function renderW(){
         <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
         ${calfBtnHtml}
       </div>
-      <button class="mark-done" onclick="toggleDayComplete()">Mark Day Complete</button>`;
+      ${(()=>{
+        // The old control was a 12px grey text link under the session bar, which
+        // read as a footnote and got missed. Progress ring + a real button: the
+        // ring answers "how far am I", the button fills volt once every
+        // exercise is ticked so finishing the day is unmissable.
+        const total=nonPhysio.length;
+        const done=nonPhysio.filter(e=>sess[e.id]?.done||sess[e.id]?.skipped).length;
+        const pct=total?Math.round(done/total*100):0;
+        const left=total-done;
+        // Reachable only when the remainder were SKIPPED: all-done flips to the
+        // Session Complete bar above before this renders. That is the case worth
+        // highlighting anyway, since nothing else prompts you to close the day.
+        const ready=total>0&&left===0;
+        return `<div class="daydone${ready?" ready":""}">
+          <div class="daydone-ring" style="--p:${pct}"><span>${done}<i>/${total}</i></span></div>
+          <div class="daydone-txt">
+            <div class="daydone-title">${ready?"Everything logged":left+" exercise"+(left===1?"":"s")+" to go"}</div>
+            <div class="daydone-sub">${ready?"Lock the day in":"Or mark the day complete anyway"}</div>
+          </div>
+          <button class="daydone-btn" onclick="toggleDayComplete()">${icon("trophy",18)}<span>Complete</span></button>
+        </div>`;
+      })()}`;
     }
   }
 
@@ -1013,10 +1034,7 @@ function addFromDB(i,day){
   PROG[day].exercises.push(ex);
   ctx.rememberCustom(day,ex);
   if(!S.sessions[sessKey])S.sessions[sessKey]={};
-  save();showToast(base.name+" added ✓");
-  document.getElementById("cfSearch").value="";
-  document.getElementById("cfDD").classList.remove("show");
-  renderW();
+  afterCustomAdd(day,ex,base.name);
 }
 
 function addFreeform(day,name){
@@ -1030,10 +1048,7 @@ function addFreeform(day,name){
   PROG[day].exercises.push(ex);
   ctx.rememberCustom(day,ex);
   if(!S.sessions[sessKey])S.sessions[sessKey]={};
-  save();showToast(name+" added ✓");
-  document.getElementById("cfSearch").value="";
-  document.getElementById("cfDD").classList.remove("show");
-  renderW();
+  afterCustomAdd(day,ex,name);
 }
 
 function addFromAlt(day){
@@ -1045,11 +1060,60 @@ function addFromAlt(day){
   PROG[day].exercises.push(ex);
   ctx.rememberCustom(day,ex);
   if(!S.sessions[sessKey])S.sessions[sessKey]={};
-  save();showToast(ex.name+" added ✓");
   _pendingAlt=null;
-  document.getElementById("cfSearch").value="";
-  document.getElementById("cfDD").classList.remove("show");
+  afterCustomAdd(day,ex,ex.name);
+}
+
+// Adding an exercise makes the session longer, which on six training days a
+// week and a hard deficit is the wrong direction. Offer to drop one thing in
+// exchange. Declining is one tap and costs nothing.
+function offerSwapOut(day,addedId){
+  const prog=PROG[day];
+  if(!prog)return;
+  const cands=prog.exercises.filter(e=>e.id!==addedId&&e.cat==="gym"&&!/^Warm-Up/.test(e.name));
+  if(!cands.length)return;
+  const m=document.getElementById("swapModal");
+  if(!m)return;
+  m.dataset.day=day;
+  document.getElementById("swapList").innerHTML=cands.map(e=>
+    `<button class="swap-item" data-action="swapdrop" data-drop="${esc(e.id)}">
+      <span class="swap-name">${esc(e.name)}</span>
+      <span class="swap-meta">${esc(String(e.sets))} x ${esc(String(e.reps))}${e.hint?" · "+esc(e.hint):""}</span>
+    </button>`).join("");
+  m.classList.add("show");
+}
+function closeSwap(){const m=document.getElementById("swapModal");if(m)m.classList.remove("show");}
+function dropForSwap(id){
+  const S=ctx.getS();
+  const day=document.getElementById("swapModal")?.dataset.day;
+  if(!day||!PROG[day])return;
+  const ex=PROG[day].exercises.find(e=>e.id===id);
+  if(!S.dropped)S.dropped={};
+  if(!S.dropped[day])S.dropped[day]=[];
+  if(!S.dropped[day].includes(id))S.dropped[day].push(id);
+  // A custom exercise the user drops is gone outright, not remembered and
+  // re-hydrated on the next load.
+  if(S.custom&&S.custom[day])S.custom[day]=S.custom[day].filter(e=>e.id!==id);
+  PROG[day].exercises=PROG[day].exercises.filter(e=>e.id!==id);
+  save();closeSwap();
+  showToast((ex?ex.name:"Exercise")+" removed from "+day);
   renderW();
+}
+function restoreDropped(day,id){
+  const S=ctx.getS();
+  if(!S.dropped||!S.dropped[day])return;
+  S.dropped[day]=S.dropped[day].filter(x=>x!==id);
+  save();
+  showToast("Restored · reload to see it");
+  renderW();
+}
+
+function afterCustomAdd(day,ex,label){
+  save();showToast(label+" added ✓");
+  const si=document.getElementById("cfSearch");if(si)si.value="";
+  document.getElementById("cfDD")?.classList.remove("show");
+  renderW();
+  offerSwapOut(day,ex.id);
 }
 
 function addCustom(key){
@@ -1309,6 +1373,9 @@ window.addFromDB=addFromDB;
 window.addFreeform=addFreeform;
 window.addFromAlt=addFromAlt;
 window.addCustom=addCustom;
+window.closeSwap=closeSwap;
+window.dropForSwap=dropForSwap;
+window.restoreDropped=restoreDropped;
 window.startSess=startSess;
 window.stopSess=stopSess;
 window.resumeSess=resumeSess;
