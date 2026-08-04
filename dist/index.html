@@ -6433,7 +6433,7 @@ if(!S._prLbFix3){
 // truthful whichever unit was typed. It only touches an exercise that HAS
 // logged sets to rebuild from: with no evidence there is nothing better to put
 // back, and dropping the entry would destroy history rather than correct it.
-if(!S._prRecompute1){
+if(!S._prRecompute2){
   const LB=0.45359237;
   const canon=exId=>{const c=_prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");return PR_ALIAS[c]||c;};
   const setsFor=cid=>{
@@ -6475,9 +6475,28 @@ if(!S._prRecompute1){
     if(kept.length)S.prs[cid]=kept;else delete S.prs[cid];
     rebuilt+=bad.length;
   }
+  // A PR whose exercise has NO logged sets at all cannot be verified, rebuilt
+  // or ever beaten honestly. It is a record with nothing behind it, usually an
+  // exercise whose sessions were lost. Remove it so the PR list only ever shows
+  // lifts the log can account for.
+  //
+  // Archived to S._prPurged rather than simply deleted. This is the only pass
+  // here that destroys data outright instead of correcting it, and a record
+  // that turns out to have been real is otherwise unrecoverable.
+  let purged=0;
+  for(const[cid,list]of Object.entries(S.prs||{})){
+    if(!Array.isArray(list)||!list.length)continue;
+    if(setsFor(cid).length)continue;
+    (S._prPurged=S._prPurged||{})[cid]=(S._prPurged[cid]||[]).concat(list);
+    for(const e of list)queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
+    delete S.prs[cid];
+    purged+=list.length;
+  }
   S._prRecompute1=true;
+  S._prRecompute2=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(rebuilt)setTimeout(()=>showToast(rebuilt+" unverified PR"+(rebuilt===1?"":"s")+" rebuilt from your logged sets"),4000);
+  if(purged)setTimeout(()=>showToast(purged+" PR"+(purged===1?"":"s")+" with no logged sets removed"),6000);
 }
 if(!S.aiChat)S.aiChat=[];
 // One-time backfill of historical weigh-ins (requested 2026-06-10).

@@ -1406,10 +1406,19 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // evidence there is nothing better to put back and dropping the entry would
   // destroy history rather than correct it.
   ok("unverifiable PRs are rebuilt from the log, and only where the log has data",
-    /if\(!S\._prRecompute1\)/.test(MAIN) &&
+    /if\(!S\._prRecompute2\)/.test(MAIN) &&
     /const sets=setsFor\(cid\);\s*\n\s*if\(!sets\.length\)continue;/.test(MAIN) &&
     /const bad=list\.filter\(e=>!verifiable\(sets,e\)\);/.test(MAIN) &&
     /for\(const e of bad\)queueMutation\("pr_delete"/.test(MAIN));
+
+  // A PR whose exercise has no logged sets at all cannot be verified, rebuilt
+  // or honestly beaten. It is archived to S._prPurged rather than deleted
+  // outright, since this is the one pass that destroys data instead of
+  // correcting it.
+  ok("PRs with no logged sets are removed and archived",
+    /if\(setsFor\(cid\)\.length\)continue;/.test(MAIN) &&
+    /\(S\._prPurged=S\._prPurged\|\|\{\}\)\[cid\]=\(S\._prPurged\[cid\]\|\|\[\]\)\.concat\(list\);/.test(MAIN) &&
+    /for\(const e of list\)queueMutation\("pr_delete",\{exerciseId:cid,date:e\.date,est:e\.est\}\);/.test(MAIN));
 
   // A PR list still keyed by a RETIRED slug could never match the canonical
   // slug the sessions resolve to, so "hip_abduction_machine" stayed in lbs
