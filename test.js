@@ -1158,7 +1158,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // Exercise counts straight from the plan as written.
   // Sizes at FULL rollout. Staged movements (from:"…") are absent earlier, so
   // reading this off the app before Aug 17 will show fewer.
-  const want = { Monday:10, Tuesday:11, Wednesday:13, Thursday:11, Friday:12, Saturday:13, Sunday:7 };
+  const want = { Monday:10, Tuesday:11, Wednesday:12, Thursday:11, Friday:12, Saturday:12, Sunday:7 };
   const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
     .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
   ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
@@ -1181,15 +1181,26 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     (v4.match(/tag:"(Heavy|Volume)"/g) || []).length === 6 &&
     /hero-tag/.test(WORKOUT) && APP_CSS.includes(".hero-tag{"));
 
-  // Dead Bug is physio on Sunday but programmed core work on the leg days.
-  // Left as cat:"physio" there it would be stripped out before Aug 10, silently
-  // dropping core from both leg sessions.
+  // Dead Bug is floor work and the gym has no floor space, so every training-day
+  // slot became a Pallof Press. It survives only in the Sunday physio block,
+  // which is done at home. Left as cat:"physio" on a training day it would be
+  // stripped out before Aug 10, silently dropping core from that session.
   {
     const bugs = [...v4.matchAll(/\{id:"([a-z0-9]+)_[a-z]+",name:"Dead Bug",cat:"(\w+)"/g)]
       .map(m => [m[1], m[2]]);
-    const wrong = bugs.filter(([p, c]) => (p === "su4") !== (c === "physio"));
-    ok(`Dead Bug is core on training days, physio only on Sunday${wrong.length ? " — " + JSON.stringify(wrong) : ""}`,
-      bugs.length === 7 && wrong.length === 0);
+    ok(`Dead Bug is Sunday physio only${bugs.length !== 1 ? " — " + JSON.stringify(bugs) : ""}`,
+      bugs.length === 1 && bugs[0][0] === "su4" && bugs[0][1] === "physio");
+  }
+
+  // Core volume is unchanged by the swap: the four days that had no Pallof get
+  // a 2-set one, and the two that already ran it absorb the Dead Bug sets
+  // (3 -> 5) rather than listing the same movement twice on one day.
+  {
+    const pp = [...v4.matchAll(/\{id:"([a-z0-9]+)_pp",name:"Pallof Press"[^}]*?sets:(\d+)/g)]
+      .map(m => [m[1], +m[2]]);
+    const total = pp.reduce((n, [, s]) => n + s, 0);
+    ok(`Pallof Press covers all six training days, 18 core sets${total !== 18 || pp.length !== 6 ? " — " + JSON.stringify(pp) : ""}`,
+      pp.length === 6 && total === 18);
   }
 
   // The AI plans NEXT week, so everything describing "the plan" must come from
