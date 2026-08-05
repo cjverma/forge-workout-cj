@@ -40,7 +40,15 @@ Your job:
    - Session notes from this week (keys ending in "_notes") — use these for context on how the user felt, any pain, fatigue, or standout performances
    - Any exercise that has been at the same weight for 3+ weeks despite full completion → time to increase or swap
    - profile.weightLog shows recent body-weight readings: the user is in an aggressive cut (goal in profile.goal). Rapid weight loss reduces strength capacity — if body weight is dropping fast, favour holding weights and adding reps over adding load, and flag fatigue risk in coaching_notes
-2. APPLY PROGRESSIVE OVERLOAD conservatively:
+2. ANCHOR EVERY WEIGHT HINT TO THE PR. profile.prs is the user's best recorded lift per exercise in next week's plan, joined to the plan by "id". All weights are KILOGRAMS, as are all sets_logged (.kg) and every hint you write. Fields: bestKg × reps is the best set, est1RM its Epley estimate, date/daysAgo when it was set, setThisWeek true if it landed in the last 7 days, hasPR false if the exercise has never been logged.
+   - The hint is a working range, not a 1RM. Build it around bestKg, the weight actually lifted for reps — never around est1RM, which is a heavier number the user has never touched.
+   - setThisWeek true → the user just hit a PR on it. Step up: the new range should sit around bestKg at its bottom, one increment above at its top, so the PR weight becomes the working weight rather than the ceiling.
+   - PR set recently (daysAgo <= 21) but not this week, and the most recent sets are at or near bestKg → normal small increment.
+   - daysAgo > 21, or recent logged sets well below bestKg → do NOT jump back to the PR. That lift is stale or was a one-off. Set the hint from recent actual performance and say so in the reason; the PR is the target to work back toward, not next week's load.
+   - NEVER write a hint whose bottom exceeds bestKg. A range the user has never lifted for a single rep is not progressive overload, it is an injury.
+   - hasPR false → leave the existing hint alone.
+   - When a hint changes because of a PR, say the numbers in the reason ("hit 45kg × 10 on Tuesday, new PR").
+   Then, on top of that anchor:
    - Only increase weight hint if the exercise was completed=true with actual weights logged in the MOST RECENT week
    - Increase by the smallest sensible increment (usually 2.5–5 kg for machines)
    - If an exercise was skipped or unlogged in the most recent week → no change
@@ -50,7 +58,7 @@ Your job:
 {
   "week_plan": {
     "Monday": [
-      {"id":"ex_id","sets":3,"reps":12,"hint":"37.5-42.5 kg","reason":"Completed all 3 sets at 40kg last week — small step up"},
+      {"id":"ex_id","sets":3,"reps":12,"hint":"40-45 kg","reason":"New PR at 40kg x 10 on Wednesday, so 40kg becomes the working weight"},
       {"action":"remove","id":"ex_id2","reason":"Skipped 3 weeks in a row — removing to reduce friction"},
       {"action":"add","id":"ai_mon_lowrow","name":"Low Cable Row","cat":"gym","sets":3,"reps":12,"hint":"35-45 kg","cue":"Sit tall. Row to belly button.","muscles":["mid back","biceps"],"reason":"Adding variety for mid-back after Cable Row plateau"}
     ]

@@ -1230,6 +1230,38 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       !/Mon–Sat|Mon-Sat/.test(P));
     ok("the plan prompt forbids scheduling work on a rest day",
       /NEVER put any exercise on a rest day/.test(P) && /rest":true/.test(P));
+
+    // Progressive overload used to be inferred from four weeks of session logs
+    // alone, so an exercise returning after a gap looked like it had no history
+    // and a PR set outside that window was invisible. The hint is now anchored
+    // to the best lift on record.
+    ok("the plan prompt anchors weight hints to the PR",
+      /profile\.prs/.test(P) && /bestKg/.test(P) && /setThisWeek/.test(P) && /daysAgo/.test(P));
+    // est1RM is a weight the user has never actually lifted. A hint built from
+    // it prescribes an unlifted load every session.
+    ok("the prompt builds the range from bestKg, never est1RM",
+      /never around est1RM/.test(P) && /NEVER write a hint whose bottom exceeds bestKg/.test(P));
+    ok("a stale PR does not become next week's load",
+      /daysAgo > 21/.test(P) && /do NOT jump back to the PR/.test(P));
+  }
+  {
+    // S.prs is keyed by name-slug, the plan by exercise id, and the AI writes
+    // back ids. The join has to happen here, not in the model.
+    ok("PR records are built for the week being PLANNED and joined by id",
+      /function buildPRRecords\(\)/.test(SETTINGS) &&
+      /prs:buildPRRecords\(\)/.test(SETTINGS) &&
+      /programFor\(planWeekStart\(\)\)/.test(SETTINGS.split("function buildPRRecords()")[1].slice(0, 900)));
+    // A non-canonical slug that skips the alias reads as "no PR" for an
+    // exercise that has one, and the hint is then built from nothing.
+    ok("the PR lookup applies PR_ALIAS before reading S.prs",
+      /const raw=prSlug\(ex\.name\);const slug=PR_ALIAS\[raw\]\|\|raw;/.test(SETTINGS) &&
+      /PR_ALIAS, prSlug \} from ".\/constants.js"/.test(SETTINGS));
+    // Sets are typed in lbs or kg per exercise; hints and PRs are always kg.
+    // Sent raw, 120 lbs read as 120 kg and got "progressed" from there.
+    ok("session weights are converted to kg before the AI sees them",
+      /kg:toKg\(s\.weight,ed\.unit\)/.test(SETTINGS) &&
+      /import \{ toKg, canonicalId, epley1RM \} from ".\/workout.js"/.test(SETTINGS) &&
+      /^export function toKg/m.test(readFileSync("src/workout.js", "utf8")));
   }
 
   // One new movement per week: an unfamiliar pattern is where a flare comes

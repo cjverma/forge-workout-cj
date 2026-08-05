@@ -863,7 +863,7 @@ export function sessionKeyToIso(key){
 // a 120 kg PR, then rendered "160kg est. 1RM". The unit lives on the session
 // entry (ed.unit), so it has to be applied wherever a set becomes a PR.
 export const LB_TO_KG=0.45359237;
-function toKg(weight,unit){
+export function toKg(weight,unit){
   const w=Number(weight);
   if(!Number.isFinite(w))return null;
   return unit==="lbs"?Math.round(w*LB_TO_KG*10)/10:w;
@@ -1323,8 +1323,8 @@ function mondayOf(isoDateStr){
   d.setDate(d.getDate()+(dow===0?-6:1-dow));
   return isoDate(d);
 }
-function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
-function canonicalId(exId){return ctx._prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
+export function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
+export function canonicalId(exId){return ctx._prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
 function bestPR(exId){
   const S=ctx.getS();
   const cid=canonicalId(exId);

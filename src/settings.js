@@ -3,7 +3,8 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor, programFor, PROG_NAME, kg1 } from "./constants.js";
+import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
+import { toKg, canonicalId, epley1RM } from "./workout.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -673,7 +674,12 @@ function buildSessionHistory(maxWeeks=4){
       for(const ex of(dayData.exercises||[])){
         const ed=sessData[ex.id];
         if(!ed)continue;
-        const setsDone=(ed.sets||[]).filter(s=>s.done).map(s=>({weight:s.weight,reps:s.reps}));
+        // Set inputs are per-exercise lbs or kg, but the hint the AI writes back
+        // is always kg and PRs are stored in kg. Sent raw, a 120 lbs set read as
+        // 120 kg and the AI "progressed" it to a weight never lifted.
+        const setsDone=(ed.sets||[]).filter(s=>s.done)
+          .map(s=>({kg:toKg(s.weight,ed.unit),reps:s.reps}))
+          .filter(s=>s.kg!=null);
         if(setsDone.length||ed.done||ed.skipped){
           exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,completed:!!ed.done,skipped:!!ed.skipped});
           hasData=true;
@@ -728,6 +734,38 @@ function buildPlanSnapshot(){
       exercises:exs.map(ex=>({id:ex.id,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint,muscles:ex.muscles||[]}))};
   }
   return snap;
+}
+
+// Best lift on record for every gym exercise in the week being planned, so
+// progressive overload is anchored to what the user has actually lifted rather
+// than inferred from four weeks of session logs alone. Without it the AI could
+// only see recent sets: an exercise returning after a gap looked like it had no
+// history and got a hint pulled from thin air, and a PR set in a week that had
+// scrolled out of sessionHistory was invisible.
+//
+// Keyed by the plan's exercise id (the key the AI writes back) AND the canonical
+// PR slug, since S.prs is keyed by name-slug and the two must be joined here
+// rather than by the model. PR weights are kg, always.
+function buildPRRecords(){
+  const prs=S.prs||{};
+  const today=new Date(isoToday()+"T00:00:00").getTime();
+  const out=[];const seen=new Set();
+  for(const[,dayData]of Object.entries(programFor(planWeekStart()))){
+    for(const ex of(dayData.exercises||[])){
+      if(ex.cat!=="gym")continue;
+      const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
+      if(seen.has(slug))continue;
+      seen.add(slug);
+      const entries=prs[slug]||prs[canonicalId(ex.id)]||[];
+      if(!entries.length){out.push({id:ex.id,name:ex.name,slug,hasPR:false});continue;}
+      const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
+      const days=Math.round((today-new Date(best.date+"T00:00:00").getTime())/86400000);
+      out.push({id:ex.id,name:ex.name,slug,hasPR:true,
+        bestKg:kg1(best.weight),reps:best.reps,est1RM:best.est,date:best.date,
+        daysAgo:days,setThisWeek:days<=7,prCount:entries.length});
+    }
+  }
+  return out;
 }
 
 // Tells the AI which program it is editing and which day it must not touch,
@@ -789,7 +827,7 @@ async function genWeeklyPlan(){
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
         sessionHistory:buildSessionHistory(4),
-        profile:{equipment:GYM,program:buildProgramMeta(),currentPlan:buildPlanSnapshot(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
+        profile:{equipment:GYM,program:buildProgramMeta(),currentPlan:buildPlanSnapshot(),prs:buildPRRecords(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
       })
     },60000);
     if(!r.ok)throw new Error("Request failed");
