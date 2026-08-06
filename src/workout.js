@@ -1360,7 +1360,7 @@ function checkAndStorePR(exId,weight,reps,unit){
     if(!S.prs[cid])S.prs[cid]=[];
     S.prs[cid].push({date:isoToday(),weight,reps,est});
     save();queueMutation("pr",{exerciseId:cid,date:isoToday(),weight,reps,est});
-    showToastBig("🏆 New PR! "+est+"kg est. 1RM");
+    showToastBig("🏆 New PR! "+weight+"kg × "+reps);
   }
 }
 // A day the active program schedules nothing for. Right now that's Wednesday

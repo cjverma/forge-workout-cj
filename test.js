@@ -1264,6 +1264,24 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       /^export function toKg/m.test(readFileSync("src/workout.js", "utf8")));
   }
 
+  {
+    const NUT = readFileSync("src/nutrition.js", "utf8");
+    const WORKOUT = readFileSync("src/workout.js", "utf8");
+    // Epley is ±5% at 1-6 reps and degrades past 10; the formulas disagree by
+    // ~12% at 12 reps, which is where this program sits, and heavy singles are
+    // banned so there is never a measured 1RM to correct against. It stays as
+    // the rep-normalised RANKING key, but it is not the headline number.
+    ok("the PR row leads with the weight actually lifted",
+      /\$\{pr\.weight\}kg × \$\{pr\.reps\} · \$\{fmtDate\(pr\.date\)\} · est\. 1RM \$\{pr\.est\}kg/.test(NUT) &&
+      !/Est\. 1RM: \$\{pr\.est\}/.test(NUT));
+    ok("the leaderboard shows the real lift and only sorts by est. 1RM",
+      /lift-val">\$\{best\.weight\}<span class="lift-unit">kg × \$\{best\.reps\}/.test(NUT) &&
+      /sort\(\(a,b\)=>b\.best\.est-a\.best\.est\)/.test(NUT));
+    ok("the PR toast and delete confirm name the set, not the estimate",
+      /New PR! "\+weight\+"kg × "\+reps/.test(WORKOUT) &&
+      /\$\{gone\.weight\}kg × \$\{gone\.reps\} \(est\. 1RM \$\{gone\.est\}kg\)/.test(NUT));
+  }
+
   // One new movement per week: an unfamiliar pattern is where a flare comes
   // from, and a delayed nerve reaction is only attributable if one thing
   // changed. from:"ISO" means the exercise does not exist before that date.

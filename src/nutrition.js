@@ -89,7 +89,7 @@ function renderDrawer(){
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
     <details class="st-acc">
-      <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Est. 1RM · progress over time</div></div></summary>
+      <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Best set · progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
       // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
@@ -110,9 +110,9 @@ function renderDrawer(){
           .filter(Boolean)
           .sort((a,b)=>b.best.est-a.best.est)
           .slice(0,5)
-          .map(({id,best},idx)=>`<div class="lift-row"><span class="lift-rank">${idx+1}</span><span class="lift-name">${esc(exName(id))}</span><span class="lift-val">${best.est}<span class="lift-unit">kg</span></span></div>`)
+          .map(({id,best},idx)=>`<div class="lift-row"><span class="lift-rank">${idx+1}</span><span class="lift-name">${esc(exName(id))}</span><span class="lift-val">${best.weight}<span class="lift-unit">kg × ${best.reps}</span></span></div>`)
           .join("");
-        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts</div>${rows}</div>`;
+        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts · best set</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
       // Canonical slugs only. The retired hip-abduction slug lived here after
@@ -138,7 +138,7 @@ function renderDrawer(){
           <div class="pr-head">
             <div class="pr-open" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)">
               <div class="rule-ttl">${name}</div>
-              <div class="rule-desc">${pr?`Est. 1RM: ${pr.est}kg · ${pr.weight}kg×${pr.reps} · ${fmtDate(pr.date)}`:"No PR recorded yet"}</div>
+              <div class="rule-desc">${pr?`${pr.weight}kg × ${pr.reps} · ${fmtDate(pr.date)} · est. 1RM ${pr.est}kg`:"No PR recorded yet"}</div>
             </div>
             ${pr?`<button class="pr-del" onclick="event.stopPropagation();dropPR('${id}')" title="Remove this PR" aria-label="Remove PR for ${esc(name)}">${icon("trash",15)}</button>`:""}
           </div>
@@ -411,7 +411,7 @@ function dropPR(cid){
   let bi=0;
   list.forEach((e,i)=>{if(e.est>list[bi].est)bi=i;});
   const gone=list[bi];
-  if(!confirm(`Remove this PR?\n\n${gone.est}kg est. 1RM (${gone.weight}kg × ${gone.reps})\n\nThe next best result becomes your PR.`))return;
+  if(!confirm(`Remove this PR?\n\n${gone.weight}kg × ${gone.reps} (est. 1RM ${gone.est}kg)\n\nThe next best result becomes your PR.`))return;
   list.splice(bi,1);
   if(!list.length)delete S.prs[cid];
   queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
