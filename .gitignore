@@ -16,5 +16,3 @@ node_modules/
 gen-icons.cjs
 icon.svg
 
-# Scratch verification scripts
-verify-*.mjs

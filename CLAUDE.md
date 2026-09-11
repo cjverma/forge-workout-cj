@@ -465,6 +465,18 @@ deleted, and the badge never changed.
   and fails on: template placeholders reaching the DOM, a hero losing its
   gradient or dropping below 4.5:1, and any JS error. It skips loudly (not
   silently) when Playwright is unavailable.
+- `verify-runtime.mjs` is a committed file, not a local scratch script —
+  `playwright` is a real devDependency (`npm install` pulls it) so every clone
+  gets the same runtime coverage. It was gitignored for a while as a "scratch
+  verification script"; that dropped it from fresh clones silently, so the
+  runtime half quietly stopped running anywhere except whichever machine
+  still had a local copy. Do not re-add it to `.gitignore`.
+- When editing `verify-runtime.mjs` itself, don't hardcode an exercise id from
+  one program version into the seed data — the active program changes on a
+  schedule (see "SCHEDULE" in `src/constants.js`), and a version-specific id
+  silently stops matching anything once that program retires. Derive the
+  seeded exercise from `programFor(new Date())` at run time instead, the way
+  the weekly-plan payload check does.
 - Static tests read source and CSS, so they structurally cannot see a cascade
   conflict or an un-interpolated `${...}`. Both classes have shipped from this
   repo. If a change touches render code or the cascade, the runtime half is the
