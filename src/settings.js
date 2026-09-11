@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
+import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
 import { toKg, canonicalId, epley1RM } from "./workout.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -300,7 +300,7 @@ async function aiWeeklyReview(){
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
@@ -465,7 +465,7 @@ function buildPDFReport(){
   let weeklySessions=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(isoDate(d)<=isoToday()&&trainedOn(isoDate(d)))weeklySessions++;}
   // PRs
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{

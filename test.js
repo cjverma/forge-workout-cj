@@ -29,9 +29,9 @@
  */
 
 import { readFileSync } from "fs";
-import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, EX_DB as REAL_EX_DB,
+import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
-  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4 } from "./src/constants.js";
+  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5 } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // settings.js assigns to window at import time, so isBannedExercise cannot be
 // imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
@@ -1301,6 +1301,84 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       w1.has("Seated Cable Rope Pullover") && !w1.has("Weighted Glute Bridge") &&
       w2.has("Weighted Glute Bridge") && w2.has("Cable Glute Kickback"));
   }
+
+  // PROG_V5: a 1-week return block after a training gap, Fri 11 - Sun 20 Sep
+  // 2026, full body / 2 sets / ~60-65% loads. Southpaw (V4) resumes Mon 21 Sep.
+  {
+    // Window boundaries via the real programFor/programKeyFor, both sides of
+    // the two-sided window: the day before it opens, the day it opens, the
+    // last day it's active, and the day Southpaw resumes.
+    const keyAt = iso => REAL_PROGRAM_KEY_FOR(new Date(iso));
+    ok("PROG_V5 window opens Fri Sep 11 and closes after Sun Sep 20",
+      keyAt("2026-09-10T12:00:00") === "v4" &&
+      keyAt("2026-09-11T12:00:00") === "v5" &&
+      keyAt("2026-09-20T12:00:00") === "v5" &&
+      keyAt("2026-09-21T12:00:00") === "v4");
+    // programFor and programKeyFor are two independently-maintained cascades;
+    // the only thing keeping them in sync is agreeing at every boundary.
+    for (const iso of ["2026-09-10T12:00:00", "2026-09-11T12:00:00", "2026-09-20T12:00:00", "2026-09-21T12:00:00"]) {
+      const key = keyAt(iso);
+      const prog = REAL_PROGRAM_FOR(new Date(iso));
+      const wantSize = { v4: Object.keys(REAL_V4).length, v5: Object.keys(REAL_V5).length }[key];
+      ok(`programFor(${iso}) matches programKeyFor's version (${key})`,
+        Object.keys(prog).length === wantSize &&
+        JSON.stringify(Object.values(prog)[0]) === JSON.stringify(Object.values(key === "v5" ? REAL_V5 : REAL_V4)[0]));
+    }
+
+    // Every V5 exercise name exists in V4. S.prs is keyed by a slug of the
+    // NAME, and the weight hints the AI writes are anchored to that PR
+    // history — a renamed exercise here would lose the anchor silently.
+    const v5Names = new Set(Object.values(REAL_V5).flatMap(d => d.exercises.map(e => e.name)));
+    const v4Names = new Set(Object.values(REAL_V4).flatMap(d => d.exercises.map(e => e.name)));
+    const orphaned = [...v5Names].filter(n => !v4Names.has(n));
+    ok(`every PROG_V5 exercise name matches a PROG_V4 name, so PR history carries over${orphaned.length ? " — " + orphaned.join(", ") : ""}`,
+      orphaned.length === 0);
+
+    // No duplicate ids across any program version, and every V5 id carries
+    // its day's v5-suffixed prefix (m5_/t5_/w5_/th5_/f5_/sa5_/su5_).
+    const PREFIX = { Monday: "m5", Tuesday: "t5", Wednesday: "w5", Thursday: "th5", Friday: "f5", Saturday: "sa5", Sunday: "su5" };
+    const seen = new Map();
+    const dupes = [];
+    const badPrefix = [];
+    for (const [ver, prog] of [["v1", REAL_V1], ["v2", REAL_V2], ["v3", REAL_V3], ["v4", REAL_V4], ["v5", REAL_V5]]) {
+      for (const [day, d] of Object.entries(prog)) for (const ex of d.exercises) {
+        if (seen.has(ex.id)) dupes.push(`${ex.id} (${ver}/${day} vs ${seen.get(ex.id)})`);
+        seen.set(ex.id, `${ver}/${day}`);
+        if (ver === "v5" && !ex.id.startsWith(PREFIX[day] + "_")) badPrefix.push(`${day}/${ex.id}`);
+      }
+    }
+    ok(`no duplicate exercise ids across program versions${dupes.length ? " — " + dupes.slice(0, 3).join(", ") : ""}`, dupes.length === 0);
+    ok(`every PROG_V5 id carries its day's prefix${badPrefix.length ? " — " + badPrefix.join(", ") : ""}`, badPrefix.length === 0);
+
+    // Every gym exercise needs a rest interval (the timer reads ex.rest), and
+    // every day needs label + sub (workout.js dereferences prog.sub unguarded).
+    const missingRest = [];
+    const missingLabel = [];
+    for (const [day, d] of Object.entries(REAL_V5)) {
+      if (!d.label || !d.sub) missingLabel.push(day);
+      for (const ex of d.exercises) if (ex.cat === "gym" && ex.rest == null) missingRest.push(`${day}/${ex.id}`);
+    }
+    ok(`every PROG_V5 gym exercise carries a rest interval${missingRest.length ? " — " + missingRest.join(", ") : ""}`, missingRest.length === 0);
+    ok(`every PROG_V5 day has a label and sub${missingLabel.length ? " — " + missingLabel.join(", ") : ""}`, missingLabel.length === 0);
+
+    // Spine safety net, rebuilt from the shipped source the same way the
+    // EX_DB sweep above does — PROG_V4 is only ever swept via the HTML/V2
+    // banned-pattern test, PROG_V5 gets no coverage unless checked here.
+    const v5Blocked = [...v5Names].filter(n => REAL_IS_BANNED(n));
+    ok(`no PROG_V5 exercise is blocked by the app's own spine filter${v5Blocked.length ? " — " + v5Blocked.join(", ") : ""}`,
+      v5Blocked.length === 0);
+
+    // 5 training days (gym work present) + 2 active-recovery days (physio
+    // only), and Pallof Press on every training day for continuity of core
+    // volume with the program either side of it.
+    const trainingDays = Object.entries(REAL_V5).filter(([, d]) => d.exercises.some(e => e.cat === "gym")).map(([day]) => day);
+    const recoveryDays = Object.entries(REAL_V5).filter(([, d]) => d.exercises.every(e => e.cat === "physio")).map(([day]) => day);
+    ok(`PROG_V5 has 5 training days and 2 active-recovery days — training:${trainingDays.length} recovery:${recoveryDays.length}`,
+      trainingDays.length === 5 && recoveryDays.length === 2);
+    const noPallof = trainingDays.filter(day => !REAL_V5[day].exercises.some(e => e.name === "Pallof Press"));
+    ok(`Pallof Press appears on every PROG_V5 training day${noPallof.length ? " — missing on " + noPallof.join(", ") : ""}`,
+      noPallof.length === 0);
+  }
   // The vertical pull that closes the lat-width gap. The spine rules ban a
   // standard lat pulldown, so the grip is part of the name, not a footnote.
   ok("the only pulldown in the plan is neutral or close grip",
@@ -1716,7 +1794,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("one shared PR name resolver with a de-slug fallback",
     /ctx\.prName=prName/.test(MAIN2) &&
     /replace\(\/_\/g," "\)/.test(MAIN2) &&
-    /for\(const P of \[PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
+    /for\(const P of \[PROG,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
   ok("no call site falls back to printing the raw slug",
     !/EX_NAMES\[id\]\|\|\(id\.startsWith/.test(NUT) &&
     !/_prNameMap\[id\]\|\|id/.test(SET) &&

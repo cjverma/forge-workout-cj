@@ -1,7 +1,7 @@
 // Vercel Cron: runs every Sunday at 20:00 UTC (~1:30 AM IST Monday)
 // Reads state from Postgres, builds CSV, emails to recipient via Resend.
 import { assembleState } from "./state.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PR_ALIAS, prSlug, kg1 } from "../src/constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PR_ALIAS, prSlug, kg1 } from "../src/constants.js";
 
 const RECIPIENT = "chiranjay.verma@gmail.com";
 
@@ -14,7 +14,7 @@ const EX_NAMES = (() => {
   const out = {};
   const put = (k, v) => { if (k && !out[k]) out[k] = v; };
   // Current program first so a renamed exercise wins over its legacy name.
-  for (const P of [PROG_V4, PROG_V3, PROG_V2, PROG_V1]) {
+  for (const P of [PROG_V5, PROG_V4, PROG_V3, PROG_V2, PROG_V1]) {
     for (const day of Object.values(P)) {
       for (const ex of (day.exercises || [])) {
         put(ex.id, ex.name);

@@ -1683,11 +1683,92 @@ const PROG_V4={
   ]},
 };
 
+// ── PROGRAM V5: Fri 11 Sep – Sun 20 Sep 2026 · 1-week return block ──────────
+// Restarting after a 4-8 week gap. Full-body every session, 2 sets per
+// exercise, weights at ~60-65% of Southpaw. Wednesday + Sunday are active
+// recovery (physio only, at home). Southpaw resumes Mon 21 Sep.
+// Names are copied verbatim from PROG_V4: PRs are keyed by a slug of the
+// exercise NAME, so a renamed exercise here would lose its PR anchor and the
+// AI-suggested weight hints built from it.
+const PROG_V5={
+  Monday:{label:"Full Body · Return",sub:"Chest · Back · Legs · Shoulders",exercises:[
+    {id:"m5_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"12 min",hint:"Level 4-6",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Easy. Joints before load.",muscles:[]},
+    {id:"m5_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"24-28 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Return week. Full range, controlled tempo, well short of failure.",muscles:["chest","triceps","front delt"],rest:60},
+    {id:"m5_csr",name:"Chest Supported Row",cat:"gym",sets:2,reps:"12-15",hint:"12-16 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Wide grip, elbows out. Chest stays on the pad.",muscles:["mid back","rear delt","biceps"],rest:60},
+    {id:"m5_lp",name:"Leg Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"32-44 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high, 90 degrees max. Back flat.",muscles:["quads","glutes","hamstrings"],rest:60},
+    {id:"m5_slr",name:"Seated Lateral Raise",cat:"gym",sets:2,reps:"12-15",hint:"3-4 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Light. Groove the pattern.",muscles:["side delt"],rest:45},
+    {id:"m5_calf",name:"Seated Calf Raise",cat:"gym",sets:2,reps:"15",hint:"14-20 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45},
+    {id:"m5_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"8-12 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core","obliques"],rest:45},
+    {id:"m5_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+  ]},
+  Tuesday:{label:"Full Body · Return",sub:"Back · Chest · Legs · Arms",exercises:[
+    {id:"t5_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"12 min",hint:"Level 4-6",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Easy. Joints before load.",muscles:[]},
+    {id:"t5_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:2,reps:"12-15",hint:"18-24 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Lean back a few degrees, pull to the collarbone.",muscles:["lats","mid back","biceps"],rest:60},
+    {id:"t5_icp",name:"Incline Chest Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"18-22 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest. Controlled descent.",muscles:["upper chest","front delt","triceps"],rest:60},
+    {id:"t5_slc",name:"Seated Leg Curl",cat:"gym",sets:2,reps:"12-15",hint:"14-18 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:45},
+    {id:"t5_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:2,reps:"15",hint:"8-12 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows soft. Squeeze rear delts.",muscles:["rear delt","traps"],rest:45},
+    {id:"t5_hc",name:"Hammer Curl",cat:"gym",sets:2,reps:"12",hint:"5-7 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. No swinging.",muscles:["biceps","brachialis"],rest:45},
+    {id:"t5_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"8-12 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core","obliques"],rest:45},
+    {id:"t5_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+  ]},
+  Wednesday:{label:"Active Recovery",sub:"Physio · at home",exercises:[
+    {id:"w5_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:3,reps:"30s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"w5_gb",name:"Glute Bridge (Modified)",cat:"physio",sets:3,reps:15,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"No lockout at the top. Push with glutes.",muscles:[]},
+    {id:"w5_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level.",muscles:[]},
+    {id:"w5_db",name:"Dead Bug",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time.",muscles:[]},
+    {id:"w5_hf",name:"Hip Flexor Stretch",cat:"physio",sets:3,reps:"45s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"45 full seconds each side.",muscles:[]},
+    {id:"w5_cc",name:"Cat-Cow",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Always last.",muscles:[]},
+    {id:"w5_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]},
+  Thursday:{label:"Full Body · Return",sub:"Legs · Chest · Back · Core",exercises:[
+    {id:"th5_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"12 min",hint:"Level 4-6",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Easy. Joints before load.",muscles:[]},
+    {id:"th5_lp",name:"Leg Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"32-44 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high, 90 degrees max. Back flat.",muscles:["quads","glutes","hamstrings"],rest:60},
+    {id:"th5_le",name:"Leg Extension Machine",cat:"gym",sets:2,reps:"12-15",hint:"14-20 kg",url:"https://www.youtube.com/watch?v=YyvSfVjQeL0",cue:"Full extension, 1s squeeze at the top.",muscles:["quads"],rest:45},
+    {id:"th5_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:"15",hint:"16-26 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range.",muscles:["glutes","hip abductors"],rest:45},
+    {id:"th5_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:"15",hint:"16-26 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh","adductors"],rest:45},
+    {id:"th5_pf",name:"Pec Fly Machine",cat:"gym",sets:2,reps:"12-15",hint:"15-20 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return.",muscles:["chest"],rest:45},
+    {id:"th5_scr",name:"Seated Cable Row",cat:"gym",sets:2,reps:"12-15",hint:"15-20 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Elbows tight. Do not lean back.",muscles:["mid back","lats","biceps"],rest:45},
+    {id:"th5_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"8-12 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core","obliques"],rest:45},
+    {id:"th5_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+  ]},
+  Friday:{label:"Full Body · Return",sub:"Chest · Back · Legs · Arms",exercises:[
+    {id:"f5_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"12 min",hint:"Level 4-6",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Easy. Joints before load.",muscles:[]},
+    {id:"f5_cp",name:"Chest Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"24-28 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Return week. Full range, controlled tempo.",muscles:["chest","triceps","front delt"],rest:60},
+    {id:"f5_sap",name:"Straight Arm Pulldown",cat:"gym",sets:2,reps:"12-15",hint:"12-16 kg",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Lat width. Light and controlled.",muscles:["lats","triceps"],rest:45},
+    {id:"f5_slc",name:"Seated Leg Curl",cat:"gym",sets:2,reps:"12-15",hint:"14-18 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:45},
+    {id:"f5_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:2,reps:"15",hint:"10-14 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:45},
+    {id:"f5_cbc",name:"Cable Bicep Curl",cat:"gym",sets:2,reps:"15",hint:"6-10 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Constant cable tension. Full supination.",muscles:["biceps"],rest:45},
+    {id:"f5_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"8-12 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core","obliques"],rest:45},
+    {id:"f5_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+  ]},
+  Saturday:{label:"Full Body · Return",sub:"Legs · Chest · Back · Shoulders",exercises:[
+    {id:"sa5_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 4-6",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Easy. Joints before load.",muscles:[]},
+    {id:"sa5_lp",name:"Leg Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"32-44 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet high, 90 degrees max. Back flat.",muscles:["quads","glutes","hamstrings"],rest:60},
+    {id:"sa5_icp",name:"Incline Chest Press Machine",cat:"gym",sets:2,reps:"12-15",hint:"18-22 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest. Controlled descent.",muscles:["upper chest","front delt","triceps"],rest:60},
+    {id:"sa5_scr",name:"Seated Cable Row",cat:"gym",sets:2,reps:"12-15",hint:"15-20 kg",url:"https://www.youtube.com/watch?v=GZbfZ033f74",cue:"Pull to lower chest. Elbows tight. Do not lean back.",muscles:["mid back","lats","biceps"],rest:45},
+    {id:"sa5_slr",name:"Seated Lateral Raise",cat:"gym",sets:2,reps:"12-15",hint:"3-4 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Light. Groove the pattern.",muscles:["side delt"],rest:45},
+    {id:"sa5_calf",name:"Seated Calf Raise",cat:"gym",sets:2,reps:"15",hint:"14-20 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45},
+    {id:"sa5_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"8-12 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core","obliques"],rest:45},
+    {id:"sa5_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+  ]},
+  Sunday:{label:"Active Recovery",sub:"Physio · at home",exercises:[
+    {id:"su5_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:3,reps:"30s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
+    {id:"su5_gb",name:"Glute Bridge (Modified)",cat:"physio",sets:3,reps:15,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=OUgsJ8-Vi0E",cue:"No lockout at the top. Push with glutes.",muscles:[]},
+    {id:"su5_bd",name:"Bird Dog",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=jiPi9MniP70",cue:"Opposite arm and leg. Hips level.",muscles:[]},
+    {id:"su5_db",name:"Dead Bug",cat:"physio",sets:3,reps:"10 each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=4XLEnwUr1d8",cue:"Lower back stays flat on the floor the whole time.",muscles:[]},
+    {id:"su5_hf",name:"Hip Flexor Stretch",cat:"physio",sets:3,reps:"45s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=7bRaX6M2nr8",cue:"45 full seconds each side.",muscles:[]},
+    {id:"su5_cc",name:"Cat-Cow",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=kqnua4rHVVA",cue:"Move slowly. Always last.",muscles:[]},
+    {id:"su5_nf",name:"Nerve Floss Left Leg",cat:"physio",sets:3,reps:10,hint:"Bodyweight",url:"https://www.youtube.com/watch?v=AWDNpIKdJVs",cue:"Left leg only. Gentle rhythm. Never force.",muscles:[]},
+  ]},
+};
+
 // ── SCHEDULE ────────────────────────────────────────────────────────────────
 // Both boundaries are MONDAYS so a program never changes mid-week:
 //   V3 return block  Jul 28 – Aug 2
 //   V4 (Southpaw)    Mon Aug 3 onwards
 //   Physio hidden until Mon Aug 10
+//   V5 return block  Fri Sep 11 – Sun Sep 20 (restart after a training gap)
+//   V4 (Southpaw)    resumes Mon Sep 21
 //
 // Southpaw week: 6 training days + Wednesday. Wednesday is the rest day, and
 // from Aug 10 it also carries the morning physio sequence, so before Aug 10 it
@@ -1719,7 +1800,9 @@ function _sp(p){
 // Which program version a plan was generated against. Stamped onto weekPlans so
 // an override written for an older program cannot inject into a newer one.
 function programKeyFor(date){
-  return date>=new Date(2026,7,3)?"v4"
+  return date>=new Date(2026,8,21)?"v4"
+    :date>=new Date(2026,8,11)?"v5"
+    :date>=new Date(2026,7,3)?"v4"
     :date>=new Date(2026,6,28)?"v3"
     :date>=new Date(2026,5,1)?"v2":"v1";
 }
@@ -1744,7 +1827,10 @@ function _stage(p,date){
 }
 
 function programFor(date){
-  const base=date>=new Date(2026,7,3)?PROG_V4:date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
+  const base=date>=new Date(2026,8,21)?PROG_V4
+    :date>=new Date(2026,8,11)?PROG_V5
+    :date>=new Date(2026,7,3)?PROG_V4
+    :date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
   return _stage(date<new Date(2026,7,10)?_sp(base):base,date);
 }
 
@@ -1752,7 +1838,8 @@ const _pd=new Date();
 // Human-readable name per program version, so the AI can be told what it is
 // editing rather than inferring it from the exercise list.
 const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
-  v4:"Southpaw (Jake Gyllenhaal) hypertrophy program"};
+  v4:"Southpaw (Jake Gyllenhaal) hypertrophy program",
+  v5:"return block (full body, easy)"};
 
 const PROG=programFor(_pd);
 
@@ -2842,7 +2929,7 @@ function renderW(){
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
     const _allExMap={};
-    [PROG_V1,PROG_V2,PROG_V3,PROG_V4].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
+    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
@@ -5410,7 +5497,7 @@ async function aiWeeklyReview(){
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
@@ -5575,7 +5662,7 @@ function buildPDFReport(){
   let weeklySessions=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(isoDate(d)<=isoToday()&&trainedOn(isoDate(d)))weeklySessions++;}
   // PRs
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
@@ -6329,7 +6416,7 @@ ctx.seedCustomNames=seedCustomNames;
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
-  for(const P of [PROG,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const P of [PROG,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
   seedCustomNames();
 })();

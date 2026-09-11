@@ -231,7 +231,16 @@ breakage.
 
 ## The active program (Southpaw)
 
-`PROG_V4` in `src/constants.js`, live from Mon 3 Aug 2026.
+`PROG_V4` in `src/constants.js`, live from Mon 3 Aug 2026, with a one-week
+interruption: `PROG_V5` runs Fri 11 Sep - Sun 20 Sep 2026 as a return block
+after a training gap (full body, 2 sets, ~60-65% loads, Wed + Sun active
+recovery), then Southpaw resumes automatically on Mon 21 Sep. Both boundaries
+are set in **both** `programFor` and `programKeyFor` (`src/constants.js`) —
+they are two independently-maintained cascades and drifting apart is the
+failure mode. `PROG_V5` copies every exercise NAME verbatim from `PROG_V4`:
+`S.prs` is keyed by a slug of the name, so a renamed exercise in a return
+block would silently lose its PR history and the AI-suggested weight hints
+built from it.
 
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
   never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts

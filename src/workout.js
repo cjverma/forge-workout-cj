@@ -3,7 +3,7 @@ import { isoToday, isoDate } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
-import { EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, DAYS, GYM } from "./constants.js";
+import { EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -365,7 +365,7 @@ export function renderW(){
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
     const _allExMap={};
-    [PROG_V1,PROG_V2,PROG_V3,PROG_V4].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
+    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
