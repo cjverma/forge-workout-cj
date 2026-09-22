@@ -1158,10 +1158,36 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // Exercise counts straight from the plan as written.
   // Sizes at FULL rollout. Staged movements (from:"…") are absent earlier, so
   // reading this off the app before Aug 17 will show fewer.
-  const want = { Monday:10, Tuesday:11, Wednesday:12, Thursday:11, Friday:12, Saturday:12, Sunday:7 };
+  const want = { Monday:10, Tuesday:11, Wednesday:12, Thursday:11, Friday:11, Saturday:12, Sunday:7 };
   const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
     .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
   ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
+
+  // Recovery-gap audit (Sep 2026): four exercises were re-hitting a muscle
+  // group only 24h after the day that trained it directly, where the
+  // recovery guideline calls for 48h+ — Seated Lateral Raise Wed into
+  // Thursday's dedicated shoulder day, Straight Arm Pulldown's triceps
+  // assist on both Tue (after Monday's heavy triceps day) and Fri (after
+  // Thursday's), and Friday's Rear Delt Fly duplicating Thursday's 24h
+  // earlier. Fixed by trimming the offending exercise's sets rather than
+  // removing the muscle group, plus dropping the redundant Friday Rear Delt
+  // Fly outright. This pins exactly those four changes — not a general
+  // theory about muscle-recovery timing (see plan notes: no literature
+  // distinguishes secondary/stabiliser recovery demand from a primary
+  // session's, so a sweeping every-muscle-every-day check would either
+  // never pass or pressure someone into stripping real secondary `muscles`
+  // tags just to satisfy it).
+  {
+    const setsOf = id => (v4.match(new RegExp(`\\{id:"${id}"[^}]*?sets:(\\d+)`)) || [])[1];
+    ok("Wed Seated Lateral Raise trimmed to 2 sets (was 4, ahead of Thursday's dedicated shoulder day)",
+      setsOf("w4_slr") === "2");
+    ok("Tue Straight Arm Pulldown trimmed to 2 sets (triceps assist, 24h after Monday's triceps day)",
+      setsOf("t4_sap") === "2");
+    ok("Fri Straight Arm Pulldown trimmed to 2 sets (triceps assist, 24h after Thursday's)",
+      setsOf("f4_sap") === "2");
+    ok("Fri Rear Delt Fly removed (redundant with Thursday's dedicated 4-set version 24h earlier)",
+      !v4.includes('id:"f4_rdf"'));
+  }
 
   ok("Sunday is rest + physio only (no gym, no cardio)",
     /Sunday:\{label:"Rest & Physio"/.test(v4) &&
