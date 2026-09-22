@@ -4595,7 +4595,11 @@ function zepCardHtml(){
   const due=sched.dueDate;
   const today=isoToday();
   const overdue=sched.overdue;
-  const dueLabel=sched.taken?fmtDate(due):overdue?`overdue since ${fmtDate(due)}`:(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
+  // "overdue since {date}" reads as multiple days outstanding even on the
+  // very day it became overdue — due date and today are the same date the
+  // moment 5 PM Tuesday passes without a logged dose, and the label didn't
+  // say so.
+  const dueLabel=sched.taken?fmtDate(due):overdue?(due===today?"overdue · was due by 5 PM today":`overdue since ${fmtDate(due)}`):(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
   const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
   return`<div class="nut-card" style="margin-bottom:10px">
     <div class="nut-card-title">${icon("syringe",20)} Medication</div>

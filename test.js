@@ -624,6 +624,17 @@ ok("toggleSet found", WK_TOGGLE !== "");
 // cardioEvt — but wrong markup.
 ok("read-only cardio row's cursor style is a real attribute, not text leaked into class=",
   /class="cardio-row \$\{isDone\?"done":""\}"\$\{rdOnly\?' style="cursor:default"':""\}\$\{cardioEvt\}/.test(readFileSync("src/workout.js", "utf8")));
+
+// "overdue since {date}" reads as several days outstanding even on the exact
+// day it first became overdue, since due===today the moment 5 PM Tuesday
+// passes unlogged. Found live: today (a Tuesday, past 5 PM Toronto, no dose
+// logged) rendered "overdue since September 22nd" while viewing it ON
+// September 22nd.
+{
+  const NUT_SRC2 = readFileSync("src/nutrition.js", "utf8");
+  ok("same-day overdue reads 'was due by 5 PM today', not 'overdue since <today>'",
+    /overdue\?\(due===today\?"overdue · was due by 5 PM today":`overdue since \$\{fmtDate\(due\)\}`\)/.test(NUT_SRC2));
+}
 ok("toggleSet reads the live weight/reps inputs by id before checking completeness",
   /document\.getElementById\(`wi-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE) &&
   /document\.getElementById\(`ri-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE));
