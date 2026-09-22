@@ -3381,6 +3381,17 @@ function toggleSet(key,exId,i){
   if(ctx.isReadOnly(key))return;
   ensure(key,exId,i);
   const sd=S.sessions[key][exId].sets[i];
+  // Weight/reps are only committed to session state on input blur (onchange
+  // in saveF), but tapping this button directly right after typing both —
+  // no Enter pressed, the common path on mobile — can beat that blur to the
+  // click. Read what's actually on screen first so the check below can
+  // never see state stale relative to what the user visibly typed. Mirror
+  // unconditionally, not just when there's a value: backspacing a field to
+  // empty and tapping done immediately must invalidate completeness too,
+  // not silently keep whatever was committed before.
+  const wEl=document.getElementById(`wi-${exId}-${i}`),rEl=document.getElementById(`ri-${exId}-${i}`);
+  if(wEl)sd.weight=wEl.value.trim();
+  if(rEl)sd.reps=rEl.value.trim();
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
   sd.done=!sd.done;sd.attempted=true;
   const prog=curProg();
@@ -3391,6 +3402,10 @@ function toggleSet(key,exId,i){
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   if(sd.done)startRest(ex.rest);
+  // Deferred one tick: an immediate blur here can reflow the viewport
+  // mid-render on iOS Safari/standalone PWA (keyboard dismissing) in the
+  // same frame as the toast/re-render below, shifting scroll position.
+  if(sd.done)requestAnimationFrame(()=>{if(document.activeElement?.blur)document.activeElement.blur();});
   save();queueSession(key,exId);if(sd.done)checkMilestones();reCard(key,exId);
 }
 
