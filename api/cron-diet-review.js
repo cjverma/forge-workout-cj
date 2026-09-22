@@ -7,13 +7,17 @@ import { sql, ensureSchema } from "./db.js";
 import { assembleState } from "./state.js";
 import { kg1 } from "../src/constants.js";
 
-// Mirrors the client's goal constants (index.html USER / PHASES / limits) —
-// keep in sync if those change.
+// Mirrors the client's goal constants (src/phase.js USER / PHASES / limits) —
+// keep in sync if those change. proteinTargetG here is a point-in-time
+// snapshot (1.8g x current weight, matching src/phase.js proteinTargetG());
+// this file can't import the live client engine (it runs server-side with
+// no access to logged weight state the way the browser does), so re-sync
+// this number periodically rather than expecting it to track automatically.
 const GOALS = {
-  targetKg: 95,
+  targetKg: 90,
   goalDate: "2027-02-21",
-  phase: "Phase 1 (Jul 28 – Sep 7, 2026): 140 → 128 kg, eat 1,600 kcal/day fixed, Apple Watch active targets 1,500 kcal Mon–Sat / 650 kcal Sunday (counted at 75%), resting ~2,446. Medication: Zepbound 10mg weekly on Tuesday.",
-  proteinTargetG: 130,
+  phase: "Phase 2 (Sep 22 2026 onward, revised for the 90kg goal): 128 -> 107 kg by Nov 30, then Phase 3: 107 -> 90 kg by Feb 21 2027. Eat 1,600 kcal/day fixed. Active-calorie targets are DYNAMIC, not fixed -- they're solved daily from the phase's required deficit and the user's live logged weight (BMR falls as real weight drops), so they rise through the phase rather than sitting at one number. Medication: Zepbound 10mg weekly on Tuesday.",
+  proteinTargetG: 230,
   fibreTargetG: 38,
   sugarLimitG: 50,
   sodiumLimitMg: 2300,

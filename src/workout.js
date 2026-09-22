@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { isoToday, isoDate } from "./phase.js";
+import { isoToday, isoDate, proteinTargetG } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
@@ -649,7 +649,7 @@ function card(ex,sess,key,rdOnly=false){
     const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}${rdOnly?" style='cursor:default'":""}"${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
+    <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}"${rdOnly?' style="cursor:default"':""}${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
@@ -1440,10 +1440,13 @@ function checkMilestones(){
     for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const iso=isoDate(d);if(iso>=mon&&ctx.trainedOn(iso))weekTrains++;}
     if(weekTrains>=6){S.milestones.shownWeek6.push(wkKey);save();queueMilestones();showMilestone("💪","6 Workouts This Week","Elite consistency. Your body is adapting.");}
   }
-  // ── Protein 160g+ for 7 consecutive days (modal) ──
+  // ── Protein target hit for 7 consecutive days (modal) ──
+  // Threshold matches the shared proteinTargetG(), not a hardcoded number
+  // that used to disagree with the target shown everywhere else in the app.
   if(!S.milestones.shownProtein7.includes(wkKey)){
-    const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=160;}).every(Boolean);
-    if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩","7 Days of 160g+ Protein","Consistent fuelling = consistent results.");}
+    const pt=proteinTargetG();
+    const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=pt;}).every(Boolean);
+    if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩",`7 Days of ${pt}g+ Protein`,"Consistent fuelling = consistent results.");}
   }
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));

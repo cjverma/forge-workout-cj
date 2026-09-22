@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseFor, phaseRequiredDeficit, restingFor } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
@@ -77,7 +77,7 @@ function weight30Chart(){
 }
 function renderDrawer(){
   const t=buildTrendData();
-  const pTarget=130;
+  const pTarget=proteinTargetG();
   document.getElementById("drawerContent").innerHTML=`
     <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
     <div class="st-sec">7-Day Trends</div>
@@ -193,9 +193,10 @@ export function renderNutrition(){
   const sodium=items.reduce((s,i)=>s+(i.sodium||0),0);
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
-  // Protein target: 2g × goal weight, +10% on days with training or logged active burn
+  // Protein target: shared proteinTargetG() (1.8g × current weight), +10% on
+  // days with training or logged active burn.
   const trained=trainedOn(date)||active>0;
-  const pTarget=Math.round(130*(trained?1.1:1));
+  const pTarget=Math.round(proteinTargetG()*(trained?1.1:1));
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
@@ -470,7 +471,11 @@ function zepCardHtml(){
   const due=sched.dueDate;
   const today=isoToday();
   const overdue=sched.overdue;
-  const dueLabel=sched.taken?fmtDate(due):overdue?`overdue since ${fmtDate(due)}`:(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
+  // "overdue since {date}" reads as multiple days outstanding even on the
+  // very day it became overdue — due date and today are the same date the
+  // moment 5 PM Tuesday passes without a logged dose, and the label didn't
+  // say so.
+  const dueLabel=sched.taken?fmtDate(due):overdue?(due===today?"overdue · was due by 5 PM today":`overdue since ${fmtDate(due)}`):(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
   const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
   return`<div class="nut-card" style="margin-bottom:10px">
     <div class="nut-card-title">${icon("syringe",20)} Medication</div>
@@ -579,7 +584,7 @@ function weekCompliance(p,weekStartIso,endIso){
     avgActive:inDays?Math.round(inAct/inDays):0,
     avgDeficit:inDays?Math.round(defSum/inDays):0,
     reqDeficit:inDays?Math.round(defReq/inDays):0,
-    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
+    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/proteinTargetG()*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
     zepbound:zepTaken,
@@ -676,7 +681,7 @@ function completePhase(id,manual){
     version:p.version,strategy:p.strategy,start:p.start,plannedEnd:p.plannedEnd,
     effectiveEnd:effectiveEnd(p,t),completedAt:t,startKg:p.startKg,targetKg:p.targetKg,
     actualEndKg:finalAvg,eatKcal:p.eatKcal,
-    activeTargets:{workout:p.activeTargetWorkout,rest:p.activeTargetRest},
+    activeTargets:phaseActiveTargets(p,t),
     outcome:v.band,manual:!!manual,weeklyCompliance:weeks,
     stats:{avgCompliance,avgWeeklyLossKg:Math.round((p.startKg-finalAvg)/(phaseDays/7)*100)/100,
       avgKcal:kcalDays?Math.round(kcalSum/kcalDays):null,
@@ -698,6 +703,8 @@ async function aiPhaseReview(id){
     const health=phaseHealth(p,t);
     const cor=phaseCorridor(p,t);
     const run=getPhaseRun(p.id);
+    const at=phaseActiveTargets(p,t);
+    const restingNow=restingForPhase(p,t);
     // Compact per-day JSON (daily totals only, never raw food strings) —
     // keeps the prompt token-safe.
     const days=[];
@@ -708,7 +715,7 @@ async function aiPhaseReview(id){
       if(!items.length&&!nd.active&&w==null)continue;
       days.push({date:d,kcal:items.reduce((s,it)=>s+(it.kcal||0),0),protein:items.reduce((s,it)=>s+(it.protein||0),0),active:nd.active||0,weight:w!=null?Number(w):null});
     }
-    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${p.activeTargetWorkout} (Mon-Sat) / ${p.activeTargetRest} (Sun), counted burn = resting ${p.restingKcal} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
+    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${at.workout} (Mon-Sat) / ${at.rest} (Sun), counted burn = resting ${restingNow} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -721,12 +728,18 @@ async function aiPhaseReview(id){
   }
 }
 // The 🎯 phase card (Nutrition tab). Returns "" when no phase is relevant.
+// Found while verifying the phase-3 changes: a plain `.find()` here takes
+// array order, so a phase that has PASSED ITS DATE but was never explicitly
+// completed via completePhase() (locked stays false until that button is
+// clicked) reads as "completed" and, sitting earlier in the array, won a tie
+// against the phase that's genuinely active today. In a session where
+// phase_1 was never explicitly locked, this card would show a done phase
+// from September instead of the real one. Two passes instead: an active/
+// paused phase always wins over a merely date-elapsed, unlocked one.
 function phaseCardHtml(){
   const t=isoToday();
-  const p=PHASES.find(x=>{
-    const st=phaseState(x,t);
-    return st==="active"||st==="paused"||(st==="completed"&&!getPhaseRun(x.id).locked);
-  });
+  const active=PHASES.find(x=>{const st=phaseState(x,t);return st==="active"||st==="paused";});
+  const p=active||PHASES.find(x=>phaseState(x,t)==="completed"&&!getPhaseRun(x.id).locked);
   if(!p)return"";
   const st=phaseState(p,t);
   const run=getPhaseRun(p.id);

@@ -200,6 +200,48 @@ try {
     await page.close();
   }
 
+  // toggleSet's onchange/blur race: weight/reps commit to state only on
+  // input blur, so tapping "done" right after typing (no Enter, the common
+  // mobile path) can beat that blur to the click. Drives the real page's
+  // .fill() the same way, which sets .value WITHOUT dispatching the change
+  // event a real blur would, then taps done immediately with no blur first.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`toggleSet: ${e.message}`));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    await page.evaluate(SEED, SEED_EX);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(1300);
+
+    const exId = await page.evaluate(() => {
+      const inp = [...document.querySelectorAll(".si:not([disabled])")].find((i) => i.id.startsWith("wi-"));
+      return inp ? inp.id.replace("wi-", "").replace(/-\d+$/, "") : null;
+    });
+    if (exId) {
+      await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
+      await page.waitForTimeout(300);
+      await page.locator(`#wi-${exId}-0`).fill("42.5");
+      await page.locator(`#ri-${exId}-0`).fill("8");
+      await page.locator(`#ex-${exId} .sdone`).first().click(); // no blur first — the race
+      await page.waitForTimeout(400);
+      const done = await page.evaluate((id) => document.getElementById(`sr-${id}-0`)?.classList.contains("done"), exId);
+      note("toggleSet marks a set done despite no blur before the tap (the real race)", done === true);
+
+      await page.locator(`#ex-${exId} .sdone`).first().click(); // toggle back off
+      await page.waitForTimeout(200);
+      await page.locator(`#wi-${exId}-0`).fill("");
+      await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(300);
+      const stillDone = await page.evaluate((id) => document.getElementById(`sr-${id}-0`)?.classList.contains("done"), exId);
+      note("toggleSet refuses a set whose weight was just cleared, not stale-completed", stillDone === false);
+    } else {
+      note("toggleSet race check found an editable set input to test", false, "no enabled .si input on default tab");
+    }
+    await page.close();
+  }
+
   note("no JS errors on any tab", jsErrors.length === 0, jsErrors.slice(0, 3).join(" | "));
 } finally {
   if (browser) await browser.close();

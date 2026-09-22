@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseRequiredDeficit, phaseFor, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
+import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseRequiredDeficit, phaseFor, proteinTargetG, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
@@ -455,7 +455,7 @@ function buildPDFReport(){
     const items=(S.nutrition?.days?.[d.iso]||{}).items||[];
     return {...d,carbs:items.reduce((s,it)=>s+(it.carbs||0),0),fat:items.reduce((s,it)=>s+(it.fat||0),0)};
   });
-  const pTarget=Math.round(USER.targetKg*2);
+  const pTarget=proteinTargetG();
   const lw=latestWeightLog()||USER.weightKg;
   const streak=(()=>{let n=0;for(let i=0;i<365;i++){const d=new Date(isoToday()+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}return n;})();
   const wts=S.nutrition?.weights||{};
