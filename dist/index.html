@@ -2113,14 +2113,14 @@ window.closeMilestone = closeMilestone;
 
 
 // Personal constants · never rendered in UI
-const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
+const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:90,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
 const ACTIVE_MULT=0.75;
 
 function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 function isoToday(){return isoDate(new Date());}
 
 // Fallback when no phase covers a date: date-driven deficit toward 90kg by
-// Feb 20, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
+// Feb 21, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
 
 // ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
@@ -2131,16 +2131,26 @@ function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targ
 // (S.phaseRun), immutable completion snapshots (S.phaseHistory) and reviews
 // ride the settings sync blob. All date math is noon-UTC-anchored on
 // YYYY-MM-DD strings so Toronto DST transitions can never shift a day.
+// phase_2/phase_3 (v2): revised for the 90kg-by-Feb-21 goal. No
+// restingKcal/activeTargetWorkout/activeTargetRest fields — those are only
+// ever hand-authored, day-1 estimates that go stale as real BMR falls across
+// a 70-83 day phase. Omitted here on purpose so phaseActiveTarget/restingFor
+// (below) fall through to the DYNAMIC path: computed live from the latest
+// real weigh-in every day, always anchored to this phase's fixed
+// phaseRequiredDeficit rather than a frozen number. phase_1 (completed,
+// locked) keeps its original flat fields untouched — recomputing history
+// live would make it drift with calcAge() as real time passes, see the note
+// on phaseActiveTarget below.
 const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
    eatKcal:1600,restingKcal:2446,activeTargetWorkout:900,activeTargetRest:390},
-  {id:"phase_2",version:1,strategy:"fat_loss",curve:"linear",
-   start:"2026-09-08",plannedEnd:"2026-11-30",startKg:128,targetKg:110,
-   eatKcal:1600,restingKcal:2321,activeTargetWorkout:840,activeTargetRest:360},
-  {id:"phase_3",version:1,strategy:"fat_loss",curve:"linear",
-   start:"2026-12-01",plannedEnd:"2027-02-21",startKg:110,targetKg:95,
-   eatKcal:1600,restingKcal:2141,activeTargetWorkout:780,activeTargetRest:330},
+  {id:"phase_2",version:2,strategy:"fat_loss",curve:"linear",
+   start:"2026-09-22",plannedEnd:"2026-11-30",startKg:128,targetKg:107,
+   eatKcal:1600},
+  {id:"phase_3",version:2,strategy:"fat_loss",curve:"linear",
+   start:"2026-12-01",plannedEnd:"2027-02-21",startKg:107,targetKg:90,
+   eatKcal:1600},
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;
@@ -2206,7 +2216,42 @@ function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{expecte
 // 850 kcal error in both directions every week, plus skewed adherence counts.
 // Now derived from whatever the program actually schedules.
 function isRestDay(dateIso){return isGymRestDay(dateIso);}
-function phaseActiveTarget(p,dateIso){return isRestDay(dateIso)?p.activeTargetRest:p.activeTargetWorkout;}
+// BMR for a specific phase+date. A COMPLETED phase (e.g. phase_1) keeps its
+// authored restingKcal untouched rather than recomputing live — calcBMR()
+// depends on calcAge(), which reads real "now", so live-recomputing a
+// historical date would make that history silently drift a year from now
+// purely because a birthday passed. A phase with no restingKcal authored
+// (the dynamic path, phase_2/phase_3 onward) computes real BMR from the
+// latest actual weigh-in, falling back to the phase's own startKg only when
+// nothing has been logged yet.
+function restingForPhase(p,dateIso){
+  return p.restingKcal!=null?p.restingKcal:calcBMR(latestWeightLog()||p.startKg);
+}
+// Active-calorie target for a specific phase+date, split workout/rest. A
+// phase with authored activeTargetWorkout/Rest (phase_1, historical) returns
+// those untouched, same reasoning as restingForPhase. A phase without them
+// solves BACKWARD from phaseRequiredDeficit (the phase's one fixed daily
+// target — deliberately not recomputed, see the note above it) and today's
+// live restingForPhase: whatever's needed to close that gap, split
+// workout:rest in the same 7:3 ratio every authored phase already used
+// (900:390, 840:360, 780:330 all reduce to 7:3). The number this produces
+// rises smoothly as real BMR falls through the phase, instead of jumping at
+// two hand-picked boundaries, and self-corrects if a weigh-in comes in
+// lighter or heavier than expected rather than silently drifting off target.
+function phaseActiveTargets(p,dateIso){
+  if(p.activeTargetWorkout!=null&&p.activeTargetRest!=null)
+    return{workout:p.activeTargetWorkout,rest:p.activeTargetRest};
+  const req=phaseRequiredDeficit(p);
+  const resting=restingForPhase(p,dateIso);
+  const blended=Math.max(0,(req-resting+p.eatKcal)/ACTIVE_MULT);
+  const workout=Math.round(blended*49/45);
+  const rest=Math.round(3*workout/7);
+  return{workout,rest};
+}
+function phaseActiveTarget(p,dateIso){
+  const t=phaseActiveTargets(p,dateIso);
+  return isRestDay(dateIso)?t.rest:t.workout;
+}
 // ── DEFICIT FROM LOGGED DATA ────────────────────────────────────────────────
 // What the day ACTUALLY produced, from what you logged: resting (per-day
 // override if present, else the phase figure), active calories discounted by
@@ -2238,11 +2283,11 @@ function phaseRequiredDeficit(p){
   return Math.max(0,Math.round((p.startKg-p.targetKg)*7700/days));
 }
 
-function phaseDayDeficit(p,dateIso){return Math.round(p.restingKcal+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
+function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
 function restingFor(dateIso,dayData){
   if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;
   const p=phaseFor(dateIso);
-  return p?p.restingKcal:calcBMR(latestWeightLog()||USER.weightKg);
+  return p?restingForPhase(p,dateIso):calcBMR(latestWeightLog()||USER.weightKg);
 }
 function sevenDayAvg(dateIso){
   const S=phaseStore();
@@ -2281,6 +2326,18 @@ function projectedFinish(todayIso){
 
 function calcAge(){const n=new Date();let a=n.getFullYear()-USER.birthDate.getFullYear();if(n<new Date(n.getFullYear(),USER.birthDate.getMonth(),USER.birthDate.getDate()))a--;return a;}
 function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
+// The single protein target, replacing five independently hardcoded numbers
+// (130/143/160/190/130) that used to disagree across the drawer chart, the
+// nutrition-tab chart, compliance scoring, the streak milestone and the
+// server diet-review prompt. Dosed off CURRENT bodyweight, not the eventual
+// goal weight — what matters during the diet is the mass actually being
+// carried now, not the number five months out. 1.8g/kg sits in the
+// evidence-based 1.6-2.4g/kg range for an intermediate lifter in a real
+// deficit; checked against fat-free mass too (dosing off TOTAL mass can
+// overshoot relative to lean mass at a higher body-fat%) and lands at a
+// defensible middle point without needing lean-mass-tracking infrastructure
+// this app doesn't have.
+function proteinTargetG(){return Math.round((latestWeightLog()||USER.weightKg)*1.8);}
 // Rounded here too. Every renderer, prompt and export reads through this, so
 // one stale unrounded value cannot leak past it.
 function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?kg1(ws[keys[keys.length-1]]):null;}
@@ -3988,10 +4045,13 @@ function checkMilestones(){
     for(let i=0;i<7;i++){const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const iso=isoDate(d);if(iso>=mon&&ctx.trainedOn(iso))weekTrains++;}
     if(weekTrains>=6){S.milestones.shownWeek6.push(wkKey);save();queueMilestones();showMilestone("💪","6 Workouts This Week","Elite consistency. Your body is adapting.");}
   }
-  // ── Protein 160g+ for 7 consecutive days (modal) ──
+  // ── Protein target hit for 7 consecutive days (modal) ──
+  // Threshold matches the shared proteinTargetG(), not a hardcoded number
+  // that used to disagree with the target shown everywhere else in the app.
   if(!S.milestones.shownProtein7.includes(wkKey)){
-    const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=160;}).every(Boolean);
-    if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩","7 Days of 160g+ Protein","Consistent fuelling = consistent results.");}
+    const pt=proteinTargetG();
+    const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=pt;}).every(Boolean);
+    if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩",`7 Days of ${pt}g+ Protein`,"Consistent fuelling = consistent results.");}
   }
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
@@ -4126,7 +4186,7 @@ function weight30Chart(){
 }
 function renderDrawer(){
   const t=buildTrendData();
-  const pTarget=130;
+  const pTarget=proteinTargetG();
   document.getElementById("drawerContent").innerHTML=`
     <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
     <div class="st-sec">7-Day Trends</div>
@@ -4242,9 +4302,10 @@ function renderNutrition(){
   const sodium=items.reduce((s,i)=>s+(i.sodium||0),0);
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
-  // Protein target: 2g × goal weight, +10% on days with training or logged active burn
+  // Protein target: shared proteinTargetG() (1.8g × current weight), +10% on
+  // days with training or logged active burn.
   const trained=trainedOn(date)||active>0;
-  const pTarget=Math.round(130*(trained?1.1:1));
+  const pTarget=Math.round(proteinTargetG()*(trained?1.1:1));
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
@@ -4628,7 +4689,7 @@ function weekCompliance(p,weekStartIso,endIso){
     avgActive:inDays?Math.round(inAct/inDays):0,
     avgDeficit:inDays?Math.round(defSum/inDays):0,
     reqDeficit:inDays?Math.round(defReq/inDays):0,
-    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/130*100:0)),
+    protein:Math.min(100,Math.round(protDays?(protSum/protDays)/proteinTargetG()*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
     zepbound:zepTaken,
@@ -4725,7 +4786,7 @@ function completePhase(id,manual){
     version:p.version,strategy:p.strategy,start:p.start,plannedEnd:p.plannedEnd,
     effectiveEnd:effectiveEnd(p,t),completedAt:t,startKg:p.startKg,targetKg:p.targetKg,
     actualEndKg:finalAvg,eatKcal:p.eatKcal,
-    activeTargets:{workout:p.activeTargetWorkout,rest:p.activeTargetRest},
+    activeTargets:phaseActiveTargets(p,t),
     outcome:v.band,manual:!!manual,weeklyCompliance:weeks,
     stats:{avgCompliance,avgWeeklyLossKg:Math.round((p.startKg-finalAvg)/(phaseDays/7)*100)/100,
       avgKcal:kcalDays?Math.round(kcalSum/kcalDays):null,
@@ -4747,6 +4808,8 @@ async function aiPhaseReview(id){
     const health=phaseHealth(p,t);
     const cor=phaseCorridor(p,t);
     const run=getPhaseRun(p.id);
+    const at=phaseActiveTargets(p,t);
+    const restingNow=restingForPhase(p,t);
     // Compact per-day JSON (daily totals only, never raw food strings) —
     // keeps the prompt token-safe.
     const days=[];
@@ -4757,7 +4820,7 @@ async function aiPhaseReview(id){
       if(!items.length&&!nd.active&&w==null)continue;
       days.push({date:d,kcal:items.reduce((s,it)=>s+(it.kcal||0),0),protein:items.reduce((s,it)=>s+(it.protein||0),0),active:nd.active||0,weight:w!=null?Number(w):null});
     }
-    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${p.activeTargetWorkout} (Mon-Sat) / ${p.activeTargetRest} (Sun), counted burn = resting ${p.restingKcal} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
+    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${at.workout} (Mon-Sat) / ${at.rest} (Sun), counted burn = resting ${restingNow} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -4770,12 +4833,18 @@ async function aiPhaseReview(id){
   }
 }
 // The 🎯 phase card (Nutrition tab). Returns "" when no phase is relevant.
+// Found while verifying the phase-3 changes: a plain `.find()` here takes
+// array order, so a phase that has PASSED ITS DATE but was never explicitly
+// completed via completePhase() (locked stays false until that button is
+// clicked) reads as "completed" and, sitting earlier in the array, won a tie
+// against the phase that's genuinely active today. In a session where
+// phase_1 was never explicitly locked, this card would show a done phase
+// from September instead of the real one. Two passes instead: an active/
+// paused phase always wins over a merely date-elapsed, unlocked one.
 function phaseCardHtml(){
   const t=isoToday();
-  const p=PHASES.find(x=>{
-    const st=phaseState(x,t);
-    return st==="active"||st==="paused"||(st==="completed"&&!getPhaseRun(x.id).locked);
-  });
+  const active=PHASES.find(x=>{const st=phaseState(x,t);return st==="active"||st==="paused";});
+  const p=active||PHASES.find(x=>phaseState(x,t)==="completed"&&!getPhaseRun(x.id).locked);
   if(!p)return"";
   const st=phaseState(p,t);
   const run=getPhaseRun(p.id);
@@ -5651,7 +5720,7 @@ function buildPDFReport(){
     const items=(S.nutrition?.days?.[d.iso]||{}).items||[];
     return {...d,carbs:items.reduce((s,it)=>s+(it.carbs||0),0),fat:items.reduce((s,it)=>s+(it.fat||0),0)};
   });
-  const pTarget=Math.round(USER.targetKg*2);
+  const pTarget=proteinTargetG();
   const lw=latestWeightLog()||USER.weightKg;
   const streak=(()=>{let n=0;for(let i=0;i<365;i++){const d=new Date(isoToday()+"T12:00:00");d.setDate(d.getDate()-i);if(trainedOn(isoDate(d)))n++;else break;}return n;})();
   const wts=S.nutrition?.weights||{};

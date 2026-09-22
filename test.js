@@ -212,13 +212,13 @@ const engineMatch = HTML.match(/\/\/ ── PHASE ENGINE[^\n]*\n([\s\S]*?)\/\/ �
 ok("phase engine block present with markers", !!engineMatch);
 
 function mkEngine(Sstub) {
-  const USERstub = { targetKg: 95, weightKg: 140, goalDate: new Date(2027, 1, 21), heightCm: 190.5, birthDate: new Date(1995, 7, 1) };
+  const USERstub = { targetKg: 90, weightKg: 140, goalDate: new Date(2027, 1, 21), heightCm: 190.5, birthDate: new Date(1995, 7, 1) };
   // isRestDay now derives from the program (Southpaw rests Wednesday, trains
   // Sunday), so the engine takes it as a dependency. Stubbed with the REAL
   // rule rather than the old hardcoded Sunday, so the deficit assertions below
   // are checked against what actually ships.
   const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog", "isGymRestDay",
-    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,restingFor,bankedDays,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
+    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
     () => "2026-07-28",
@@ -233,10 +233,14 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
   E.PHASES[0].id === "phase_1" && E.PHASES[0].version === 2 && E.PHASES[0].strategy === "fat_loss" &&
   E.PHASES[0].curve === "front_loaded" && E.PHASES[0].plannedEnd === "2026-09-07");
 
-ok("phaseFor boundaries: Jul 27 null · Jul 28 & Sep 7 phase_1 · Sep 8 phase_2 · Dec 1 phase_3",
+// phase_2 was revised (v2) to start Sep 22 2026, the date the 90kg-goal plan
+// was actually built, using the real logged weight as of then, rather than
+// keeping the stale Sep 8 boundary and understating the true remaining rate.
+// Sep 8-21 falls into an accepted gap — see the note on this in phase.js.
+ok("phaseFor boundaries: Jul 27 null · Jul 28 & Sep 7 phase_1 · Sep 8-21 gap (phase_2 now starts Sep 22) · Dec 1 phase_3",
   E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
-  E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08")?.id === "phase_2" &&
-  E.phaseFor("2026-12-01")?.id === "phase_3");
+  E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
+  E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-12-01")?.id === "phase_3");
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
 const pausedS = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-10", resumed: "2026-08-15", extend: true }], completedAt: null, locked: false } } };
@@ -292,6 +296,49 @@ ok("active targets: 900 on training days · 390 on the rest day",
   E.phaseActiveTarget(E.PHASES[0], "2026-08-09") === 390);
 ok("restingFor: phase default 2,446 · per-day override wins",
   E.restingFor("2026-07-28", {}) === 2446 && E.restingFor("2026-07-28", { restingOverride: 3000 }) === 3000);
+
+// ── Dynamic resting/active targets for phase_2/phase_3 (90kg-by-Feb-21 goal) ──
+// phase_1 keeps its authored flat fields (restingKcal:2446 etc) untouched —
+// checked explicitly below, since that's exactly what the field-presence
+// branch in restingForPhase/phaseActiveTargets exists to protect. A phase
+// WITHOUT those fields (phase_2/phase_3) computes live from the latest
+// logged weight instead.
+const phase2 = E.PHASES.find(p => p.id === "phase_2");
+const phase3 = E.PHASES.find(p => p.id === "phase_3");
+ok("phase_2/phase_3 omit the flat resting/active fields (dynamic path)",
+  phase2.restingKcal === undefined && phase2.activeTargetWorkout === undefined &&
+  phase3.restingKcal === undefined && phase3.activeTargetWorkout === undefined);
+
+const loggedMid = mkEngine({ nutrition: { weights: { "2026-10-15": 120 }, days: {} } });
+ok("restingForPhase: dynamic phase computes live BMR from the logged weight, not startKg",
+  loggedMid.restingForPhase(phase2, "2026-10-15") === Math.round(10 * 120 + 6.25 * 190.5 - 5 * 31 + 5) &&
+  loggedMid.restingForPhase(phase2, "2026-10-15") !== Math.round(10 * 128 + 6.25 * 190.5 - 5 * 31 + 5));
+
+const noLog = mkEngine({ nutrition: { weights: {}, days: {} } });
+ok("restingForPhase: no weigh-in yet falls back to the phase's own startKg",
+  noLog.restingForPhase(phase2, "2026-09-25") === Math.round(10 * 128 + 6.25 * 190.5 - 5 * 31 + 5));
+
+// The whole point: phaseDayDeficit should stay anchored near
+// phaseRequiredDeficit regardless of which weight is fed in, because
+// activeTarget is SOLVED to close whatever gap restingForPhase produces —
+// not a symptom of one lucky number, an actual self-correcting property.
+for (const mockKg of [128, 120, 107, 95]) {
+  const eng = mkEngine({ nutrition: { weights: { "2026-10-01": mockKg }, days: {} } });
+  const req = eng.phaseRequiredDeficit(phase2);
+  // Training day and rest day blend back to req exactly (by construction —
+  // the workout/rest split is solved from the same blended target).
+  const blended = (6 * eng.phaseDayDeficit(phase2, "2026-10-05" /* Mon, training */) +
+    eng.phaseDayDeficit(phase2, "2026-10-04" /* Sun, rest */)) / 7;
+  ok(`phaseDayDeficit self-corrects to phaseRequiredDeficit at ${mockKg}kg logged (leg A)`,
+    Math.abs(blended - req) <= 1);
+}
+
+ok("phase_1's historical figures are unaffected by the dynamic path existing",
+  loggedMid.phaseDayDeficit(E.PHASES[0], "2026-08-05") === 1521 &&
+  loggedMid.phaseDayDeficit(E.PHASES[0], "2026-08-09") === 1139 &&
+  loggedMid.phaseActiveTarget(E.PHASES[0], "2026-08-05") === 900 &&
+  loggedMid.restingFor("2026-07-28", {}) === 2446);
+
 
 // Banked progress — rate ≈ 0.293 kg/day (12 kg / 41 days)
 function withAvg(avgKg, dateIso) {
@@ -371,8 +418,9 @@ ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 95 · goalDate Feb 21 2027",
-  HTML.includes("targetKg:95") && HTML.includes("goalDate:new Date(2027,1,21)"));
+ok("USER.targetKg 90 · goalDate Feb 21 2027",
+  HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:90,heightCm:") &&
+  HTML.includes("goalDate:new Date(2027,1,21)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -555,6 +603,49 @@ section("16 · USER.weightKg fallback");
 const userLine = HTML.match(/const USER=\{[^}]+\}/)?.[0] || "";
 ok("USER.weightKg is defined as fallback (140)",
   userLine.includes("weightKg:140"));
+
+// ─────────────────────────────────────────────────────────────────────────────
+// 16b. One protein target formula, not five independently hardcoded numbers
+// ─────────────────────────────────────────────────────────────────────────────
+section("16b · proteinTargetG single source of truth");
+
+const PHASE_SRC = readFileSync("src/phase.js", "utf8");
+ok("proteinTargetG defined once, dosed off CURRENT weight not goal weight",
+  /export function proteinTargetG\(\)\{return Math\.round\(\(latestWeightLog\(\)\|\|USER\.weightKg\)\*1\.8\);\}/.test(PHASE_SRC));
+
+const NUT_SRC = readFileSync("src/nutrition.js", "utf8");
+const SET_SRC = readFileSync("src/settings.js", "utf8");
+const WK_SRC = readFileSync("src/workout.js", "utf8");
+const CRON_SRC = readFileSync("api/cron-diet-review.js", "utf8");
+ok("every former hardcoded protein number now calls proteinTargetG()",
+  /const pTarget=proteinTargetG\(\);/.test(NUT_SRC) &&
+  /const pTarget=Math\.round\(proteinTargetG\(\)\*\(trained\?1\.1:1\)\);/.test(NUT_SRC) &&
+  /protein:Math\.min\(100,Math\.round\(protDays\?\(protSum\/protDays\)\/proteinTargetG\(\)\*100:0\)\)/.test(NUT_SRC) &&
+  /const pTarget=proteinTargetG\(\);/.test(SET_SRC) &&
+  /const pt=proteinTargetG\(\);/.test(WK_SRC) && />=pt;/.test(WK_SRC));
+ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
+  !/const pTarget=130;/.test(NUT_SRC) && !/Math\.round\(130\*\(trained/.test(NUT_SRC) &&
+  !/\/130\*100:0\)/.test(NUT_SRC) && !/Math\.round\(USER\.targetKg\*2\)/.test(SET_SRC) &&
+  !/>=160;/.test(WK_SRC));
+// The server cron can't import the live client engine (no browser weight-log
+// state server-side) — it's a documented, hand-synced mirror, matching how
+// GOALS.targetKg/goalDate already work in this file. Just check it was
+// actually re-synced, not left stale.
+ok("server diet-review cron mirror re-synced (targetKg 90, protein snapshot updated)",
+  /targetKg: 90,/.test(CRON_SRC) && !/targetKg: 95,/.test(CRON_SRC) &&
+  /proteinTargetG: 230,/.test(CRON_SRC));
+
+// Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()
+// used a single `.find()`, which takes array order. A phase that has PASSED
+// ITS DATE but was never explicitly locked via completePhase() (locked stays
+// false until that button is clicked) reads as "completed" — and won,
+// showing a done phase from months ago instead of the real one, since it
+// sits earlier in the array. Confirmed in a real browser: a fresh session
+// with phase_1 unlocked rendered "Phase 1 ... Day 41 of 41 ... 100%" on the
+// Nutrition tab today, instead of the actually-active phase_2.
+ok("phaseCardHtml prioritises an active/paused phase over a merely date-elapsed, unlocked one",
+  /const active=PHASES\.find\(x=>\{const st=phaseState\(x,t\);return st==="active"\|\|st==="paused";\}\);/.test(NUT_SRC) &&
+  /const p=active\|\|PHASES\.find\(x=>phaseState\(x,t\)==="completed"&&!getPhaseRun\(x\.id\)\.locked\);/.test(NUT_SRC));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 17. Pace-based weekly deficit
