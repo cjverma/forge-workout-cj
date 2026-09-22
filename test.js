@@ -615,6 +615,15 @@ section("16a · toggleSet closes the onchange/blur race");
 // itself rather than trust whatever's already in S.sessions.
 const WK_TOGGLE = fnBody("toggleSet") || "";
 ok("toggleSet found", WK_TOGGLE !== "");
+
+// Found auditing the workout tab's controls: a read-only cardio row's
+// intended `style="cursor:default"` was concatenated INSIDE the class
+// attribute string instead of as its own attribute
+// (class="cardio-row  style='cursor:default'"), so the cursor never
+// actually changed. Cosmetic only — onclick is stripped separately via
+// cardioEvt — but wrong markup.
+ok("read-only cardio row's cursor style is a real attribute, not text leaked into class=",
+  /class="cardio-row \$\{isDone\?"done":""\}"\$\{rdOnly\?' style="cursor:default"':""\}\$\{cardioEvt\}/.test(readFileSync("src/workout.js", "utf8")));
 ok("toggleSet reads the live weight/reps inputs by id before checking completeness",
   /document\.getElementById\(`wi-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE) &&
   /document\.getElementById\(`ri-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE));
