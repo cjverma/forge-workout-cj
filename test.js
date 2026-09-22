@@ -605,6 +605,28 @@ ok("USER.weightKg is defined as fallback (140)",
   userLine.includes("weightKg:140"));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 16a. toggleSet reads live DOM values, not stale committed state
+// ─────────────────────────────────────────────────────────────────────────────
+section("16a · toggleSet closes the onchange/blur race");
+
+// Weight/reps only commit to session state on input blur (onchange in
+// saveF), but tapping "done" directly after typing, no Enter pressed, can
+// beat that blur to the click. toggleSet must read the live input values
+// itself rather than trust whatever's already in S.sessions.
+const WK_TOGGLE = fnBody("toggleSet") || "";
+ok("toggleSet found", WK_TOGGLE !== "");
+ok("toggleSet reads the live weight/reps inputs by id before checking completeness",
+  /document\.getElementById\(`wi-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE) &&
+  /document\.getElementById\(`ri-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE));
+// Must mirror unconditionally (`if(wEl)sd.weight=wEl.value...`), not gated
+// on truthiness (`if(wVal)`) — the gated form leaves stale state in place
+// when a field is backspaced to empty and done is tapped immediately.
+ok("the DOM read is unconditional (no truthiness gate that would preserve stale state)",
+  /if\(wEl\)sd\.weight=wEl\.value\.trim\(\);/.test(WK_TOGGLE) &&
+  /if\(rEl\)sd\.reps=rEl\.value\.trim\(\);/.test(WK_TOGGLE) &&
+  !/if\(wVal\)/.test(WK_TOGGLE));
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 16b. One protein target formula, not five independently hardcoded numbers
 // ─────────────────────────────────────────────────────────────────────────────
 section("16b · proteinTargetG single source of truth");
