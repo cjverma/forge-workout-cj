@@ -605,6 +605,27 @@ ok("USER.weightKg is defined as fallback (140)",
   userLine.includes("weightKg:140"));
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 15b. Active-calorie compliance target adjusts for actual eaten, not the budget
+// ─────────────────────────────────────────────────────────────────────────────
+section("15b · Active target reflects real intake, not assumed budget");
+
+// The daily "Active X/Y" line used to solve Y against phase.eatKcal as a
+// fixed assumption -- eat less than the budget near end of day and the
+// target stays pinned at the full planned number, demanding active calories
+// to cover food you never actually ate. Y must now be re-solved against
+// consumed, the real total, so under-eating lowers what's still needed and
+// over-eating raises it, while still deferring to phaseActiveTarget for
+// which kind of day (workout/rest) it is.
+{
+  const NUT2 = readFileSync("src/nutrition.js", "utf8");
+  ok("Active target is re-solved from actual consumed, not phase.eatKcal alone",
+    /const plannedTgt=phaseActiveTarget\(phase,date\);/.test(NUT2) &&
+    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-phase\.eatKcal\)\/ACTIVE_MULT\)\);/.test(NUT2));
+  ok("aTgt===0 (nothing further needed) reads as fully met, not a failing 0%",
+    /const aPct=aTgt\?Math\.round\(active\/aTgt\*100\):100;/.test(NUT2));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 16a. toggleSet reads live DOM values, not stale committed state
 // ─────────────────────────────────────────────────────────────────────────────
 section("16a · toggleSet closes the onchange/blur race");
