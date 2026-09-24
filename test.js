@@ -645,6 +645,44 @@ section("15b · Active target reflects real intake, not assumed budget");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 15c. nutrition_day_meta has two independent writers; neither may clobber
+//      the other's column
+// ─────────────────────────────────────────────────────────────────────────────
+section("15c · day-meta sync no longer overwrites fields it didn't touch");
+
+// Found from a direct report: a HealthKit Shortcut posting resting/active
+// data straight to the server got silently undone. Root cause: the client's
+// queueDayMeta() resent ALL THREE columns (active/restingOverride/shock)
+// from local memory on every call, regardless of which one actually
+// changed -- and api/mutate.js's handler blindly overwrote all three
+// unconditionally. Any client action (even an unrelated one, like toggling
+// shock day) could null out a column the client's local copy hadn't caught
+// up on, since HealthKit's own writes bypass the client entirely.
+{
+  const SYNC = readFileSync("src/sync.js", "utf8");
+  ok("queueDayMeta takes a `fields` param and only sets the fields it names, not the whole local row",
+    /export function queueDayMeta\(date, fields\)/.test(SYNC) &&
+    /for \(const f of fields\)/.test(SYNC) &&
+    !/queueMutation\("nutrition_day_meta", \{ date, active: dm\.active/.test(SYNC));
+  ok("a pending same-day mutation is merged into, not replaced -- queueMutation's dedupe REPLACES wholesale",
+    /const pending = getOutbox\(\)\.find\(m => m\.dedupeKey === dedupeKey\);/.test(SYNC) &&
+    /const payload = \{ date, \.\.\.\(pending \? pending\.payload : \{\}\) \};/.test(SYNC));
+
+  const NUT3 = readFileSync("src/nutrition.js", "utf8");
+  ok("saveBurn tells queueDayMeta only the field it just changed",
+    /queueDayMeta\(date, \[field==="resting"\?"restingOverride":"active"\]\);/.test(NUT3));
+  ok("toggleShock and handleHKSync each name only their own field",
+    /queueDayMeta\(date,\["shock"\]\);/.test(NUT3) &&
+    /queueDayMeta\(date,\["active"\]\);/.test(NUT3));
+
+  const MUTATE2 = readFileSync("api/mutate.js", "utf8");
+  ok("mutate.js's nutrition_day_meta case uses the shared column-scoped upsert, not its own full overwrite",
+    /import \{ dayMetaUpsertSql \} from "\.\/healthkit\.js";/.test(MUTATE2) &&
+    /const stmt = dayMetaUpsertSql\(\{ date, active, resting: restingOverride, shock \}\);/.test(MUTATE2) &&
+    !/ON CONFLICT \(date\) DO UPDATE SET active=EXCLUDED\.active, resting_override=EXCLUDED\.resting_override, shock=EXCLUDED\.shock`;/.test(MUTATE2));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // 16a. toggleSet reads live DOM values, not stale committed state
 // ─────────────────────────────────────────────────────────────────────────────
 section("16a · toggleSet closes the onchange/blur race");
@@ -945,9 +983,17 @@ ok("client renders the review card guarded on S.dietReview?.text",
   ok("healthkit: POST-only, checkAuth, generic error, Toronto date default",
     HK.includes('req.method !== "POST"') && HK.includes("checkAuth(req, res)") &&
     HK.includes("HealthKit sync failed") && HK.includes('timeZone: "America/Toronto"'));
-  ok("healthkit: column-scoped upsert never touches shock or unspecified columns",
-    HK.includes("resting_override=EXCLUDED.resting_override") && !HK.includes("shock=EXCLUDED.shock") &&
-    HK.includes("active=EXCLUDED.active"));
+  // dayMetaUpsertSql now also supports an optional `shock` column, exported
+  // and reused by api/mutate.js's client-side "nutrition_day_meta" mutation
+  // so both writers to this row share one column-scoped-upsert
+  // implementation rather than two that could drift apart. HealthKit's OWN
+  // call site (buildHealthKitSql) never has a source of shock-day data and
+  // must never pass one, not that the shared helper can't accept it.
+  ok("healthkit: column-scoped upsert supports active/resting/shock, exported for reuse",
+    HK.includes("resting_override=EXCLUDED.resting_override") && HK.includes("shock=EXCLUDED.shock") &&
+    HK.includes("active=EXCLUDED.active") && HK.includes("export function dayMetaUpsertSql"));
+  ok("healthkit's own buildHealthKitSql never sources a shock value (no shock data from Apple Health)",
+    /dayMetaUpsertSql\(\{\s*date: payload\.date,\s*active: payload\.applied\.active,\s*resting: payload\.applied\.resting\s*\}\)/.test(HK));
   ok("healthkit: uses q.query() for parameterised SQL (Neon v1 rejects bare q(text, params))",
     HK.includes("q.query(st.text, st.values)"));
   ok("healthkit: bounds active 0-6000 · resting 200-6000 · weight 30-300",

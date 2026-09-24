@@ -396,7 +396,7 @@ function saveBurn(date,field,val){
     getDayData(date).active=n;
   }
   save();
-  queueDayMeta(date);
+  queueDayMeta(date, [field==="resting"?"restingOverride":"active"]);
   // Surgical: don't rebuild the DOM if the user is tapping straight from one
   // burn field into the other — replacing the card mid-tap destroys the
   // target input before focus lands on it, dismissing the iOS keyboard
@@ -510,7 +510,7 @@ function zepCardHtml(){
 }
 // ── END ZEPBOUND ──────────────────────────────────────────────────────────────
 function toggleShock(date){
-  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date);renderNutrition();}
+  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date,["shock"]);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();}
 let _dietRevBusy=false;
@@ -1137,7 +1137,7 @@ function arrivalEst(){
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
   const active=parseInt(p.get("active")||"0"),date=p.get("date")||isoToday();
-  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date);showToast(`⚡ Active calories synced (${active} kcal)`);}
+  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date,["active"]);showToast(`⚡ Active calories synced (${active} kcal)`);}
   const url=new URL(location.href);url.searchParams.delete("hksync");url.searchParams.delete("active");url.searchParams.delete("date");
   history.replaceState({},"",url);
 }
