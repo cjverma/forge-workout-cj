@@ -2225,7 +2225,18 @@ function isRestDay(dateIso){return isGymRestDay(dateIso);}
 // latest actual weigh-in, falling back to the phase's own startKg only when
 // nothing has been logged yet.
 function restingForPhase(p,dateIso){
-  return p.restingKcal!=null?p.restingKcal:calcBMR(latestWeightLog()||p.startKg);
+  if(p.restingKcal!=null)return p.restingKcal;
+  // A manually entered resting-calorie override (saveBurn's "resting" field,
+  // src/nutrition.js) already fed the display's actual-deficit line via
+  // restingFor(), but this planning path — which SOLVES the active-calorie
+  // target from the resting figure — never checked it, so the override had
+  // no effect on the number that actually matters: calcBMR()'s generic
+  // Mifflin-St Jeor formula can understate real resting burn by hundreds of
+  // kcal for someone this size, which inflates the solved active target to
+  // compensate for a gap that isn't real, and — if hit — overshoots the
+  // phase's actual required deficit by the same amount every day.
+  const ovr=phaseStore().nutrition?.days?.[dateIso]?.restingOverride;
+  return ovr!=null?ovr:calcBMR(latestWeightLog()||p.startKg);
 }
 // Active-calorie target for a specific phase+date, split workout/rest. A
 // phase with authored activeTargetWorkout/Rest (phase_1, historical) returns

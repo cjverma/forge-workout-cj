@@ -339,6 +339,25 @@ ok("phase_1's historical figures are unaffected by the dynamic path existing",
   loggedMid.phaseActiveTarget(E.PHASES[0], "2026-08-05") === 900 &&
   loggedMid.restingFor("2026-07-28", {}) === 2446);
 
+// A manual resting-calorie override (the existing "resting" field in
+// saveBurn, src/nutrition.js) already fed the display's actual-deficit line
+// via restingFor(), but restingForPhase() — the PLANNING path that SOLVES
+// the active-calorie target — never checked it, so the override had no
+// effect on the number that actually drives the plan. calcBMR()'s generic
+// formula can understate real resting burn by hundreds of kcal for someone
+// this size, which inflates the solved active target to compensate for a
+// gap that isn't real — and if hit, overshoots the phase's actual required
+// deficit by the same amount every day.
+{
+  const overridden = mkEngine({ nutrition: { weights: {}, days: { "2026-10-01": { items: [], restingOverride: 2750 } } } });
+  ok("restingForPhase respects a manual resting override, not just the formula",
+    overridden.restingForPhase(phase2, "2026-10-01") === 2750);
+  const targetsWith = overridden.phaseActiveTargets(phase2, "2026-10-01");
+  const targetsWithout = noLog.phaseActiveTargets(phase2, "2026-10-01");
+  ok("a higher real resting figure correctly LOWERS the solved active target",
+    targetsWith.workout < targetsWithout.workout, JSON.stringify({ with: targetsWith, without: targetsWithout }));
+}
+
 
 // Banked progress — rate ≈ 0.293 kg/day (12 kg / 41 days)
 function withAvg(avgKg, dateIso) {
