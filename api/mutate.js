@@ -1,6 +1,7 @@
 import { setCors, checkAuth } from "./_shared.js";
 import { sql, ensureSchema } from "./db.js";
 import { kg1 } from "../src/constants.js";
+import { dayMetaUpsertSql } from "./healthkit.js";
 
 export default async function handler(req, res) {
   setCors(res);
@@ -47,10 +48,20 @@ export default async function handler(req, res) {
         break;
       }
       case "nutrition_day_meta": {
+        // Two separate writers hit this same row: this client-sync path, and
+        // the HealthKit endpoint (a Shortcut posting Watch data directly to
+        // the server, bypassing the client entirely). Blindly overwriting
+        // all three columns every time — the old behaviour here — meant any
+        // client action on ANY field (even an unrelated one, like toggling
+        // shock day) could silently null out whatever HealthKit had just set
+        // for a field the client's local copy hadn't caught up on yet.
+        // dayMetaUpsertSql only touches the columns actually present in the
+        // payload, so the client must likewise only SEND the field(s) it
+        // actually changed (queueDayMeta, src/sync.js) rather than resending
+        // its whole local snapshot of the row.
         const { date, active, restingOverride, shock } = payload;
-        await q`INSERT INTO nutrition_day_meta(date, active, resting_override, shock)
-                VALUES (${date}, ${active ?? null}, ${restingOverride ?? null}, ${shock ?? null})
-                ON CONFLICT (date) DO UPDATE SET active=EXCLUDED.active, resting_override=EXCLUDED.resting_override, shock=EXCLUDED.shock`;
+        const stmt = dayMetaUpsertSql({ date, active, resting: restingOverride, shock });
+        if (stmt) await q.query(stmt.text, stmt.values);
         break;
       }
       case "weight": {

@@ -2225,7 +2225,18 @@ function isRestDay(dateIso){return isGymRestDay(dateIso);}
 // latest actual weigh-in, falling back to the phase's own startKg only when
 // nothing has been logged yet.
 function restingForPhase(p,dateIso){
-  return p.restingKcal!=null?p.restingKcal:calcBMR(latestWeightLog()||p.startKg);
+  if(p.restingKcal!=null)return p.restingKcal;
+  // A manually entered resting-calorie override (saveBurn's "resting" field,
+  // src/nutrition.js) already fed the display's actual-deficit line via
+  // restingFor(), but this planning path — which SOLVES the active-calorie
+  // target from the resting figure — never checked it, so the override had
+  // no effect on the number that actually matters: calcBMR()'s generic
+  // Mifflin-St Jeor formula can understate real resting burn by hundreds of
+  // kcal for someone this size, which inflates the solved active target to
+  // compensate for a gap that isn't real, and — if hit — overshoots the
+  // phase's actual required deficit by the same amount every day.
+  const ovr=phaseStore().nutrition?.days?.[dateIso]?.restingOverride;
+  return ovr!=null?ovr:calcBMR(latestWeightLog()||p.startKg);
 }
 // Active-calorie target for a specific phase+date, split workout/rest. A
 // phase with authored activeTargetWorkout/Rest (phase_1, historical) returns
@@ -2586,10 +2597,29 @@ function queueSessionMeta(key) {
   queueMutation("session_meta", { sessionKey: key, calfTwinges: sess._calfTwinges || [], notes: sess._notes || null, duration: sess._duration ?? null, stopped: sess._stopped ?? null }, "session_meta:" + key);
 }
 
-function queueDayMeta(date) {
+// `fields` names which of active/restingOverride/shock actually changed.
+// Send ONLY those — never the whole local row. The server has a second,
+// independent writer to this same row (the HealthKit endpoint, a Shortcut
+// posting Watch data directly, bypassing the client), so the client's own
+// copy of a field it isn't touching right now can be stale relative to what
+// HealthKit already set there. Resending it anyway would silently clobber
+// that field back to whatever this client last knew, undoing the other
+// writer's update. queueMutation's dedupe-by-key REPLACES a pending
+// mutation outright, so if two different partial updates for the same date
+// queue before the outbox flushes, they must be merged here first or the
+// earlier one's field(s) would be dropped rather than sent.
+function queueDayMeta(date, fields) {
   const S = ctx.getS();
   const dm = S.nutrition.days[date] || {};
-  queueMutation("nutrition_day_meta", { date, active: dm.active ?? null, restingOverride: dm.restingOverride ?? null, shock: dm.shockProtocol ?? null }, "nutrition_day_meta:" + date);
+  const dedupeKey = "nutrition_day_meta:" + date;
+  const pending = getOutbox().find(m => m.dedupeKey === dedupeKey);
+  const payload = { date, ...(pending ? pending.payload : {}) };
+  for (const f of fields) {
+    if (f === "active") payload.active = dm.active ?? null;
+    else if (f === "restingOverride") payload.restingOverride = dm.restingOverride ?? null;
+    else if (f === "shock") payload.shock = dm.shockProtocol ?? null;
+  }
+  queueMutation("nutrition_day_meta", payload, dedupeKey);
 }
 
 function queueSettings() {
@@ -4368,9 +4398,19 @@ function renderNutrition(){
       <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
       ${phase?(()=>{
-        // Active compliance: raw Watch kcal vs the phase's daily active target
-        const aTgt=phaseActiveTarget(phase,date);
-        const aPct=aTgt?Math.round(active/aTgt*100):0;
+        // Active compliance: how much active is ACTUALLY still needed today,
+        // not the planned target assuming you eat the full budget. The
+        // planned target (phaseActiveTarget) is solved against phase.eatKcal
+        // as a fixed assumption; if you eat less than that, less active is
+        // needed to hit the same deficit, and if you eat more, more is
+        // needed. plannedTgt + (consumed-eatKcal)/ACTIVE_MULT is the same
+        // formula phaseActiveTargets solves internally, just re-solved
+        // against what you actually ate instead of the budget assumption —
+        // the workout/rest split stays intact since plannedTgt already
+        // reflects which kind of day this is.
+        const plannedTgt=phaseActiveTarget(phase,date);
+        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-phase.eatKcal)/ACTIVE_MULT));
+        const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
         const remain=Math.max(0,aTgt-active);
@@ -4510,7 +4550,7 @@ function saveBurn(date,field,val){
     getDayData(date).active=n;
   }
   save();
-  queueDayMeta(date);
+  queueDayMeta(date, [field==="resting"?"restingOverride":"active"]);
   // Surgical: don't rebuild the DOM if the user is tapping straight from one
   // burn field into the other — replacing the card mid-tap destroys the
   // target input before focus lands on it, dismissing the iOS keyboard
@@ -4624,7 +4664,7 @@ function zepCardHtml(){
 }
 // ── END ZEPBOUND ──────────────────────────────────────────────────────────────
 function toggleShock(date){
-  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date);renderNutrition();}
+  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date,["shock"]);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();}
 let _dietRevBusy=false;
@@ -5251,7 +5291,7 @@ function arrivalEst(){
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
   const active=parseInt(p.get("active")||"0"),date=p.get("date")||isoToday();
-  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date);showToast(`⚡ Active calories synced (${active} kcal)`);}
+  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date,["active"]);showToast(`⚡ Active calories synced (${active} kcal)`);}
   const url=new URL(location.href);url.searchParams.delete("hksync");url.searchParams.delete("active");url.searchParams.delete("date");
   history.replaceState({},"",url);
 }

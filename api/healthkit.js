@@ -54,7 +54,15 @@ export function normalizeHealthKitPayload(body = {}, fallbackDate = todayToronto
   return { ok: errors.length === 0, date, applied, ignored, errors };
 }
 
-function dayMetaUpsertSql({ date, active, resting }) {
+// Column-specific upsert: only touches the columns actually provided, so a
+// write that only knows about `active` (or only `resting`, or only `shock`)
+// can never clobber a column set by a DIFFERENT writer to this same row —
+// the client's day-meta sync and this HealthKit endpoint are two separate
+// writers to the same table, and a blind full-row overwrite from either one
+// would silently erase whatever the other had just set. Exported so
+// api/mutate.js's client-side "nutrition_day_meta" mutation shares this same
+// safe pattern instead of a second, divergent implementation.
+export function dayMetaUpsertSql({ date, active, resting, shock }) {
   const cols = ["date"];
   const vals = [date];
   const updates = [];
@@ -68,6 +76,11 @@ function dayMetaUpsertSql({ date, active, resting }) {
     cols.push("resting_override");
     vals.push(resting);
     updates.push("resting_override=EXCLUDED.resting_override");
+  }
+  if (shock !== undefined) {
+    cols.push("shock");
+    vals.push(shock);
+    updates.push("shock=EXCLUDED.shock");
   }
 
   if (!updates.length) return null;

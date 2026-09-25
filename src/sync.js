@@ -183,10 +183,29 @@ export function queueSessionMeta(key) {
   queueMutation("session_meta", { sessionKey: key, calfTwinges: sess._calfTwinges || [], notes: sess._notes || null, duration: sess._duration ?? null, stopped: sess._stopped ?? null }, "session_meta:" + key);
 }
 
-export function queueDayMeta(date) {
+// `fields` names which of active/restingOverride/shock actually changed.
+// Send ONLY those — never the whole local row. The server has a second,
+// independent writer to this same row (the HealthKit endpoint, a Shortcut
+// posting Watch data directly, bypassing the client), so the client's own
+// copy of a field it isn't touching right now can be stale relative to what
+// HealthKit already set there. Resending it anyway would silently clobber
+// that field back to whatever this client last knew, undoing the other
+// writer's update. queueMutation's dedupe-by-key REPLACES a pending
+// mutation outright, so if two different partial updates for the same date
+// queue before the outbox flushes, they must be merged here first or the
+// earlier one's field(s) would be dropped rather than sent.
+export function queueDayMeta(date, fields) {
   const S = ctx.getS();
   const dm = S.nutrition.days[date] || {};
-  queueMutation("nutrition_day_meta", { date, active: dm.active ?? null, restingOverride: dm.restingOverride ?? null, shock: dm.shockProtocol ?? null }, "nutrition_day_meta:" + date);
+  const dedupeKey = "nutrition_day_meta:" + date;
+  const pending = getOutbox().find(m => m.dedupeKey === dedupeKey);
+  const payload = { date, ...(pending ? pending.payload : {}) };
+  for (const f of fields) {
+    if (f === "active") payload.active = dm.active ?? null;
+    else if (f === "restingOverride") payload.restingOverride = dm.restingOverride ?? null;
+    else if (f === "shock") payload.shock = dm.shockProtocol ?? null;
+  }
+  queueMutation("nutrition_day_meta", payload, dedupeKey);
 }
 
 export function queueSettings() {

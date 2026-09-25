@@ -244,9 +244,19 @@ export function renderNutrition(){
       <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
       ${phase?(()=>{
-        // Active compliance: raw Watch kcal vs the phase's daily active target
-        const aTgt=phaseActiveTarget(phase,date);
-        const aPct=aTgt?Math.round(active/aTgt*100):0;
+        // Active compliance: how much active is ACTUALLY still needed today,
+        // not the planned target assuming you eat the full budget. The
+        // planned target (phaseActiveTarget) is solved against phase.eatKcal
+        // as a fixed assumption; if you eat less than that, less active is
+        // needed to hit the same deficit, and if you eat more, more is
+        // needed. plannedTgt + (consumed-eatKcal)/ACTIVE_MULT is the same
+        // formula phaseActiveTargets solves internally, just re-solved
+        // against what you actually ate instead of the budget assumption —
+        // the workout/rest split stays intact since plannedTgt already
+        // reflects which kind of day this is.
+        const plannedTgt=phaseActiveTarget(phase,date);
+        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-phase.eatKcal)/ACTIVE_MULT));
+        const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
         const remain=Math.max(0,aTgt-active);
@@ -386,7 +396,7 @@ function saveBurn(date,field,val){
     getDayData(date).active=n;
   }
   save();
-  queueDayMeta(date);
+  queueDayMeta(date, [field==="resting"?"restingOverride":"active"]);
   // Surgical: don't rebuild the DOM if the user is tapping straight from one
   // burn field into the other — replacing the card mid-tap destroys the
   // target input before focus lands on it, dismissing the iOS keyboard
@@ -500,7 +510,7 @@ function zepCardHtml(){
 }
 // ── END ZEPBOUND ──────────────────────────────────────────────────────────────
 function toggleShock(date){
-  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date);renderNutrition();}
+  if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date,["shock"]);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
 function closeFood(){_foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();}
 let _dietRevBusy=false;
@@ -1127,7 +1137,7 @@ function arrivalEst(){
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
   const active=parseInt(p.get("active")||"0"),date=p.get("date")||isoToday();
-  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date);showToast(`⚡ Active calories synced (${active} kcal)`);}
+  if(!isNaN(active)&&active>=0){getDayData(date).active=active;save();queueDayMeta(date,["active"]);showToast(`⚡ Active calories synced (${active} kcal)`);}
   const url=new URL(location.href);url.searchParams.delete("hksync");url.searchParams.delete("active");url.searchParams.delete("date");
   history.replaceState({},"",url);
 }
