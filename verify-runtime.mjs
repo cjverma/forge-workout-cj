@@ -68,7 +68,10 @@ const SEED = (seedEx) => {
 // A real gym exercise from whichever program is active TODAY, not a hardcoded
 // id — the active program changes on a schedule, and this must survive every
 // boundary without needing a follow-up edit here.
-const _todayProg = programFor(new Date());
+// In Toronto wall-clock time, because the page under test runs with
+// timezoneId America/Toronto: near midnight UTC the two dates differ, and on
+// a program boundary that seeded an id the page's PROG did not contain.
+const _todayProg = programFor(new Date(new Date().toLocaleString("en-US", { timeZone: "America/Toronto" })));
 let SEED_EX = null;
 for (const [day, d] of Object.entries(_todayProg)) {
   const gym = (d.exercises || []).find((e) => e.cat === "gym");

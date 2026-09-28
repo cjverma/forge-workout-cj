@@ -755,6 +755,65 @@ export const PROG_V5={
 // from Aug 10 it also carries the morning physio sequence, so before Aug 10 it
 // strips to zero exercises and reads as pure rest.
 
+// ── PROGRAM V6: Mon 28 Sep – Sun 4 Oct 2026 · deload week, shuffled split ──
+// A lighter week: two body parts a day, three exercises each, two working
+// sets at ~10% under Southpaw, and more cardio (10 min warm-up plus a 20-25
+// min finisher every day). Days are rotated off the common gym calendar so
+// the machines are free: back on Monday while everyone benches, glutes on
+// Friday while everyone does arms. Southpaw resumes Mon 5 Oct.
+// Every entry is looked up by NAME in PROG_V4 first (so S.prs slugs and cues
+// carry over) and then EX_DB, so nothing here can drift from its source.
+function _v6Kg(v){const x=v*0.9;return x>=10?Math.round(x/2.5)*2.5:Math.round(x*2)/2;}
+function _v6Hint(h){return String(h).replace(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))? kg/,(_,a,b)=>b?`${_v6Kg(+a)}-${_v6Kg(+b)} kg`:`${_v6Kg(+a)} kg`);}
+function _v6Src(name){
+  for(const d of Object.values(PROG_V4))for(const e of d.exercises)if(e.name===name)return e;
+  const x=EX_DB.find(e=>e.name===name);
+  if(!x)throw new Error("PROG_V6: unknown exercise "+name);
+  return{...x,cat:x.cat.toLowerCase()};
+}
+function _v6Day(pfx,label,sub,list){
+  return{label,tag:"Deload",sub,exercises:list.map(([slug,name,reps,rest,extra])=>{
+    const src=_v6Src(name),gym=src.cat==="gym";
+    // Southpaw cues cross-reference its own weekdays ("Lighter than Monday"),
+    // which point at the wrong session once the days are rotated. Drop them.
+    const cue=src.cue.split(/(?<=\.)\s+/).filter(c=>!/(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day/.test(c)).join(" ");
+    const o={id:pfx+"_"+slug,name,cat:src.cat,sets:gym?2:1,reps:reps??src.reps,hint:gym?_v6Hint(src.hint):src.hint,url:src.url,
+      cue:gym?("Deload week: leave 3 reps in the tank. "+cue).trim():cue,muscles:src.muscles||[]};
+    if(gym)o.rest=rest||60;
+    return Object.assign(o,extra||{});
+  })};
+}
+const _WU=pfx=>["bike","Stationary Bike","10 min",0,{hint:"Level 5-7",cue:"Easy warm-up. Joints before load."}];
+const _CORE=[["pp","Pallof Press","12 each side",60],["spl","Side Plank","20-30s each side",45],["fpl","Front Plank","30s",45]];
+export const PROG_V6={
+  Monday:_v6Day("m6","Back & Biceps","Back · Biceps · Elliptical",[_WU(),
+    ["csr","Chest Supported Row","10-12",75],["spd","Seated Pulldown (Neutral Grip)","10-12",75],["scr","Seated Cable Row","10-12",75],
+    ["sdc","Seated Dumbbell Curl","10-12",60],["hc","Hammer Curl",12,60],["cbc","Cable Bicep Curl",15,60],
+    ["ell","Elliptical Machine","20 min",0,{hint:"Resistance 4-6"}]]),
+  Tuesday:_v6Day("t6","Legs & Core","Quads · Hamstrings · Core · Incline walk",[_WU(),
+    ["lp","Leg Press Machine","10-12",90],["slc","Seated Leg Curl","12-15",75],["le","Leg Extension Machine","12-15",60],
+    ..._CORE,
+    ["itw","Incline Treadmill Walk","20 min",0,{hint:"Incline 4-6%"}]]),
+  Wednesday:_v6Day("w6","Chest & Triceps","Chest · Triceps · Elliptical",[_WU(),
+    ["cp","Chest Press Machine","10-12",90],["icp","Incline Chest Press Machine","10-12",75],["pf","Pec Fly Machine","12-15",60],
+    ["tex","Tricep Extension Machine","10-12",60],["tpd","Cable Tricep Pushdown","12-15",60],["tdip","Machine Tricep Dip",12,60],
+    ["ell","Elliptical Machine","20 min",0,{hint:"Resistance 4-6"}]]),
+  Thursday:_v6Day("th6","Shoulders & Back","Delts · Lats · Incline walk",[_WU(),
+    ["slr","Seated Lateral Raise",15,60],["mlr","Machine Lateral Raise","12-15",60],["rdf","Rear Delt Fly Machine",15,60],
+    ["sap","Straight Arm Pulldown","12-15",60],["rpo","Seated Cable Rope Pullover","12-15",60],["lrm","Low Row Machine",12,75],
+    ["itw","Incline Treadmill Walk","25 min",0,{hint:"Incline 4-6%"}]]),
+  Friday:_v6Day("f6","Glutes & Core","Glutes · Hips · Core · Bike",[_WU(),
+    ["gb","Weighted Glute Bridge","12-15",75],["gkb","Cable Glute Kickback","12 each side",60],["hiab","Outer Thigh Machine",15,60],
+    ..._CORE,
+    ["bk2","Stationary Bike","20 min",0,{hint:"Level 5-7",cue:"Steady, conversational pace."}]]),
+  Saturday:_v6Day("sa6","Chest & Biceps","Chest · Biceps · Incline walk",[_WU(),
+    ["icp","Incline Chest Press Machine","12-15",75],["cp","Chest Press Machine",12,75],["pf","Pec Fly Machine",15,60],
+    ["pcm","Preacher Curl Machine",12,60],["hc","Hammer Curl",12,60],["sdc","Seated Dumbbell Curl",12,60],
+    ["itw","Incline Treadmill Walk","25 min",0,{hint:"Incline 4-6%"}]]),
+  Sunday:{...PROG_V4.Sunday,exercises:PROG_V4.Sunday.exercises.map(e=>({...e,id:e.id.replace(/^su4_/,"su6_")}))},
+};
+
+
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
 // day and silently turn it into a second rest day. Southpaw moves physio to
@@ -781,7 +840,9 @@ function _sp(p){
 // Which program version a plan was generated against. Stamped onto weekPlans so
 // an override written for an older program cannot inject into a newer one.
 export function programKeyFor(date){
-  return date>=new Date(2026,8,21)?"v4"
+  return date>=new Date(2026,9,5)?"v4"
+    :date>=new Date(2026,8,28)?"v6"
+    :date>=new Date(2026,8,21)?"v4"
     :date>=new Date(2026,8,11)?"v5"
     :date>=new Date(2026,7,3)?"v4"
     :date>=new Date(2026,6,28)?"v3"
@@ -808,7 +869,9 @@ function _stage(p,date){
 }
 
 export function programFor(date){
-  const base=date>=new Date(2026,8,21)?PROG_V4
+  const base=date>=new Date(2026,9,5)?PROG_V4
+    :date>=new Date(2026,8,28)?PROG_V6
+    :date>=new Date(2026,8,21)?PROG_V4
     :date>=new Date(2026,8,11)?PROG_V5
     :date>=new Date(2026,7,3)?PROG_V4
     :date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
@@ -820,7 +883,8 @@ const _pd=new Date();
 // editing rather than inferring it from the exercise list.
 export const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
   v4:"Southpaw (Jake Gyllenhaal) hypertrophy program",
-  v5:"return block (full body, easy)"};
+  v5:"return block (full body, easy)",
+  v6:"Southpaw deload week (shuffled days, reduced volume)"};
 
 export const PROG=programFor(_pd);
 
