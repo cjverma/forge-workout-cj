@@ -2372,12 +2372,23 @@ function sevenDayAvg(dateIso){
   return vals.length?Math.round(vals.reduce((s,x)=>s+x,0)/vals.length*10)/10:null;
 }
 function phaseKgPerDay(p){const total=daysBetween(p.start,p.plannedEnd);return total?(p.startKg-p.targetKg)/total:0;}
+// Exact comparison, no band and no averaging: the latest weigh-in the user
+// entered (on or before the given day, inside the phase) against the curve's
+// exact value for THAT weigh-in's date. diff>0 = lighter than planned (ahead).
+// Comparing an older weigh-in to today's curve point would read as "behind"
+// just because days passed without a weigh-in, so the date is carried too.
+function weightVsCurve(p,todayIso){
+  const ws=phaseStore().nutrition?.weights||{};const t=todayIso||isoToday();
+  const d=Object.keys(ws).filter(k=>k>=p.start&&k<=t&&ws[k]!=null).sort().pop();
+  if(!d)return null;
+  const r1=x=>Math.round(Number(x)*10)/10,kg=r1(ws[d]),expected=r1(phaseCurveKg(p,d));
+  return{date:d,kg,expected,diff:Math.round((expected-kg)*10)/10};
+}
 function bankedDays(p,todayIso){
-  const avg=sevenDayAvg(todayIso);
+  const w=weightVsCurve(p,todayIso);
   const rate=phaseKgPerDay(p);
-  if(avg==null||!rate)return null;
-  const kg=Math.round((phaseCurveKg(p,todayIso)-avg)*10)/10;
-  return{kg,days:Math.round(kg/rate)};
+  if(!w||!rate)return null;
+  return{kg:w.diff,days:Math.round(w.diff/rate)};
 }
 function projectedFinish(todayIso){
   const S=phaseStore();
@@ -4837,14 +4848,18 @@ function weekCompliance(p,weekStartIso,endIso){
 }
 // Live health colour — same distance bands as the phase-end verdict, applied
 // to today's curve point instead of the phase target.
+// Uses the exact latest weigh-in vs the curve value for its date (no range,
+// no 7-day average). Colour still scales with how far behind; the label always
+// states the exact gap.
 function phaseHealth(p,todayIso){
-  const avg=sevenDayAvg(todayIso);
-  if(avg==null)return null;
-  const d=avg-phaseCurveKg(p,todayIso);
-  if(d<=1)return{colour:"green",label:d<-1?"Ahead of schedule":"On track"};
-  if(d<=2)return{colour:"yellow",label:"Slightly behind"};
-  if(d<=4)return{colour:"orange",label:"Moderately behind"};
-  return{colour:"red",label:"Off track: reassess"};
+  const w=weightVsCurve(p,todayIso);
+  if(!w)return null;
+  const d=-w.diff,abs=Math.abs(d).toFixed(1);
+  if(d<=0)return{colour:"green",label:d<0?`Ahead by ${abs} kg`:"Exactly on plan"};
+  const label=`Behind by ${abs} kg`;
+  if(d<=1)return{colour:"yellow",label};
+  if(d<=2)return{colour:"orange",label};
+  return{colour:"red",label:label+": reassess"};
 }
 // End-of-phase colour bands with the user's prescribed actions, verbatim rule
 function phaseVerdict(p,finalAvg){
@@ -4900,7 +4915,7 @@ function completePhase(id,manual){
   const run=ensurePhaseRun(id);
   if(run.locked)return;
   const t=isoToday();
-  const finalAvg=sevenDayAvg(t)??latestWeightLog()??p.startKg;
+  const finalAvg=weightVsCurve(p,t)?.kg??latestWeightLog()??p.startKg;
   const v=phaseVerdict(p,finalAvg);
   run.completedAt=t;run.outcome=v.band;run.locked=true;
   const weeks=run.weeks||[];
@@ -4941,7 +4956,7 @@ async function aiPhaseReview(id){
     const completion=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/Math.max(1,daysBetween(p.start,end))*100)));
     const comp=weekCompliance(p,mondayOfIso(t),t);
     const health=phaseHealth(p,t);
-    const cor=phaseCorridor(p,t);
+    const wvc=weightVsCurve(p,t);
     const run=getPhaseRun(p.id);
     const at=phaseActiveTargets(p,t);
     const restingNow=restingForPhase(p,t);
@@ -4955,7 +4970,7 @@ async function aiPhaseReview(id){
       if(!items.length&&!nd.active&&w==null)continue;
       days.push({date:d,kcal:items.reduce((s,it)=>s+(it.kcal||0),0),protein:items.reduce((s,it)=>s+(it.protein||0),0),active:nd.active||0,weight:w!=null?Number(w):null});
     }
-    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${at.workout} (Mon-Sat) / ${at.rest} (Sun), counted burn = resting ${restingNow} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
+    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${at.workout} (Mon-Sat) / ${at.rest} (Sun), counted burn = resting ${restingNow} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\nlatest weigh-in: ${wvc?`${wvc.kg} kg on ${wvc.date}, plan for that date ${wvc.expected} kg (${wvc.diff>=0?"ahead":"behind"} by ${Math.abs(wvc.diff)} kg)`:"n/a"}\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -5015,7 +5030,7 @@ function phaseCardHtml(){
     const finalAvg=avg??latestWeightLog()??p.startKg;
     const v=phaseVerdict(p,finalAvg);
     verdictHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title} · final 7-day avg ${finalAvg} kg vs target ${p.targetKg} kg</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title} · final weigh-in ${finalAvg} kg vs target ${p.targetKg} kg</div>
       <div style="font-size:12px;color:var(--lt);line-height:1.6">${v.action}</div>
       <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
     </div>`;
@@ -5066,20 +5081,23 @@ function phaseCardHtml(){
       '</div>'+
     '</div>';
 
-  let rangeRowHtml='<div style="font-size:12px;color:var(--dim);padding:4px 0">Log weigh-ins to see your target range</div>';
-  if(avg!=null){
-    const inRange=avg>=cor.lo&&avg<=cor.hi;
-    const chipBg=inRange?'var(--green-lo)':'var(--red-lo)';
-    const chipCol=inRange?'var(--green)':'var(--red)';
-    const chipTxt=inRange?'✓ In range':(banked&&banked.days>=0?'Ahead':'Behind');
+  // Exact: the weigh-in the user entered vs what the curve says it should
+  // have been on that same date. No ±1 kg band, no 7-day average.
+  const wvc=weightVsCurve(p,t);
+  let rangeRowHtml='<div style="font-size:12px;color:var(--dim);padding:4px 0">Log a weigh-in to compare against the plan</div>';
+  if(wvc){
+    const ok=wvc.diff>=0;
+    const chipBg=ok?'var(--green-lo)':'var(--red-lo)';
+    const chipCol=ok?'var(--green)':'var(--red)';
+    const chipTxt=wvc.diff===0?'✓ Exactly on plan':(ok?'Ahead ':'Behind ')+Math.abs(wvc.diff).toFixed(1)+' kg';
     rangeRowHtml=
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:8px">'+
         '<div style="display:flex;flex-direction:column;gap:1px">'+
-          '<span style="font-size:13px;color:var(--mid)">Range today</span>'+
-          '<span style="font-size:10px;color:var(--dim)">7-day avg: '+Number(avg).toFixed(1)+' kg</span>'+
+          '<span style="font-size:13px;color:var(--mid)">Plan for '+(wvc.date===t?'today':fmtDate(wvc.date))+'</span>'+
+          '<span style="font-size:10px;color:var(--dim)">Your weigh-in: '+Number(wvc.kg).toFixed(1)+' kg</span>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">'+
-          '<span style="font-weight:600;font-variant-numeric:tabular-nums">'+cor.lo+'–'+cor.hi+' kg</span>'+
+          '<span style="font-weight:600;font-variant-numeric:tabular-nums">'+Number(wvc.expected).toFixed(1)+' kg</span>'+
           '<span style="background:'+chipBg+';color:'+chipCol+';border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">'+chipTxt+'</span>'+
         '</div>'+
       '</div>';
@@ -6392,12 +6410,12 @@ function buildChatContext(){
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const phaseCtx=phase?(()=>{
-    const cor=phaseCorridor(phase,today);
+    const wvc=weightVsCurve(phase,today);
     const banked=bankedDays(phase,today);
     const comp=weekCompliance(phase,mondayOfIso(today),today);
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
       eatKcal:phase.eatKcal,activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
-      targetRangeToday:[cor.lo,cor.hi],bankedDays:banked?banked.days:null,
+      latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
       weekCompliance:comp.calculating?null:comp.overall,expectedDeficitToday:dailyDeficitReq};
   })():null;
   const goal={

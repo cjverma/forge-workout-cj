@@ -218,7 +218,7 @@ function mkEngine(Sstub) {
   // rule rather than the old hardcoded Sunday, so the deficit assertions below
   // are checked against what actually ships.
   const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog", "isGymRestDay",
-    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
+    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
     () => "2026-07-28",
@@ -369,6 +369,21 @@ ok("bankedDays: 126.8 vs 128 target → ahead ~3-5 days", ahead.kg === 1.2 && ah
 const behind = withAvg(129.5, "2026-09-07").bankedDays(E.PHASES[0], "2026-09-07");
 ok("bankedDays: 129.5 vs 128 target → behind ~4-6 days", behind.kg === -1.5 && behind.days <= -4 && behind.days >= -7);
 
+// Exact comparison: the single latest weigh-in vs the curve value on ITS date,
+// not a 7-day average and not a ±1 kg band.
+{
+  const P1 = E.PHASES[0];
+  const eng = mkEngine({ nutrition: { weights: { "2026-08-20": 150, "2026-08-27": 133.4 }, days: {} } });
+  const w = eng.weightVsCurve(P1, "2026-08-30");
+  const exp = Math.round(eng.phaseCurveKg(P1, "2026-08-27") * 10) / 10;
+  ok("weightVsCurve uses the latest weigh-in only and the curve value for that same date",
+    w && w.date === "2026-08-27" && w.kg === 133.4 && w.expected === exp && w.diff === Math.round((exp - 133.4) * 10) / 10);
+  const on = mkEngine({ nutrition: { weights: { "2026-08-27": exp }, days: {} } }).weightVsCurve(P1, "2026-08-27");
+  ok("weightVsCurve: a weigh-in exactly at the plan reads as a 0 kg gap", on.diff === 0);
+  const off = mkEngine({ nutrition: { weights: { "2026-08-27": exp + 0.3 }, days: {} } }).weightVsCurve(P1, "2026-08-27");
+  ok("weightVsCurve: 0.3 kg over the plan is reported as behind, not hidden inside a range", off.diff === -0.3);
+}
+
 // Projected finish confidence gates
 ok("projectedFinish: <10 weigh-ins → Trend stabilizing",
   withAvg(130, "2026-08-31").projectedFinish === undefined || (() => {
@@ -422,8 +437,8 @@ ok("required deficit is NOT rendered on the Nutrition dashboard",
 ok("intakeFloor/moveGap fully removed", !HTML.includes("intakeFloor") && !HTML.includes("moveGap"));
 ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
-ok("phase card present: target range wording, pause, review-now, accept override, banked progress",
-  HTML.includes("Range today") && HTML.includes("Pause phase") && HTML.includes("Review now") &&
+ok("phase card present: exact plan-vs-weigh-in row (no range), pause, review-now, accept override, banked progress",
+  !HTML.includes("Range today") && HTML.includes("Your weigh-in: ") && HTML.includes("Exactly on plan") && HTML.includes("Pause phase") && HTML.includes("Review now") &&
   HTML.includes("Accept current result") && (HTML.includes("Banked") || HTML.includes("Behind schedule")) && HTML.includes("Extend the phase"));
 ok("immutable snapshot on completion (S.phaseHistory) + quiet analytics incl. recoveryDays",
   HTML.includes("S.phaseHistory[id]=") && HTML.includes("recoveryDays") && HTML.includes("pauseDays"));

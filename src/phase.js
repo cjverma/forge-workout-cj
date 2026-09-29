@@ -198,12 +198,23 @@ export function sevenDayAvg(dateIso){
   return vals.length?Math.round(vals.reduce((s,x)=>s+x,0)/vals.length*10)/10:null;
 }
 export function phaseKgPerDay(p){const total=daysBetween(p.start,p.plannedEnd);return total?(p.startKg-p.targetKg)/total:0;}
+// Exact comparison, no band and no averaging: the latest weigh-in the user
+// entered (on or before the given day, inside the phase) against the curve's
+// exact value for THAT weigh-in's date. diff>0 = lighter than planned (ahead).
+// Comparing an older weigh-in to today's curve point would read as "behind"
+// just because days passed without a weigh-in, so the date is carried too.
+export function weightVsCurve(p,todayIso){
+  const ws=phaseStore().nutrition?.weights||{};const t=todayIso||isoToday();
+  const d=Object.keys(ws).filter(k=>k>=p.start&&k<=t&&ws[k]!=null).sort().pop();
+  if(!d)return null;
+  const r1=x=>Math.round(Number(x)*10)/10,kg=r1(ws[d]),expected=r1(phaseCurveKg(p,d));
+  return{date:d,kg,expected,diff:Math.round((expected-kg)*10)/10};
+}
 export function bankedDays(p,todayIso){
-  const avg=sevenDayAvg(todayIso);
+  const w=weightVsCurve(p,todayIso);
   const rate=phaseKgPerDay(p);
-  if(avg==null||!rate)return null;
-  const kg=Math.round((phaseCurveKg(p,todayIso)-avg)*10)/10;
-  return{kg,days:Math.round(kg/rate)};
+  if(!w||!rate)return null;
+  return{kg:w.diff,days:Math.round(w.diff/rate)};
 }
 export function projectedFinish(todayIso){
   const S=phaseStore();
