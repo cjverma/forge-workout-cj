@@ -1163,7 +1163,11 @@ function dropForSwap(id){
   if(!S.dropped)S.dropped={};
   if(!S.dropped[day])S.dropped[day]=[];
   if(!S.dropped[day].includes(id))S.dropped[day].push(id);
-  queueMutation("dropped_exercise",{id,dayName:day});
+  // Stamped with this week: a swap is for this week's session, not a
+  // permanent edit to the program (see applyDroppedExercises).
+  if(!S.droppedWk)S.droppedWk={};
+  S.droppedWk[id]=ctx.wk();
+  queueMutation("dropped_exercise",{id,dayName:day,weekKey:ctx.wk()});
   // A custom exercise the user drops is gone outright, not remembered and
   // re-hydrated on the next load. It also has to be deleted server-side, or
   // the next sync replaces state wholesale and brings it straight back.

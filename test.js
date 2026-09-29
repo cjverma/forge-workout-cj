@@ -1866,14 +1866,17 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       ['"dropped_exercise"', '"dropped_exercise_restore"', '"custom_exercise_delete"']
         .every(c => MUT.includes("case " + c + ":")));
     ok("the client queues every one of them",
-      /queueMutation\("dropped_exercise",\{id,dayName:day\}\)/.test(WORKOUT) &&
+      /queueMutation\("dropped_exercise",\{id,dayName:day,weekKey:ctx\.wk\(\)\}\)/.test(WORKOUT) &&
       /queueMutation\("dropped_exercise_restore",\{id\}\)/.test(WORKOUT) &&
       (WORKOUT.match(/queueMutation\("custom_exercise_delete",\{id\}\)/g) || []).length === 2);
     // A restore or reset that clears custom_exercises but not dropped_exercises
     // leaves stale drops hiding exercises from the freshly restored program.
     ok("both wipe paths clear dropped_exercises too",
       (MUT.match(/DELETE FROM dropped_exercises/g) || []).length >= 3 &&
-      /INSERT INTO dropped_exercises\(ex_id, day_name\)[\s\S]{0,120}ON CONFLICT \(ex_id\) DO NOTHING/.test(MUT));
+      /INSERT INTO dropped_exercises\(ex_id, day_name, week_key\)[\s\S]{0,160}ON CONFLICT \(ex_id\) DO NOTHING/.test(MUT));
+    ok("drops round-trip their week through schema, write, read and restore",
+      /ADD COLUMN IF NOT EXISTS week_key/.test(DB) && /SELECT ex_id, day_name, week_key FROM dropped_exercises/.test(STATE) &&
+      /droppedWk\[r\.ex_id\] = r\.week_key/.test(STATE) && /st\.droppedWk\?\.\[id\]/.test(MUT));
   }
   // Removing a custom exercise previously required adding another one first,
   // so anything added by mistake was stranded on that day permanently.

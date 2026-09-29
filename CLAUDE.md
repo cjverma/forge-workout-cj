@@ -346,6 +346,13 @@ shows one only if its `c_<timestamp>` id falls in the current week or it has
 sets logged this week; `curProg()` adds back the customs logged in a past week
 when you browse to it, without mutating the shared program object.
 
+**Swap drops are week-scoped the same way.** `S.dropped[day]` still lists ids,
+but each drop is stamped in `S.droppedWk[id]` (`dropped_exercises.week_key`)
+and `applyDroppedExercises()` only applies drops from the current week. Legacy
+rows have no week and have expired. **Any new per-weekday user edit must carry
+a week the same way**; `verify-runtime.mjs` seeds a stale and a current-week
+custom + drop and fails if a stale one applies.
+
 A custom exercise also has a **direct** remove button on its card
 (`removeCustomEx`). Without it the only route was the swap sheet, which needs
 you to add something first, so anything added by mistake was stranded on that

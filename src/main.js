@@ -413,9 +413,14 @@ ctx.customsLoggedIn=(day,weekKey)=>(S.custom?.[day]||[]).filter(ex=>ex&&ex.id&&S
 // list rather than mutating the program, so the drop survives a reload without
 // the program itself drifting away from what was planned.
 function applyDroppedExercises(){
+  // Only drops made THIS week apply. They used to be keyed by weekday alone,
+  // so one swap removed that exercise from that weekday in every later week
+  // and every later program. Legacy drops carry no week and have expired.
+  const weekKey=wk();
   Object.entries(S.dropped||{}).forEach(([day,ids])=>{
     if(!PROG[day]||!Array.isArray(ids)||!ids.length)return;
-    const drop=new Set(ids);
+    const drop=new Set(ids.filter(id=>S.droppedWk?.[id]===weekKey));
+    if(!drop.size)return;
     PROG[day].exercises=PROG[day].exercises.filter(ex=>!drop.has(ex.id));
   });
 }

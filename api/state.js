@@ -15,7 +15,7 @@ export async function assembleState() {
     q`SELECT date, kg FROM weights`,
     q`SELECT exercise_id, date, weight, reps, est FROM prs ORDER BY id`,
     q`SELECT id, day_name, name, cat, sets, reps, hint, url, cue, muscles FROM custom_exercises`,
-    q`SELECT ex_id, day_name FROM dropped_exercises`,
+    q`SELECT ex_id, day_name, week_key FROM dropped_exercises`,
     q`SELECT week_key, day_name, update FROM week_plan_updates ORDER BY id`,
     q`SELECT shown_protein7, shown_weight5kg, shown_week6, longest_streak FROM milestones WHERE id=1`,
     q`SELECT role, content FROM ai_chat ORDER BY id`,
@@ -68,7 +68,11 @@ export async function assembleState() {
   }
 
   const dropped = {};
-  for (const r of droppedRows) (dropped[r.day_name] ??= []).push(r.ex_id);
+  const droppedWk = {};
+  for (const r of droppedRows) {
+    (dropped[r.day_name] ??= []).push(r.ex_id);
+    if (r.week_key) droppedWk[r.ex_id] = r.week_key;
+  }
 
   const custom = {};
   for (const r of customRows) {
@@ -98,7 +102,7 @@ export async function assembleState() {
 
   const s = settingsRows[0] || {};
   return {
-    sessions, custom, dropped, weekPlans, prs, milestones, aiChat,
+    sessions, custom, dropped, droppedWk, weekPlans, prs, milestones, aiChat,
     nutrition: {
       days, weights,
       aiDeficitModifier: s.ai_deficit_modifier != null ? Number(s.ai_deficit_modifier) : 0,

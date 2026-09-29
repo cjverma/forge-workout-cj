@@ -97,6 +97,9 @@ export async function ensureSchema() {
     ex_id text PRIMARY KEY,
     day_name text NOT NULL
   )`;
+  // A drop belongs to one week (the week of the swap), not the weekday
+  // forever. Rows from before this column existed have NULL and are ignored.
+  await q`ALTER TABLE dropped_exercises ADD COLUMN IF NOT EXISTS week_key text`;
   await q`CREATE TABLE IF NOT EXISTS week_plan_updates(
     id serial PRIMARY KEY,
     week_key text NOT NULL,
