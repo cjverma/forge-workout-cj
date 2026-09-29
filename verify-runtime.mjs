@@ -206,6 +206,43 @@ try {
     await page.close();
   }
 
+  // Per-weekday user edits (custom adds, swap drops) must only apply to the
+  // week they were made in. Both were once keyed by weekday alone, so a
+  // one-off edit silently reshaped that weekday in every later week and every
+  // later program (two stale Leg Extensions on every Monday). Seeds a stale
+  // and a current-week version of each and checks only the current ones apply.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`week-scope: ${e.message}`));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const ids = await page.evaluate(() => [...document.querySelectorAll(".ex-card[id^='ex-']")].map((e) => e.id.slice(3)));
+    const [A, B] = ids;
+    await page.evaluate(([A, B]) => {
+      const S = JSON.parse(localStorage.f5);
+      const d = new Date(), j = new Date(d.getFullYear(), 0, 1);
+      const wk = d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7);
+      const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
+      const mk = (ts, n) => ({ id: "c_" + ts, name: n, cat: "gym", sets: 3, reps: 12, hint: "", custom: true });
+      S.custom = { [day]: [mk(Date.now() - 90 * 86400000, "StaleCustomX"), mk(Date.now(), "FreshCustomX")] };
+      S.dropped = { [day]: [A, B] };
+      S.droppedWk = { [A]: wk, [B]: "2000W1" };
+      S._v6MonDone1 = true;
+      localStorage.f5 = JSON.stringify(S);
+    }, [A, B]);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(1000);
+    const r = await page.evaluate(([A, B]) => ({
+      a: !!document.getElementById("ex-" + A), b: !!document.getElementById("ex-" + B),
+      stale: /StaleCustomX/.test(document.getElementById("tc")?.innerText || ""),
+      fresh: /FreshCustomX/.test(document.getElementById("tc")?.innerText || ""),
+    }), [A, B]);
+    note("a custom exercise from an earlier week does not reappear this week", !!A && !r.stale && r.fresh, JSON.stringify(r));
+    note("a swap drop from an earlier week does not remove the exercise this week", !!B && !r.a && r.b, JSON.stringify(r));
+    await page.close();
+  }
+
   // toggleSet's onchange/blur race: weight/reps commit to state only on
   // input blur, so tapping "done" right after typing (no Enter, the common
   // mobile path) can beat that blur to the click. Drives the real page's

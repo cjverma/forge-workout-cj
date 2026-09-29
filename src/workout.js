@@ -242,7 +242,15 @@ function saveNotes(val){
 // The program for the day being VIEWED, not for today. PROG is a snapshot
 // resolved at load time, so using it made next week render this week's plan:
 // browsing to Aug 3 still showed the V3 return block instead of Southpaw.
-function curProg(day){return programFor(ctx.viewDate())[day||ctx.cDay];}
+function curProg(day){
+  const d=day||ctx.cDay,p=programFor(ctx.viewDate())[d];
+  // Another week: show the customs actually logged in THAT week, so history
+  // stays visible now that customs no longer follow the weekday forever.
+  if(!p||!ctx.isPast())return p;
+  const ids=new Set(p.exercises.map(e=>e.id));
+  const extra=(ctx.customsLoggedIn?.(d,ctx.vwk())||[]).filter(e=>!ids.has(e.id));
+  return extra.length?{...p,exercises:[...p.exercises,...extra]}:p;
+}
 
 // Next day from the viewed one that actually schedules gym work. Used to give a
 // rest day somewhere to point instead of a dead end.
@@ -1155,7 +1163,11 @@ function dropForSwap(id){
   if(!S.dropped)S.dropped={};
   if(!S.dropped[day])S.dropped[day]=[];
   if(!S.dropped[day].includes(id))S.dropped[day].push(id);
-  queueMutation("dropped_exercise",{id,dayName:day});
+  // Stamped with this week: a swap is for this week's session, not a
+  // permanent edit to the program (see applyDroppedExercises).
+  if(!S.droppedWk)S.droppedWk={};
+  S.droppedWk[id]=ctx.wk();
+  queueMutation("dropped_exercise",{id,dayName:day,weekKey:ctx.wk()});
   // A custom exercise the user drops is gone outright, not remembered and
   // re-hydrated on the next load. It also has to be deleted server-side, or
   // the next sync replaces state wholesale and brings it straight back.

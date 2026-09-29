@@ -149,10 +149,10 @@ export default async function handler(req, res) {
         break;
       }
       case "dropped_exercise": {
-        const { id, dayName } = payload;
+        const { id, dayName, weekKey } = payload;
         if (!id || !dayName) break;
-        await q`INSERT INTO dropped_exercises(ex_id, day_name) VALUES(${id}, ${dayName})
-                ON CONFLICT (ex_id) DO UPDATE SET day_name=EXCLUDED.day_name`;
+        await q`INSERT INTO dropped_exercises(ex_id, day_name, week_key) VALUES(${id}, ${dayName}, ${weekKey || null})
+                ON CONFLICT (ex_id) DO UPDATE SET day_name=EXCLUDED.day_name, week_key=EXCLUDED.week_key`;
         break;
       }
       case "dropped_exercise_restore": {
@@ -246,7 +246,7 @@ export default async function handler(req, res) {
         }
         for (const [dayName, ids] of Object.entries(st.dropped || {})) {
           for (const id of (ids || [])) {
-            await q`INSERT INTO dropped_exercises(ex_id, day_name) VALUES(${id}, ${dayName})
+            await q`INSERT INTO dropped_exercises(ex_id, day_name, week_key) VALUES(${id}, ${dayName}, ${st.droppedWk?.[id] || null})
                     ON CONFLICT (ex_id) DO NOTHING`;
           }
         }

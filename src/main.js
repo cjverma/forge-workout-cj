@@ -386,21 +386,41 @@ function applyPlanOverrides(){
   }
 }
 
+// A custom exercise belongs to the WEEK it was added in, not to the weekday
+// forever. S.custom is keyed by day name only, so this used to attach every
+// custom ever added to that weekday on every launch: a Leg Extension added
+// once months ago kept reappearing on every Monday, through every program
+// change, and looked like the app was adding it by itself. The id carries its
+// creation time (c_<Date.now()>), so no schema change is needed: show it this
+// week if it was created this week or has sets logged this week. Past weeks
+// get their own logged customs back through customsLoggedIn() in curProg.
+function customInWeek(ex,day,weekKey,monTs){
+  const ts=Number(String(ex?.id||"").replace(/^c_/,""));
+  if(Number.isFinite(ts)&&ts>=monTs&&ts<monTs+7*86400000)return true;
+  return !!S.sessions?.[day+"_"+weekKey]?.[ex.id];
+}
 function hydrateCustomExercises(){
+  const monTs=_todayMonday().getTime(),weekKey=wk();
   Object.entries(S.custom||{}).forEach(([day,exs])=>{
     if(!PROG[day]||!Array.isArray(exs))return;
     const ids=new Set(PROG[day].exercises.map(ex=>ex.id));
-    exs.forEach(ex=>{if(ex&&ex.id&&!ids.has(ex.id)){PROG[day].exercises.push(ex);ids.add(ex.id);}});
+    exs.forEach(ex=>{if(ex&&ex.id&&!ids.has(ex.id)&&customInWeek(ex,day,weekKey,monTs)){PROG[day].exercises.push(ex);ids.add(ex.id);}});
   });
 }
+ctx.customsLoggedIn=(day,weekKey)=>(S.custom?.[day]||[]).filter(ex=>ex&&ex.id&&S.sessions?.[day+"_"+weekKey]?.[ex.id]);
 
 // Exercises the user swapped out when adding a custom one. Kept as a separate
 // list rather than mutating the program, so the drop survives a reload without
 // the program itself drifting away from what was planned.
 function applyDroppedExercises(){
+  // Only drops made THIS week apply. They used to be keyed by weekday alone,
+  // so one swap removed that exercise from that weekday in every later week
+  // and every later program. Legacy drops carry no week and have expired.
+  const weekKey=wk();
   Object.entries(S.dropped||{}).forEach(([day,ids])=>{
     if(!PROG[day]||!Array.isArray(ids)||!ids.length)return;
-    const drop=new Set(ids);
+    const drop=new Set(ids.filter(id=>S.droppedWk?.[id]===weekKey));
+    if(!drop.size)return;
     PROG[day].exercises=PROG[day].exercises.filter(ex=>!drop.has(ex.id));
   });
 }
