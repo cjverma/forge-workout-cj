@@ -338,6 +338,14 @@ All three add paths (`addFromDB`, `addFreeform`, `addFromAlt`) funnel through
 `afterCustomAdd()`. Wire new add paths there too, or the offer silently does
 not appear for them. Tested.
 
+**Custom exercises belong to the week they were added in.** `S.custom` is keyed
+by weekday only, and `hydrateCustomExercises()` used to attach every custom ever
+added to that weekday on every launch, so a one-off addition reappeared every
+week forever (two stale Leg Extensions on every Monday). `customInWeek()` now
+shows one only if its `c_<timestamp>` id falls in the current week or it has
+sets logged this week; `curProg()` adds back the customs logged in a past week
+when you browse to it, without mutating the shared program object.
+
 A custom exercise also has a **direct** remove button on its card
 (`removeCustomEx`). Without it the only route was the swap sheet, which needs
 you to add something first, so anything added by mistake was stranded on that

@@ -2956,7 +2956,15 @@ function saveNotes(val){
 // The program for the day being VIEWED, not for today. PROG is a snapshot
 // resolved at load time, so using it made next week render this week's plan:
 // browsing to Aug 3 still showed the V3 return block instead of Southpaw.
-function curProg(day){return programFor(ctx.viewDate())[day||ctx.cDay];}
+function curProg(day){
+  const d=day||ctx.cDay,p=programFor(ctx.viewDate())[d];
+  // Another week: show the customs actually logged in THAT week, so history
+  // stays visible now that customs no longer follow the weekday forever.
+  if(!p||!ctx.isPast())return p;
+  const ids=new Set(p.exercises.map(e=>e.id));
+  const extra=(ctx.customsLoggedIn?.(d,ctx.vwk())||[]).filter(e=>!ids.has(e.id));
+  return extra.length?{...p,exercises:[...p.exercises,...extra]}:p;
+}
 
 // Next day from the viewed one that actually schedules gym work. Used to give a
 // rest day somewhere to point instead of a dead end.
@@ -6942,13 +6950,28 @@ function applyPlanOverrides(){
   }
 }
 
+// A custom exercise belongs to the WEEK it was added in, not to the weekday
+// forever. S.custom is keyed by day name only, so this used to attach every
+// custom ever added to that weekday on every launch: a Leg Extension added
+// once months ago kept reappearing on every Monday, through every program
+// change, and looked like the app was adding it by itself. The id carries its
+// creation time (c_<Date.now()>), so no schema change is needed: show it this
+// week if it was created this week or has sets logged this week. Past weeks
+// get their own logged customs back through customsLoggedIn() in curProg.
+function customInWeek(ex,day,weekKey,monTs){
+  const ts=Number(String(ex?.id||"").replace(/^c_/,""));
+  if(Number.isFinite(ts)&&ts>=monTs&&ts<monTs+7*86400000)return true;
+  return !!S.sessions?.[day+"_"+weekKey]?.[ex.id];
+}
 function hydrateCustomExercises(){
+  const monTs=_todayMonday().getTime(),weekKey=wk();
   Object.entries(S.custom||{}).forEach(([day,exs])=>{
     if(!PROG[day]||!Array.isArray(exs))return;
     const ids=new Set(PROG[day].exercises.map(ex=>ex.id));
-    exs.forEach(ex=>{if(ex&&ex.id&&!ids.has(ex.id)){PROG[day].exercises.push(ex);ids.add(ex.id);}});
+    exs.forEach(ex=>{if(ex&&ex.id&&!ids.has(ex.id)&&customInWeek(ex,day,weekKey,monTs)){PROG[day].exercises.push(ex);ids.add(ex.id);}});
   });
 }
+ctx.customsLoggedIn=(day,weekKey)=>(S.custom?.[day]||[]).filter(ex=>ex&&ex.id&&S.sessions?.[day+"_"+weekKey]?.[ex.id]);
 
 // Exercises the user swapped out when adding a custom one. Kept as a separate
 // list rather than mutating the program, so the drop survives a reload without

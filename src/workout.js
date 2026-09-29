@@ -242,7 +242,15 @@ function saveNotes(val){
 // The program for the day being VIEWED, not for today. PROG is a snapshot
 // resolved at load time, so using it made next week render this week's plan:
 // browsing to Aug 3 still showed the V3 return block instead of Southpaw.
-function curProg(day){return programFor(ctx.viewDate())[day||ctx.cDay];}
+function curProg(day){
+  const d=day||ctx.cDay,p=programFor(ctx.viewDate())[d];
+  // Another week: show the customs actually logged in THAT week, so history
+  // stays visible now that customs no longer follow the weekday forever.
+  if(!p||!ctx.isPast())return p;
+  const ids=new Set(p.exercises.map(e=>e.id));
+  const extra=(ctx.customsLoggedIn?.(d,ctx.vwk())||[]).filter(e=>!ids.has(e.id));
+  return extra.length?{...p,exercises:[...p.exercises,...extra]}:p;
+}
 
 // Next day from the viewed one that actually schedules gym work. Used to give a
 // rest day somewhere to point instead of a dead end.

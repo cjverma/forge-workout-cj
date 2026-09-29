@@ -1609,6 +1609,13 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
           /if\(!S\._v6MonDone1\)/.test(M) && /new Date\(2026,8,28\)/.test(M) &&
           /programFor\(d\)\.Monday\.exercises/.test(M) && /queueSession\(key,ex\.id\)/.test(M));
       }
+      {
+        const M2 = readFileSync("src/main.js", "utf8"), W2 = readFileSync("src/workout.js", "utf8");
+        ok("custom exercises are scoped to the week they were added, not the weekday forever",
+          /function customInWeek\(ex,day,weekKey,monTs\)/.test(M2) &&
+          /customInWeek\(ex,day,weekKey,monTs\)\)\{PROG\[day\]\.exercises\.push/.test(M2) &&
+          /ctx\.customsLoggedIn\?\.\(d,ctx\.vwk\(\)\)/.test(W2));
+      }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",
         Object.entries(REAL_V6).filter(([d]) => d !== "Sunday").every(([, d]) => {
