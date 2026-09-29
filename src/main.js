@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW, sessionKeyToIso } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -51,7 +51,7 @@ ctx.seedCustomNames=seedCustomNames;
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
-  for(const P of [PROG,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const P of [PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
   seedCustomNames();
 })();
@@ -179,6 +179,25 @@ if(!S._prLbFix3){
   S._prLbFix3=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
+}
+// One-off, requested by the user: Monday 28 Sep 2026 (first day of the PROG_V6
+// deload) was trained but not logged, so every exercise on it is marked done.
+// Existing sets are kept; only the done flag is set. Queued so it reaches
+// Postgres, because a sync replaces state wholesale. Idempotent, and scoped to
+// that one week so it can never touch another Monday.
+if(!S._v6MonDone1){
+  const d=new Date(2026,8,28),j=new Date(2026,0,1);
+  const key="Monday_2026W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+  S.sessions=S.sessions||{};
+  const sess=S.sessions[key]=S.sessions[key]||{};
+  for(const ex of programFor(d).Monday.exercises){
+    const ed=sess[ex.id]=sess[ex.id]||{sets:[]};
+    if(ed.done)continue;
+    ed.done=true;ed.skipped=false;
+    queueSession(key,ex.id);
+  }
+  S._v6MonDone1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are

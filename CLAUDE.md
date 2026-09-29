@@ -242,6 +242,13 @@ failure mode. `PROG_V5` copies every exercise NAME verbatim from `PROG_V4`:
 block would silently lose its PR history and the AI-suggested weight hints
 built from it.
 
+A second interruption: `PROG_V6` runs Mon 28 Sep - Sun 4 Oct 2026 as a deload
+week (two body parts a day, three exercises each, 2 sets at ~90% loads, 30-35
+min cardio a day, days rotated off the busy gym calendar). It uses only
+exercises already in `PROG_V4` (resolved by name, unknown names throw), so no
+new movement appears and PR slugs carry over. Southpaw
+resumes Mon 5 Oct. Same rule: both cascades change together.
+
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
   never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts
   as rest once its physio block returns.

@@ -31,7 +31,7 @@
 import { readFileSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
-  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5 } from "./src/constants.js";
+  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6 } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // settings.js assigns to window at import time, so isBannedExercise cannot be
 // imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
@@ -1559,6 +1559,11 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       keyAt("2026-09-11T12:00:00") === "v5" &&
       keyAt("2026-09-20T12:00:00") === "v5" &&
       keyAt("2026-09-21T12:00:00") === "v4");
+    ok("PROG_V6 deload window runs Mon Sep 28 - Sun Oct 4, Southpaw resumes Oct 5",
+      keyAt("2026-09-27T12:00:00") === "v4" && keyAt("2026-09-28T12:00:00") === "v6" &&
+      keyAt("2026-10-04T12:00:00") === "v6" && keyAt("2026-10-05T12:00:00") === "v4" &&
+      REAL_PROGRAM_FOR(new Date("2026-09-28T12:00:00")).Monday === REAL_V6.Monday &&
+      REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")).Monday === REAL_V4.Monday);
     // programFor and programKeyFor are two independently-maintained cascades;
     // the only thing keeping them in sync is agreeing at every boundary.
     for (const iso of ["2026-09-10T12:00:00", "2026-09-11T12:00:00", "2026-09-20T12:00:00", "2026-09-21T12:00:00"]) {
@@ -1585,7 +1590,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     const seen = new Map();
     const dupes = [];
     const badPrefix = [];
-    for (const [ver, prog] of [["v1", REAL_V1], ["v2", REAL_V2], ["v3", REAL_V3], ["v4", REAL_V4], ["v5", REAL_V5]]) {
+    for (const [ver, prog] of [["v1", REAL_V1], ["v2", REAL_V2], ["v3", REAL_V3], ["v4", REAL_V4], ["v5", REAL_V5], ["v6", REAL_V6]]) {
       for (const [day, d] of Object.entries(prog)) for (const ex of d.exercises) {
         if (seen.has(ex.id)) dupes.push(`${ex.id} (${ver}/${day} vs ${seen.get(ex.id)})`);
         seen.set(ex.id, `${ver}/${day}`);
@@ -1593,6 +1598,33 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       }
     }
     ok(`no duplicate exercise ids across program versions${dupes.length ? " — " + dupes.slice(0, 3).join(", ") : ""}`, dupes.length === 0);
+    {
+      const P6 = { Monday: "m6", Tuesday: "t6", Wednesday: "w6", Thursday: "th6", Friday: "f6", Saturday: "sa6", Sunday: "su6" };
+      const bad6 = Object.entries(REAL_V6).flatMap(([day, d]) => d.exercises.filter(e => !e.id.startsWith(P6[day] + "_")).map(e => e.id));
+      ok(`every PROG_V6 id carries its day's prefix${bad6.length ? " — " + bad6.join(", ") : ""}`, bad6.length === 0);
+      const v6Names = Object.values(REAL_V6).flatMap(d => d.exercises.map(e => e.name));
+      {
+        const M = readFileSync("src/main.js", "utf8");
+        ok("Monday 28 Sep is marked done once, queued to the server, scoped to that week only",
+          /if\(!S\._v6MonDone1\)/.test(M) && /new Date\(2026,8,28\)/.test(M) &&
+          /programFor\(d\)\.Monday\.exercises/.test(M) && /queueSession\(key,ex\.id\)/.test(M));
+      }
+      ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
+      ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",
+        Object.entries(REAL_V6).filter(([d]) => d !== "Sunday").every(([, d]) => {
+          const g = d.exercises.filter(e => e.cat === "gym").length;
+          return g >= 5 && g <= 6 && d.exercises.filter(e => e.cat === "cardio").length === 2;
+        }));
+      const v4Sets = Object.values(REAL_V4).flatMap(d => d.exercises).filter(e => e.cat === "gym").reduce((a, e) => a + e.sets, 0);
+      const v6Sets = Object.values(REAL_V6).flatMap(d => d.exercises).filter(e => e.cat === "gym").reduce((a, e) => a + e.sets, 0);
+      ok(`PROG_V6 is a real deload: fewer weekly gym sets than Southpaw (${v6Sets} vs ${v4Sets})`, v6Sets < v4Sets * 0.8);
+      ok("PROG_V6 does not train chest on Monday or keep Sunday as anything but rest",
+        !/Chest/.test(REAL_V6.Monday.label) && REAL_V6.Sunday.exercises.every(e => e.cat === "physio"));
+      const ssKeys = {};
+      for (const d of Object.values(REAL_V6)) for (const e of d.exercises) if (e.ss) ssKeys[e.ss] = (ssKeys[e.ss] || 0) + 1;
+      ok("PROG_V6 supersets still come in pairs", Object.values(ssKeys).every(n => n === 2));
+      ok("no PROG_V6 exercise is blocked by the spine filter", !v6Names.some(n => REAL_IS_BANNED(n)));
+    }
     ok(`every PROG_V5 id carries its day's prefix${badPrefix.length ? " — " + badPrefix.join(", ") : ""}`, badPrefix.length === 0);
 
     // Every gym exercise needs a rest interval (the timer reads ex.rest), and
@@ -2039,7 +2071,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("one shared PR name resolver with a de-slug fallback",
     /ctx\.prName=prName/.test(MAIN2) &&
     /replace\(\/_\/g," "\)/.test(MAIN2) &&
-    /for\(const P of \[PROG,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
+    /for\(const P of \[PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
   ok("no call site falls back to printing the raw slug",
     !/EX_NAMES\[id\]\|\|\(id\.startsWith/.test(NUT) &&
     !/_prNameMap\[id\]\|\|id/.test(SET) &&
