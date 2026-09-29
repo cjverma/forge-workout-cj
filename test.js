@@ -1603,9 +1603,18 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       const bad6 = Object.entries(REAL_V6).flatMap(([day, d]) => d.exercises.filter(e => !e.id.startsWith(P6[day] + "_")).map(e => e.id));
       ok(`every PROG_V6 id carries its day's prefix${bad6.length ? " — " + bad6.join(", ") : ""}`, bad6.length === 0);
       const v6Names = Object.values(REAL_V6).flatMap(d => d.exercises.map(e => e.name));
-      ok("PROG_V6 is 2 body parts x 3 exercises per training day, plus cardio either side",
-        Object.entries(REAL_V6).filter(([d]) => d !== "Sunday").every(([, d]) =>
-          d.exercises.filter(e => e.cat === "gym").length === 6 && d.exercises.filter(e => e.cat === "cardio").length === 2));
+      {
+        const M = readFileSync("src/main.js", "utf8");
+        ok("Monday 28 Sep is marked done once, queued to the server, scoped to that week only",
+          /if\(!S\._v6MonDone1\)/.test(M) && /new Date\(2026,8,28\)/.test(M) &&
+          /programFor\(d\)\.Monday\.exercises/.test(M) && /queueSession\(key,ex\.id\)/.test(M));
+      }
+      ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
+      ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",
+        Object.entries(REAL_V6).filter(([d]) => d !== "Sunday").every(([, d]) => {
+          const g = d.exercises.filter(e => e.cat === "gym").length;
+          return g >= 5 && g <= 6 && d.exercises.filter(e => e.cat === "cardio").length === 2;
+        }));
       const v4Sets = Object.values(REAL_V4).flatMap(d => d.exercises).filter(e => e.cat === "gym").reduce((a, e) => a + e.sets, 0);
       const v6Sets = Object.values(REAL_V6).flatMap(d => d.exercises).filter(e => e.cat === "gym").reduce((a, e) => a + e.sets, 0);
       ok(`PROG_V6 is a real deload: fewer weekly gym sets than Southpaw (${v6Sets} vs ${v4Sets})`, v6Sets < v4Sets * 0.8);

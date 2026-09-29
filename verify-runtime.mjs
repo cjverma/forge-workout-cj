@@ -28,6 +28,9 @@ const note = (label, ok, detail = "") => {
 // every earlier screenshot missed it.
 const SEED = (seedEx) => {
   const S = JSON.parse(localStorage.f5);
+  // The one-off "mark Mon 28 Sep done" pass would pre-complete the very
+  // exercise the toggleSet check taps when the test runs on that Monday.
+  S._v6MonDone1 = true;
   const iso = (d) => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
   const j = new Date(new Date().getFullYear(), 0, 1);
   const wk = (y) => y.getFullYear() + "W" + Math.ceil(((y - j) / 86400000 + j.getDay() + 1) / 7);
@@ -218,10 +221,12 @@ try {
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(1300);
 
-    const exId = await page.evaluate(() => {
-      const inp = [...document.querySelectorAll(".si:not([disabled])")].find((i) => i.id.startsWith("wi-"));
+    // Skip the seeded exercise: SEED marks it done with a logged set, which is
+    // not the untouched set this check needs.
+    const exId = await page.evaluate((seedId) => {
+      const inp = [...document.querySelectorAll(".si:not([disabled])")].find((i) => i.id.startsWith("wi-") && !i.id.startsWith("wi-" + seedId + "-"));
       return inp ? inp.id.replace("wi-", "").replace(/-\d+$/, "") : null;
-    });
+    }, SEED_EX.id);
     if (exId) {
       await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
       await page.waitForTimeout(300);

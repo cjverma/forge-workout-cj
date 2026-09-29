@@ -244,8 +244,9 @@ built from it.
 
 A second interruption: `PROG_V6` runs Mon 28 Sep - Sun 4 Oct 2026 as a deload
 week (two body parts a day, three exercises each, 2 sets at ~90% loads, 30-35
-min cardio a day, days rotated off the busy gym calendar). It resolves every
-exercise by name from `PROG_V4` then `EX_DB`, so PR slugs carry over. Southpaw
+min cardio a day, days rotated off the busy gym calendar). It uses only
+exercises already in `PROG_V4` (resolved by name, unknown names throw), so no
+new movement appears and PR slugs carry over. Southpaw
 resumes Mon 5 Oct. Same rule: both cascades change together.
 
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,

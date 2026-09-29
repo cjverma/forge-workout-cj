@@ -1779,15 +1779,14 @@ const PROG_V5={
 // min finisher every day). Days are rotated off the common gym calendar so
 // the machines are free: back on Monday while everyone benches, glutes on
 // Friday while everyone does arms. Southpaw resumes Mon 5 Oct.
-// Every entry is looked up by NAME in PROG_V4 first (so S.prs slugs and cues
-// carry over) and then EX_DB, so nothing here can drift from its source.
+// Only exercises already in Southpaw: a deload is not the week to learn a new
+// movement. Every entry is looked up by NAME in PROG_V4 (so S.prs slugs, cues
+// and videos carry over) and an unknown name throws at load.
 function _v6Kg(v){const x=v*0.9;return x>=10?Math.round(x/2.5)*2.5:Math.round(x*2)/2;}
 function _v6Hint(h){return String(h).replace(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))? kg/,(_,a,b)=>b?`${_v6Kg(+a)}-${_v6Kg(+b)} kg`:`${_v6Kg(+a)} kg`);}
 function _v6Src(name){
   for(const d of Object.values(PROG_V4))for(const e of d.exercises)if(e.name===name)return e;
-  const x=EX_DB.find(e=>e.name===name);
-  if(!x)throw new Error("PROG_V6: unknown exercise "+name);
-  return{...x,cat:x.cat.toLowerCase()};
+  throw new Error("PROG_V6: not a Southpaw exercise "+name);
 }
 function _v6Day(pfx,label,sub,list){
   return{label,tag:"Deload",sub,exercises:list.map(([slug,name,reps,rest,extra])=>{
@@ -1802,32 +1801,33 @@ function _v6Day(pfx,label,sub,list){
   })};
 }
 const _WU=pfx=>["bike","Stationary Bike","10 min",0,{hint:"Level 5-7",cue:"Easy warm-up. Joints before load."}];
-const _CORE=[["pp","Pallof Press","12 each side",60],["spl","Side Plank","20-30s each side",45],["fpl","Front Plank","30s",45]];
+// Longer cool-down walk is where the extra cardio lives: same treadmill, no new machine.
+const _CD=mins=>["tm","Treadmill Cool-Down",mins,0,{hint:"Incline 3-5%",cue:"Brisk walk. Heart rate up, then easing down for the last few minutes."}];
 const PROG_V6={
-  Monday:_v6Day("m6","Back & Biceps","Back · Biceps · Elliptical",[_WU(),
+  Monday:_v6Day("m6","Back & Biceps","Back · Biceps",[_WU(),
     ["csr","Chest Supported Row","10-12",75],["spd","Seated Pulldown (Neutral Grip)","10-12",75],["scr","Seated Cable Row","10-12",75],
     ["sdc","Seated Dumbbell Curl","10-12",60],["hc","Hammer Curl",12,60],["cbc","Cable Bicep Curl",15,60],
-    ["ell","Elliptical Machine","20 min",0,{hint:"Resistance 4-6"}]]),
-  Tuesday:_v6Day("t6","Legs & Core","Quads · Hamstrings · Core · Incline walk",[_WU(),
+    _CD("20 min")]),
+  Tuesday:_v6Day("t6","Legs & Calves","Quads · Hamstrings · Calves · Core",[_WU(),
     ["lp","Leg Press Machine","10-12",90],["slc","Seated Leg Curl","12-15",75],["le","Leg Extension Machine","12-15",60],
-    ..._CORE,
-    ["itw","Incline Treadmill Walk","20 min",0,{hint:"Incline 4-6%"}]]),
-  Wednesday:_v6Day("w6","Chest & Triceps","Chest · Triceps · Elliptical",[_WU(),
+    ["calf","Seated Calf Raise","15-20",45],["hiad","Inner Thigh Machine",15,60],["pp","Pallof Press","12 each side",60],
+    _CD("20 min")]),
+  Wednesday:_v6Day("w6","Chest & Triceps","Chest · Triceps · Forearms",[_WU(),
     ["cp","Chest Press Machine","10-12",90],["icp","Incline Chest Press Machine","10-12",75],["pf","Pec Fly Machine","12-15",60],
-    ["tex","Tricep Extension Machine","10-12",60],["tpd","Cable Tricep Pushdown","12-15",60],["tdip","Machine Tricep Dip",12,60],
-    ["ell","Elliptical Machine","20 min",0,{hint:"Resistance 4-6"}]]),
-  Thursday:_v6Day("th6","Shoulders & Back","Delts · Lats · Incline walk",[_WU(),
-    ["slr","Seated Lateral Raise",15,60],["mlr","Machine Lateral Raise","12-15",60],["rdf","Rear Delt Fly Machine",15,60],
-    ["sap","Straight Arm Pulldown","12-15",60],["rpo","Seated Cable Rope Pullover","12-15",60],["lrm","Low Row Machine",12,75],
-    ["itw","Incline Treadmill Walk","25 min",0,{hint:"Incline 4-6%"}]]),
-  Friday:_v6Day("f6","Glutes & Core","Glutes · Hips · Core · Bike",[_WU(),
+    ["tex","Tricep Extension Machine","10-12",60],["tpd","Cable Tricep Pushdown","12-15",60],["wc","Seated DB Wrist Curl",15,45],
+    _CD("20 min")]),
+  Thursday:_v6Day("th6","Shoulders & Back","Delts · Lats",[_WU(),
+    ["slr","Seated Lateral Raise",15,60],["rdf","Rear Delt Fly Machine",15,60],
+    ["sap","Straight Arm Pulldown","12-15",60],["rpo","Seated Cable Rope Pullover","12-15",60],["csr","Chest Supported Row",12,75],
+    _CD("25 min")]),
+  Friday:_v6Day("f6","Glutes & Core","Glutes · Hips · Core",[_WU(),
     ["gb","Weighted Glute Bridge","12-15",75],["gkb","Cable Glute Kickback","12 each side",60],["hiab","Outer Thigh Machine",15,60],
-    ..._CORE,
-    ["bk2","Stationary Bike","20 min",0,{hint:"Level 5-7",cue:"Steady, conversational pace."}]]),
-  Saturday:_v6Day("sa6","Chest & Biceps","Chest · Biceps · Incline walk",[_WU(),
+    ["pp","Pallof Press","12 each side",60],["calf","Seated Calf Raise",20,45],
+    _CD("20 min")]),
+  Saturday:_v6Day("sa6","Chest & Biceps","Chest · Biceps",[_WU(),
     ["icp","Incline Chest Press Machine","12-15",75],["cp","Chest Press Machine",12,75],["pf","Pec Fly Machine",15,60],
-    ["pcm","Preacher Curl Machine",12,60],["hc","Hammer Curl",12,60],["sdc","Seated Dumbbell Curl",12,60],
-    ["itw","Incline Treadmill Walk","25 min",0,{hint:"Incline 4-6%"}]]),
+    ["hc","Hammer Curl",12,60],["sdc","Seated Dumbbell Curl",12,60],["cbc","Cable Bicep Curl",15,60],
+    _CD("25 min")]),
   Sunday:{...PROG_V4.Sunday,exercises:PROG_V4.Sunday.exercises.map(e=>({...e,id:e.id.replace(/^su4_/,"su6_")}))},
 };
 
@@ -6735,6 +6735,25 @@ if(!S._prLbFix3){
   S._prLbFix3=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
+}
+// One-off, requested by the user: Monday 28 Sep 2026 (first day of the PROG_V6
+// deload) was trained but not logged, so every exercise on it is marked done.
+// Existing sets are kept; only the done flag is set. Queued so it reaches
+// Postgres, because a sync replaces state wholesale. Idempotent, and scoped to
+// that one week so it can never touch another Monday.
+if(!S._v6MonDone1){
+  const d=new Date(2026,8,28),j=new Date(2026,0,1);
+  const key="Monday_2026W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+  S.sessions=S.sessions||{};
+  const sess=S.sessions[key]=S.sessions[key]||{};
+  for(const ex of programFor(d).Monday.exercises){
+    const ed=sess[ex.id]=sess[ex.id]||{sets:[]};
+    if(ed.done)continue;
+    ed.done=true;ed.skipped=false;
+    queueSession(key,ex.id);
+  }
+  S._v6MonDone1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are
