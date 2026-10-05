@@ -814,6 +814,7 @@ export const PROG_V6={
 };
 
 
+
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
 // day and silently turn it into a second rest day. Southpaw moves physio to

@@ -206,6 +206,153 @@ try {
     await page.close();
   }
 
+  // Weekend auto-plan. Clock frozen on Sun 4 Oct 2026: the last day of the
+  // V6 deload week, planning Mon 5 Oct, which is full Southpaw. That boundary
+  // is the case that used to fail twice over: nothing generated unless tapped,
+  // and the plan's Southpaw ids were checked against the ramp week's program
+  // and silently dropped. Fixed dates, so the ids below stay valid forever.
+  {
+    const target = programFor(new Date(2026, 9, 5)).Monday.exercises.find((e) => e.cat === "gym" && !/^Warm-Up/.test(e.name));
+    const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`autoplan: ${e.message}`));
+    await page.clock.setFixedTime(new Date("2026-10-04T15:00:00-04:00"));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    let calls = 0;
+    await page.route("**/weekly-plan", (r) => {
+      calls++;
+      r.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ text: JSON.stringify({ week_plan: { Monday: [{ id: target.id, sets: 5, hint: "41 kg" }] }, coaching_notes: "auto", flags: [] }) }) });
+    });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2500);
+    const r = await page.evaluate(() => {
+      const S = JSON.parse(localStorage.f5 || "{}");
+      const wp = (S.weekPlans || {})["2026W41"] || null;
+      return { prog: wp?._prog, monday: wp?.Monday || null, modal: !!document.querySelector("#planModal.show"), notes: S._lastPlanNotes?.notes };
+    });
+    note("the week's plan generates automatically on Sunday, with no tap and no review modal",
+      calls === 1 && r.prog === "v4" && !r.modal && r.notes === "auto", JSON.stringify({ calls, ...r }));
+    note("a Sunday plan for a week on a different program keeps its updates (ids checked against the target week)",
+      Array.isArray(r.monday) && r.monday.some((u) => u.id === target.id && u.sets === 5), JSON.stringify(r.monday));
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(1500);
+    note("auto-plan runs once: a plan already in place is never regenerated", calls === 1, "calls=" + calls);
+    await page.close();
+  }
+  // A plan stamped for another program does not count as planned: it would be
+  // refused at apply time, so auto-plan replaces it instead of leaving the
+  // week unplanned. Mon 5 Oct 2026 (Southpaw, v4) with a stale v6 plan.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`autoplan-stale: ${e.message}`));
+    await page.clock.setFixedTime(new Date("2026-10-05T09:00:00-04:00"));
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ weekPlans: { "2026W41": { _prog: "v6", Monday: [{ id: "m6_csr", sets: 9 }] } }, _planMove41: true });
+    });
+    let calls = 0;
+    await page.route("**/weekly-plan", (r) => { calls++; r.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ text: JSON.stringify({ week_plan: { Monday: [] }, coaching_notes: "n", flags: [] }) }) }); });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2500);
+    const wp = await page.evaluate(() => JSON.parse(localStorage.f5 || "{}").weekPlans?.["2026W41"]);
+    note("a plan made for another program is replaced by auto-plan, not kept or merged",
+      calls === 1 && wp?._prog === "v4" && !JSON.stringify(wp).includes("m6_csr"), JSON.stringify({ calls, wp }));
+    await page.close();
+  }
+
+  // kg/lbs mix-ups. History: four past sets at 50 kg on today's first gym
+  // exercise, plus one past set logged "120 kg" with a matching inflated PR
+  // (the Leg Extension case: 120 lbs typed while the exercise said kg).
+  {
+    const mk = async (dialogAnswer) => {
+      const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+      page.on("pageerror", (e) => jsErrors.push(`units: ${e.message}`));
+      await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+      await page.goto(URL, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const exId = await page.evaluate(() => {
+        const inp = [...document.querySelectorAll(".si")].find((i) => i.id.startsWith("wi-"));
+        return inp ? inp.id.replace("wi-", "").replace(/-\d+$/, "") : null;
+      });
+      const day = await page.evaluate((exId) => {
+        const S = JSON.parse(localStorage.f5);
+        const wkOf = (d) => { const j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7); };
+        const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+        S.sessions = {};
+        for (let n = 1; n <= 4; n++) {
+          const d = new Date(); d.setDate(d.getDate() - 7 * n);
+          S.sessions[day + "_" + wkOf(d)] = { [exId]: { unit: "kg", done: true, sets: [{ weight: "50", reps: "12", done: true }, { weight: n === 2 ? "120" : "50", reps: n === 2 ? "15" : "12", done: true }] } };
+        }
+        S.prs = {}; S._v6MonDone1 = true; S._planMove41 = true;
+        localStorage.f5 = JSON.stringify(S);
+        try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
+        return day;
+      }, exId);
+      if (dialogAnswer !== undefined) page.on("dialog", (d) => (dialogAnswer ? d.accept() : d.dismiss()));
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(900);
+      return { page, exId, day };
+    };
+
+    // 1. Typing 120 in kg mode on a ~50 kg exercise prompts; OK converts.
+    {
+      const { page, exId } = await mk(true);
+      await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
+      await page.waitForTimeout(300);
+      await page.locator(`#wi-${exId}-0`).fill("120");
+      await page.locator(`#ri-${exId}-0`).fill("10");
+      await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(400);
+      const w = await page.evaluate((id) => document.getElementById(`wi-${id}-0`)?.value, exId);
+      note("ticking a set ~2.2x heavier than usual asks, and OK logs it converted (120 -> 54.4 kg)", w === "54.4", "value=" + w);
+      const unit = await page.evaluate((id) => document.querySelector(`#sr-${id}-0 .wt-wrap`)?.dataset.unit, exId);
+      note("every weight box shows its unit inline", unit === "kg", "unit=" + unit);
+      await page.close();
+    }
+    // 2. Cancel keeps the typed number and never asks about that set again.
+    {
+      const { page, exId } = await mk(false);
+      await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
+      await page.waitForTimeout(300);
+      await page.locator(`#wi-${exId}-0`).fill("120");
+      await page.locator(`#ri-${exId}-0`).fill("10");
+      await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(({ id }) => { const S = JSON.parse(localStorage.f5); const k = Object.keys(S.sessions).find((k) => S.sessions[k][id]?.sets?.[0]?.weight === "120" && S.sessions[k][id].sets[0].done); return k ? S.sessions[k][id].sets[0] : null; }, { id: exId });
+      note("Cancel keeps the weight as typed and marks it confirmed", !!r && r.unitOk === true, JSON.stringify(r));
+      await page.close();
+    }
+    // 3. Review sheet: the past 120 kg set is listed; Convert fixes it and the PR.
+    {
+      const { page, exId } = await mk();
+      await page.evaluate(() => window.openUnitReview());
+      await page.waitForTimeout(300);
+      const listed = await page.evaluate(() => document.querySelectorAll("#planModal.show .pm-change").length);
+      note("the review sheet lists the one past set that looks like lbs, and nothing else", listed === 1, "rows=" + listed);
+      await page.locator("#planModal .uf-btns .pm-apply").first().click();
+      await page.waitForTimeout(400);
+      const r = await page.evaluate((id) => {
+        const S = JSON.parse(localStorage.f5);
+        const all = Object.values(S.sessions).flatMap((s) => (s[id]?.sets || []));
+        return { weights: all.map((x) => x.weight), maxPR: Math.max(0, ...Object.values(S.prs || {}).flat().map((e) => e.est)) };
+      }, exId);
+      note("Convert rewrites the set (120 -> 54.4 kg) and the PR is rebuilt from the corrected log",
+        r.weights.includes("54.4") && !r.weights.includes("120") && r.maxPR === 82, JSON.stringify(r)); // 54.4 kg x 15 -> 82 est, was 180
+      await page.close();
+    }
+    // 4. A fresh entry starts in the unit last used for that exercise.
+    {
+      const { page, exId } = await mk();
+      await page.evaluate((id) => { const S = JSON.parse(localStorage.f5); for (const s of Object.values(S.sessions)) if (s[id]) s[id].unit = "lbs"; localStorage.f5 = JSON.stringify(S); }, exId);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const unit = await page.evaluate((id) => document.querySelector(`#sr-${id}-0 .wt-wrap`)?.dataset.unit, exId);
+      note("a new entry defaults to the unit last used on that exercise (lbs)", unit === "lbs", "unit=" + unit);
+      await page.close();
+    }
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every

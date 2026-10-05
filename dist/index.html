@@ -347,6 +347,12 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .set-row.done .sn{color:var(--green);}
 
 .si{width:100%;background:transparent;border:none;outline:none;font-family:var(--font-body);font-size:20px;font-weight:700;color:var(--white);text-align:center;-webkit-appearance:none;}
+/* Unit printed inside every weight box, so kg vs lbs is visible on the row
+   being typed into, not only once in the header. */
+.wt-wrap{position:relative;display:block;min-width:0;}
+.wt-wrap::after{content:attr(data-unit);position:absolute;right:2px;bottom:1px;font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);pointer-events:none;}
+.uf-btns{display:flex;gap:8px;margin-top:10px;}
+.uf-sm{padding:9px;font-size:11px;}
 .si::placeholder{color:var(--b2);font-size:14px;font-weight:400;}
 .set-row.done .si{color:var(--mid);}
 .sx{font-size:12px;color:var(--dim);text-align:center;}
@@ -1832,6 +1838,7 @@ const PROG_V6={
 };
 
 
+
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
 // day and silently turn it into a second rest day. Southpaw moves physio to
@@ -2372,12 +2379,23 @@ function sevenDayAvg(dateIso){
   return vals.length?Math.round(vals.reduce((s,x)=>s+x,0)/vals.length*10)/10:null;
 }
 function phaseKgPerDay(p){const total=daysBetween(p.start,p.plannedEnd);return total?(p.startKg-p.targetKg)/total:0;}
+// Exact comparison, no band and no averaging: the latest weigh-in the user
+// entered (on or before the given day, inside the phase) against the curve's
+// exact value for THAT weigh-in's date. diff>0 = lighter than planned (ahead).
+// Comparing an older weigh-in to today's curve point would read as "behind"
+// just because days passed without a weigh-in, so the date is carried too.
+function weightVsCurve(p,todayIso){
+  const ws=phaseStore().nutrition?.weights||{};const t=todayIso||isoToday();
+  const d=Object.keys(ws).filter(k=>k>=p.start&&k<=t&&ws[k]!=null).sort().pop();
+  if(!d)return null;
+  const r1=x=>Math.round(Number(x)*10)/10,kg=r1(ws[d]),expected=r1(phaseCurveKg(p,d));
+  return{date:d,kg,expected,diff:Math.round((expected-kg)*10)/10};
+}
 function bankedDays(p,todayIso){
-  const avg=sevenDayAvg(todayIso);
+  const w=weightVsCurve(p,todayIso);
   const rate=phaseKgPerDay(p);
-  if(avg==null||!rate)return null;
-  const kg=Math.round((phaseCurveKg(p,todayIso)-avg)*10)/10;
-  return{kg,days:Math.round(kg/rate)};
+  if(!w||!rate)return null;
+  return{kg:w.diff,days:Math.round(w.diff/rate)};
 }
 function projectedFinish(todayIso){
   const S=phaseStore();
@@ -2726,7 +2744,33 @@ function fetchT(url, opts, ms = 15000) {
 }
 
 // ── UNITS · per-exercise label (no conversion, you enter what you see) ──
-function getExUnit(key,exId){const S=ctx.getS();return S.sessions[key]?.[exId]?.unit||"kg";}
+// An entry's unit is stored on it (ed.unit). Entries with logged weights but no
+// unit predate the field and were always kg, so they must keep reading as kg.
+// Only a fresh entry takes a default, and ensure() persists it immediately so
+// the number typed and the unit it is converted with can never disagree.
+function getExUnit(key,exId){
+  const ed=ctx.getS().sessions[key]?.[exId];
+  if(ed?.unit)return ed.unit;
+  if(ed&&(ed.sets||[]).some(s=>s&&s.weight))return "kg";
+  return defaultUnit(exId);
+}
+// New entries start in the unit last used for this exercise, else the unit used
+// most overall: the mix-ups came from an exercise silently starting in kg when
+// it was always lifted in lbs.
+function defaultUnit(exId){
+  const S=ctx.getS(),cid=canonicalId(exId);
+  let last=null,lastOrd=-1;const count={kg:0,lbs:0};
+  for(const[key,sess]of Object.entries(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    const m=key.match(/_(\d{4})W(\d+)$/);const ord=m?+m[1]*100+(+m[2]):0;
+    for(const[id,ed]of Object.entries(sess)){
+      if(!ed||typeof ed!=="object"||id.startsWith("_")||!(ed.sets||[]).some(s=>s&&s.weight))continue;
+      const u=ed.unit==="lbs"?"lbs":"kg";count[u]++;
+      if(canonicalId(id)===cid&&ord>lastOrd){lastOrd=ord;last=u;}
+    }
+  }
+  return last||(count.lbs>count.kg?"lbs":"kg");
+}
 function toggleExUnit(key,exId){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
@@ -3389,7 +3433,7 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
+        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
@@ -3441,7 +3485,9 @@ function ensure(key,exId,i){
   const S=ctx.getS();
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
-  while(S.sessions[key][exId].sets.length<=i)S.sessions[key][exId].sets.push({});
+  const ed=S.sessions[key][exId];
+  if(!ed.unit&&!(ed.sets||[]).some(s=>s&&s.weight))ed.unit=defaultUnit(exId);
+  while(ed.sets.length<=i)ed.sets.push({});
 }
 
 function onWtKey(e,exId,i){if(e.key==="Enter"){e.preventDefault();const r=document.getElementById("ri-"+exId+"-"+i);if(r)r.focus();}}
@@ -3495,9 +3541,10 @@ function toggleSet(key,exId,i){
   if(wEl)sd.weight=wEl.value.trim();
   if(rEl)sd.reps=rEl.value.trim();
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
-  sd.done=!sd.done;sd.attempted=true;
   const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
+  if(!sd.done&&!sd.unitOk)checkUnitOnLog(key,exId,i,sd,ex,wEl);
+  sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
   if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
@@ -4227,6 +4274,152 @@ window.toggleExUnit=toggleExUnit;
 window.onWtKey=onWtKey;
 window.onRpKey=onRpKey;
 
+// ── KG / LBS MIX-UP DETECTION ──
+// A weight typed in lbs while the exercise is set to kg is stored as kg, and
+// every PR repair trusts the log, so it survived all of them: Leg Extension
+// "120 kg x 15" was 120 lbs. 1 lb = 0.4536 kg, so a mix-up moves a number by
+// 2.2x. Flag anything 1.8x above the exercise's usual, or below 0.55x of it
+// when in lbs mode (kg typed into lbs). The baseline is the LOWER QUARTILE of
+// the logged sets, so a run of mis-typed sets cannot drag "usual" up to match.
+const UNIT_HI=1.8,UNIT_LO=0.55;
+function loggedSetsKg(cid){
+  const S=ctx.getS(),out=[];
+  for(const[key,sess]of Object.entries(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    for(const[exId,ed]of Object.entries(sess)){
+      if(!ed||typeof ed!=="object"||exId.startsWith("_")||canonicalId(exId)!==cid)continue;
+      (ed.sets||[]).forEach((st,i)=>{
+        if(!st||!st.done||!st.weight||!st.reps)return;
+        const kg=toKg(st.weight,ed.unit);
+        if(kg>0)out.push({key,exId,i,kg,unit:ed.unit==="lbs"?"lbs":"kg",weight:Number(st.weight),reps:Number(st.reps),ok:!!st.unitOk});
+      });
+    }
+  }
+  return out;
+}
+function usualKg(sets){
+  const v=sets.map(s=>s.kg).sort((a,b)=>a-b);
+  return v.length>=3?v[Math.floor((v.length-1)*0.25)]:null;
+}
+function hintMidKg(hint){
+  const m=String(hint||"").match(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?\s*kg/);
+  return m?(m[2]?(+m[1]+ +m[2])/2:+m[1]):null;
+}
+// "lbs" = typed lbs into a kg entry; "kg" = typed kg into an lbs entry.
+function unitSuspect(kg,unit,usual){
+  if(!usual||!kg)return null;
+  const r=kg/usual;
+  if(unit!=="lbs"&&r>=UNIT_HI)return "lbs";
+  if(unit==="lbs"&&r<=UNIT_LO)return "kg";
+  return null;
+}
+const r1=x=>Math.round(x*10)/10;
+function checkUnitOnLog(key,exId,i,sd,ex,wEl){
+  const cid=canonicalId(exId),unit=getExUnit(key,exId),w=Number(sd.weight);
+  const others=loggedSetsKg(cid).filter(s=>!(s.key===key&&s.exId===exId&&s.i===i));
+  const usual=usualKg(others)??hintMidKg(ex.hint);
+  const kg=toKg(w,unit),sus=unitSuspect(kg,unit,usual);
+  if(!sus)return;
+  const name=ex.name||"this exercise";
+  if(sus==="lbs"){
+    const conv=r1(w*LB_TO_KG);
+    if(confirm(`${w} kg is much heavier than your usual ~${Math.round(usual)} kg on ${name}.\n\nDid you mean ${w} lbs?\n\nOK: log it as ${conv} kg\nCancel: keep ${w} kg`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
+    else sd.unitOk=true;
+  }else{
+    const conv=r1(w/LB_TO_KG);
+    if(confirm(`${w} lbs is much lighter than your usual ~${Math.round(usual/LB_TO_KG)} lbs on ${name}.\n\nDid you mean ${w} kg?\n\nOK: log it as ${conv} lbs\nCancel: keep ${w} lbs`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
+    else sd.unitOk=true;
+  }
+}
+
+// Every logged set that looks like the wrong unit, for the review sheet.
+// Sets already confirmed (unitOk) are never asked about again.
+function findUnitSuspects(){
+  const S=ctx.getS(),cids=new Set();
+  for(const sess of Object.values(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    for(const[exId,ed]of Object.entries(sess))if(ed&&typeof ed==="object"&&!exId.startsWith("_"))cids.add(canonicalId(exId));
+  }
+  const out=[];
+  for(const cid of cids){
+    const sets=loggedSetsKg(cid),usual=usualKg(sets);
+    for(const s of sets){
+      if(s.ok)continue;
+      const to=unitSuspect(s.kg,s.unit,usual);
+      if(to)out.push({...s,cid,to,usual,name:ctx.prName?.(cid)||cid,date:sessionKeyToIso(s.key)});
+    }
+  }
+  return out.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+
+// After a correction, PR entries the log can no longer support (inflated by
+// the mix-up) are deleted and the best provable lift is put back.
+function rebuildPRsFor(cid){
+  const S=ctx.getS();
+  const best=bestFromSessions(cid);
+  const cap=(best?best.est:0)+1;
+  const list=S.prs?.[cid]||[];
+  const keep=list.filter(e=>Number(e.est)<=cap);
+  for(const e of list)if(Number(e.est)>cap)queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
+  if(keep.length)S.prs[cid]=keep;else if(S.prs)delete S.prs[cid];
+  recoverPRFromLog(cid);
+}
+
+let _unitQueue=[];
+function openUnitReview(auto){
+  _unitQueue=findUnitSuspects();
+  if(!_unitQueue.length){if(!auto)showToast("No kg/lbs mix-ups found ✓");return;}
+  renderUnitReview();
+}
+function renderUnitReview(){
+  const m=document.getElementById("planModal");
+  if(!m)return;
+  if(!_unitQueue.length){m.classList.remove("show");showToast("Units checked ✓ · PRs rebuilt");ctx.renderW?.();return;}
+  const rows=_unitQueue.map((s,idx)=>{
+    const conv=s.to==="lbs"?`${r1(s.weight*LB_TO_KG)} kg`:`${r1(s.weight/LB_TO_KG)} lbs`;
+    const typed=`${s.weight} ${s.unit}`;
+    const usual=s.unit==="lbs"?`~${Math.round(s.usual/LB_TO_KG)} lbs`:`~${Math.round(s.usual)} kg`;
+    return `<div class="pm-change">
+      <div class="pm-change-day">${esc(s.date?fmtDate(s.date):"")}</div>
+      <div class="pm-change-ex">${esc(s.name)}</div>
+      <div class="pm-change-val">${esc(typed)} × ${esc(String(s.reps))} · usual ${esc(usual)}</div>
+      <div class="pm-change-reason">Looks like ${s.to} was meant. Convert to ${esc(conv)}?</div>
+      <div class="uf-btns"><button class="pm-cancel uf-sm" onclick="unitFix(${idx},false)">Keep</button><button class="pm-apply uf-sm" onclick="unitFix(${idx},true)">Convert</button></div>
+    </div>`;}).join("");
+  m.innerHTML=`<div class="pm-title">Check units</div>
+    <div class="pm-sub">${_unitQueue.length} logged set${_unitQueue.length===1?"":"s"} look like kg and lbs got mixed up. Convert fixes the set and rebuilds that exercise's PR. Keep if the weight really was that.</div>
+    ${rows}
+    <div class="pm-btns"><button class="pm-cancel" onclick="closeUnitReview()">Later</button></div>`;
+  m.classList.add("show");
+}
+function unitFix(idx,convert){
+  const S=ctx.getS(),s=_unitQueue[idx];
+  if(!s)return;
+  const ed=S.sessions[s.key]?.[s.exId],st=ed?.sets?.[s.i];
+  if(st){
+    if(convert)st.weight=String(s.to==="lbs"?r1(s.weight*LB_TO_KG):r1(s.weight/LB_TO_KG));
+    st.unitOk=true;
+    queueSession(s.key,s.exId);
+    if(convert)rebuildPRsFor(s.cid);
+    save();
+  }
+  _unitQueue.splice(idx,1);
+  renderUnitReview();
+}
+function closeUnitReview(){document.getElementById("planModal")?.classList.remove("show");_unitQueue=[];}
+// Shown by itself once a day after launch while anything is unresolved, so a
+// mix-up gets caught even if nobody goes looking for it.
+function maybeUnitReview(){
+  const mark="f5_unitreview_"+isoToday();
+  try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
+  if(document.getElementById("planModal")?.classList.contains("show"))return;
+  openUnitReview(true);
+}
+ctx.maybeUnitReview=maybeUnitReview;
+window.openUnitReview=openUnitReview;
+window.unitFix=unitFix;
+window.closeUnitReview=closeUnitReview;
+
 
 
 
@@ -4837,14 +5030,18 @@ function weekCompliance(p,weekStartIso,endIso){
 }
 // Live health colour — same distance bands as the phase-end verdict, applied
 // to today's curve point instead of the phase target.
+// Uses the exact latest weigh-in vs the curve value for its date (no range,
+// no 7-day average). Colour still scales with how far behind; the label always
+// states the exact gap.
 function phaseHealth(p,todayIso){
-  const avg=sevenDayAvg(todayIso);
-  if(avg==null)return null;
-  const d=avg-phaseCurveKg(p,todayIso);
-  if(d<=1)return{colour:"green",label:d<-1?"Ahead of schedule":"On track"};
-  if(d<=2)return{colour:"yellow",label:"Slightly behind"};
-  if(d<=4)return{colour:"orange",label:"Moderately behind"};
-  return{colour:"red",label:"Off track: reassess"};
+  const w=weightVsCurve(p,todayIso);
+  if(!w)return null;
+  const d=-w.diff,abs=Math.abs(d).toFixed(1);
+  if(d<=0)return{colour:"green",label:d<0?`Ahead by ${abs} kg`:"Exactly on plan"};
+  const label=`Behind by ${abs} kg`;
+  if(d<=1)return{colour:"yellow",label};
+  if(d<=2)return{colour:"orange",label};
+  return{colour:"red",label:label+": reassess"};
 }
 // End-of-phase colour bands with the user's prescribed actions, verbatim rule
 function phaseVerdict(p,finalAvg){
@@ -4900,7 +5097,7 @@ function completePhase(id,manual){
   const run=ensurePhaseRun(id);
   if(run.locked)return;
   const t=isoToday();
-  const finalAvg=sevenDayAvg(t)??latestWeightLog()??p.startKg;
+  const finalAvg=weightVsCurve(p,t)?.kg??latestWeightLog()??p.startKg;
   const v=phaseVerdict(p,finalAvg);
   run.completedAt=t;run.outcome=v.band;run.locked=true;
   const weeks=run.weeks||[];
@@ -4941,7 +5138,7 @@ async function aiPhaseReview(id){
     const completion=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/Math.max(1,daysBetween(p.start,end))*100)));
     const comp=weekCompliance(p,mondayOfIso(t),t);
     const health=phaseHealth(p,t);
-    const cor=phaseCorridor(p,t);
+    const wvc=weightVsCurve(p,t);
     const run=getPhaseRun(p.id);
     const at=phaseActiveTargets(p,t);
     const restingNow=restingForPhase(p,t);
@@ -4955,7 +5152,7 @@ async function aiPhaseReview(id){
       if(!items.length&&!nd.active&&w==null)continue;
       days.push({date:d,kcal:items.reduce((s,it)=>s+(it.kcal||0),0),protein:items.reduce((s,it)=>s+(it.protein||0),0),active:nd.active||0,weight:w!=null?Number(w):null});
     }
-    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${at.workout} (Mon-Sat) / ${at.rest} (Sun), counted burn = resting ${restingNow} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\n7-day avg weight: ${sevenDayAvg(t)??"n/a"} kg · target range today: ${cor.lo}–${cor.hi} kg\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
+    const prompt=`Phase check-in review.\nPhase: ${p.id} v${p.version} (${p.strategy}), ${p.start} → ${end}, ${p.startKg} → ${p.targetKg} kg, eat ${p.eatKcal} kcal/day fixed, Watch active targets ${at.workout} (Mon-Sat) / ${at.rest} (Sun), counted burn = resting ${restingNow} + 0.75×active.\nPhase completion: ${completion}%\nPhase health: ${health?`${health.colour} — ${health.label}`:"unknown (no weigh-ins)"}\nlatest weigh-in: ${wvc?`${wvc.kg} kg on ${wvc.date}, plan for that date ${wvc.expected} kg (${wvc.diff>=0?"ahead":"behind"} by ${Math.abs(wvc.diff)} kg)`:"n/a"}\nCurrent-week compliance: ${JSON.stringify(comp)}\nCompliance history (prior weeks): ${JSON.stringify((run.weeks||[]).map(w=>({week:w.week,overall:w.overall})))}\nLast 14 days daily totals: ${JSON.stringify(days)}\n\nAs my coach, review this phase check-in in 5-7 sentences: what is working, the single biggest risk given the health colour and compliance history (distinguish plateau-despite-compliance from poor adherence), and exactly ONE concrete adjustment for the coming week. Plain text only.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -5015,7 +5212,7 @@ function phaseCardHtml(){
     const finalAvg=avg??latestWeightLog()??p.startKg;
     const v=phaseVerdict(p,finalAvg);
     verdictHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title} · final 7-day avg ${finalAvg} kg vs target ${p.targetKg} kg</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title} · final weigh-in ${finalAvg} kg vs target ${p.targetKg} kg</div>
       <div style="font-size:12px;color:var(--lt);line-height:1.6">${v.action}</div>
       <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
     </div>`;
@@ -5066,20 +5263,23 @@ function phaseCardHtml(){
       '</div>'+
     '</div>';
 
-  let rangeRowHtml='<div style="font-size:12px;color:var(--dim);padding:4px 0">Log weigh-ins to see your target range</div>';
-  if(avg!=null){
-    const inRange=avg>=cor.lo&&avg<=cor.hi;
-    const chipBg=inRange?'var(--green-lo)':'var(--red-lo)';
-    const chipCol=inRange?'var(--green)':'var(--red)';
-    const chipTxt=inRange?'✓ In range':(banked&&banked.days>=0?'Ahead':'Behind');
+  // Exact: the weigh-in the user entered vs what the curve says it should
+  // have been on that same date. No ±1 kg band, no 7-day average.
+  const wvc=weightVsCurve(p,t);
+  let rangeRowHtml='<div style="font-size:12px;color:var(--dim);padding:4px 0">Log a weigh-in to compare against the plan</div>';
+  if(wvc){
+    const ok=wvc.diff>=0;
+    const chipBg=ok?'var(--green-lo)':'var(--red-lo)';
+    const chipCol=ok?'var(--green)':'var(--red)';
+    const chipTxt=wvc.diff===0?'✓ Exactly on plan':(ok?'Ahead ':'Behind ')+Math.abs(wvc.diff).toFixed(1)+' kg';
     rangeRowHtml=
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:8px">'+
         '<div style="display:flex;flex-direction:column;gap:1px">'+
-          '<span style="font-size:13px;color:var(--mid)">Range today</span>'+
-          '<span style="font-size:10px;color:var(--dim)">7-day avg: '+Number(avg).toFixed(1)+' kg</span>'+
+          '<span style="font-size:13px;color:var(--mid)">Plan for '+(wvc.date===t?'today':fmtDate(wvc.date))+'</span>'+
+          '<span style="font-size:10px;color:var(--dim)">Your weigh-in: '+Number(wvc.kg).toFixed(1)+' kg</span>'+
         '</div>'+
         '<div style="display:flex;align-items:center;gap:6px;white-space:nowrap">'+
-          '<span style="font-weight:600;font-variant-numeric:tabular-nums">'+cor.lo+'–'+cor.hi+' kg</span>'+
+          '<span style="font-weight:600;font-variant-numeric:tabular-nums">'+Number(wvc.expected).toFixed(1)+' kg</span>'+
           '<span style="background:'+chipBg+';color:'+chipCol+';border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700">'+chipTxt+'</span>'+
         '</div>'+
       '</div>';
@@ -5425,9 +5625,10 @@ function renderST(){
         <div class="st-sec">Weekly Plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
           <div class="export-title">Generate Next Week</div>
-          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">'+icon("calendar",20)+' Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
+          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(planWk()!==wk()&&wps[planWk()])m+='<br><span style="color:var(--amber);font-weight:600">'+icon("calendar",20)+' Plan queued for '+esc(weekLabel(planWk()))+'</span>';return m;})()}</div>
           <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="margin-bottom:8px">Generate</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()">Reset to Default</button>`:''}
+          <button class="btn-g" onclick="openUnitReview()" style="margin-top:8px">Check kg/lbs mix-ups</button>
         </div>
         <details class="st-acc">
           <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
@@ -6100,12 +6301,7 @@ function buildSessionHistory(maxWeeks=4){
 // week, so anything describing "the plan" must be built from that week's
 // program, not today's. Today (Aug 3) still has physio stripped; next week
 // does not, and a snapshot taken from today would hide that from the AI.
-function planWeekStart(){
-  const d=new Date();
-  d.setDate(d.getDate()+(8-(d.getDay()||7)));
-  d.setHours(0,0,0,0);
-  return d;
-}
+function planWeekStart(){return planMon();}
 
 function buildApprovedExercises(){
   const seen=new Set();
@@ -6216,10 +6412,13 @@ function sanitizePlan(parsed){
   return parsed;
 }
 
-async function genWeeklyPlan(){
+// auto=true: the weekend auto-run (maybeAutoPlan). No button needed, no review
+// modal: the plan is applied directly and the coaching notes kept for later.
+async function genWeeklyPlan(auto){
+  auto=auto===true;
   // Busy state applied to every generate button (plan nudge + settings copy)
   const btns=[...document.querySelectorAll(".gen-plan-btn")];
-  if(!btns.length)return;
+  if(!btns.length&&!auto)return;
   btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/weekly-plan",{
@@ -6237,8 +6436,14 @@ async function genWeeklyPlan(){
     catch{const m=data.text?.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error("Invalid response");}
     parsed=sanitizePlan(parsed);
     _pendingPlan=parsed;
+    if(auto){
+      S._lastPlanNotes={week:planWk(),notes:parsed.coaching_notes||"",flags:parsed.flags||[]};
+      applyPendingPlan(true);
+      return true;
+    }
     showPlanModal(parsed);
   }catch(e){
+    if(auto)return false;
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
@@ -6253,6 +6458,7 @@ function showPlanModal(parsed){
 
   let changesHtml="";
   let changeCount=0;
+  const PROG=programFor(planMon()); // the week being planned, not today's
   for(const[day,exercises]of Object.entries(weekPlan)){
     if(!Array.isArray(exercises)||!exercises.length||!PROG[day])continue;
     for(const upd of exercises){
@@ -6281,7 +6487,7 @@ function showPlanModal(parsed){
 
   modal.innerHTML=`
     <div class="pm-title">Next Week's Plan</div>
-    <div class="pm-sub">Effective from week of ${esc(weekLabel(nextWk()))}. Review then apply.</div>
+    <div class="pm-sub">Effective from week of ${esc(weekLabel(planWk()))}. Review then apply.</div>
     ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
@@ -6298,14 +6504,21 @@ function closePlanModal(){
   _pendingPlan=null;
 }
 
-function applyPendingPlan(){
+function applyPendingPlan(auto){
   if(!_pendingPlan?.week_plan){closePlanModal();return;}
-  const nwk=nextWk();
+  const nwk=planWk();
+  // Validate ids against the program of the week being PLANNED. Checked against
+  // today's PROG, a Sunday plan for a week on a different program (deload ->
+  // Southpaw) found none of its ids and silently dropped every update.
+  const PROG=programFor(planMon());
   S.weekPlans=S.weekPlans||{};
+  // Start clean if the stored plan was made for another program: merging would
+  // mix the old program's ids into the new stamp.
+  if(S.weekPlans[nwk]?._prog&&S.weekPlans[nwk]._prog!==programKeyFor(planMon()))delete S.weekPlans[nwk];
   S.weekPlans[nwk]=S.weekPlans[nwk]||{};
   // Stamp with the program this plan was generated against, so it is refused
   // rather than misapplied if the program changes before the week arrives.
-  {const mon=new Date();mon.setDate(mon.getDate()+7);S.weekPlans[nwk]._prog=programKeyFor(mon);}
+  S.weekPlans[nwk]._prog=programKeyFor(planMon());
   for(const[day,exercises]of Object.entries(_pendingPlan.week_plan)){
     if(!Array.isArray(exercises)||!PROG[day])continue;
     if(!S.weekPlans[nwk][day])S.weekPlans[nwk][day]=[];
@@ -6336,12 +6549,21 @@ function applyPendingPlan(){
   // makes this reconstruct S.weekPlans[nwk] exactly, even after local merges
   // (Object.assign above) that an append-only log couldn't express.
   queueMutation("week_plan_reset",{weekKey:nwk});
-  for(const[day,updates]of Object.entries(S.weekPlans[nwk]))
+  // _prog is a string, not a day's update list. Iterating it queued "v","4"
+  // as two separate updates, so after a sync the stamp came back as ["v","4"],
+  // matched no program key, and the whole plan was silently ignored.
+  for(const[day,updates]of Object.entries(S.weekPlans[nwk])){
+    if(day==="_prog")continue;
     for(const upd of(updates||[]))
       queueMutation("week_plan_update",{weekKey:nwk,dayName:day,update:upd});
+  }
+  queueMutation("week_plan_update",{weekKey:nwk,dayName:"_prog",update:S.weekPlans[nwk]._prog});
   closePlanModal();
-  renderST();
-  showToast("Plan saved for week of "+weekLabel(nwk)+" ✓");
+  // A Monday plan is for the week already running: apply it now, not on the
+  // next launch. applyPlanOverrides is idempotent (adds check the id first).
+  if(nwk===wk()){applyPlanOverrides();if(ctx.getTab?.()==="workout")ctx.renderW?.();}
+  if(ctx.getTab?.()==="settings")renderST();
+  showToast(auto?"Plan for week of "+weekLabel(nwk)+" generated automatically ✓":"Plan saved for week of "+weekLabel(nwk)+" ✓");
 }
 
 
@@ -6364,6 +6586,26 @@ window.shiftWeek=shiftWeek;
 window.goCurrentWeek=goCurrentWeek;
 window.restoreDailyBackup=restoreDailyBackup;
 ctx.renderST=renderST;
+
+// Weekend auto-plan, so the week is planned even if nobody taps Generate.
+// Runs on the first app open on Sunday (the week's training is all logged by
+// then), with Monday as the fallback if Sunday was missed. Monday's planWk()
+// is the week just starting. One attempt per target week per day, so a failed
+// request retries on a later open instead of hammering the API.
+async function maybeAutoPlan(){
+  const dow=new Date().getDay();
+  if(dow!==0&&dow!==1)return;
+  if(!API_CFG.token)return;
+  const target=planWk();
+  // A plan stamped for a different program is refused at apply time, so it
+  // must not count as "planned" here either: regenerate against the program actually running.
+  const have=(S.weekPlans||{})[target];
+  if(have&&(!have._prog||have._prog===programKeyFor(planMon())))return;
+  const mark="f5_autoplan_"+target+"_"+isoToday();
+  try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
+  await genWeeklyPlan(true);
+}
+ctx.maybeAutoPlan=maybeAutoPlan;
 
 
 
@@ -6392,12 +6634,12 @@ function buildChatContext(){
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const phaseCtx=phase?(()=>{
-    const cor=phaseCorridor(phase,today);
+    const wvc=weightVsCurve(phase,today);
     const banked=bankedDays(phase,today);
     const comp=weekCompliance(phase,mondayOfIso(today),today);
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
       eatKcal:phase.eatKcal,activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
-      targetRangeToday:[cor.lo,cor.hi],bankedDays:banked?banked.days:null,
+      latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
       weekCompliance:comp.calculating?null:comp.overall,expectedDeficitToday:dailyDeficitReq};
   })():null;
   const goal={
@@ -6767,6 +7009,29 @@ if(!S._v6MonDone1){
   S._v6MonDone1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// Heal plan stamps that came back from a sync as ["v","4"] (see applyPlan in
+// settings.js): rejoin the characters so the plan applies again.
+for(const w of Object.values(S.weekPlans||{})){
+  if(w&&Array.isArray(w._prog))w._prog=w._prog.every(x=>typeof x==="string"&&x.length===1)?w._prog.join(""):w._prog[w._prog.length-1];
+}
+// One-off: the plan generated Mon 5 Oct 2026 was saved for the week of 12 Oct
+// (plans always targeted "next week"). Move it onto the week it was meant for,
+// locally and on the server, only if this week has no plan of its own.
+if(!S._planMove41){
+  const wp=S.weekPlans||{},from="2026W42",to="2026W41";
+  if(wp[from]&&!wp[to]&&wk()===to){
+    wp[to]=wp[from];delete wp[from];
+    queueMutation("week_plan_reset",{weekKey:from});
+    queueMutation("week_plan_reset",{weekKey:to});
+    for(const[day,ups]of Object.entries(wp[to])){
+      if(day==="_prog")continue;
+      for(const upd of(ups||[]))queueMutation("week_plan_update",{weekKey:to,dayName:day,update:upd});
+    }
+    if(wp[to]._prog)queueMutation("week_plan_update",{weekKey:to,dayName:"_prog",update:wp[to]._prog});
+  }
+  if(wk()!=="2026W41"||wp[to])S._planMove41=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are
 // unverifiable, so they were left standing in lbs: a 203kg seated leg curl, a
@@ -7063,7 +7328,9 @@ function initApp(){
   // Sequential, not concurrent: a queued restore_all (or any pending write)
   // must land before we pull authoritative state, or the pull can return
   // pre-write data and clobber it the moment the outbox empties.
-  flushOutbox().then(()=>loadServerState(false));
+  // Auto-plan runs AFTER the pull, so it sees the server's plans (another
+  // device may already have generated this week's) and is not overwritten.
+  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).then(()=>ctx.maybeUnitReview?.()).catch(()=>{});
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;
@@ -7124,6 +7391,13 @@ function selectDay(day){
 
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nextWk(){const d=new Date();d.setDate(d.getDate()+(d.getDay()===0?1:7));const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+// The week a generated plan is FOR. On Monday that is the week just starting:
+// it was always "next week", so a plan generated Monday morning (Mon 5 Oct)
+// landed on the following Monday (12 Oct) and this week ran unplanned. Sunday
+// and Tue-Sat still target the coming Monday. One source for the key, the
+// program stamp, the AI's snapshot and every label, so they cannot disagree.
+function planMon(){const d=new Date();d.setHours(0,0,0,0);const dow=d.getDay();if(dow!==1)d.setDate(d.getDate()+(dow===0?1:8-dow));return d;}
+function planWk(){const d=planMon(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return fmtDate(mon.toISOString().slice(0,10));}
 // Returns the Monday Date object for the Mon-Sun week containing Date d.

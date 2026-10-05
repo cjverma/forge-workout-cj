@@ -24,12 +24,12 @@ function buildChatContext(){
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const phaseCtx=phase?(()=>{
-    const cor=phaseCorridor(phase,today);
+    const wvc=weightVsCurve(phase,today);
     const banked=bankedDays(phase,today);
     const comp=weekCompliance(phase,mondayOfIso(today),today);
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
       eatKcal:phase.eatKcal,activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
-      targetRangeToday:[cor.lo,cor.hi],bankedDays:banked?banked.days:null,
+      latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
       weekCompliance:comp.calculating?null:comp.overall,expectedDeficitToday:dailyDeficitReq};
   })():null;
   const goal={

@@ -84,8 +84,18 @@ export async function assembleState() {
 
   const weekPlans = {};
   for (const r of planRows) {
+    if (r.day_name === "_prog") {
+      // The program stamp is a single string. Older clients uploaded it one
+      // character per row ("v","4"), so rejoin those; otherwise the last wins.
+      const w = (weekPlans[r.week_key] ??= {});
+      const parts = (w.__progParts ??= []);
+      parts.push(r.update);
+      w._prog = parts.every(x => typeof x === "string" && x.length === 1) ? parts.join("") : parts[parts.length - 1];
+      continue;
+    }
     ((weekPlans[r.week_key] ??= {})[r.day_name] ??= []).push(r.update);
   }
+  for (const w of Object.values(weekPlans)) delete w.__progParts;
 
   const m = milestoneRows[0] || {};
   const milestones = {

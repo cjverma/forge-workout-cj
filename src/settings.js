@@ -25,9 +25,10 @@ export function renderST(){
         <div class="st-sec">Weekly Plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
           <div class="export-title">Generate Next Week</div>
-          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(wps[nextWk()])m+='<br><span style="color:var(--amber);font-weight:600">'+icon("calendar",20)+' Plan queued for '+esc(weekLabel(nextWk()))+'</span>';return m;})()}</div>
+          <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(planWk()!==wk()&&wps[planWk()])m+='<br><span style="color:var(--amber);font-weight:600">'+icon("calendar",20)+' Plan queued for '+esc(weekLabel(planWk()))+'</span>';return m;})()}</div>
           <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="margin-bottom:8px">Generate</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()">Reset to Default</button>`:''}
+          <button class="btn-g" onclick="openUnitReview()" style="margin-top:8px">Check kg/lbs mix-ups</button>
         </div>
         <details class="st-acc">
           <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
@@ -700,12 +701,7 @@ function buildSessionHistory(maxWeeks=4){
 // week, so anything describing "the plan" must be built from that week's
 // program, not today's. Today (Aug 3) still has physio stripped; next week
 // does not, and a snapshot taken from today would hide that from the AI.
-function planWeekStart(){
-  const d=new Date();
-  d.setDate(d.getDate()+(8-(d.getDay()||7)));
-  d.setHours(0,0,0,0);
-  return d;
-}
+function planWeekStart(){return planMon();}
 
 function buildApprovedExercises(){
   const seen=new Set();
@@ -816,10 +812,13 @@ function sanitizePlan(parsed){
   return parsed;
 }
 
-async function genWeeklyPlan(){
+// auto=true: the weekend auto-run (maybeAutoPlan). No button needed, no review
+// modal: the plan is applied directly and the coaching notes kept for later.
+async function genWeeklyPlan(auto){
+  auto=auto===true;
   // Busy state applied to every generate button (plan nudge + settings copy)
   const btns=[...document.querySelectorAll(".gen-plan-btn")];
-  if(!btns.length)return;
+  if(!btns.length&&!auto)return;
   btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/weekly-plan",{
@@ -837,8 +836,14 @@ async function genWeeklyPlan(){
     catch{const m=data.text?.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error("Invalid response");}
     parsed=sanitizePlan(parsed);
     _pendingPlan=parsed;
+    if(auto){
+      S._lastPlanNotes={week:planWk(),notes:parsed.coaching_notes||"",flags:parsed.flags||[]};
+      applyPendingPlan(true);
+      return true;
+    }
     showPlanModal(parsed);
   }catch(e){
+    if(auto)return false;
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
@@ -853,6 +858,7 @@ function showPlanModal(parsed){
 
   let changesHtml="";
   let changeCount=0;
+  const PROG=programFor(planMon()); // the week being planned, not today's
   for(const[day,exercises]of Object.entries(weekPlan)){
     if(!Array.isArray(exercises)||!exercises.length||!PROG[day])continue;
     for(const upd of exercises){
@@ -881,7 +887,7 @@ function showPlanModal(parsed){
 
   modal.innerHTML=`
     <div class="pm-title">Next Week's Plan</div>
-    <div class="pm-sub">Effective from week of ${esc(weekLabel(nextWk()))}. Review then apply.</div>
+    <div class="pm-sub">Effective from week of ${esc(weekLabel(planWk()))}. Review then apply.</div>
     ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
@@ -898,14 +904,21 @@ function closePlanModal(){
   _pendingPlan=null;
 }
 
-function applyPendingPlan(){
+function applyPendingPlan(auto){
   if(!_pendingPlan?.week_plan){closePlanModal();return;}
-  const nwk=nextWk();
+  const nwk=planWk();
+  // Validate ids against the program of the week being PLANNED. Checked against
+  // today's PROG, a Sunday plan for a week on a different program (deload ->
+  // Southpaw) found none of its ids and silently dropped every update.
+  const PROG=programFor(planMon());
   S.weekPlans=S.weekPlans||{};
+  // Start clean if the stored plan was made for another program: merging would
+  // mix the old program's ids into the new stamp.
+  if(S.weekPlans[nwk]?._prog&&S.weekPlans[nwk]._prog!==programKeyFor(planMon()))delete S.weekPlans[nwk];
   S.weekPlans[nwk]=S.weekPlans[nwk]||{};
   // Stamp with the program this plan was generated against, so it is refused
   // rather than misapplied if the program changes before the week arrives.
-  {const mon=new Date();mon.setDate(mon.getDate()+7);S.weekPlans[nwk]._prog=programKeyFor(mon);}
+  S.weekPlans[nwk]._prog=programKeyFor(planMon());
   for(const[day,exercises]of Object.entries(_pendingPlan.week_plan)){
     if(!Array.isArray(exercises)||!PROG[day])continue;
     if(!S.weekPlans[nwk][day])S.weekPlans[nwk][day]=[];
@@ -936,12 +949,21 @@ function applyPendingPlan(){
   // makes this reconstruct S.weekPlans[nwk] exactly, even after local merges
   // (Object.assign above) that an append-only log couldn't express.
   queueMutation("week_plan_reset",{weekKey:nwk});
-  for(const[day,updates]of Object.entries(S.weekPlans[nwk]))
+  // _prog is a string, not a day's update list. Iterating it queued "v","4"
+  // as two separate updates, so after a sync the stamp came back as ["v","4"],
+  // matched no program key, and the whole plan was silently ignored.
+  for(const[day,updates]of Object.entries(S.weekPlans[nwk])){
+    if(day==="_prog")continue;
     for(const upd of(updates||[]))
       queueMutation("week_plan_update",{weekKey:nwk,dayName:day,update:upd});
+  }
+  queueMutation("week_plan_update",{weekKey:nwk,dayName:"_prog",update:S.weekPlans[nwk]._prog});
   closePlanModal();
-  renderST();
-  showToast("Plan saved for week of "+weekLabel(nwk)+" ✓");
+  // A Monday plan is for the week already running: apply it now, not on the
+  // next launch. applyPlanOverrides is idempotent (adds check the id first).
+  if(nwk===wk()){applyPlanOverrides();if(ctx.getTab?.()==="workout")ctx.renderW?.();}
+  if(ctx.getTab?.()==="settings")renderST();
+  showToast(auto?"Plan for week of "+weekLabel(nwk)+" generated automatically ✓":"Plan saved for week of "+weekLabel(nwk)+" ✓");
 }
 
 
@@ -964,3 +986,23 @@ window.shiftWeek=shiftWeek;
 window.goCurrentWeek=goCurrentWeek;
 window.restoreDailyBackup=restoreDailyBackup;
 ctx.renderST=renderST;
+
+// Weekend auto-plan, so the week is planned even if nobody taps Generate.
+// Runs on the first app open on Sunday (the week's training is all logged by
+// then), with Monday as the fallback if Sunday was missed. Monday's planWk()
+// is the week just starting. One attempt per target week per day, so a failed
+// request retries on a later open instead of hammering the API.
+async function maybeAutoPlan(){
+  const dow=new Date().getDay();
+  if(dow!==0&&dow!==1)return;
+  if(!API_CFG.token)return;
+  const target=planWk();
+  // A plan stamped for a different program is refused at apply time, so it
+  // must not count as "planned" here either: regenerate against the program actually running.
+  const have=(S.weekPlans||{})[target];
+  if(have&&(!have._prog||have._prog===programKeyFor(planMon())))return;
+  const mark="f5_autoplan_"+target+"_"+isoToday();
+  try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
+  await genWeeklyPlan(true);
+}
+ctx.maybeAutoPlan=maybeAutoPlan;
