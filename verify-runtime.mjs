@@ -261,6 +261,98 @@ try {
     await page.close();
   }
 
+  // kg/lbs mix-ups. History: four past sets at 50 kg on today's first gym
+  // exercise, plus one past set logged "120 kg" with a matching inflated PR
+  // (the Leg Extension case: 120 lbs typed while the exercise said kg).
+  {
+    const mk = async (dialogAnswer) => {
+      const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+      page.on("pageerror", (e) => jsErrors.push(`units: ${e.message}`));
+      await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+      await page.goto(URL, { waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const exId = await page.evaluate(() => {
+        const inp = [...document.querySelectorAll(".si")].find((i) => i.id.startsWith("wi-"));
+        return inp ? inp.id.replace("wi-", "").replace(/-\d+$/, "") : null;
+      });
+      const day = await page.evaluate((exId) => {
+        const S = JSON.parse(localStorage.f5);
+        const wkOf = (d) => { const j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7); };
+        const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+        S.sessions = {};
+        for (let n = 1; n <= 4; n++) {
+          const d = new Date(); d.setDate(d.getDate() - 7 * n);
+          S.sessions[day + "_" + wkOf(d)] = { [exId]: { unit: "kg", done: true, sets: [{ weight: "50", reps: "12", done: true }, { weight: n === 2 ? "120" : "50", reps: n === 2 ? "15" : "12", done: true }] } };
+        }
+        S.prs = {}; S._v6MonDone1 = true; S._planMove41 = true;
+        localStorage.f5 = JSON.stringify(S);
+        try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
+        return day;
+      }, exId);
+      if (dialogAnswer !== undefined) page.on("dialog", (d) => (dialogAnswer ? d.accept() : d.dismiss()));
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(900);
+      return { page, exId, day };
+    };
+
+    // 1. Typing 120 in kg mode on a ~50 kg exercise prompts; OK converts.
+    {
+      const { page, exId } = await mk(true);
+      await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
+      await page.waitForTimeout(300);
+      await page.locator(`#wi-${exId}-0`).fill("120");
+      await page.locator(`#ri-${exId}-0`).fill("10");
+      await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(400);
+      const w = await page.evaluate((id) => document.getElementById(`wi-${id}-0`)?.value, exId);
+      note("ticking a set ~2.2x heavier than usual asks, and OK logs it converted (120 -> 54.4 kg)", w === "54.4", "value=" + w);
+      const unit = await page.evaluate((id) => document.querySelector(`#sr-${id}-0 .wt-wrap`)?.dataset.unit, exId);
+      note("every weight box shows its unit inline", unit === "kg", "unit=" + unit);
+      await page.close();
+    }
+    // 2. Cancel keeps the typed number and never asks about that set again.
+    {
+      const { page, exId } = await mk(false);
+      await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
+      await page.waitForTimeout(300);
+      await page.locator(`#wi-${exId}-0`).fill("120");
+      await page.locator(`#ri-${exId}-0`).fill("10");
+      await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(400);
+      const r = await page.evaluate(({ id }) => { const S = JSON.parse(localStorage.f5); const k = Object.keys(S.sessions).find((k) => S.sessions[k][id]?.sets?.[0]?.weight === "120" && S.sessions[k][id].sets[0].done); return k ? S.sessions[k][id].sets[0] : null; }, { id: exId });
+      note("Cancel keeps the weight as typed and marks it confirmed", !!r && r.unitOk === true, JSON.stringify(r));
+      await page.close();
+    }
+    // 3. Review sheet: the past 120 kg set is listed; Convert fixes it and the PR.
+    {
+      const { page, exId } = await mk();
+      await page.evaluate(() => window.openUnitReview());
+      await page.waitForTimeout(300);
+      const listed = await page.evaluate(() => document.querySelectorAll("#planModal.show .pm-change").length);
+      note("the review sheet lists the one past set that looks like lbs, and nothing else", listed === 1, "rows=" + listed);
+      await page.locator("#planModal .uf-btns .pm-apply").first().click();
+      await page.waitForTimeout(400);
+      const r = await page.evaluate((id) => {
+        const S = JSON.parse(localStorage.f5);
+        const all = Object.values(S.sessions).flatMap((s) => (s[id]?.sets || []));
+        return { weights: all.map((x) => x.weight), maxPR: Math.max(0, ...Object.values(S.prs || {}).flat().map((e) => e.est)) };
+      }, exId);
+      note("Convert rewrites the set (120 -> 54.4 kg) and the PR is rebuilt from the corrected log",
+        r.weights.includes("54.4") && !r.weights.includes("120") && r.maxPR === 82, JSON.stringify(r)); // 54.4 kg x 15 -> 82 est, was 180
+      await page.close();
+    }
+    // 4. A fresh entry starts in the unit last used for that exercise.
+    {
+      const { page, exId } = await mk();
+      await page.evaluate((id) => { const S = JSON.parse(localStorage.f5); for (const s of Object.values(S.sessions)) if (s[id]) s[id].unit = "lbs"; localStorage.f5 = JSON.stringify(S); }, exId);
+      await page.reload({ waitUntil: "networkidle" });
+      await page.waitForTimeout(800);
+      const unit = await page.evaluate((id) => document.querySelector(`#sr-${id}-0 .wt-wrap`)?.dataset.unit, exId);
+      note("a new entry defaults to the unit last used on that exercise (lbs)", unit === "lbs", "unit=" + unit);
+      await page.close();
+    }
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every

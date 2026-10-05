@@ -28,6 +28,7 @@ export function renderST(){
           <div class="export-sub">Progressive overload applied automatically from this week's sessions.${(()=>{const wps=S.weekPlans||{};let m='';if(wps[wk()])m+='<br><span style="color:var(--green);font-weight:600">✓ Custom plan active this week</span>';if(planWk()!==wk()&&wps[planWk()])m+='<br><span style="color:var(--amber);font-weight:600">'+icon("calendar",20)+' Plan queued for '+esc(weekLabel(planWk()))+'</span>';return m;})()}</div>
           <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="margin-bottom:8px">Generate</button>
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()">Reset to Default</button>`:''}
+          <button class="btn-g" onclick="openUnitReview()" style="margin-top:8px">Check kg/lbs mix-ups</button>
         </div>
         <details class="st-acc">
           <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>

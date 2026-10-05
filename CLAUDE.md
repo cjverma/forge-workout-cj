@@ -490,6 +490,19 @@ conversion, and it must be applied at all three places a set becomes a PR:
 came from and converts only when that set was in lbs, so a genuine kg entry is
 left alone.
 
+**Mix-ups in the LOG itself.** Every repair above trusts the logged set, so a
+number typed in lbs while the exercise said kg (Leg Extension "120 kg x 15")
+survived all of them and blocked every real PR beneath it. Three layers now:
+`checkUnitOnLog()` asks on tick when a weight is >=1.8x the exercise's usual
+(or <=0.55x in lbs mode); `findUnitSuspects()` + the review sheet
+(`openUnitReview`, Settings, and once a day after launch) offer Convert / Keep
+per past set and `rebuildPRsFor()` the exercise; and the unit is printed in
+every weight box, with new entries defaulting to the unit last used on that
+exercise (`defaultUnit`, persisted by `ensure()`). "Usual" is the LOWER
+QUARTILE of logged sets so a run of mis-typed sets cannot redefine it. A
+confirmed set carries `unitOk` and is never asked about again. Entries with
+weights but no `unit` predate the field and must keep reading as kg.
+
 **`delSet` must splice the set BEFORE dropping its PR.** `dropPRForSet` calls
 `recoverPRFromLog`, which recomputes the best remaining lift from the logged
 sessions — with the set still present it recovered the very PR it had just

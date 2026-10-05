@@ -347,6 +347,12 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .set-row.done .sn{color:var(--green);}
 
 .si{width:100%;background:transparent;border:none;outline:none;font-family:var(--font-body);font-size:20px;font-weight:700;color:var(--white);text-align:center;-webkit-appearance:none;}
+/* Unit printed inside every weight box, so kg vs lbs is visible on the row
+   being typed into, not only once in the header. */
+.wt-wrap{position:relative;display:block;min-width:0;}
+.wt-wrap::after{content:attr(data-unit);position:absolute;right:2px;bottom:1px;font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);pointer-events:none;}
+.uf-btns{display:flex;gap:8px;margin-top:10px;}
+.uf-sm{padding:9px;font-size:11px;}
 .si::placeholder{color:var(--b2);font-size:14px;font-weight:400;}
 .set-row.done .si{color:var(--mid);}
 .sx{font-size:12px;color:var(--dim);text-align:center;}

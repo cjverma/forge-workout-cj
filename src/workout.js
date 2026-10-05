@@ -12,7 +12,33 @@ function fetchT(url, opts, ms = 15000) {
 }
 
 // ── UNITS · per-exercise label (no conversion, you enter what you see) ──
-function getExUnit(key,exId){const S=ctx.getS();return S.sessions[key]?.[exId]?.unit||"kg";}
+// An entry's unit is stored on it (ed.unit). Entries with logged weights but no
+// unit predate the field and were always kg, so they must keep reading as kg.
+// Only a fresh entry takes a default, and ensure() persists it immediately so
+// the number typed and the unit it is converted with can never disagree.
+function getExUnit(key,exId){
+  const ed=ctx.getS().sessions[key]?.[exId];
+  if(ed?.unit)return ed.unit;
+  if(ed&&(ed.sets||[]).some(s=>s&&s.weight))return "kg";
+  return defaultUnit(exId);
+}
+// New entries start in the unit last used for this exercise, else the unit used
+// most overall: the mix-ups came from an exercise silently starting in kg when
+// it was always lifted in lbs.
+function defaultUnit(exId){
+  const S=ctx.getS(),cid=canonicalId(exId);
+  let last=null,lastOrd=-1;const count={kg:0,lbs:0};
+  for(const[key,sess]of Object.entries(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    const m=key.match(/_(\d{4})W(\d+)$/);const ord=m?+m[1]*100+(+m[2]):0;
+    for(const[id,ed]of Object.entries(sess)){
+      if(!ed||typeof ed!=="object"||id.startsWith("_")||!(ed.sets||[]).some(s=>s&&s.weight))continue;
+      const u=ed.unit==="lbs"?"lbs":"kg";count[u]++;
+      if(canonicalId(id)===cid&&ord>lastOrd){lastOrd=ord;last=u;}
+    }
+  }
+  return last||(count.lbs>count.kg?"lbs":"kg");
+}
 function toggleExUnit(key,exId){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
@@ -675,7 +701,7 @@ function card(ex,sess,key,rdOnly=false){
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()">
+        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
@@ -727,7 +753,9 @@ function ensure(key,exId,i){
   const S=ctx.getS();
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
-  while(S.sessions[key][exId].sets.length<=i)S.sessions[key][exId].sets.push({});
+  const ed=S.sessions[key][exId];
+  if(!ed.unit&&!(ed.sets||[]).some(s=>s&&s.weight))ed.unit=defaultUnit(exId);
+  while(ed.sets.length<=i)ed.sets.push({});
 }
 
 function onWtKey(e,exId,i){if(e.key==="Enter"){e.preventDefault();const r=document.getElementById("ri-"+exId+"-"+i);if(r)r.focus();}}
@@ -781,9 +809,10 @@ function toggleSet(key,exId,i){
   if(wEl)sd.weight=wEl.value.trim();
   if(rEl)sd.reps=rEl.value.trim();
   if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
-  sd.done=!sd.done;sd.attempted=true;
   const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
+  if(!sd.done&&!sd.unitOk)checkUnitOnLog(key,exId,i,sd,ex,wEl);
+  sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
   if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
@@ -1512,3 +1541,149 @@ window.prHint=prHint;
 window.toggleExUnit=toggleExUnit;
 window.onWtKey=onWtKey;
 window.onRpKey=onRpKey;
+
+// ── KG / LBS MIX-UP DETECTION ──
+// A weight typed in lbs while the exercise is set to kg is stored as kg, and
+// every PR repair trusts the log, so it survived all of them: Leg Extension
+// "120 kg x 15" was 120 lbs. 1 lb = 0.4536 kg, so a mix-up moves a number by
+// 2.2x. Flag anything 1.8x above the exercise's usual, or below 0.55x of it
+// when in lbs mode (kg typed into lbs). The baseline is the LOWER QUARTILE of
+// the logged sets, so a run of mis-typed sets cannot drag "usual" up to match.
+const UNIT_HI=1.8,UNIT_LO=0.55;
+function loggedSetsKg(cid){
+  const S=ctx.getS(),out=[];
+  for(const[key,sess]of Object.entries(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    for(const[exId,ed]of Object.entries(sess)){
+      if(!ed||typeof ed!=="object"||exId.startsWith("_")||canonicalId(exId)!==cid)continue;
+      (ed.sets||[]).forEach((st,i)=>{
+        if(!st||!st.done||!st.weight||!st.reps)return;
+        const kg=toKg(st.weight,ed.unit);
+        if(kg>0)out.push({key,exId,i,kg,unit:ed.unit==="lbs"?"lbs":"kg",weight:Number(st.weight),reps:Number(st.reps),ok:!!st.unitOk});
+      });
+    }
+  }
+  return out;
+}
+function usualKg(sets){
+  const v=sets.map(s=>s.kg).sort((a,b)=>a-b);
+  return v.length>=3?v[Math.floor((v.length-1)*0.25)]:null;
+}
+function hintMidKg(hint){
+  const m=String(hint||"").match(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?\s*kg/);
+  return m?(m[2]?(+m[1]+ +m[2])/2:+m[1]):null;
+}
+// "lbs" = typed lbs into a kg entry; "kg" = typed kg into an lbs entry.
+export function unitSuspect(kg,unit,usual){
+  if(!usual||!kg)return null;
+  const r=kg/usual;
+  if(unit!=="lbs"&&r>=UNIT_HI)return "lbs";
+  if(unit==="lbs"&&r<=UNIT_LO)return "kg";
+  return null;
+}
+const r1=x=>Math.round(x*10)/10;
+function checkUnitOnLog(key,exId,i,sd,ex,wEl){
+  const cid=canonicalId(exId),unit=getExUnit(key,exId),w=Number(sd.weight);
+  const others=loggedSetsKg(cid).filter(s=>!(s.key===key&&s.exId===exId&&s.i===i));
+  const usual=usualKg(others)??hintMidKg(ex.hint);
+  const kg=toKg(w,unit),sus=unitSuspect(kg,unit,usual);
+  if(!sus)return;
+  const name=ex.name||"this exercise";
+  if(sus==="lbs"){
+    const conv=r1(w*LB_TO_KG);
+    if(confirm(`${w} kg is much heavier than your usual ~${Math.round(usual)} kg on ${name}.\n\nDid you mean ${w} lbs?\n\nOK: log it as ${conv} kg\nCancel: keep ${w} kg`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
+    else sd.unitOk=true;
+  }else{
+    const conv=r1(w/LB_TO_KG);
+    if(confirm(`${w} lbs is much lighter than your usual ~${Math.round(usual/LB_TO_KG)} lbs on ${name}.\n\nDid you mean ${w} kg?\n\nOK: log it as ${conv} lbs\nCancel: keep ${w} lbs`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
+    else sd.unitOk=true;
+  }
+}
+
+// Every logged set that looks like the wrong unit, for the review sheet.
+// Sets already confirmed (unitOk) are never asked about again.
+export function findUnitSuspects(){
+  const S=ctx.getS(),cids=new Set();
+  for(const sess of Object.values(S.sessions||{})){
+    if(!sess||typeof sess!=="object")continue;
+    for(const[exId,ed]of Object.entries(sess))if(ed&&typeof ed==="object"&&!exId.startsWith("_"))cids.add(canonicalId(exId));
+  }
+  const out=[];
+  for(const cid of cids){
+    const sets=loggedSetsKg(cid),usual=usualKg(sets);
+    for(const s of sets){
+      if(s.ok)continue;
+      const to=unitSuspect(s.kg,s.unit,usual);
+      if(to)out.push({...s,cid,to,usual,name:ctx.prName?.(cid)||cid,date:sessionKeyToIso(s.key)});
+    }
+  }
+  return out.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+}
+
+// After a correction, PR entries the log can no longer support (inflated by
+// the mix-up) are deleted and the best provable lift is put back.
+function rebuildPRsFor(cid){
+  const S=ctx.getS();
+  const best=bestFromSessions(cid);
+  const cap=(best?best.est:0)+1;
+  const list=S.prs?.[cid]||[];
+  const keep=list.filter(e=>Number(e.est)<=cap);
+  for(const e of list)if(Number(e.est)>cap)queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
+  if(keep.length)S.prs[cid]=keep;else if(S.prs)delete S.prs[cid];
+  recoverPRFromLog(cid);
+}
+
+let _unitQueue=[];
+function openUnitReview(auto){
+  _unitQueue=findUnitSuspects();
+  if(!_unitQueue.length){if(!auto)showToast("No kg/lbs mix-ups found ✓");return;}
+  renderUnitReview();
+}
+function renderUnitReview(){
+  const m=document.getElementById("planModal");
+  if(!m)return;
+  if(!_unitQueue.length){m.classList.remove("show");showToast("Units checked ✓ · PRs rebuilt");ctx.renderW?.();return;}
+  const rows=_unitQueue.map((s,idx)=>{
+    const conv=s.to==="lbs"?`${r1(s.weight*LB_TO_KG)} kg`:`${r1(s.weight/LB_TO_KG)} lbs`;
+    const typed=`${s.weight} ${s.unit}`;
+    const usual=s.unit==="lbs"?`~${Math.round(s.usual/LB_TO_KG)} lbs`:`~${Math.round(s.usual)} kg`;
+    return `<div class="pm-change">
+      <div class="pm-change-day">${esc(s.date?fmtDate(s.date):"")}</div>
+      <div class="pm-change-ex">${esc(s.name)}</div>
+      <div class="pm-change-val">${esc(typed)} × ${esc(String(s.reps))} · usual ${esc(usual)}</div>
+      <div class="pm-change-reason">Looks like ${s.to} was meant. Convert to ${esc(conv)}?</div>
+      <div class="uf-btns"><button class="pm-cancel uf-sm" onclick="unitFix(${idx},false)">Keep</button><button class="pm-apply uf-sm" onclick="unitFix(${idx},true)">Convert</button></div>
+    </div>`;}).join("");
+  m.innerHTML=`<div class="pm-title">Check units</div>
+    <div class="pm-sub">${_unitQueue.length} logged set${_unitQueue.length===1?"":"s"} look like kg and lbs got mixed up. Convert fixes the set and rebuilds that exercise's PR. Keep if the weight really was that.</div>
+    ${rows}
+    <div class="pm-btns"><button class="pm-cancel" onclick="closeUnitReview()">Later</button></div>`;
+  m.classList.add("show");
+}
+function unitFix(idx,convert){
+  const S=ctx.getS(),s=_unitQueue[idx];
+  if(!s)return;
+  const ed=S.sessions[s.key]?.[s.exId],st=ed?.sets?.[s.i];
+  if(st){
+    if(convert)st.weight=String(s.to==="lbs"?r1(s.weight*LB_TO_KG):r1(s.weight/LB_TO_KG));
+    st.unitOk=true;
+    queueSession(s.key,s.exId);
+    if(convert)rebuildPRsFor(s.cid);
+    save();
+  }
+  _unitQueue.splice(idx,1);
+  renderUnitReview();
+}
+function closeUnitReview(){document.getElementById("planModal")?.classList.remove("show");_unitQueue=[];}
+// Shown by itself once a day after launch while anything is unresolved, so a
+// mix-up gets caught even if nobody goes looking for it.
+function maybeUnitReview(){
+  const mark="f5_unitreview_"+isoToday();
+  try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
+  if(document.getElementById("planModal")?.classList.contains("show"))return;
+  openUnitReview(true);
+}
+ctx.maybeUnitReview=maybeUnitReview;
+window.openUnitReview=openUnitReview;
+window.unitFix=unitFix;
+window.closeUnitReview=closeUnitReview;

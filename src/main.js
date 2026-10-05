@@ -520,7 +520,7 @@ function initApp(){
   // pre-write data and clobber it the moment the outbox empties.
   // Auto-plan runs AFTER the pull, so it sees the server's plans (another
   // device may already have generated this week's) and is not overwritten.
-  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).catch(()=>{});
+  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).then(()=>ctx.maybeUnitReview?.()).catch(()=>{});
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;
