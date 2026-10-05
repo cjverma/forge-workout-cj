@@ -31,7 +31,7 @@
 import { readFileSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
-  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, PROG_V7 as REAL_V7 } from "./src/constants.js";
+  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6 } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // settings.js assigns to window at import time, so isBannedExercise cannot be
 // imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
@@ -1574,10 +1574,11 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       keyAt("2026-09-11T12:00:00") === "v5" &&
       keyAt("2026-09-20T12:00:00") === "v5" &&
       keyAt("2026-09-21T12:00:00") === "v4");
-    ok("PROG_V6 deload window runs Mon Sep 28 - Sun Oct 4, then the V7 ramp week",
+    ok("PROG_V6 deload window runs Mon Sep 28 - Sun Oct 4, Southpaw resumes Oct 5",
       keyAt("2026-09-27T12:00:00") === "v4" && keyAt("2026-09-28T12:00:00") === "v6" &&
-      keyAt("2026-10-04T12:00:00") === "v6" && keyAt("2026-10-05T12:00:00") === "v7" &&
-      REAL_PROGRAM_FOR(new Date("2026-09-28T12:00:00")).Monday === REAL_V6.Monday);
+      keyAt("2026-10-04T12:00:00") === "v6" && keyAt("2026-10-05T12:00:00") === "v4" &&
+      REAL_PROGRAM_FOR(new Date("2026-09-28T12:00:00")).Monday === REAL_V6.Monday &&
+      REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")).Monday === REAL_V4.Monday);
     // programFor and programKeyFor are two independently-maintained cascades;
     // the only thing keeping them in sync is agreeing at every boundary.
     for (const iso of ["2026-09-10T12:00:00", "2026-09-11T12:00:00", "2026-09-20T12:00:00", "2026-09-21T12:00:00"]) {
@@ -1604,7 +1605,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     const seen = new Map();
     const dupes = [];
     const badPrefix = [];
-    for (const [ver, prog] of [["v1", REAL_V1], ["v2", REAL_V2], ["v3", REAL_V3], ["v4", REAL_V4], ["v5", REAL_V5], ["v6", REAL_V6], ["v7", REAL_V7]]) {
+    for (const [ver, prog] of [["v1", REAL_V1], ["v2", REAL_V2], ["v3", REAL_V3], ["v4", REAL_V4], ["v5", REAL_V5], ["v6", REAL_V6]]) {
       for (const [day, d] of Object.entries(prog)) for (const ex of d.exercises) {
         if (seen.has(ex.id)) dupes.push(`${ex.id} (${ver}/${day} vs ${seen.get(ex.id)})`);
         seen.set(ex.id, `${ver}/${day}`);
@@ -1646,25 +1647,6 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
           /if\(day==="_prog"\)continue;/.test(S3) && /dayName:"_prog",update:S\.weekPlans\[nwk\]\._prog/.test(S3));
         ok("the server rejoins a stamp stored one character per row (\"v\",\"4\" -> \"v4\")",
           /r\.day_name === "_prog"/.test(ST3) && /parts\.join\(""\)/.test(ST3) && /delete w\.__progParts/.test(ST3));
-      }
-      {
-        const at = iso => REAL_PROGRAM_KEY_FOR(new Date(iso + "T12:00:00"));
-        ok("PROG_V7 ramp week runs Mon 5 - Sun 11 Oct, full Southpaw from Oct 12",
-          at("2026-10-04") === "v6" && at("2026-10-05") === "v7" && at("2026-10-11") === "v7" && at("2026-10-12") === "v4" &&
-          REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")).Monday === REAL_V7.Monday &&
-          REAL_PROGRAM_FOR(new Date("2026-10-12T12:00:00")).Monday === REAL_V4.Monday);
-        const work = p => Object.values(p).flatMap(d => d.exercises).filter(e => e.cat === "gym" && !/^Warm-Up/.test(e.name)).reduce((a, e) => a + e.sets, 0);
-        const v6w = work(REAL_V6), v7w = work(REAL_V7), v4w = work(REAL_V4), mid = (v6w + v4w) / 2;
-        ok(`PROG_V7 volume sits near the deload/Southpaw midpoint (${v6w} < ${v7w} < ${v4w}, mid ${mid})`,
-          v7w > v6w && v7w < v4w && Math.abs(v7w - mid) <= 0.1 * mid);
-        ok("PROG_V7 keeps Southpaw's exact days, exercise names and order",
-          Object.keys(REAL_V4).every(d => JSON.stringify(REAL_V4[d].exercises.map(e => e.name)) === JSON.stringify(REAL_V7[d].exercises.map(e => e.name))));
-        const P7 = { Monday: "m7", Tuesday: "t7", Wednesday: "w7", Thursday: "th7", Friday: "f7", Saturday: "sa7", Sunday: "su7" };
-        ok("every PROG_V7 id carries its day's m7_/t7_/... prefix",
-          Object.entries(REAL_V7).every(([d, x]) => x.exercises.every(e => e.id.startsWith(P7[d] + "_"))));
-        const ss7 = {};
-        for (const d of Object.values(REAL_V7)) for (const e of d.exercises) if (e.ss) ss7[e.ss] = (ss7[e.ss] || 0) + 1;
-        ok("PROG_V7 supersets still come in pairs", Object.values(ss7).every(n => n === 2));
       }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",
@@ -2131,7 +2113,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("one shared PR name resolver with a de-slug fallback",
     /ctx\.prName=prName/.test(MAIN2) &&
     /replace\(\/_\/g," "\)/.test(MAIN2) &&
-    /for\(const P of \[PROG,PROG_V7,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
+    /for\(const P of \[PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
   ok("no call site falls back to printing the raw slug",
     !/EX_NAMES\[id\]\|\|\(id\.startsWith/.test(NUT) &&
     !/_prNameMap\[id\]\|\|id/.test(SET) &&

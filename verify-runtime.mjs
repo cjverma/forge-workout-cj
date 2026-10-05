@@ -206,16 +206,16 @@ try {
     await page.close();
   }
 
-  // Weekend auto-plan. Clock frozen on Sun 11 Oct 2026: the last day of the
-  // V7 ramp week, planning Mon 12 Oct, which is full Southpaw. That boundary
+  // Weekend auto-plan. Clock frozen on Sun 4 Oct 2026: the last day of the
+  // V6 deload week, planning Mon 5 Oct, which is full Southpaw. That boundary
   // is the case that used to fail twice over: nothing generated unless tapped,
   // and the plan's Southpaw ids were checked against the ramp week's program
   // and silently dropped. Fixed dates, so the ids below stay valid forever.
   {
-    const target = programFor(new Date(2026, 9, 12)).Monday.exercises.find((e) => e.cat === "gym" && !/^Warm-Up/.test(e.name));
+    const target = programFor(new Date(2026, 9, 5)).Monday.exercises.find((e) => e.cat === "gym" && !/^Warm-Up/.test(e.name));
     const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
     page.on("pageerror", (e) => jsErrors.push(`autoplan: ${e.message}`));
-    await page.clock.setFixedTime(new Date("2026-10-11T15:00:00-04:00"));
+    await page.clock.setFixedTime(new Date("2026-10-04T15:00:00-04:00"));
     await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
     let calls = 0;
     await page.route("**/weekly-plan", (r) => {
@@ -227,7 +227,7 @@ try {
     await page.waitForTimeout(2500);
     const r = await page.evaluate(() => {
       const S = JSON.parse(localStorage.f5 || "{}");
-      const wp = (S.weekPlans || {})["2026W42"] || null;
+      const wp = (S.weekPlans || {})["2026W41"] || null;
       return { prog: wp?._prog, monday: wp?.Monday || null, modal: !!document.querySelector("#planModal.show"), notes: S._lastPlanNotes?.notes };
     });
     note("the week's plan generates automatically on Sunday, with no tap and no review modal",
@@ -241,14 +241,14 @@ try {
   }
   // A plan stamped for another program does not count as planned: it would be
   // refused at apply time, so auto-plan replaces it instead of leaving the
-  // week unplanned. Mon 5 Oct 2026 (v7 ramp week) with a stale v4 plan.
+  // week unplanned. Mon 5 Oct 2026 (Southpaw, v4) with a stale v6 plan.
   {
     const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
     page.on("pageerror", (e) => jsErrors.push(`autoplan-stale: ${e.message}`));
     await page.clock.setFixedTime(new Date("2026-10-05T09:00:00-04:00"));
     await page.addInitScript(() => {
       window.FORGE_API_CFG = { baseUrl: "", token: "x" };
-      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ weekPlans: { "2026W41": { _prog: "v4", Monday: [{ id: "m4_cp", sets: 9 }] } }, _planMove41: true });
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ weekPlans: { "2026W41": { _prog: "v6", Monday: [{ id: "m6_csr", sets: 9 }] } }, _planMove41: true });
     });
     let calls = 0;
     await page.route("**/weekly-plan", (r) => { calls++; r.fulfill({ status: 200, contentType: "application/json",
@@ -257,7 +257,7 @@ try {
     await page.waitForTimeout(2500);
     const wp = await page.evaluate(() => JSON.parse(localStorage.f5 || "{}").weekPlans?.["2026W41"]);
     note("a plan made for another program is replaced by auto-plan, not kept or merged",
-      calls === 1 && wp?._prog === "v7" && !JSON.stringify(wp).includes("m4_cp"), JSON.stringify({ calls, wp }));
+      calls === 1 && wp?._prog === "v4" && !JSON.stringify(wp).includes("m6_csr"), JSON.stringify({ calls, wp }));
     await page.close();
   }
 

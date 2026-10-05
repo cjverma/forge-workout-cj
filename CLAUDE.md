@@ -249,12 +249,6 @@ exercises already in `PROG_V4` (resolved by name, unknown names throw), so no
 new movement appears and PR slugs carry over. Southpaw
 resumes Mon 5 Oct. Same rule: both cascades change together.
 
-Then `PROG_V7` runs Mon 5 - Sun 11 Oct 2026 as a 1.5x ramp-up (deload = 1,
-Southpaw = 2): derived from `PROG_V4` with the same days, names, order and
-cues, working sets mapped 3->2 / 4->3 / 5->4 / 6->4 and loads ~95%. Full
-Southpaw resumes Mon 12 Oct. Its own key (`v7`) means a weekly plan generated
-against `v4` for that week is refused, by design.
-
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
   never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts
   as rest once its physio block returns.
