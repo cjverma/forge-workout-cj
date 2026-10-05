@@ -1631,6 +1631,23 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
           /customInWeek\(ex,day,weekKey,monTs\)\)\{PROG\[day\]\.exercises\.push/.test(M2) &&
           /ctx\.customsLoggedIn\?\.\(d,ctx\.vwk\(\)\)/.test(W2));
       }
+      {
+        const M3 = readFileSync("src/main.js", "utf8"), S3 = readFileSync("src/settings.js", "utf8"), ST3 = readFileSync("api/state.js", "utf8");
+        // Run the real planMon() at fixed dates: Monday must target its own week.
+        const pm = new Function("Date0", M3.match(/function planMon\(\)\{[^\n]*\}/)[0].replace("new Date()", "new Date0()") + ";return planMon;");
+        const at = iso => { const D = class extends Date { constructor(...a) { super(...(a.length ? a : [iso + "T09:00:00"])); } }; return pm(D)().toDateString(); };
+        ok("a plan generated on Monday is for that same week (Mon 5 Oct -> 5 Oct, not 12 Oct)",
+          at("2026-10-05") === new Date(2026, 9, 5).toDateString() &&
+          at("2026-10-04") === new Date(2026, 9, 5).toDateString() &&
+          at("2026-10-07") === new Date(2026, 9, 12).toDateString());
+        ok("plan key, AI snapshot, program stamp and labels all use planMon/planWk",
+          /function planWeekStart\(\)\{return planMon\(\);\}/.test(S3) && /const nwk=planWk\(\);/.test(S3) &&
+          /_prog=programKeyFor\(planMon\(\)\)/.test(S3) && !/weekLabel\(nextWk\(\)\)\)\}\. Review/.test(S3));
+        ok("the plan's program stamp is uploaded as one string, not one row per character",
+          /if\(day==="_prog"\)continue;/.test(S3) && /dayName:"_prog",update:S\.weekPlans\[nwk\]\._prog/.test(S3));
+        ok("the server rejoins a stamp stored one character per row (\"v\",\"4\" -> \"v4\")",
+          /r\.day_name === "_prog"/.test(ST3) && /parts\.join\(""\)/.test(ST3) && /delete w\.__progParts/.test(ST3));
+      }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",
         Object.entries(REAL_V6).filter(([d]) => d !== "Sunday").every(([, d]) => {

@@ -199,6 +199,29 @@ if(!S._v6MonDone1){
   S._v6MonDone1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// Heal plan stamps that came back from a sync as ["v","4"] (see applyPlan in
+// settings.js): rejoin the characters so the plan applies again.
+for(const w of Object.values(S.weekPlans||{})){
+  if(w&&Array.isArray(w._prog))w._prog=w._prog.every(x=>typeof x==="string"&&x.length===1)?w._prog.join(""):w._prog[w._prog.length-1];
+}
+// One-off: the plan generated Mon 5 Oct 2026 was saved for the week of 12 Oct
+// (plans always targeted "next week"). Move it onto the week it was meant for,
+// locally and on the server, only if this week has no plan of its own.
+if(!S._planMove41){
+  const wp=S.weekPlans||{},from="2026W42",to="2026W41";
+  if(wp[from]&&!wp[to]&&wk()===to){
+    wp[to]=wp[from];delete wp[from];
+    queueMutation("week_plan_reset",{weekKey:from});
+    queueMutation("week_plan_reset",{weekKey:to});
+    for(const[day,ups]of Object.entries(wp[to])){
+      if(day==="_prog")continue;
+      for(const upd of(ups||[]))queueMutation("week_plan_update",{weekKey:to,dayName:day,update:upd});
+    }
+    if(wp[to]._prog)queueMutation("week_plan_update",{weekKey:to,dayName:"_prog",update:wp[to]._prog});
+  }
+  if(wk()!=="2026W41"||wp[to])S._planMove41=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are
 // unverifiable, so they were left standing in lbs: a 203kg seated leg curl, a
@@ -556,6 +579,13 @@ function selectDay(day){
 
 function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nextWk(){const d=new Date();d.setDate(d.getDate()+(d.getDay()===0?1:7));const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+// The week a generated plan is FOR. On Monday that is the week just starting:
+// it was always "next week", so a plan generated Monday morning (Mon 5 Oct)
+// landed on the following Monday (12 Oct) and this week ran unplanned. Sunday
+// and Tue-Sat still target the coming Monday. One source for the key, the
+// program stamp, the AI's snapshot and every label, so they cannot disagree.
+function planMon(){const d=new Date();d.setHours(0,0,0,0);const dow=d.getDay();if(dow!==1)d.setDate(d.getDate()+(dow===0?1:8-dow));return d;}
+function planWk(){const d=planMon(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return fmtDate(mon.toISOString().slice(0,10));}
 // Returns the Monday Date object for the Mon-Sun week containing Date d.
