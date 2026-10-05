@@ -911,6 +911,9 @@ function applyPendingPlan(auto){
   // Southpaw) found none of its ids and silently dropped every update.
   const PROG=programFor(planMon());
   S.weekPlans=S.weekPlans||{};
+  // Start clean if the stored plan was made for another program: merging would
+  // mix the old program's ids into the new stamp.
+  if(S.weekPlans[nwk]?._prog&&S.weekPlans[nwk]._prog!==programKeyFor(planMon()))delete S.weekPlans[nwk];
   S.weekPlans[nwk]=S.weekPlans[nwk]||{};
   // Stamp with the program this plan was generated against, so it is refused
   // rather than misapplied if the program changes before the week arrives.
@@ -993,7 +996,11 @@ async function maybeAutoPlan(){
   if(dow!==0&&dow!==1)return;
   if(!API_CFG.token)return;
   const target=planWk();
-  if((S.weekPlans||{})[target])return;
+  // A plan stamped for a different program is refused at apply time, so it
+  // must not count as "planned" here either (e.g. the v4 plan moved onto the
+  // v7 ramp week): regenerate against the program actually running.
+  const have=(S.weekPlans||{})[target];
+  if(have&&(!have._prog||have._prog===programKeyFor(planMon())))return;
   const mark="f5_autoplan_"+target+"_"+isoToday();
   try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
   await genWeeklyPlan(true);
