@@ -206,6 +206,40 @@ try {
     await page.close();
   }
 
+  // Weekend auto-plan. Clock frozen on Sun 11 Oct 2026: the last day of the
+  // V7 ramp week, planning Mon 12 Oct, which is full Southpaw. That boundary
+  // is the case that used to fail twice over: nothing generated unless tapped,
+  // and the plan's Southpaw ids were checked against the ramp week's program
+  // and silently dropped. Fixed dates, so the ids below stay valid forever.
+  {
+    const target = programFor(new Date(2026, 9, 12)).Monday.exercises.find((e) => e.cat === "gym" && !/^Warm-Up/.test(e.name));
+    const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`autoplan: ${e.message}`));
+    await page.clock.setFixedTime(new Date("2026-10-11T15:00:00-04:00"));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    let calls = 0;
+    await page.route("**/weekly-plan", (r) => {
+      calls++;
+      r.fulfill({ status: 200, contentType: "application/json",
+        body: JSON.stringify({ text: JSON.stringify({ week_plan: { Monday: [{ id: target.id, sets: 5, hint: "41 kg" }] }, coaching_notes: "auto", flags: [] }) }) });
+    });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(2500);
+    const r = await page.evaluate(() => {
+      const S = JSON.parse(localStorage.f5 || "{}");
+      const wp = (S.weekPlans || {})["2026W42"] || null;
+      return { prog: wp?._prog, monday: wp?.Monday || null, modal: !!document.querySelector("#planModal.show"), notes: S._lastPlanNotes?.notes };
+    });
+    note("the week's plan generates automatically on Sunday, with no tap and no review modal",
+      calls === 1 && r.prog === "v4" && !r.modal && r.notes === "auto", JSON.stringify({ calls, ...r }));
+    note("a Sunday plan for a week on a different program keeps its updates (ids checked against the target week)",
+      Array.isArray(r.monday) && r.monday.some((u) => u.id === target.id && u.sets === 5), JSON.stringify(r.monday));
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(1500);
+    note("auto-plan runs once: a plan already in place is never regenerated", calls === 1, "calls=" + calls);
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every

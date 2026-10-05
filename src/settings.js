@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
+import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
 import { toKg, canonicalId, epley1RM } from "./workout.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -300,7 +300,7 @@ async function aiWeeklyReview(){
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6),...Object.values(PROG_V7)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
@@ -465,7 +465,7 @@ function buildPDFReport(){
   let weeklySessions=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(isoDate(d)<=isoToday()&&trainedOn(isoDate(d)))weeklySessions++;}
   // PRs
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6),...Object.values(PROG_V7)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
@@ -811,10 +811,13 @@ function sanitizePlan(parsed){
   return parsed;
 }
 
-async function genWeeklyPlan(){
+// auto=true: the weekend auto-run (maybeAutoPlan). No button needed, no review
+// modal: the plan is applied directly and the coaching notes kept for later.
+async function genWeeklyPlan(auto){
+  auto=auto===true;
   // Busy state applied to every generate button (plan nudge + settings copy)
   const btns=[...document.querySelectorAll(".gen-plan-btn")];
-  if(!btns.length)return;
+  if(!btns.length&&!auto)return;
   btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/weekly-plan",{
@@ -832,8 +835,14 @@ async function genWeeklyPlan(){
     catch{const m=data.text?.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error("Invalid response");}
     parsed=sanitizePlan(parsed);
     _pendingPlan=parsed;
+    if(auto){
+      S._lastPlanNotes={week:planWk(),notes:parsed.coaching_notes||"",flags:parsed.flags||[]};
+      applyPendingPlan(true);
+      return true;
+    }
     showPlanModal(parsed);
   }catch(e){
+    if(auto)return false;
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
@@ -848,6 +857,7 @@ function showPlanModal(parsed){
 
   let changesHtml="";
   let changeCount=0;
+  const PROG=programFor(planMon()); // the week being planned, not today's
   for(const[day,exercises]of Object.entries(weekPlan)){
     if(!Array.isArray(exercises)||!exercises.length||!PROG[day])continue;
     for(const upd of exercises){
@@ -893,9 +903,13 @@ function closePlanModal(){
   _pendingPlan=null;
 }
 
-function applyPendingPlan(){
+function applyPendingPlan(auto){
   if(!_pendingPlan?.week_plan){closePlanModal();return;}
   const nwk=planWk();
+  // Validate ids against the program of the week being PLANNED. Checked against
+  // today's PROG, a Sunday plan for a week on a different program (ramp week ->
+  // Southpaw) found none of its ids and silently dropped every update.
+  const PROG=programFor(planMon());
   S.weekPlans=S.weekPlans||{};
   S.weekPlans[nwk]=S.weekPlans[nwk]||{};
   // Stamp with the program this plan was generated against, so it is refused
@@ -941,8 +955,11 @@ function applyPendingPlan(){
   }
   queueMutation("week_plan_update",{weekKey:nwk,dayName:"_prog",update:S.weekPlans[nwk]._prog});
   closePlanModal();
-  renderST();
-  showToast("Plan saved for week of "+weekLabel(nwk)+" ✓");
+  // A Monday plan is for the week already running: apply it now, not on the
+  // next launch. applyPlanOverrides is idempotent (adds check the id first).
+  if(nwk===wk()){applyPlanOverrides();if(ctx.getTab?.()==="workout")ctx.renderW?.();}
+  if(ctx.getTab?.()==="settings")renderST();
+  showToast(auto?"Plan for week of "+weekLabel(nwk)+" generated automatically ✓":"Plan saved for week of "+weekLabel(nwk)+" ✓");
 }
 
 
@@ -965,3 +982,20 @@ window.shiftWeek=shiftWeek;
 window.goCurrentWeek=goCurrentWeek;
 window.restoreDailyBackup=restoreDailyBackup;
 ctx.renderST=renderST;
+
+// Weekend auto-plan, so the week is planned even if nobody taps Generate.
+// Runs on the first app open on Sunday (the week's training is all logged by
+// then), with Monday as the fallback if Sunday was missed. Monday's planWk()
+// is the week just starting. One attempt per target week per day, so a failed
+// request retries on a later open instead of hammering the API.
+async function maybeAutoPlan(){
+  const dow=new Date().getDay();
+  if(dow!==0&&dow!==1)return;
+  if(!API_CFG.token)return;
+  const target=planWk();
+  if((S.weekPlans||{})[target])return;
+  const mark="f5_autoplan_"+target+"_"+isoToday();
+  try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
+  await genWeeklyPlan(true);
+}
+ctx.maybeAutoPlan=maybeAutoPlan;

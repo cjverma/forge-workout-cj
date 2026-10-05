@@ -1831,6 +1831,29 @@ const PROG_V6={
   Sunday:{...PROG_V4.Sunday,exercises:PROG_V4.Sunday.exercises.map(e=>({...e,id:e.id.replace(/^su4_/,"su6_")}))},
 };
 
+// ── PROGRAM V7: Mon 5 Oct – Sun 11 Oct 2026 · ramp back to Southpaw (1.5x) ──
+// The deload week was "1", full Southpaw is "2"; this week sits halfway. Same
+// Southpaw split, exercises, order and cues, so nothing new and no reshuffle.
+// Working sets map 3->2, 4->3, 5->4, 6->4 (2 stays 2): ~114 weekly sets, near
+// the midpoint of the deload's 68 and Southpaw's 150. Loads ~95% (halfway
+// between the deload's 90% and full). Derived from PROG_V4, never copied, so names (and
+// S.prs slugs) cannot drift. Full Southpaw resumes Mon 12 Oct.
+function _v7Kg(v){const x=v*0.95;return x>=10?Math.round(x/2.5)*2.5:Math.round(x*2)/2;}
+function _v7Hint(h){return String(h).replace(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))? kg/,(_,a,b)=>b?`${_v7Kg(+a)}-${_v7Kg(+b)} kg`:`${_v7Kg(+a)} kg`);}
+const _V7_PFX={m4:"m7",t4:"t7",w4:"w7",th4:"th7",f4:"f7",sa4:"sa7",su4:"su7"};
+const _v7Id=id=>id.replace(/^(m4|t4|w4|th4|f4|sa4|su4)_/,(_,p)=>_V7_PFX[p]+"_");
+const PROG_V7=Object.fromEntries(Object.entries(PROG_V4).map(([day,d])=>[day,{
+  ...d,...(d.tag?{tag:"Ramp-up"}:{}),
+  exercises:d.exercises.map(e=>{
+    const o={...e,id:_v7Id(e.id)};
+    if(e.ss)o.ss=_v7Id(e.ss);
+    if(e.cat==="gym"&&!/^Warm-Up/.test(e.name)){
+      o.sets=({3:2,4:3,5:4,6:4})[e.sets]??e.sets;
+      o.hint=_v7Hint(e.hint);
+    }
+    return o;
+  })}]));
+
 
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
@@ -1858,7 +1881,8 @@ function _sp(p){
 // Which program version a plan was generated against. Stamped onto weekPlans so
 // an override written for an older program cannot inject into a newer one.
 function programKeyFor(date){
-  return date>=new Date(2026,9,5)?"v4"
+  return date>=new Date(2026,9,12)?"v4"
+    :date>=new Date(2026,9,5)?"v7"
     :date>=new Date(2026,8,28)?"v6"
     :date>=new Date(2026,8,21)?"v4"
     :date>=new Date(2026,8,11)?"v5"
@@ -1887,7 +1911,8 @@ function _stage(p,date){
 }
 
 function programFor(date){
-  const base=date>=new Date(2026,9,5)?PROG_V4
+  const base=date>=new Date(2026,9,12)?PROG_V4
+    :date>=new Date(2026,9,5)?PROG_V7
     :date>=new Date(2026,8,28)?PROG_V6
     :date>=new Date(2026,8,21)?PROG_V4
     :date>=new Date(2026,8,11)?PROG_V5
@@ -1902,7 +1927,8 @@ const _pd=new Date();
 const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
   v4:"Southpaw (Jake Gyllenhaal) hypertrophy program",
   v5:"return block (full body, easy)",
-  v6:"Southpaw deload week (shuffled days, reduced volume)"};
+  v6:"Southpaw deload week (shuffled days, reduced volume)",
+  v7:"Southpaw ramp-up week (1.5x: sets halfway back, ~95% loads)"};
 
 const PROG=programFor(_pd);
 
@@ -3098,7 +3124,7 @@ function renderW(){
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
     const _allExMap={};
-    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5,PROG_V6].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
+    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5,PROG_V6,PROG_V7].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
@@ -5718,7 +5744,7 @@ async function aiWeeklyReview(){
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6),...Object.values(PROG_V7)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
@@ -5883,7 +5909,7 @@ function buildPDFReport(){
   let weeklySessions=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(isoDate(d)<=isoToday()&&trainedOn(isoDate(d)))weeklySessions++;}
   // PRs
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6),...Object.values(PROG_V7)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
@@ -6229,10 +6255,13 @@ function sanitizePlan(parsed){
   return parsed;
 }
 
-async function genWeeklyPlan(){
+// auto=true: the weekend auto-run (maybeAutoPlan). No button needed, no review
+// modal: the plan is applied directly and the coaching notes kept for later.
+async function genWeeklyPlan(auto){
+  auto=auto===true;
   // Busy state applied to every generate button (plan nudge + settings copy)
   const btns=[...document.querySelectorAll(".gen-plan-btn")];
-  if(!btns.length)return;
+  if(!btns.length&&!auto)return;
   btns.forEach(b=>{b.dataset.lbl=b.textContent;b.disabled=true;b.innerHTML='<span class="spin"></span>Generating...';});
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/weekly-plan",{
@@ -6250,8 +6279,14 @@ async function genWeeklyPlan(){
     catch{const m=data.text?.match(/\{[\s\S]*\}/);if(m)parsed=JSON.parse(m[0]);else throw new Error("Invalid response");}
     parsed=sanitizePlan(parsed);
     _pendingPlan=parsed;
+    if(auto){
+      S._lastPlanNotes={week:planWk(),notes:parsed.coaching_notes||"",flags:parsed.flags||[]};
+      applyPendingPlan(true);
+      return true;
+    }
     showPlanModal(parsed);
   }catch(e){
+    if(auto)return false;
     showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
@@ -6266,6 +6301,7 @@ function showPlanModal(parsed){
 
   let changesHtml="";
   let changeCount=0;
+  const PROG=programFor(planMon()); // the week being planned, not today's
   for(const[day,exercises]of Object.entries(weekPlan)){
     if(!Array.isArray(exercises)||!exercises.length||!PROG[day])continue;
     for(const upd of exercises){
@@ -6311,9 +6347,13 @@ function closePlanModal(){
   _pendingPlan=null;
 }
 
-function applyPendingPlan(){
+function applyPendingPlan(auto){
   if(!_pendingPlan?.week_plan){closePlanModal();return;}
   const nwk=planWk();
+  // Validate ids against the program of the week being PLANNED. Checked against
+  // today's PROG, a Sunday plan for a week on a different program (ramp week ->
+  // Southpaw) found none of its ids and silently dropped every update.
+  const PROG=programFor(planMon());
   S.weekPlans=S.weekPlans||{};
   S.weekPlans[nwk]=S.weekPlans[nwk]||{};
   // Stamp with the program this plan was generated against, so it is refused
@@ -6359,8 +6399,11 @@ function applyPendingPlan(){
   }
   queueMutation("week_plan_update",{weekKey:nwk,dayName:"_prog",update:S.weekPlans[nwk]._prog});
   closePlanModal();
-  renderST();
-  showToast("Plan saved for week of "+weekLabel(nwk)+" ✓");
+  // A Monday plan is for the week already running: apply it now, not on the
+  // next launch. applyPlanOverrides is idempotent (adds check the id first).
+  if(nwk===wk()){applyPlanOverrides();if(ctx.getTab?.()==="workout")ctx.renderW?.();}
+  if(ctx.getTab?.()==="settings")renderST();
+  showToast(auto?"Plan for week of "+weekLabel(nwk)+" generated automatically ✓":"Plan saved for week of "+weekLabel(nwk)+" ✓");
 }
 
 
@@ -6383,6 +6426,23 @@ window.shiftWeek=shiftWeek;
 window.goCurrentWeek=goCurrentWeek;
 window.restoreDailyBackup=restoreDailyBackup;
 ctx.renderST=renderST;
+
+// Weekend auto-plan, so the week is planned even if nobody taps Generate.
+// Runs on the first app open on Sunday (the week's training is all logged by
+// then), with Monday as the fallback if Sunday was missed. Monday's planWk()
+// is the week just starting. One attempt per target week per day, so a failed
+// request retries on a later open instead of hammering the API.
+async function maybeAutoPlan(){
+  const dow=new Date().getDay();
+  if(dow!==0&&dow!==1)return;
+  if(!API_CFG.token)return;
+  const target=planWk();
+  if((S.weekPlans||{})[target])return;
+  const mark="f5_autoplan_"+target+"_"+isoToday();
+  try{if(localStorage.getItem(mark))return;localStorage.setItem(mark,"1");}catch{return;}
+  await genWeeklyPlan(true);
+}
+ctx.maybeAutoPlan=maybeAutoPlan;
 
 
 
@@ -6638,7 +6698,7 @@ ctx.seedCustomNames=seedCustomNames;
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
-  for(const P of [PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const P of [PROG,PROG_V7,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
   seedCustomNames();
 })();
@@ -7105,7 +7165,9 @@ function initApp(){
   // Sequential, not concurrent: a queued restore_all (or any pending write)
   // must land before we pull authoritative state, or the pull can return
   // pre-write data and clobber it the moment the outbox empties.
-  flushOutbox().then(()=>loadServerState(false));
+  // Auto-plan runs AFTER the pull, so it sees the server's plans (another
+  // device may already have generated this week's) and is not overwritten.
+  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).catch(()=>{});
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;

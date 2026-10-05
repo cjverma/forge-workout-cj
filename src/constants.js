@@ -813,6 +813,29 @@ export const PROG_V6={
   Sunday:{...PROG_V4.Sunday,exercises:PROG_V4.Sunday.exercises.map(e=>({...e,id:e.id.replace(/^su4_/,"su6_")}))},
 };
 
+// ── PROGRAM V7: Mon 5 Oct – Sun 11 Oct 2026 · ramp back to Southpaw (1.5x) ──
+// The deload week was "1", full Southpaw is "2"; this week sits halfway. Same
+// Southpaw split, exercises, order and cues, so nothing new and no reshuffle.
+// Working sets map 3->2, 4->3, 5->4, 6->4 (2 stays 2): ~114 weekly sets, near
+// the midpoint of the deload's 68 and Southpaw's 150. Loads ~95% (halfway
+// between the deload's 90% and full). Derived from PROG_V4, never copied, so names (and
+// S.prs slugs) cannot drift. Full Southpaw resumes Mon 12 Oct.
+function _v7Kg(v){const x=v*0.95;return x>=10?Math.round(x/2.5)*2.5:Math.round(x*2)/2;}
+function _v7Hint(h){return String(h).replace(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))? kg/,(_,a,b)=>b?`${_v7Kg(+a)}-${_v7Kg(+b)} kg`:`${_v7Kg(+a)} kg`);}
+const _V7_PFX={m4:"m7",t4:"t7",w4:"w7",th4:"th7",f4:"f7",sa4:"sa7",su4:"su7"};
+const _v7Id=id=>id.replace(/^(m4|t4|w4|th4|f4|sa4|su4)_/,(_,p)=>_V7_PFX[p]+"_");
+export const PROG_V7=Object.fromEntries(Object.entries(PROG_V4).map(([day,d])=>[day,{
+  ...d,...(d.tag?{tag:"Ramp-up"}:{}),
+  exercises:d.exercises.map(e=>{
+    const o={...e,id:_v7Id(e.id)};
+    if(e.ss)o.ss=_v7Id(e.ss);
+    if(e.cat==="gym"&&!/^Warm-Up/.test(e.name)){
+      o.sets=({3:2,4:3,5:4,6:4})[e.sets]??e.sets;
+      o.hint=_v7Hint(e.hint);
+    }
+    return o;
+  })}]));
+
 
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
@@ -840,7 +863,8 @@ function _sp(p){
 // Which program version a plan was generated against. Stamped onto weekPlans so
 // an override written for an older program cannot inject into a newer one.
 export function programKeyFor(date){
-  return date>=new Date(2026,9,5)?"v4"
+  return date>=new Date(2026,9,12)?"v4"
+    :date>=new Date(2026,9,5)?"v7"
     :date>=new Date(2026,8,28)?"v6"
     :date>=new Date(2026,8,21)?"v4"
     :date>=new Date(2026,8,11)?"v5"
@@ -869,7 +893,8 @@ function _stage(p,date){
 }
 
 export function programFor(date){
-  const base=date>=new Date(2026,9,5)?PROG_V4
+  const base=date>=new Date(2026,9,12)?PROG_V4
+    :date>=new Date(2026,9,5)?PROG_V7
     :date>=new Date(2026,8,28)?PROG_V6
     :date>=new Date(2026,8,21)?PROG_V4
     :date>=new Date(2026,8,11)?PROG_V5
@@ -884,7 +909,8 @@ const _pd=new Date();
 export const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
   v4:"Southpaw (Jake Gyllenhaal) hypertrophy program",
   v5:"return block (full body, easy)",
-  v6:"Southpaw deload week (shuffled days, reduced volume)"};
+  v6:"Southpaw deload week (shuffled days, reduced volume)",
+  v7:"Southpaw ramp-up week (1.5x: sets halfway back, ~95% loads)"};
 
 export const PROG=programFor(_pd);
 

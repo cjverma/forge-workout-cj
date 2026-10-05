@@ -249,6 +249,12 @@ exercises already in `PROG_V4` (resolved by name, unknown names throw), so no
 new movement appears and PR slugs carry over. Southpaw
 resumes Mon 5 Oct. Same rule: both cascades change together.
 
+Then `PROG_V7` runs Mon 5 - Sun 11 Oct 2026 as a 1.5x ramp-up (deload = 1,
+Southpaw = 2): derived from `PROG_V4` with the same days, names, order and
+cues, working sets mapped 3->2 / 4->3 / 5->4 / 6->4 and loads ~95%. Full
+Southpaw resumes Mon 12 Oct. Its own key (`v7`) means a weekly plan generated
+against `v4` for that week is refused, by design.
+
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
   never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts
   as rest once its physio block returns.
@@ -292,6 +298,20 @@ saw a physio-stripped week with the rest day missing entirely, and scheduled
 work on it. Rest days are sent as `rest:true` with their exercises, never
 omitted. `api/weekly-plan.js` builds its schedule sentence from
 `profile.program` rather than naming days in the prompt.
+
+**Which week, and automatically.** `planMon()`/`planWk()` (`src/main.js`) are
+the one source for the week a plan is for: on Monday the week just starting,
+otherwise the coming Monday. Everything uses them: the storage key, the
+`_prog` stamp, the AI snapshot (`planWeekStart()`), and every label. The modal
+and `applyPendingPlan()` validate ids against `programFor(planMon())`, never
+`PROG`: on a program boundary (ramp week -> Southpaw) today's ids match none
+of the plan's and every update was silently dropped. `maybeAutoPlan()` runs
+after the first server pull on Sunday (Monday as fallback): if the target week
+has no plan it generates and applies one with no modal, keeping the coaching
+notes in `S._lastPlanNotes`, at most one attempt per week per day. It is
+client-side, so it needs the app opened; a server cron would have to rebuild
+the whole client-side payload. `_prog` is a string: never iterate it as a
+day's update list (it once synced back as `["v","4"]` and voided every plan).
 
 ## The exercise library (`EX_DB`)
 
