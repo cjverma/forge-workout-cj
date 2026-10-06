@@ -353,6 +353,46 @@ try {
     }
   }
 
+  // Inline icons sit on the text baseline by default and poke up above the
+  // letters (Start Workout's bolt). Measure the real render: centred within 2px.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const r = await page.evaluate(() => {
+      const b = document.getElementById("bStart"); if (!b) return null;
+      const i = b.querySelector(".icon").getBoundingClientRect();
+      const rg = document.createRange(); rg.selectNodeContents(b.lastChild); const t = rg.getBoundingClientRect();
+      return Math.abs((i.top + i.bottom) / 2 - (t.top + t.bottom) / 2);
+    });
+    note("an inline icon is vertically centred on its text (Start Workout)", r === null || r <= 2, "offset=" + r);
+    // Sweep EVERY icon on every tab against the text on its line. Leading row
+    // icons (.ex-icon, .st-icon) are centred on a two-line block by design.
+    const bad = [];
+    for (const tab of ["workout", "nutrition", "settings"]) {
+      await page.evaluate((t) => document.getElementById("nav-" + t)?.click(), tab);
+      await page.waitForTimeout(600);
+      await page.evaluate(() => { document.querySelectorAll("details").forEach((d) => (d.open = true)); document.querySelectorAll(".sets-body").forEach((x) => x.classList.add("open")); });
+      await page.waitForTimeout(200);
+      bad.push(...(await page.evaluate((tab) => {
+        const out = [];
+        for (const svg of document.querySelectorAll("svg.icon")) {
+          if (svg.closest(".ex-icon,.st-icon")) continue;
+          const ir = svg.getBoundingClientRect(); if (!ir.width) continue;
+          const mid = (ir.top + ir.bottom) / 2;
+          const w = document.createTreeWalker(svg.parentElement, NodeFilter.SHOW_TEXT);
+          let n, tr = null;
+          while ((n = w.nextNode())) { if (!n.textContent.trim()) continue; const rg = document.createRange(); rg.selectNodeContents(n); tr = [...rg.getClientRects()].find((r) => Math.abs((r.top + r.bottom) / 2 - mid) < ir.height); if (tr) break; }
+          if (tr && Math.abs((tr.top + tr.bottom) / 2 - mid) > 2) out.push(tab + ":" + (svg.parentElement.className || svg.parentElement.tagName));
+        }
+        return out;
+      }, tab)));
+    }
+    note("every inline icon on every tab is centred on its text (within 2px)", bad.length === 0, bad.slice(0, 5).join(", "));
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every

@@ -262,6 +262,11 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .swap-name{font-size:14px;font-weight:600;}
 .swap-meta{font-size:11px;color:var(--dim);font-variant-numeric:tabular-nums;}
 .swap-keep{width:100%;margin-top:var(--sp-3);background:var(--accent);color:var(--accent-ink);border:none;border-radius:var(--r-pill);padding:14px;font-family:var(--font-body);font-size:14px;font-weight:700;cursor:pointer;}
+/* Inline SVGs sit on the text BASELINE by default, so an 18px icon beside 13px
+   text pokes up above the letters (Start Workout, banners, buttons). Centre
+   every icon on the line instead. Inside flex rows vertical-align is ignored,
+   so those keep their own alignment. */
+.icon{vertical-align:middle;flex-shrink:0;position:relative;top:-.08em;}
 .ss-chip .icon{stroke-width:2;}
 
 /* ── PROGRESS ── */
