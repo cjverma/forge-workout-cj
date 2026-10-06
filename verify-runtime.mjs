@@ -353,6 +353,23 @@ try {
     }
   }
 
+  // Inline icons sit on the text baseline by default and poke up above the
+  // letters (Start Workout's bolt). Measure the real render: centred within 2px.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const r = await page.evaluate(() => {
+      const b = document.getElementById("bStart"); if (!b) return null;
+      const i = b.querySelector(".icon").getBoundingClientRect();
+      const rg = document.createRange(); rg.selectNodeContents(b.lastChild); const t = rg.getBoundingClientRect();
+      return Math.abs((i.top + i.bottom) / 2 - (t.top + t.bottom) / 2);
+    });
+    note("an inline icon is vertically centred on its text (Start Workout)", r === null || r <= 2, "offset=" + r);
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every
