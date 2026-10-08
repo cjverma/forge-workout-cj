@@ -47,9 +47,16 @@ function toggleExUnit(key,exId){
   S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
   save();queueSession(key,exId);reCard(key,exId);
 }
+// Placeholder for the weight box. The box already prints its unit (.wt-wrap),
+// so the hint carries numbers only, converted when the box is in lbs: it used
+// to relabel a kg range as lbs ("7-9 lbs" beside LBS) without converting it.
 function hintDisp(hint,unit){
   if(!hint)return"";
-  return hint.replace(/\b(kg|lbs)\b/gi,"").trim()+" "+(unit||"kg");
+  const h=String(hint);
+  if(!/\bkg\b/i.test(h))return h.replace(/\b(kg|lbs)\b/gi,"").trim();
+  const nums=h.replace(/\s*kg\b/gi,"").trim();
+  if(unit!=="lbs")return nums;
+  return nums.replace(/\d+(?:\.\d+)?/g,n=>String(Math.round(Number(n)/LB_TO_KG)));
 }
 
 // ── REST TIMER (background-safe) ──
@@ -97,6 +104,9 @@ document.addEventListener("visibilitychange",()=>{
 });
 
 // ── LAST SESSION HELPER ──
+// The most recent earlier session of this exercise. Weights come back in KG
+// (kgSets / weight) plus the unit they were typed in, so callers can show them
+// in whatever unit the box is in now: "Last: 90kg" was 90 lbs shown as kg.
 function lastSessionEx(exId){
   const S=ctx.getS();
   const curKey=ctx.sk(ctx.cDay);
@@ -111,15 +121,18 @@ function lastSessionEx(exId){
     const m=key.match(/_(\d{4})W(\d+)$/);
     if(!m)continue;
     const ord=+m[1]*100+(+m[2]);
-    if(!best||ord>best.ord){best={ord,sets:doneSets};}
+    if(!best||ord>best.ord){best={ord,sets:doneSets,unit:ed.unit==="lbs"?"lbs":"kg"};}
   }
   if(!best)return null;
-  const weights=best.sets.map(s=>parseFloat(s.weight)||0).filter(v=>v>0);
+  const kgSets=best.sets.map(s=>({kg:toKg(s.weight,best.unit),reps:Number(s.reps)})).filter(s=>s.kg>0);
+  if(!kgSets.length)return null;
   const reps=best.sets.map(s=>s.reps).find(r=>r)||"?";
-  if(!weights.length)return null;
-  const avgW=weights.reduce((a,b)=>a+b,0)/weights.length;
-  return{weight:avgW,reps,sets:best.sets};
+  const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
+  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets};
 }
+const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
+// Best set by estimated 1RM, so weight AND reps count and every set does.
+const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?epley1RM(s.kg,s.reps):0),0);
 
 // ── OVERLOAD DIRECTION ──
 function overloadDir(exId,sess){
@@ -127,14 +140,16 @@ function overloadDir(exId,sess){
   if(!last)return null;
   const ed=sess[exId];
   if(!ed||!ed.sets)return null;
-  const curDone=ed.sets.filter(s=>s.done&&s.weight);
-  if(!curDone.length)return null;
-  const curW=curDone.map(s=>parseFloat(s.weight)||0).filter(v=>v>0);
-  if(!curW.length)return null;
-  const curAvg=curW.reduce((a,b)=>a+b,0)/curW.length;
-  const lastAvg=last.weight;
-  if(curAvg-lastAvg>0.5)return"up";
-  if(lastAvg-curAvg>0.5)return"down";
+  // Compared on the BEST set's estimated 1RM, in kg. The old version averaged
+  // raw weights: it ignored reps, let a light first set drag the average down,
+  // and compared lbs to kg, so a PR set could still show a down arrow.
+  const unit=ed.unit==="lbs"?"lbs":"kg";
+  const cur=ed.sets.filter(s=>s.done&&s.weight&&s.reps).map(s=>({kg:toKg(s.weight,unit),reps:Number(s.reps)})).filter(s=>s.kg>0);
+  if(!cur.length)return null;
+  const now=bestE1RM(cur),then=bestE1RM(last.kgSets);
+  if(!then)return null;
+  if(now>then*1.01)return"up";
+  if(now<then*0.99)return"down";
   return"eq";
 }
 
@@ -666,8 +681,8 @@ function card(ex,sess,key,rdOnly=false){
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
-  const exUnit=ed.unit||"kg";
-  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${parseFloat(lastSess.weight.toFixed(1))}${exUnit} × ${esc(String(lastSess.reps))}</div>`:"";
+  const exUnit=getExUnit(key,ex.id);
+  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${inUnit(lastSess.weight,exUnit)} ${exUnit} × ${esc(String(lastSess.reps))}</div>`:"";
 
   // Overload badge
   let olBadge="";
@@ -697,7 +712,7 @@ function card(ex,sess,key,rdOnly=false){
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
         const lastSet=lastSetsForCarry.sets[i]||lastSetsForCarry.sets[0];
-        if(lastSet&&lastSet.weight){weightVal=parseFloat(lastSet.weight)||"";}
+        if(lastSet&&lastSet.weight){const kg=toKg(lastSet.weight,lastSetsForCarry.unit);weightVal=kg?inUnit(kg,exUnit):"";}
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>

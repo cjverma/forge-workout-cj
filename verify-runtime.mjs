@@ -393,6 +393,47 @@ try {
     await page.close();
   }
 
+  // Overload badge + hint wording, from two real screenshots. Pec Fly: last
+  // week 90 lbs x 12 (40.8 kg), today 36x15 then 52x18 kg showed a DOWN arrow
+  // (raw average 44 vs 90, units and reps ignored). Seated DB Curl in lbs
+  // showed "7-9 lbs" beside the LBS label: a kg range relabelled, unit doubled.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`overload: ${e.message}`));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const ex = await page.evaluate(() => {
+      // Multi-set exercises only: the "Last:" line and badge skip 1-set warm-ups.
+      const ids = [...document.querySelectorAll(".si")].filter((i) => /^wi-.*-1$/.test(i.id)).map((i) => i.id.replace("wi-", "").replace(/-\d+$/, ""));
+      return [...new Set(ids)].slice(0, 2);
+    });
+    await page.evaluate(([a, b]) => {
+      const S = JSON.parse(localStorage.f5);
+      const wkOf = (d) => { const j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7); };
+      const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+      const prev = new Date(); prev.setDate(prev.getDate() - 7);
+      S.sessions = {
+        [day + "_" + wkOf(prev)]: { [a]: { unit: "lbs", done: true, sets: [{ weight: "90", reps: "12", done: true }] } },
+        [day + "_" + wkOf(new Date())]: { [a]: { unit: "kg", sets: [{ weight: "36", reps: "15", done: true }, { weight: "52", reps: "18", done: true }] }, [b]: { unit: "lbs", sets: [] } },
+      };
+      S._v6MonDone1 = true; S._planMove41 = true;
+      localStorage.f5 = JSON.stringify(S);
+      try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
+    }, ex);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const r = await page.evaluate(([a, b]) => ({
+      up: !!document.querySelector(`#ex-${a} .ol-up`), down: !!document.querySelector(`#ex-${a} .ol-down`),
+      ghost: document.querySelector(`#ex-${a} .last-ghost`)?.textContent || "",
+      ph: document.getElementById(`wi-${b}-0`)?.placeholder || "",
+    }), ex);
+    note("overload badge uses the best set (weight x reps, in kg): a PR set shows up, not down", r.up && !r.down, JSON.stringify(r));
+    note("'Last:' converts the previous session's unit (90 lbs -> 40.8 kg)", /Last: 40\.8 kg × 12/.test(r.ghost), r.ghost);
+    note("an lbs weight box hint is converted numbers only, never a kg range labelled lbs", !/lbs|kg/i.test(r.ph), "placeholder=" + r.ph);
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every
