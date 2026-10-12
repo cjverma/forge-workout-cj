@@ -266,6 +266,16 @@ exercises already in `PROG_V4` (resolved by name, unknown names throw), so no
 new movement appears and PR slugs carry over. Southpaw
 resumes Mon 5 Oct. Same rule: both cascades change together.
 
+From Mon 12 Oct 2026 there is more volume (dated, so earlier weeks are
+unchanged): one extra exercise on Tue (Cable Bicep Curl), Wed (Cable Glute
+Kickback), Thu (Tricep Extension Machine) and Sat (Seated Lateral Raise), each
+a movement already on another Southpaw day, staged with `from:"2026-10-12"`.
+Mon and Fri got an extra SET instead (Chest Press 4->5, Seated Pulldown 3->4,
+via `setsBefore:{until,sets}`), because any new exercise there would train a
+muscle the day before or after the same muscle: **the recovery rule (no small
+muscle on back-to-back days) beats adding volume**. Superset partners must be
+adjacent; additions go before a superset pair, never between it.
+
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
   never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts
   as rest once its physio block returns.
@@ -445,7 +455,10 @@ function, and the Hobby plan refuses a deployment with more than 12. Adding
 the Sunday plan cron made 13 and the deploy failed (preview AND production,
 which kept serving the previous version). Shared helpers are `_`-prefixed
 (`_shared.js`, `_db.js`) so they do not count. `node test.js` fails above 12.
-A new endpoint must replace or merge an existing one while on Hobby.
+**api/ is AT the limit (12/12).** Any new server feature must be folded into
+an existing endpoint (e.g. a new `entity` in `api/mutate.js`, a new branch in
+an existing cron) rather than a new file, unless the user moves to Vercel Pro.
+Check `ls api | grep -vc '^_'` before adding anything under `api/`.
 
 ## The weekly plan is built in ONE place (`src/plan.js`)
 
