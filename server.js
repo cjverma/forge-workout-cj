@@ -16,6 +16,7 @@ import state from "./api/state.js";
 import mutate from "./api/mutate.js";
 import suggestAlt from "./api/suggest-alt.js";
 import cronDietReview from "./api/cron-diet-review.js";
+import cronWeeklyPlan from "./api/cron-weekly-plan.js";
 import healthkit from "./api/healthkit.js";
 import health from "./api/health.js";
 
@@ -35,6 +36,7 @@ app.all("/api/state", mount(state));
 app.all("/api/mutate", mount(mutate));
 app.all("/api/suggest-alt", mount(suggestAlt));
 app.all("/api/cron-diet-review", mount(cronDietReview));
+app.all("/api/cron-weekly-plan", mount(cronWeeklyPlan));
 app.all("/api/healthkit", mount(healthkit));
 app.all("/api/health", mount(health));
 

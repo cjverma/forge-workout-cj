@@ -4,10 +4,11 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
+import { planMonFor, isBannedExercise } from "./plan.js";
 import { weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW, sessionKeyToIso } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
-import { isBannedExercise, renderST } from "./settings.js";
+import { renderST } from "./settings.js";
 import { closeForgeChat } from "./chat.js";
 
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
@@ -648,7 +649,7 @@ function nextWk(){const d=new Date();d.setDate(d.getDate()+7);return weekKeyOf(d
 // landed on the following Monday (12 Oct) and this week ran unplanned. Sunday
 // and Tue-Sat still target the coming Monday. One source for the key, the
 // program stamp, the AI's snapshot and every label, so they cannot disagree.
-function planMon(){const d=new Date();d.setHours(0,0,0,0);const dow=d.getDay();if(dow!==1)d.setDate(d.getDate()+(dow===0?1:8-dow));return d;}
+function planMon(){return planMonFor(new Date());}
 function planWk(){return weekKeyOf(planMon());}
 function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);return weekKeyOf(d);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return fmtDate(mon.toISOString().slice(0,10));}
