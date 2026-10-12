@@ -2029,9 +2029,18 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
 
   // Belt and braces: even with every entity handled, one permanently-rejected
     // payload must not strand the queue behind it forever.
-    ok("a 4xx mutation is dropped, not left to freeze the queue",
-      /r\.status >= 400 && r\.status < 500/.test(SYNC) &&
-      /list\.shift\(\); setOutbox\(list\);\s*continue;/.test(SYNC));
+    ok("a rejected payload (400/413/422) is dropped, not left to freeze the queue",
+      /r\.status === 400 \|\| r\.status === 413 \|\| r\.status === 422/.test(SYNC) &&
+      /removeSent\(m\);\s*continue;/.test(SYNC));
+    // 401/404/429 can be temporary and used to be dropped, discarding workouts.
+    ok("auth / not-found / rate-limit errors retry instead of discarding the upload",
+      !/r\.status >= 400 && r\.status < 500/.test(SYNC));
+    // The flush used to write back a stale copy of the queue after each upload,
+    // erasing sets ticked while a request was in flight.
+    ok("the flush removes only the item it sent, from the CURRENT queue (no stale write-back)",
+      /const removeSent = \(m\) => \{\s*const cur = getOutbox\(\);/.test(SYNC) &&
+      /const m = getOutbox\(\)\[0\];/.test(SYNC) &&
+      !/setOutbox\(list\)/.test(SYNC.slice(SYNC.indexOf("export async function flushOutbox"), SYNC.indexOf("export async function loadServerState"))));
     ok("a 5xx or network error still stops and retries later",
       /\} catch \(e\) \{ break; \}/.test(SYNC) && /if \(!ok\) break;/.test(SYNC));
     ok("dropped mutations are surfaced, not silent",

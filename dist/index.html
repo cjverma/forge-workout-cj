@@ -2586,34 +2586,46 @@ function scheduleFlush() {
 
 async function flushOutbox() {
   if (ctx.syncBusy || !API_CFG.token) return;
-  let list = getOutbox();
-  if (!list.length) return;
+  if (!getOutbox().length) return;
   ctx.syncBusy = true;
   const dropped = [];
+  // Remove exactly the item that was sent from the CURRENT stored queue. This
+  // used to write back a copy of the queue taken when the flush started, which
+  // erased every set ticked while a request was in flight (slow gym signal,
+  // a set every minute): the set showed as logged, never reached the server,
+  // and the next pull replaced it with nothing. Lost a whole Friday session.
+  // An item re-queued under the same dedupeKey while in flight has a new ts,
+  // so it does not match here and is sent again with its newer payload.
+  const removeSent = (m) => {
+    const cur = getOutbox();
+    const i = cur.findIndex(x => x.ts === m.ts && x.entity === m.entity && x.dedupeKey === m.dedupeKey && JSON.stringify(x.payload) === JSON.stringify(m.payload));
+    if (i >= 0) { cur.splice(i, 1); setOutbox(cur); }
+  };
   try {
-    while (list.length) {
-      const m = list[0];
+    for (let guard = 0; guard < 1000; guard++) {
+      const m = getOutbox()[0];
+      if (!m) break;
       let ok = false;
       try {
         const r = await fetchT(API_CFG.baseUrl + "/api/mutate", { method: "POST", headers: { "Content-Type": "application/json", "Authorization": "Bearer " + API_CFG.token }, body: JSON.stringify({ entity: m.entity, payload: m.payload }) }, 15000);
         if (r.status === 501) { ctx.syncAvailable = false; break; }
         ok = r.ok;
         if (r.ok) ctx.syncAvailable = true;
-        // A 4xx is permanent: the server will reject this payload every time,
-        // so breaking means the queue never moves again and every later change
-        // is stranded behind it. Drop it and keep going. A 5xx or a network
-        // error is transient, so those still stop and retry later.
-        else if (r.status >= 400 && r.status < 500) {
+        // Only a payload the server REJECTS is permanent (400 bad request,
+        // 413 too large, 422 invalid): it will fail forever, so drop it and
+        // keep going. 401/403/404/408/429 can be temporary (a deploy, a token
+        // being rotated, a rate limit) and used to be dropped too, discarding
+        // real workout data. Those, 5xx and network errors stop and retry.
+        else if (r.status === 400 || r.status === 413 || r.status === 422) {
           ctx.syncAvailable = true;
           console.warn("[sync] dropping unacceptable mutation:", m.entity, r.status);
           dropped.push(m.entity);
-          list.shift(); setOutbox(list);
+          removeSent(m);
           continue;
         }
       } catch (e) { break; }
       if (!ok) break;
-      list.shift();
-      setOutbox(list);
+      removeSent(m);
     }
   } finally {
     ctx.syncBusy = false; setSyncDot();
