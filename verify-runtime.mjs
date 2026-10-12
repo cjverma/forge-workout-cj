@@ -584,6 +584,49 @@ try {
     await page.close();
   }
 
+  // The up/down/equal arrow must follow EVERY set, not just the first. reCard()
+  // skips while the input you just typed in still has focus, so after set 1
+  // (below last session = down) a PR on set 2 left the arrow on down. Typed
+  // with .fill() and ticked straight away: focus stays in the box, as on iOS.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`olbadge: ${e.message}`));
+    page.on("dialog", (d) => d.dismiss());
+    await page.clock.install({ time: new Date("2026-10-13T10:00:00-04:00") });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const exId = await page.evaluate(() => {
+      const ids = [...document.querySelectorAll(".si")].filter((i) => /^wi-.*-1$/.test(i.id)).map((i) => i.id.replace("wi-", "").replace(/-\d+$/, ""));
+      return ids.find((id) => document.querySelector(`#ex-${id} .ex-icon.gym`));
+    });
+    await page.evaluate((a) => {
+      const S = JSON.parse(localStorage.f5);
+      S.sessions = { Tuesday_2026W41: { [a]: { unit: "kg", done: true, sets: [{ weight: "40", reps: "10", done: true }] } } };
+      Object.assign(S, { _v6MonDone1: true, _planMove41: true, _wkFix1: true });
+      localStorage.f5 = JSON.stringify(S);
+      try { localStorage.setItem("f5_unitreview_2026-10-13", "1"); } catch {}
+    }, exId);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await page.locator(`#ex-${exId} .ex-top`).click().catch(() => {});
+    await page.waitForTimeout(300);
+    await page.evaluate(() => { window.__forgeKey = () => "Tuesday_2026W42"; });
+    const tick = async (i, w, r) => {
+      await page.locator(`#wi-${exId}-${i}`).fill(w);
+      await page.locator(`#ri-${exId}-${i}`).fill(r);
+      // iOS: tapping the tick does NOT move focus off the reps box (a desktop
+      // click would focus the button and hide the bug). Tick with focus kept.
+      await page.evaluate(({ a, i }) => { document.getElementById(`ri-${a}-${i}`).focus(); window.toggleSet(window.__forgeKey(), a, i); }, { a: exId, i });
+      await page.waitForTimeout(250);
+      return page.evaluate((a) => document.querySelector(`#ol-${a} span`)?.className || "none", exId);
+    };
+    const s1 = await tick(0, "35", "10");   // below last session's 40x10
+    const s2 = await tick(1, "45", "10");   // beats it
+    note("arrow follows later sets: down after a weaker set 1, up once set 2 beats last session", s1 === "ol-down" && s2 === "ol-up", `set1=${s1} set2=${s2}`);
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every
