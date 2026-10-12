@@ -552,7 +552,7 @@ function weekCompliance(p,weekStartIso,endIso){
   const days=[];
   for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
   if(!days.length)return{calculating:true};
-  let calLogged=0,protSum=0,protDays=0,defSum=0,defReq=0,inEat=0,inRest=0,inAct=0,inDays=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
+  let calLogged=0,calDays=0,calOk=0,protSum=0,protDays=0,defSum=0,defReq=0,inEat=0,inRest=0,inAct=0,inDays=0,workoutDays=0,expWorkout=0,weighins=0,weighinDays=0;
   for(const d of days){
     const nd=S.nutrition?.days?.[d]||{};const items=nd.items||[];
     const kcal=items.reduce((s,it)=>s+(it.kcal||0),0);
@@ -569,6 +569,10 @@ function weekCompliance(p,weekStartIso,endIso){
     // Monday would have no denominator at all.
     const inProgress=d===isoToday()&&days.length>1;
     if(!inProgress){
+      // Calories: share of finished, food-logged days at or under the phase's
+      // eat target. The summary row read wc.calories, which this function had
+      // stopped returning, so it rendered "undefined%".
+      if(kcal>0){calDays++;if(kcal<=p.eatKcal)calOk++;}
       // Measured, not asserted: what the day actually produced vs what the
       // phase still needs. Unlogged days are skipped rather than scored as zero.
       const ad=actualDeficit(d);
@@ -587,6 +591,7 @@ function weekCompliance(p,weekStartIso,endIso){
   // Zepbound: taken this Tuesday cycle (last Tue → now) = 100, else 0
   const zepTaken=zepSchedule().taken?100:0;
   const m={
+    calories:calDays?Math.round(calOk/calDays*100):null,
     deficit:Math.min(100,Math.round(defReq>0?Math.max(0,defSum)/defReq*100:0)),
     // daily averages of the three inputs, for the breakdown line
     avgEat:inDays?Math.round(inEat/inDays):0,
@@ -815,7 +820,7 @@ function phaseCardHtml(){
           <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">Week ${wN} summary</div>
           ${wDelta!=null?row("Weight",`${wDelta>0?"+":""}${wDelta} kg`):""}
           ${banked?row(banked.kg>=0?"Ahead of schedule":"Behind schedule",`${Math.abs(banked.kg)} kg`):""}
-          ${row("Calories compliance",wc.calories+"%")}
+          ${row("Calories compliance",wc.calories==null?"·":wc.calories+"%")}
           ${row("Deficit vs required",wc.deficit+"%")}
           ${row("Protein",wc.protein+"%")}
           <div style="font-size:12px;color:var(--accent-text);font-weight:600;margin-top:6px">→ ${coachRecommendation(p,t,wc)}</div>
