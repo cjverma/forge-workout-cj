@@ -11,7 +11,7 @@
  */
 import { spawn } from "child_process";
 import { chromium } from "playwright";
-import { programFor } from "./src/constants.js";
+import { programFor, FEATURES } from "./src/constants.js";
 
 const PORT = 8791;
 const URL = `http://127.0.0.1:${PORT}/dist/index.html`;
@@ -134,8 +134,10 @@ try {
       const el = [...document.querySelectorAll(".rule-desc")].find(d => /est\. 1RM/.test(d.textContent));
       return el ? el.textContent.trim() : "";
     });
-    note(`${theme}: PR row leads with the set lifted, not the estimate`,
+    // The PR list can be switched off (FEATURES.prList); only check it when on.
+    if (FEATURES.prList) note(`${theme}: PR row leads with the set lifted, not the estimate`,
       /^40kg × 10 .*est\. 1RM 53kg$/.test(prRow), prRow);
+    else note(`${theme}: PR list is hidden while switched off`, prRow === "", prRow);
 
     // Close the drawer first: it overlays the nav and swallows the click.
     await page.evaluate(() => window.closeDrawer && window.closeDrawer());
@@ -554,6 +556,31 @@ try {
     const m = txt.match(/Calories compliance\s*([^A-Z]+?)(?=Deficit vs required)/);
     const und = txt.match(/.{60}undefined.{40}/g);
     note("weekly summary shows a real calories-compliance figure, never 'undefined'", !und && !!m && /^\d+%$|^·$/.test(m[1].trim()), JSON.stringify(m && m[1]) + " " + JSON.stringify(und));
+    await page.close();
+  }
+
+  // Simplified app (Oct 2026): every feature switched off in FEATURES must be
+  // gone from the rendered UI, not just unused.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 2400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`features: ${e.message}`));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const quote = await page.evaluate(() => { const q = document.getElementById("quoteEl"); return !!q && getComputedStyle(q).display !== "none"; });
+    await page.evaluate(() => document.getElementById("nav-nutrition")?.click()); await page.waitForTimeout(700);
+    const nut = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
+    await page.evaluate(() => document.getElementById("nav-settings")?.click()); await page.waitForTimeout(700);
+    const st = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
+    await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
+    const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
+    const shown = {
+      quoteCard: quote, medicationCard: /Zepbound|next dose|overdue/i.test(nut), complianceGrid: /This week's compliance/i.test(nut),
+      progressCharts: /Volume This Week|Weekly Calorie Deficit/.test(st), prList: /Personal Records/.test(dr),
+    };
+    const wrong = Object.entries(shown).filter(([k, v]) => v !== FEATURES[k]).map(([k, v]) => `${k}:${v ? "shown" : "hidden"}`);
+    note(`each switched-off feature is hidden, each switched-on one shown${wrong.length ? " · " + wrong.join(", ") : ""}`, wrong.length === 0);
+    note("the rest of the Insights menu stays (trends, Machine Busy)", /7-Day Trends/.test(dr) && /Machine Busy/.test(dr));
     await page.close();
   }
 

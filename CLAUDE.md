@@ -480,6 +480,16 @@ app does, so the week is planned even if the app is never opened.
   `sessionNotes` (note + calf-twinge count) for every week and every day that
   has one, and the prompt ranks them above the numbers.
 
+## Switched-off features (`FEATURES` in `src/constants.js`)
+
+The user simplified the app (Oct 2026). Hidden, not deleted: data and code
+stay, and setting a flag back to `true` restores the feature. Off: the quote
+card (and its rotation timer), the Zepbound medication card, the "This week's
+compliance" grid, Settings' Volume This Week + Progress group, and the
+Personal Records section of the Insights drawer (the rest of that drawer:
+7-day trends, Machine Busy, How Hard stays). `verify-runtime.mjs` checks the
+rendered UI matches every flag. Don't re-add hidden features unasked.
+
 ## Calf twinge makes the session note mandatory
 
 `stopSess()` refuses to stop while `_calfTwinges` is non-empty and `_notes` is

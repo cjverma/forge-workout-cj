@@ -969,3 +969,13 @@ export function weekKeyOf(date){
   const j=new Date(d.getFullYear(),0,1);
   return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
 }
+
+// Features the user switched off to simplify the app (Oct 2026). Hidden, not
+// deleted: data and code stay, and flipping a flag back to true restores it.
+export const FEATURES={
+  quoteCard:false,        // rotating quote at the top
+  medicationCard:false,   // Zepbound card on Nutrition
+  complianceGrid:false,   // "This week's compliance" grid in the phase card
+  progressCharts:false,   // Settings: Volume This Week + Progress group
+  prList:false,           // Personal Records section in the Insights drawer
+};

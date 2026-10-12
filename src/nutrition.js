@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToda
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
-import { FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT, PROG, PR_ALIAS, kg1 } from "./constants.js";
+import { FEATURES, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT, PROG, PR_ALIAS, kg1 } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -88,7 +88,7 @@ function renderDrawer(){
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
-    <details class="st-acc">
+    ${FEATURES.prList?`    <details class="st-acc">
       <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Best set · progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
@@ -148,7 +148,7 @@ function renderDrawer(){
       return leaderHtml+exRows;
     })()}
       </div>
-    </details>
+    </details>`:""}
     <details class="st-acc">
       <summary><div><div>${icon("shield",20)} Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
       <div class="st-acc-inner">
@@ -352,7 +352,7 @@ export function renderNutrition(){
       }
     </div>
 
-    ${zepCardHtml()}
+    ${FEATURES.medicationCard?zepCardHtml():""}
 
     <div class="st-sec">Progress</div>
 
@@ -914,10 +914,10 @@ function phaseCardHtml(){
       ${weightBlockHtml}
       ${rangeRowHtml}
       ${debtHtml}
-      <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
+      ${FEATURES.complianceGrid?`<div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
         ${compHtml}
-      </div>
+      </div>`:""}
       ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift: add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
       ${verdictHtml}

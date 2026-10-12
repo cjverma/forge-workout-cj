@@ -1987,6 +1987,16 @@ function weekKeyOf(date){
   return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
 }
 
+// Features the user switched off to simplify the app (Oct 2026). Hidden, not
+// deleted: data and code stay, and flipping a flag back to true restores it.
+const FEATURES={
+  quoteCard:false,        // rotating quote at the top
+  medicationCard:false,   // Zepbound card on Nutrition
+  complianceGrid:false,   // "This week's compliance" grid in the phase card
+  progressCharts:false,   // Settings: Volume This Week + Progress group
+  prList:false,           // Personal Records section in the Insights drawer
+};
+
 
 
 
@@ -4723,7 +4733,7 @@ function renderDrawer(){
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
-    <details class="st-acc">
+    ${FEATURES.prList?`    <details class="st-acc">
       <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Best set · progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
@@ -4783,7 +4793,7 @@ function renderDrawer(){
       return leaderHtml+exRows;
     })()}
       </div>
-    </details>
+    </details>`:""}
     <details class="st-acc">
       <summary><div><div>${icon("shield",20)} Spine Rules</div><div class="st-acc-sub">Movement restrictions</div></div></summary>
       <div class="st-acc-inner">
@@ -4987,7 +4997,7 @@ function renderNutrition(){
       }
     </div>
 
-    ${zepCardHtml()}
+    ${FEATURES.medicationCard?zepCardHtml():""}
 
     <div class="st-sec">Progress</div>
 
@@ -5549,10 +5559,10 @@ function phaseCardHtml(){
       ${weightBlockHtml}
       ${rangeRowHtml}
       ${debtHtml}
-      <div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
+      ${FEATURES.complianceGrid?`<div style="border-top:1px solid var(--b1);margin-top:10px;padding-top:10px">
         <div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:8px">This week's compliance</div>
         ${compHtml}
-      </div>
+      </div>`:""}
       ${health&&(health.colour==="yellow"||health.colour==="orange"||health.colour==="red")&&pctDone>=50&&st!=="completed"?`<div style="font-size:12px;color:var(--amber);margin-top:8px">⚠ Mid-phase drift: add ~100 kcal/day active or revisit the plan.</div>`:""}
       ${sundayHtml}
       ${verdictHtml}
@@ -5848,7 +5858,7 @@ function renderST(){
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()">Reset to Default</button>`:''}
           <button class="btn-g" onclick="openUnitReview()" style="margin-top:8px">Check kg/lbs mix-ups</button>
         </div>
-        <details class="st-acc">
+        ${FEATURES.progressCharts?`        <details class="st-acc">
           <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
           <div class="st-acc-inner">
         ${(()=>{
@@ -5863,11 +5873,11 @@ function renderST(){
             }).join("")+`</div>`;
         })()}
           </div>
-        </details>
+        </details>`:""}
       </div>
     </details>
 
-    <!-- Group 2: Progress -->
+    ${FEATURES.progressCharts?`    <!-- Group 2: Progress -->
     <details class="st-acc" open>
       <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
       <div class="st-acc-inner">
@@ -5958,8 +5968,7 @@ function renderST(){
         <div class="st-sec">Weekly Review</div>
         ${buildWeeklyReviewCard()}
       </div>
-    </details>
-
+    </details>`:""}
     <!-- Group 3: App (appearance + data) -->
     <details class="st-acc" open>
       <summary><div><div>${icon("gear",20)} App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
@@ -7462,8 +7471,9 @@ function initApp(){
   let lastTab=null;
   try{lastTab=sessionStorage.getItem("forge_tab");}catch(_){}
   if(lastTab==="nutrition"||lastTab==="settings")go(lastTab);
-  cycleQ();
-  setInterval(cycleQ,9000);
+  // Quote card switched off (FEATURES): hide it and skip the rotation timer.
+  if(FEATURES.quoteCard){cycleQ();setInterval(cycleQ,9000);}
+  else{const q=document.getElementById("quoteEl");if(q)q.style.display="none";}
   handleHKSync();
   _appReady=true;
   // Sequential, not concurrent: a queued restore_all (or any pending write)
