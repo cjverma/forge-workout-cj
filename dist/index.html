@@ -3620,14 +3620,8 @@ function card(ex,sess,key,rdOnly=false){
   const exUnit=getExUnit(key,ex.id);
   const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
-  // Overload badge
-  let olBadge="";
-  if(ex.sets>1){
-    const dir=overloadDir(ex.id,sess);
-    if(dir==="up")olBadge=`<span class="ol-up">↑</span>`;
-    else if(dir==="down")olBadge=`<span class="ol-down">↓</span>`;
-    else if(dir==="eq")olBadge=`<span class="ol-eq">=</span>`;
-  }
+  // Overload badge, in its own span so it can be refreshed in place.
+  const olBadge=ex.sets>1?`<span id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</span>`:"";
 
   let body="";
   if(ex.cat==="cardio"){
@@ -3725,6 +3719,8 @@ function saveF(key,exId,i,field,val){
   const sd=S.sessions[key][exId].sets[i];
   const row=document.getElementById("sr-"+exId+"-"+i);
   if(row){const btn=row.querySelector(".sdone");const hasD=sd.weight&&sd.reps;if(btn){btn.classList.toggle("locked",!hasD);btn.title=hasD?"Done":"Enter weight and reps first";}}
+  // Editing a ticked set can change the session's best set.
+  refreshOlBadge(key,exId);
   // Update progress bar without touching the card
   const prog2=curProg();
   if(prog2){const total=prog2.exercises.length;const done=prog2.exercises.filter(e=>(S.sessions[key]||{})[e.id]?.done).length;const pct=total?Math.round((done/total)*100):0;const fill=document.querySelector(".prog-fill");if(fill)fill.style.width=pct+"%";const sub=document.querySelector(".pg-sub");if(sub)sub.textContent=`${prog2.sub} · ${done} of ${total} complete`;}
@@ -3774,6 +3770,7 @@ function toggleSet(key,exId,i){
   // same frame as the toast/re-render below, shifting scroll position.
   if(sd.done)requestAnimationFrame(()=>{if(document.activeElement?.blur)document.activeElement.blur();});
   save();queueSession(key,exId);if(sd.done)checkMilestones();reCard(key,exId);
+  refreshOlBadge(key,exId);
 }
 
 function toggleCardio(key,exId){
@@ -3953,6 +3950,18 @@ function delSet(key,exId,i){
   showToast("Set removed");
 }
 
+function olBadgeHtml(exId,sess){
+  const dir=overloadDir(exId,sess);
+  return dir==="up"?`<span class="ol-up">↑</span>`:dir==="down"?`<span class="ol-down">↓</span>`:dir==="eq"?`<span class="ol-eq">=</span>`:"";
+}
+// Refresh just the up/down/equal arrow. reCard() skips the whole card while an
+// input inside it has focus (so the iOS keyboard is not dismissed mid-entry),
+// and right after ticking a set the box you typed in still has focus, so the
+// arrow kept its first-set value: hitting a PR on set 2 or 3 still showed down.
+function refreshOlBadge(key,exId){
+  const el=document.getElementById("ol-"+exId);
+  if(el)el.innerHTML=olBadgeHtml(exId,ctx.getS().sessions[key]||{});
+}
 function reCard(key,exId){
   const S=ctx.getS();
   const active=document.activeElement;
