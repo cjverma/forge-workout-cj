@@ -201,6 +201,8 @@ try {
     note("an exercise with no history says so rather than being omitted",
       prs.some((p) => p.hasPR === false));
     const logged = body?.sessionHistory?.[0]?.sessions?.[SEED_EX.day]?.find((e) => e.id === SEED_EX.id);
+    note("the AI gets each exercise's set-to-set trend (fatigue) alongside its sets",
+      !!logged && "fatigue" in logged, JSON.stringify(logged?.fatigue));
     note("logged sets reach the AI in kg, not the typed lbs",
       !!logged && logged.sets_logged?.[0]?.kg === 99.8, JSON.stringify(logged?.sets_logged));
     await page.close();
@@ -429,8 +431,55 @@ try {
       ph: document.getElementById(`wi-${b}-0`)?.placeholder || "",
     }), ex);
     note("overload badge uses the best set (weight x reps, in kg): a PR set shows up, not down", r.up && !r.down, JSON.stringify(r));
-    note("'Last:' converts the previous session's unit (90 lbs -> 40.8 kg)", /Last: 40\.8 kg × 12/.test(r.ghost), r.ghost);
+    note("'Last best:' converts the previous session's unit (90 lbs -> 40.8 kg)", /Last best: 40\.8 kg × 12/.test(r.ghost), r.ghost);
     note("an lbs weight box hint is converted numbers only, never a kg range labelled lbs", !/lbs|kg/i.test(r.ph), "placeholder=" + r.ph);
+    await page.close();
+  }
+
+  // A running workout survives the app being unloaded (iOS kills backgrounded
+  // PWAs; it used to come back with Start Workout showing and the timer gone).
+  // And the target is last session's best set, pre-filled.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`active: ${e.message}`));
+    page.on("dialog", (d) => d.accept());
+    // Pinned to a Monday (a gym day) so this does not depend on the day it runs.
+    await page.clock.install({ time: new Date("2026-10-12T10:00:00-04:00") });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    // A gym exercise (physio has no weight target), so this works on rest days too.
+    const exId = await page.evaluate(() => {
+      const ids = [...document.querySelectorAll(".si")].filter((i) => /^wi-.*-1$/.test(i.id)).map((i) => i.id.replace("wi-", "").replace(/-\d+$/, ""));
+      return ids.find((id) => document.querySelector(`#ex-${id} .ex-icon.gym`)) || ids[0];
+    });
+    await page.evaluate((a) => {
+      const S = JSON.parse(localStorage.f5);
+      const wkOf = (d) => { const j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7); };
+      const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+      const prev = new Date(); prev.setDate(prev.getDate() - 7);
+      S.sessions = { [day + "_" + wkOf(prev)]: { [a]: { unit: "kg", done: true, sets: [{ weight: "40", reps: "12", done: true }, { weight: "45", reps: "10", done: true }] } } };
+      S._v6MonDone1 = true; S._planMove41 = true;
+      localStorage.f5 = JSON.stringify(S);
+      try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
+    }, exId);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-meta`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
+    note("the suggested weight is last session's best set (Beat 45 kg × 10), pre-filled", /Beat 45 kg × 10/.test(t.meta) && t.pre === "45", JSON.stringify(t));
+    await page.evaluate(() => window.startSess());
+    await page.waitForTimeout(300);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const on = await page.evaluate(() => ({ stop: document.getElementById("bStop")?.classList.contains("show"), start: !document.getElementById("bStart")?.classList.contains("hide") }));
+    note("a running workout survives a reload (iOS unloading the app)", on.stop && !on.start, JSON.stringify(on));
+    await page.evaluate(() => window.stopSess());
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.closeSummary?.());
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const off = await page.evaluate(() => !document.getElementById("bStop")?.classList.contains("show"));
+    note("a stopped workout stays stopped after a reload", off);
     await page.close();
   }
 

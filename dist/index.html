@@ -600,11 +600,6 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 @keyframes demoflip{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
 
 /* ── REST TIMER (background-safe) ── */
-.rest-timer-overlay{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:200;background:var(--s1);border:1px solid var(--orange);border-radius:16px;padding:14px 24px;min-width:180px;text-align:center;box-shadow:var(--shadow-lift);}
-.rest-timer-overlay.show{display:block;}
-.rest-timer-num{font-family:var(--font-display);font-size:56px;font-weight:700;color:var(--orange);letter-spacing:.5px;line-height:1;font-variant-numeric:tabular-nums;}
-.rest-timer-lbl{font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);color:var(--dim);text-transform:uppercase;margin-top:2px;}
-.rest-timer-skip{margin-top:10px;background:transparent;border:1px solid var(--b2);border-radius:8px;padding:7px 16px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;}
 
 /* ── NUTRITION ── */
 .nut-wrap{padding:14px 18px 20px;}.nut-date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}.nut-date-nav button{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--mid);font-family:var(--font-body);font-size:18px;width:36px;height:36px;cursor:pointer;}.nut-date-lbl{font-size:13px;font-weight:600;color:var(--lt);}.nut-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r-lg);padding:var(--sp-4);margin-bottom:var(--sp-3);}.nut-card-title{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--mid);margin-bottom:10px;}.burn-row{display:flex;gap:8px;}.burn-col{flex:1;text-align:center;}.burn-val{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-0.5px;}.burn-val.tappable{cursor:pointer;border-bottom:1px solid var(--b2);}.burn-lbl{font-size:10px;color:var(--dim);margin-top:2px;}.target-display{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}.target-num{font-size:28px;font-weight:700;letter-spacing:-0.5px;}.target-pill-g{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;}.tpill-green{background:var(--green-lo);color:var(--green);}.tpill-amber{background:var(--amber-lo);color:var(--amber);}.tpill-red{background:var(--red-lo);color:var(--red);}.prog-bar-wrap{height:8px;background:var(--b1);border-radius:var(--r-pill);overflow:visible;margin-bottom:8px;position:relative;}.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-text),var(--hero-accent));border-radius:var(--r-pill);transition:width .4s ease;position:relative;}.prog-thumb{position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;background:var(--hero-accent);box-shadow:0 0 8px var(--accent);}.macro-row{display:flex;gap:6px;margin-top:6px;}.macro-chip{flex:1;background:var(--s2);border-radius:8px;padding:8px 6px;text-align:center;}.macro-val{font-size:16px;font-weight:700;color:var(--white);}.macro-lbl{font-size:10px;font-weight:var(--fw-cap);color:var(--dim);margin-top:2px;}.net-line{font-size:12px;margin-top:8px;text-align:center;font-weight:600;}.net-green{color:var(--green);}.net-red{color:var(--red);}/* Shock day is an exception you reach for occasionally, not the primary
@@ -809,7 +804,6 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .pm-cancel{flex:1;padding:15px;background:transparent;border:1px solid var(--b2);border-radius:10px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--mid);cursor:pointer;}
 
 /* ── REST TIMER ── */
-.rest-timer{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);max-width:300px;width:90%;background:var(--s1);border:2px solid var(--accent-text);border-radius:16px;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px;cursor:pointer;box-shadow:var(--shadow-lift);}
 .rt-label{font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);color:var(--orange);text-transform:uppercase;margin-bottom:4px;}
 .rt-count{font-family:var(--font-display);font-size:64px;font-weight:700;color:var(--orange);letter-spacing:.5px;line-height:1;font-variant-numeric:tabular-nums;}
 .rt-skip{font-size:11px;color:var(--dim);margin-top:6px;letter-spacing:0.5px;}
@@ -982,12 +976,6 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 
 <div class="toast" id="toast"></div>
 
-<div class="rest-timer-overlay" id="restOverlay">
-  <div class="rest-timer-num" id="restNum">30</div>
-  <div class="rest-timer-lbl">Rest</div>
-  <br>
-  <button class="rest-timer-skip" onclick="skipRest()">Skip</button>
-</div>
 
 <div class="plan-modal" id="planModal"></div>
 <div class="swap-modal" id="swapModal">
@@ -1604,7 +1592,7 @@ const PROG_V3={
 // Push/Pull/Rest split; all exercises seated or chest-supported for lower back safety.
 const PROG_V4={
   Monday:{label:"Chest & Triceps",tag:"Heavy",sub:"Chest · Triceps · Forearms",exercises:[
-    {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"m4_cpwu",name:"Warm-Up · Chest Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["chest", "triceps", "front delt"],rest:60},
     {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:4,reps:"8-10",hint:"35-40 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Primary mass builder. Go heavy. Full range, 2-3s eccentric, no arching.",muscles:["chest", "triceps", "front delt"],rest:90},
     {id:"m4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"30-35 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest is the priority for this look.",muscles:["upper chest", "front delt", "triceps"],rest:90},
@@ -1613,10 +1601,10 @@ const PROG_V4={
     {id:"m4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:3,reps:"12-15",hint:"17.5-25 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60},
     {id:"m4_wc",name:"Seated DB Wrist Curl",cat:"gym",sets:3,reps:15,hint:"4-9 kg",url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range. Slow.",muscles:["forearms"],rest:45},
     {id:"m4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"m4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"m4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Tuesday:{label:"Back & Biceps",tag:"Heavy",sub:"Back · Lats · Biceps",exercises:[
-    {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"t4_csrwu",name:"Warm-Up · Chest Supported Row",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["mid back", "rear delt", "biceps"],rest:60},
     {id:"t4_csr",name:"Chest Supported Row",cat:"gym",sets:4,reps:"8-10",hint:"15-22.5 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Wide grip, elbows out at 45 to 60 degrees. Chest stays on the pad.",muscles:["mid back", "rear delt", "biceps"],rest:90},
     {id:"t4_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:3,reps:"10-12",hint:"27.5-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Lean back a few degrees, pull to the collarbone. Vertical pull for lat width.",muscles:["lats", "mid back", "biceps"],rest:90},
@@ -1626,10 +1614,10 @@ const PROG_V4={
     {id:"t4_sdc",name:"Seated Dumbbell Curl",cat:"gym",sets:3,reps:"10-12",hint:"7-9 kg",url:"https://www.youtube.com/watch?v=sAq_ocpRh_I",cue:"Seated. Full supination at the top. No swinging.",muscles:["biceps"],rest:75},
     {id:"t4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"7-9 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
     {id:"t4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"t4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"t4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Wednesday:{label:"Legs & Shoulders",tag:"Heavy",sub:"Legs · Glutes · Delts · Core",exercises:[
-    {id:"w4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"w4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"w4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"w4_lp",name:"Leg Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"45-62.5 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on the plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads", "glutes", "hamstrings"],rest:90},
     {id:"w4_slc",name:"Seated Leg Curl",cat:"gym",sets:4,reps:"12-15",hint:"22.5-30 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:75},
@@ -1640,10 +1628,10 @@ const PROG_V4={
     {id:"w4_slr",name:"Seated Lateral Raise",cat:"gym",sets:2,reps:15,hint:"5-7 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Placed here because nothing pre-fatigues the shoulders on leg day. Kept light: Thursday leads with this same movement.",muscles:["side delt"],rest:60},
     {id:"w4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:"15-20",hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45,ss:"w4_a"},
     {id:"w4_pp",name:"Pallof Press",cat:"gym",sets:5,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:45,ss:"w4_a"},
-    {id:"w4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"w4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Thursday:{label:"Shoulders & Chest",tag:"Volume",sub:"Delts · Chest · Triceps",exercises:[
-    {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"th4_lrwu",name:"Warm-Up · Lateral Raise",cat:"gym",sets:1,reps:15,hint:"Very light",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Very light. Groove the pattern, do not fatigue.",muscles:["side delt"],rest:60},
     {id:"th4_slr",name:"Seated Lateral Raise",cat:"gym",sets:6,reps:"12-15",hint:"5-7 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"The most important exercise in the plan. Shoulder width is the differentiator.",muscles:["side delt"],rest:60},
     {id:"th4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:4,reps:15,hint:"12.5-17.5 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows soft. Squeeze rear delts.",muscles:["rear delt", "traps"],rest:60},
@@ -1653,10 +1641,10 @@ const PROG_V4={
     {id:"th4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:4,reps:15,hint:"17.5-25 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60,ss:"th4_a"},
     {id:"th4_cbc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:15,hint:"11-16 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Constant cable tension. Full supination.",muscles:["biceps"],rest:60,ss:"th4_a"},
     {id:"th4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"th4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"th4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Friday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
-    {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"f4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"Light",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Light. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
     {id:"f4_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:3,reps:12,hint:"27.5-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Pull to the collarbone.",muscles:["lats", "mid back", "biceps"],rest:75},
     {id:"f4_rpo",name:"Seated Cable Rope Pullover",cat:"gym",sets:3,reps:"12-15",hint:"12.5-22.5 kg",url:"https://www.youtube.com/results?search_query=seated+cable+rope+pullover+lats",cue:"Seated, rope high. Arms almost straight, drive down with the lats only.",muscles:["lats"],rest:60,from:"2026-08-10"},
@@ -1666,10 +1654,10 @@ const PROG_V4={
     {id:"f4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"7-9 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
     {id:"f4_wc",name:"Seated DB Wrist Curl",cat:"gym",sets:3,reps:15,hint:"4-9 kg",url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range. Slow.",muscles:["forearms"],rest:45},
     {id:"f4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"f4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"f4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Saturday:{label:"Legs & Core",tag:"Volume",sub:"Legs · Glutes · Core",exercises:[
-    {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"sa4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"sa4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:15,hint:"45-62.5 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Higher reps than Wednesday. Same setup: feet high, 90 degrees max.",muscles:["quads", "glutes", "hamstrings"],rest:75},
     {id:"sa4_slc",name:"Seated Leg Curl",cat:"gym",sets:3,reps:15,hint:"22.5-30 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:60},
@@ -1680,7 +1668,7 @@ const PROG_V4={
     {id:"sa4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"22.5-40 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
     {id:"sa4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:20,hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45,ss:"sa4_a"},
     {id:"sa4_pp",name:"Pallof Press",cat:"gym",sets:5,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:45,ss:"sa4_a"},
-    {id:"sa4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"sa4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Sunday:{label:"Rest & Physio",sub:"Morning physio · no gym",exercises:[
     {id:"su4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:3,reps:"30s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
@@ -1813,7 +1801,7 @@ function _v6Day(pfx,label,sub,list){
 }
 const _WU=pfx=>["bike","Stationary Bike","10 min",0,{hint:"Level 5-7",cue:"Easy warm-up. Joints before load."}];
 // Longer cool-down walk is where the extra cardio lives: same treadmill, no new machine.
-const _CD=mins=>["tm","Treadmill Cool-Down",mins,0,{hint:"Incline 3-5%",cue:"Brisk walk. Heart rate up, then easing down for the last few minutes."}];
+const _CD=mins=>["tm","Incline Treadmill Walk",mins,0,{hint:"Incline 3-5%",cue:"Brisk walk. Heart rate up, then easing down for the last few minutes."}];
 const PROG_V6={
   Monday:_v6Day("m6","Back & Biceps","Back · Biceps",[_WU(),
     ["csr","Chest Supported Row","10-12",75],["spd","Seated Pulldown (Neutral Grip)","10-12",75],["scr","Seated Cable Row","10-12",75],
@@ -2796,49 +2784,6 @@ function hintDisp(hint,unit){
   return nums.replace(/\d+(?:\.\d+)?/g,n=>String(Math.round(Number(n)/LB_TO_KG)));
 }
 
-// ── REST TIMER (background-safe) ──
-// Duration comes from the exercise's `rest` field so the plan's own intervals
-// are honoured (90s on heavy compounds, 45s on finishers). Exercises without
-// a rest value fall back to the old fixed 30s.
-const REST_DURATION=30;
-let _restEnd=null,_restInterval=null;
-function startRest(sec){
-  _restEnd=Date.now()+(Number(sec)>0?Number(sec):REST_DURATION)*1000;
-  const o=document.getElementById("restOverlay");if(o)o.classList.add("show");
-  updateRestDisplay();
-  clearInterval(_restInterval);
-  _restInterval=setInterval(tickRest,250);
-  if(navigator.vibrate)navigator.vibrate([30]);
-}
-function tickRest(){
-  const left=Math.ceil((_restEnd-Date.now())/1000);
-  if(left<=0){
-    clearInterval(_restInterval);
-    document.getElementById("restOverlay").classList.remove("show");
-    _restEnd=null;
-    if(navigator.vibrate)navigator.vibrate([60,40,60]);
-    showToast("Rest done · go! 💪");
-    return;
-  }
-  updateRestDisplay();
-}
-function updateRestDisplay(){
-  const left=Math.max(0,Math.ceil((_restEnd-Date.now())/1000));
-  const el=document.getElementById("restNum");
-  if(el)el.textContent=left;
-}
-function skipRest(){
-  clearInterval(_restInterval);
-  const o=document.getElementById("restOverlay");if(o)o.classList.remove("show");
-  _restEnd=null;
-}
-document.addEventListener("visibilitychange",()=>{
-  if(!document.hidden&&_restEnd){
-    const left=Math.ceil((_restEnd-Date.now())/1000);
-    if(left<=0){skipRest();showToast("Rest done · go! 💪");}
-    else updateRestDisplay();
-  }
-});
 
 // ── LAST SESSION HELPER ──
 // The most recent earlier session of this exercise. Weights come back in KG
@@ -2849,9 +2794,14 @@ function lastSessionEx(exId){
   const curKey=ctx.sk(ctx.cDay);
   const sessions=S.sessions||{};
   let best=null;
+  // Matched by canonical exercise (name), not the day's id: ids change with the
+  // program (m6_ in the deload, m4_ in Southpaw), and "last time I did this"
+  // must follow the exercise across that boundary.
+  const cid=canonicalId(exId);
   for(const[key,data] of Object.entries(sessions)){
-    if(key===curKey)continue;
-    const ed=data[exId];
+    if(key===curKey||!data||typeof data!=="object")continue;
+    const hit=Object.keys(data).find(id=>!id.startsWith("_")&&(id===exId||canonicalId(id)===cid));
+    const ed=hit&&data[hit];
     if(!ed||!ed.sets)continue;
     const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps);
     if(!doneSets.length)continue;
@@ -2865,7 +2815,9 @@ function lastSessionEx(exId){
   if(!kgSets.length)return null;
   const reps=best.sets.map(s=>s.reps).find(r=>r)||"?";
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
-  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets};
+  // The set to beat: best by estimated 1RM, so weight and reps both count.
+  const top=kgSets.reduce((b,s)=>!b||epley1RM(s.kg,s.reps)>epley1RM(b.kg,b.reps)?s:b,null);
+  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
 // Best set by estimated 1RM, so weight AND reps count and every set does.
@@ -3412,14 +3364,21 @@ function card(ex,sess,key,rdOnly=false){
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
   // Always use a search link · stored video URLs rot, search never 404s
-  const name=esc(ex.name),hint=esc(ex.hint),cue=esc(ex.cue),reps=esc(ex.reps);
+  const name=esc(ex.name),cue=esc(ex.cue),reps=esc(ex.reps);
+  // You train for a PR every session, so the suggested weight IS last
+  // session's best set; the program's range is only a fallback for an exercise
+  // with no history yet.
+  const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
+  const _tUnit=getExUnit(key,ex.id);
+  const target=_last?.top?{w:inUnit(_last.top.kg,_tUnit),r:_last.top.reps}:null;
+  const hint=target?esc(`Beat ${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint);
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name);
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
   const exUnit=getExUnit(key,ex.id);
-  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${inUnit(lastSess.weight,exUnit)} ${exUnit} × ${esc(String(lastSess.reps))}</div>`:"";
+  const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
   // Overload badge
   let olBadge="";
@@ -3448,12 +3407,12 @@ function card(ex,sess,key,rdOnly=false){
       // Carry-forward: pre-populate weight from last session if not yet set
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
-        const lastSet=lastSetsForCarry.sets[i]||lastSetsForCarry.sets[0];
-        if(lastSet&&lastSet.weight){const kg=toKg(lastSet.weight,lastSetsForCarry.unit);weightVal=kg?inUnit(kg,exUnit):"";}
+        // Every set starts at last session's best weight: the target is a PR.
+        if(lastSetsForCarry.top)weightVal=inUnit(lastSetsForCarry.top.kg,exUnit);
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
+        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(ex.hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
@@ -3570,7 +3529,6 @@ function toggleSet(key,exId,i){
   if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
-  if(sd.done)startRest(ex.rest);
   // Deferred one tick: an immediate blur here can reflow the viewport
   // mid-render on iOS Safari/standalone PWA (keyboard dismissing) in the
   // same frame as the toast/re-render below, shifting scroll position.
@@ -4001,8 +3959,11 @@ function addCustom(key){
 }
 
 // Session
+// Persisted so a workout survives iOS unloading the app in the background.
+function saveActive(){try{localStorage.setItem("f5_active",JSON.stringify({key:ctx.cDay+"_"+ctx.wk(),start:ctx.sessStart}));}catch(_){}}
+function clearActive(){try{localStorage.removeItem("f5_active");}catch(_){}}
 function startSess(){
-  ctx.workoutOn=true;ctx.sessStart=Date.now();
+  ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
   showToast("Workout started ⚡");
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
@@ -4027,7 +3988,7 @@ function stopSess(){
     return;
   }
   if(!confirm("Stop workout and save session?"))return;
-  ctx.workoutOn=false;clearInterval(ctx.sessTimer);
+  ctx.workoutOn=false;clearInterval(ctx.sessTimer);clearActive();
   const el=Math.floor((Date.now()-ctx.sessStart)/1000);
   const m=Math.floor(el/60),s=el%60;
   const key=ctx.cDay+"_"+ctx.wk(); // always write to current week
@@ -4048,7 +4009,7 @@ function resumeSess(){
   const S=ctx.getS();
   const key=ctx.cDay+"_"+ctx.wk();
   if(S.sessions[key]?._stopped){delete S.sessions[key]._stopped;save();queueSessionMeta(key);}
-  ctx.workoutOn=true;ctx.sessStart=Date.now();
+  ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
   showToast("Workout resumed ▶");
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
@@ -4056,7 +4017,7 @@ function resumeSess(){
 
 function closeSummary(){
   document.getElementById("sum").classList.remove("show");
-  ctx.workoutOn=false;renderW();
+  ctx.workoutOn=false;clearActive();renderW();
 }
 
 // AI Coach
@@ -4259,8 +4220,6 @@ function checkMilestones(){
 ctx.renderW=renderW;
 
 // window shims for inline onclick= handlers
-window.startRest=startRest;
-window.skipRest=skipRest;
 window.logCalfTwinge=logCalfTwinge;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;
@@ -6281,6 +6240,18 @@ function resetPlan(){
   location.reload();
 }
 
+// Set-to-set trend at a single weight: how far reps fell from the first to the
+// last set done at the most-used weight. The planner reads this to tell "load
+// is at the limit" (big drop) from "load is too light" (no drop), which the
+// best set alone cannot show.
+function setFatigue(sets){
+  const by={};
+  for(const s of sets){const k=String(s.kg);(by[k]??=[]).push(Number(s.reps)||0);}
+  const top=Object.entries(by).sort((a,b)=>b[1].length-a[1].length||Number(b[0])-Number(a[0]))[0];
+  if(!top||top[1].length<2)return null;
+  const reps=top[1],first=reps[0],last=reps[reps.length-1];
+  return{kg:Number(top[0]),reps,first,last,repDropPct:first?Math.round((first-last)/first*100):0};
+}
 function buildSessionHistory(maxWeeks=4){
   const history=[];
   for(let w=0;w<maxWeeks;w++){
@@ -6302,7 +6273,7 @@ function buildSessionHistory(maxWeeks=4){
           .map(s=>({kg:toKg(s.weight,ed.unit),reps:s.reps}))
           .filter(s=>s.kg!=null);
         if(setsDone.length||ed.done||ed.skipped){
-          exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,completed:!!ed.done,skipped:!!ed.skipped});
+          exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,fatigue:setFatigue(setsDone),completed:!!ed.done,skipped:!!ed.skipped});
           hasData=true;
         }
       }
@@ -7334,6 +7305,16 @@ ctx.renderNutrition=renderNutrition;
 function initApp(){
   buildNav();
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
+  // A running workout lived only in memory. iOS unloads a backgrounded PWA
+  // (switching to music, messages, the camera) and the reload came back with
+  // Start Workout showing and the timer gone, so it looked like the workout
+  // "closed on its own". startSess persists it; restore it here if it is
+  // today's session and under 6 hours old.
+  try{
+    const a=JSON.parse(localStorage.getItem("f5_active")||"null");
+    if(a&&a.key===t+"_"+wk()&&Date.now()-a.start<6*3600000){workoutOn=true;sessStart=a.start;}
+    else if(a)localStorage.removeItem("f5_active");
+  }catch(_){}
   selectDay(t);
   updateDayNavDates();
   // Restore the tab the user was on before a refresh (sessionStorage:

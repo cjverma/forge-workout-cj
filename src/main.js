@@ -504,6 +504,16 @@ ctx.renderNutrition=renderNutrition;
 function initApp(){
   buildNav();
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
+  // A running workout lived only in memory. iOS unloads a backgrounded PWA
+  // (switching to music, messages, the camera) and the reload came back with
+  // Start Workout showing and the timer gone, so it looked like the workout
+  // "closed on its own". startSess persists it; restore it here if it is
+  // today's session and under 6 hours old.
+  try{
+    const a=JSON.parse(localStorage.getItem("f5_active")||"null");
+    if(a&&a.key===t+"_"+wk()&&Date.now()-a.start<6*3600000){workoutOn=true;sessStart=a.start;}
+    else if(a)localStorage.removeItem("f5_active");
+  }catch(_){}
   selectDay(t);
   updateDayNavDates();
   // Restore the tab the user was on before a refresh (sessionStorage:

@@ -399,6 +399,28 @@ Four surfaces resolve those keys back to names, and all four must agree:
   name-slugs, so every PR lookup missed and the CSV emailed raw slugs. Do not
   reintroduce a literal map.
 
+## Session flow and targets
+
+- **A running workout is persisted** (`f5_active`: session key + start time),
+  written by `startSess`/`resumeSess`, cleared by `stopSess`/`closeSummary`,
+  restored in `initApp()` when it is today's session and under 6 hours old.
+  It used to live only in memory, and iOS unloading the backgrounded PWA made
+  the workout look like it "closed on its own".
+- **No rest timer.** Removed at the user's request; `ex.rest` stays on the
+  program data but nothing reads it for a timer.
+- **The target is last session's best set.** The user aims for a PR every
+  session, so the card shows "Beat W × R" (best set by estimated 1RM from
+  `lastSessionEx().top`, in the box's unit) and pre-fills every set with that
+  weight; the program `hint` is only the fallback for an exercise with no
+  history. `lastSessionEx` matches by canonical exercise, not day id, so it
+  follows an exercise across program versions.
+- **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
+  `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and
+  the prompt says: big drop = hold load, add reps; little drop = step up.
+- **The Shake to Undo prompt is iOS, not FORGE.** The app has no shake
+  handler; a web app cannot disable it (iPhone Settings → Accessibility →
+  Touch → Shake to Undo).
+
 ## Calf twinge makes the session note mandatory
 
 `stopSess()` refuses to stop while `_calfTwinges` is non-empty and `_notes` is

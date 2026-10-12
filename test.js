@@ -1593,7 +1593,9 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     // Every V5 exercise name exists in V4. S.prs is keyed by a slug of the
     // NAME, and the weight hints the AI writes are anchored to that PR
     // history — a renamed exercise here would lose the anchor silently.
-    const v5Names = new Set(Object.values(REAL_V5).flatMap(d => d.exercises.map(e => e.name)));
+    // Gym exercises only: PRs exist for lifts, not cardio (the Southpaw
+    // cool-down was later renamed "Incline Treadmill Walk").
+    const v5Names = new Set(Object.values(REAL_V5).flatMap(d => d.exercises.filter(e => e.cat === "gym").map(e => e.name)));
     const v4Names = new Set(Object.values(REAL_V4).flatMap(d => d.exercises.map(e => e.name)));
     const orphaned = [...v5Names].filter(n => !v4Names.has(n));
     ok(`every PROG_V5 exercise name matches a PROG_V4 name, so PR history carries over${orphaned.length ? " — " + orphaned.join(", ") : ""}`,
@@ -2066,8 +2068,9 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     /\.hero-next\{[^}]*var\(--hero-line\)/.test(APP_CSS) &&
     !/\.hero-next[^{]*\{[^}]*var\(--s[0-9]\)/.test(APP_CSS));
 
-  ok("rest timer uses the exercise's own interval",
-    /function startRest\(sec\)/.test(WORKOUT) && /startRest\(ex\.rest\)/.test(WORKOUT));
+  // Removed at the user's request (never used): no timer, no overlay.
+  ok("the rest timer is gone: no startRest, no overlay",
+    !/startRest|skipRest/.test(WORKOUT) && !HTML.includes('id="restOverlay"'));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

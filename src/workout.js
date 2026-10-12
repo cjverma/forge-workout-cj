@@ -59,49 +59,6 @@ function hintDisp(hint,unit){
   return nums.replace(/\d+(?:\.\d+)?/g,n=>String(Math.round(Number(n)/LB_TO_KG)));
 }
 
-// ── REST TIMER (background-safe) ──
-// Duration comes from the exercise's `rest` field so the plan's own intervals
-// are honoured (90s on heavy compounds, 45s on finishers). Exercises without
-// a rest value fall back to the old fixed 30s.
-const REST_DURATION=30;
-let _restEnd=null,_restInterval=null;
-function startRest(sec){
-  _restEnd=Date.now()+(Number(sec)>0?Number(sec):REST_DURATION)*1000;
-  const o=document.getElementById("restOverlay");if(o)o.classList.add("show");
-  updateRestDisplay();
-  clearInterval(_restInterval);
-  _restInterval=setInterval(tickRest,250);
-  if(navigator.vibrate)navigator.vibrate([30]);
-}
-function tickRest(){
-  const left=Math.ceil((_restEnd-Date.now())/1000);
-  if(left<=0){
-    clearInterval(_restInterval);
-    document.getElementById("restOverlay").classList.remove("show");
-    _restEnd=null;
-    if(navigator.vibrate)navigator.vibrate([60,40,60]);
-    showToast("Rest done · go! 💪");
-    return;
-  }
-  updateRestDisplay();
-}
-function updateRestDisplay(){
-  const left=Math.max(0,Math.ceil((_restEnd-Date.now())/1000));
-  const el=document.getElementById("restNum");
-  if(el)el.textContent=left;
-}
-function skipRest(){
-  clearInterval(_restInterval);
-  const o=document.getElementById("restOverlay");if(o)o.classList.remove("show");
-  _restEnd=null;
-}
-document.addEventListener("visibilitychange",()=>{
-  if(!document.hidden&&_restEnd){
-    const left=Math.ceil((_restEnd-Date.now())/1000);
-    if(left<=0){skipRest();showToast("Rest done · go! 💪");}
-    else updateRestDisplay();
-  }
-});
 
 // ── LAST SESSION HELPER ──
 // The most recent earlier session of this exercise. Weights come back in KG
@@ -112,9 +69,14 @@ function lastSessionEx(exId){
   const curKey=ctx.sk(ctx.cDay);
   const sessions=S.sessions||{};
   let best=null;
+  // Matched by canonical exercise (name), not the day's id: ids change with the
+  // program (m6_ in the deload, m4_ in Southpaw), and "last time I did this"
+  // must follow the exercise across that boundary.
+  const cid=canonicalId(exId);
   for(const[key,data] of Object.entries(sessions)){
-    if(key===curKey)continue;
-    const ed=data[exId];
+    if(key===curKey||!data||typeof data!=="object")continue;
+    const hit=Object.keys(data).find(id=>!id.startsWith("_")&&(id===exId||canonicalId(id)===cid));
+    const ed=hit&&data[hit];
     if(!ed||!ed.sets)continue;
     const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps);
     if(!doneSets.length)continue;
@@ -128,7 +90,9 @@ function lastSessionEx(exId){
   if(!kgSets.length)return null;
   const reps=best.sets.map(s=>s.reps).find(r=>r)||"?";
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
-  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets};
+  // The set to beat: best by estimated 1RM, so weight and reps both count.
+  const top=kgSets.reduce((b,s)=>!b||epley1RM(s.kg,s.reps)>epley1RM(b.kg,b.reps)?s:b,null);
+  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
 // Best set by estimated 1RM, so weight AND reps count and every set does.
@@ -675,14 +639,21 @@ function card(ex,sess,key,rdOnly=false){
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
   // Always use a search link · stored video URLs rot, search never 404s
-  const name=esc(ex.name),hint=esc(ex.hint),cue=esc(ex.cue),reps=esc(ex.reps);
+  const name=esc(ex.name),cue=esc(ex.cue),reps=esc(ex.reps);
+  // You train for a PR every session, so the suggested weight IS last
+  // session's best set; the program's range is only a fallback for an exercise
+  // with no history yet.
+  const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
+  const _tUnit=getExUnit(key,ex.id);
+  const target=_last?.top?{w:inUnit(_last.top.kg,_tUnit),r:_last.top.reps}:null;
+  const hint=target?esc(`Beat ${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint);
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name);
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
   const exUnit=getExUnit(key,ex.id);
-  const ghostHtml=lastSess?`<div class="last-ghost">Last: ${inUnit(lastSess.weight,exUnit)} ${exUnit} × ${esc(String(lastSess.reps))}</div>`:"";
+  const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
   // Overload badge
   let olBadge="";
@@ -711,12 +682,12 @@ function card(ex,sess,key,rdOnly=false){
       // Carry-forward: pre-populate weight from last session if not yet set
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
-        const lastSet=lastSetsForCarry.sets[i]||lastSetsForCarry.sets[0];
-        if(lastSet&&lastSet.weight){const kg=toKg(lastSet.weight,lastSetsForCarry.unit);weightVal=kg?inUnit(kg,exUnit):"";}
+        // Every set starts at last session's best weight: the target is a PR.
+        if(lastSetsForCarry.top)weightVal=inUnit(lastSetsForCarry.top.kg,exUnit);
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
+        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(ex.hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
@@ -833,7 +804,6 @@ function toggleSet(key,exId,i){
   if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
   if(ed.done)showToast("Exercise complete 🔥");
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
-  if(sd.done)startRest(ex.rest);
   // Deferred one tick: an immediate blur here can reflow the viewport
   // mid-render on iOS Safari/standalone PWA (keyboard dismissing) in the
   // same frame as the toast/re-render below, shifting scroll position.
@@ -1264,8 +1234,11 @@ function addCustom(key){
 }
 
 // Session
+// Persisted so a workout survives iOS unloading the app in the background.
+function saveActive(){try{localStorage.setItem("f5_active",JSON.stringify({key:ctx.cDay+"_"+ctx.wk(),start:ctx.sessStart}));}catch(_){}}
+function clearActive(){try{localStorage.removeItem("f5_active");}catch(_){}}
 function startSess(){
-  ctx.workoutOn=true;ctx.sessStart=Date.now();
+  ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
   showToast("Workout started ⚡");
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
@@ -1290,7 +1263,7 @@ function stopSess(){
     return;
   }
   if(!confirm("Stop workout and save session?"))return;
-  ctx.workoutOn=false;clearInterval(ctx.sessTimer);
+  ctx.workoutOn=false;clearInterval(ctx.sessTimer);clearActive();
   const el=Math.floor((Date.now()-ctx.sessStart)/1000);
   const m=Math.floor(el/60),s=el%60;
   const key=ctx.cDay+"_"+ctx.wk(); // always write to current week
@@ -1311,7 +1284,7 @@ function resumeSess(){
   const S=ctx.getS();
   const key=ctx.cDay+"_"+ctx.wk();
   if(S.sessions[key]?._stopped){delete S.sessions[key]._stopped;save();queueSessionMeta(key);}
-  ctx.workoutOn=true;ctx.sessStart=Date.now();
+  ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
   showToast("Workout resumed ▶");
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
@@ -1319,7 +1292,7 @@ function resumeSess(){
 
 function closeSummary(){
   document.getElementById("sum").classList.remove("show");
-  ctx.workoutOn=false;renderW();
+  ctx.workoutOn=false;clearActive();renderW();
 }
 
 // AI Coach
@@ -1522,8 +1495,6 @@ function checkMilestones(){
 ctx.renderW=renderW;
 
 // window shims for inline onclick= handlers
-window.startRest=startRest;
-window.skipRest=skipRest;
 window.logCalfTwinge=logCalfTwinge;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;
