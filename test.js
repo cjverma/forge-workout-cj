@@ -43,7 +43,7 @@ execSync("node build.mjs", { stdio: "inherit" });
 
 const HTML = readFileSync("dist/index.html", "utf8");
 const COACH = readFileSync("api/coach.js", "utf8");
-const DB = readFileSync("api/db.js", "utf8");
+const DB = readFileSync("api/_db.js", "utf8");
 const STATE = readFileSync("api/state.js", "utf8");
 const MUTATE = readFileSync("api/mutate.js", "utf8");
 
@@ -74,7 +74,7 @@ const apiFiles = [
   "api/_shared.js",
   "api/coach.js",
   "api/nutrition.js",
-  "api/db.js",
+  "api/_db.js",
   "api/state.js",
   "api/mutate.js",
   "api/suggest-alt.js",
@@ -1937,7 +1937,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // in localStorage is undone by the next pull. Drops and custom-exercise
   // deletions both have to reach the server.
   {
-    const DB = readFileSync("api/db.js", "utf8");
+    const DB = readFileSync("api/_db.js", "utf8");
     const STATE = readFileSync("api/state.js", "utf8");
     const MUT = readFileSync("api/mutate.js", "utf8");
     ok("dropped exercises are persisted server-side",
@@ -2239,6 +2239,13 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     const read = [...new Set([...NUT3.matchAll(/\b(?:wc|comp)\.([a-zA-Z]+)/g)].map((x) => x[1]))];
     const missing = read.filter((k) => !produced.has(k));
     ok(`every compliance field the UI reads is produced by weekCompliance${missing.length ? " — missing: " + missing.join(", ") : ""}`, missing.length === 0);
+  }
+  // Vercel Hobby deploys at most 12 serverless functions, and EVERY api/*.js not
+  // starting with "_" counts as one. Adding the Sunday plan cron made 13 and both
+  // the preview and the production deploy failed. Helpers must be "_"-prefixed.
+  {
+    const fns = (await import("fs")).readdirSync("api").filter((f) => f.endsWith(".js") && !f.startsWith("_"));
+    ok(`api/ has at most 12 serverless functions (Vercel Hobby limit) · ${fns.length}`, fns.length <= 12);
   }
   ok("today is excluded from the deficit/weigh-in denominators",
     /const inProgress=d===isoToday\(\)&&days\.length>1;/.test(NUT3) &&

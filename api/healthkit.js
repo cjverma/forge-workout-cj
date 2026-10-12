@@ -1,5 +1,5 @@
 import { setCors, checkAuth } from "./_shared.js";
-import { sql, ensureSchema } from "./db.js";
+import { sql, ensureSchema } from "./_db.js";
 
 const KNOWN_FIELDS = new Set(["date", "active", "resting", "weightKg"]);
 

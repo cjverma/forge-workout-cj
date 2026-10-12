@@ -438,6 +438,15 @@ Four surfaces resolve those keys back to names, and all four must agree:
   handler; a web app cannot disable it (iPhone Settings → Accessibility →
   Touch → Shake to Undo).
 
+## Vercel Hobby: 12 serverless functions, maximum
+
+Every `api/*.js` whose name does not start with `_` is deployed as its own
+function, and the Hobby plan refuses a deployment with more than 12. Adding
+the Sunday plan cron made 13 and the deploy failed (preview AND production,
+which kept serving the previous version). Shared helpers are `_`-prefixed
+(`_shared.js`, `_db.js`) so they do not count. `node test.js` fails above 12.
+A new endpoint must replace or merge an existing one while on Hobby.
+
 ## The weekly plan is built in ONE place (`src/plan.js`)
 
 `src/plan.js` holds everything the plan needs: `planMonFor`, the payload
