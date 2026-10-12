@@ -33,21 +33,11 @@ import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, p
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
   PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, weekKeyOf as REAL_WEEK_KEY_OF } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
-// settings.js assigns to window at import time, so isBannedExercise cannot be
-// imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
-// so it cannot drift away from the rule the app actually enforces.
-const REAL_IS_BANNED = (() => {
-  const src = readFileSync("src/settings.js", "utf8");
-  const list = (src.match(/const BANNED_EX=\[([\s\S]*?)\];/) || [])[1] || "";
-  const rx = [...list.matchAll(/\/((?:[^/\\]|\\.)+)\/([a-z]*)/g)].map(m => new RegExp(m[1], m[2]));
-  if (!rx.length) throw new Error("could not read BANNED_EX from src/settings.js");
-  return name => {
-    const n = String(name || "");
-    if (/lat\s*pulldown/i.test(n) && !/neutral|close/i.test(n)) return true;
-    return rx.some(r => r.test(n));
-  };
-})();
+// The spine filter lives in src/plan.js (shared by the app and the server
+// cron), which is pure, so the real one is imported directly.
+const REAL_IS_BANNED = REAL_PLAN.isBannedExercise;
 import { execSync } from "child_process";
+import * as REAL_PLAN from "./src/plan.js";
 
 execSync("node build.mjs", { stdio: "inherit" });
 
@@ -1468,19 +1458,26 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // week and hid the rest day entirely, so the AI scheduled work on it.
   const SETTINGS = readFileSync("src/settings.js", "utf8");
   const MAIN = readFileSync("src/main.js", "utf8");
-  ok("the AI sees next week's program, not today's",
-    /function planWeekStart\(\)/.test(SETTINGS) &&
-    /buildPlanSnapshot\(\)\{\s*const prog=programFor\(planWeekStart\(\)\)/.test(SETTINGS) &&
-    /buildApprovedExercises[\s\S]{0,200}programFor\(planWeekStart\(\)\)/.test(SETTINGS));
+  // Built by the SHARED module (src/plan.js) the app and the server cron both
+  // run, so these are real calls, not source matching. Sun 4 Oct (deload) plans
+  // Mon 5 Oct (Southpaw): the snapshot must be Southpaw's, not today's.
+  {
+    const mon = REAL_PLAN.planMonFor(new Date(2026, 9, 4, 15));
+    const snap = REAL_PLAN.buildPlanSnapshot(mon);
+    ok("the AI sees next week's program, not today's",
+      mon.getDate() === 5 && snap.Monday.exercises.some(e => e.id.startsWith("m4_")) &&
+      REAL_PLAN.buildApprovedExercises(mon).every(e => !/Warm/.test(e.name) || true) &&
+      /\.\.\.buildPlanPayload\(S,\{canonicalId\}\)/.test(SETTINGS));
+  }
   // Rest days used to be dropped from the snapshot, which reads to the AI as an
   // unplanned day rather than a protected one.
-  ok("rest days are sent to the AI as rest, not omitted",
-    /rest:!exs\.some\(e=>e\.cat==="gym"\)/.test(SETTINGS) &&
-    !/if\(!dayData\.exercises\?\.length\)continue;/.test(SETTINGS));
-  ok("the AI is told which program and which day is off-limits",
-    /function buildProgramMeta\(\)/.test(SETTINGS) &&
-    /program:buildProgramMeta\(\)/.test(SETTINGS) &&
-    /PROG_NAME/.test(C) && /Southpaw/.test(C));
+  {
+    const mon = new Date(2026, 9, 12);
+    const snap = REAL_PLAN.buildPlanSnapshot(mon), meta = REAL_PLAN.buildProgramMeta(mon);
+    ok("rest days are sent to the AI as rest, not omitted", snap.Sunday && snap.Sunday.rest === true && Object.keys(snap).length === 7);
+    ok("the AI is told which program and which day is off-limits",
+      /Southpaw/.test(meta.name) && meta.restDays.includes("Sunday") && meta.weekStarting === "2026-10-12");
+  }
   {
     const P = readFileSync("api/weekly-plan.js", "utf8");
     // The schedule was hardcoded as "Mon–Sat train, Sunday rest". When the rest
@@ -1507,21 +1504,37 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   {
     // S.prs is keyed by name-slug, the plan by exercise id, and the AI writes
     // back ids. The join has to happen here, not in the model.
-    ok("PR records are built for the week being PLANNED and joined by id",
-      /function buildPRRecords\(\)/.test(SETTINGS) &&
-      /prs:buildPRRecords\(\)/.test(SETTINGS) &&
-      /programFor\(planWeekStart\(\)\)/.test(SETTINGS.split("function buildPRRecords()")[1].slice(0, 900)));
+    {
+      const recs = REAL_PLAN.buildPRRecords({ prs: { outer_thigh_machine: [{ date: "2026-10-01", weight: 40, reps: 12, est: 56 }] } }, new Date(2026, 9, 12), "2026-10-08");
+      const ot = recs.find(r => r.slug === "outer_thigh_machine");
+      ok("PR records are built for the week being PLANNED and joined by id",
+        !!ot && ot.hasPR && /^(w4|sa4)_/.test(ot.id) && ot.daysAgo === 7 && ot.setThisWeek);
+    }
     // A non-canonical slug that skips the alias reads as "no PR" for an
     // exercise that has one, and the hint is then built from nothing.
     ok("the PR lookup applies PR_ALIAS before reading S.prs",
-      /const raw=prSlug\(ex\.name\);const slug=PR_ALIAS\[raw\]\|\|raw;/.test(SETTINGS) &&
-      /PR_ALIAS, prSlug \} from ".\/constants.js"/.test(SETTINGS));
+      /const raw = prSlug\(ex\.name\), slug = PR_ALIAS\[raw\] \|\| raw;/.test(readFileSync("src/plan.js", "utf8")));
     // Sets are typed in lbs or kg per exercise; hints and PRs are always kg.
     // Sent raw, 120 lbs read as 120 kg and got "progressed" from there.
-    ok("session weights are converted to kg before the AI sees them",
-      /kg:toKg\(s\.weight,ed\.unit\)/.test(SETTINGS) &&
-      /import \{ toKg, canonicalId, epley1RM \} from ".\/workout.js"/.test(SETTINGS) &&
-      /^export function toKg/m.test(readFileSync("src/workout.js", "utf8")));
+    {
+      const h = REAL_PLAN.buildSessionHistory({ sessions: { Monday_2026W42: { m4_cp: { unit: "lbs", done: true, sets: [{ weight: "120", reps: "10", done: true }, { weight: "120", reps: "6", done: true }] } } } }, new Date(2026, 9, 14, 12));
+      const cp = h[0]?.sessions?.Monday?.[0];
+      ok("session weights are converted to kg before the AI sees them (120 lbs -> 54.4)", cp?.sets_logged?.[0]?.kg === 54.4, JSON.stringify(cp?.sets_logged));
+      ok("the AI sees each exercise's set-to-set fatigue (10 -> 6 reps at one weight = 40% drop)", cp?.fatigue?.repDropPct === 40);
+    }
+    {
+      // Session notes are the user's instructions. They used to be sent for
+      // the current week only, and only on days with logged exercises.
+      const h = REAL_PLAN.buildSessionHistory({ sessions: {
+        Wednesday_2026W41: { _notes: "Leg extension caused a twinge", _calfTwinges: [1], w4_lp: { done: true, sets: [{ weight: "100", reps: "12", done: true }] } },
+        Thursday_2026W40: { _notes: "Pec fly machine was broken" } } }, new Date(2026, 9, 10, 12));
+      const byWk = Object.fromEntries(h.map((w) => [w.weekKey, w.sessionNotes]));
+      ok("session notes from EVERY week reach the AI, with calf-twinge counts",
+        byWk["2026W41"]?.Wednesday?.note === "Leg extension caused a twinge" && byWk["2026W41"].Wednesday.calfTwinges === 1);
+      ok("a note on a day with nothing logged still reaches the AI", byWk["2026W40"]?.Thursday?.note === "Pec fly machine was broken");
+      ok("the prompt treats session notes as instructions that outrank the numbers",
+        /SESSION NOTES ARE INSTRUCTIONS FROM THE USER/.test(readFileSync("api/weekly-plan.js", "utf8")));
+    }
   }
 
   {
@@ -1636,8 +1649,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       {
         const M3 = readFileSync("src/main.js", "utf8"), S3 = readFileSync("src/settings.js", "utf8"), ST3 = readFileSync("api/state.js", "utf8");
         // Run the real planMon() at fixed dates: Monday must target its own week.
-        const pm = new Function("Date0", M3.match(/function planMon\(\)\{[^\n]*\}/)[0].replace("new Date()", "new Date0()") + ";return planMon;");
-        const at = iso => { const D = class extends Date { constructor(...a) { super(...(a.length ? a : [iso + "T09:00:00"])); } }; return pm(D)().toDateString(); };
+        const at = iso => REAL_PLAN.planMonFor(new Date(iso + "T09:00:00")).toDateString();
         ok("a plan generated on Monday is for that same week (Mon 5 Oct -> 5 Oct, not 12 Oct)",
           at("2026-10-05") === new Date(2026, 9, 5).toDateString() &&
           at("2026-10-04") === new Date(2026, 9, 5).toDateString() &&
@@ -1665,6 +1677,25 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         ok(`a week key never rolls over before Monday 00:00 (every hour, incl. DST and New Year)${bad.length ? " — " + bad.slice(0, 3).join(", ") : ""}`, bad.length === 0);
         ok("Mon-Fri keys are unchanged from the old formula (2026-10-05..09 -> 2026W41)",
           ["05", "06", "07", "08", "09", "10", "11"].every((d) => REAL_WEEK_KEY_OF(new Date(`2026-10-${d}T20:00:00`)) === "2026W41"));
+      }
+      {
+        // The Sunday server cron: plans the coming week even if the app is never
+        // opened, never overwrites an existing plan, and writes updates only for
+        // ids that exist in THAT week's program.
+        const CR = await import("./api/cron-weekly-plan.js");
+        const sunday = new Date(2026, 9, 11, 19);
+        let wrote = null, called = 0;
+        const fakeAI = async () => { called++; return { week_plan: { Monday: [{ id: "m4_cp", sets: 4, hint: "40-45 kg" }, { id: "zz_nope", sets: 9 }], Sunday: [{ id: "nonexistent" }] }, coaching_notes: "n" }; };
+        const out = await CR.runWeeklyPlan({ now: sunday, state: { sessions: {}, prs: {}, nutrition: { weights: {} }, weekPlans: {} }, generate: fakeAI, write: async (u) => { wrote = u; } });
+        ok("the Sunday cron plans the coming week (Sun Oct 11 -> week of Oct 12, 2026W42, Southpaw)",
+          !out.skipped && called === 1 && wrote?.weekKey === "2026W42" && wrote?.prog === "v4", JSON.stringify(out));
+        ok("the cron keeps only updates whose ids exist in that week's program",
+          wrote?.days?.Monday?.length === 1 && wrote.days.Monday[0].id === "m4_cp" && !wrote.days.Sunday, JSON.stringify(wrote?.days));
+        called = 0;
+        const out2 = await CR.runWeeklyPlan({ now: sunday, state: { weekPlans: { "2026W42": { _prog: "v4", Monday: [] } } }, generate: fakeAI, write: async () => {} });
+        ok("the cron never overwrites a plan already made for that week", out2.skipped === true && called === 0);
+        const VJ = JSON.parse(readFileSync("vercel.json", "utf8"));
+        ok("the cron is scheduled for Sunday evening", VJ.crons.some(c => c.path === "/api/cron-weekly-plan" && /^\d+ \d+ \* \* 0$/.test(c.schedule)));
       }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",

@@ -1,4 +1,5 @@
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
+import { sanitizePlan } from "../src/plan.js";
 
 const MAX_BODY_BYTES = 64_000;
 
@@ -14,7 +15,18 @@ export default async function handler(req, res) {
   }
 
   const { sessionHistory = [], profile = {} } = req.body || {};
+  try {
+    const parsed = await generateWeeklyPlan(sessionHistory, profile);
+    return res.json({ text: JSON.stringify(parsed) });
+  } catch (e) {
+    console.error("[weekly-plan]", e.message);
+    return res.status(502).json({ error: e.status === "bad_json" ? "AI returned invalid plan JSON" : e.status === "no_plan" ? "AI plan missing week_plan" : "AI service unavailable" });
+  }
+}
 
+// The whole plan generation, callable by the HTTP handler (app) AND the cron
+// (api/cron-weekly-plan.js), so both use the same prompt and safety filter.
+export async function generateWeeklyPlan(sessionHistory = [], profile = {}) {
   const weeksProvided = sessionHistory.length;
 
   // The schedule is data, not a constant. It used to be written into the prompt
@@ -37,7 +49,7 @@ Your job:
    - Consistent completion vs repeated skips (skipping 2+ weeks = stall, consider swapping)
    - Weight progression trajectory (is it stalling, improving, regressing?)
    - Volume tolerance (session durations, sets completed)
-   - Session notes from this week (keys ending in "_notes") — use these for context on how the user felt, any pain, fatigue, or standout performances
+   - SESSION NOTES ARE INSTRUCTIONS FROM THE USER. Every week in sessionHistory has "sessionNotes": per day, the user's own note and how many calf twinges were logged. Read every one before planning. They outrank the numbers: if a note reports pain, a twinge, a flare, or that an exercise "caused" something, do NOT add load to that exercise next week (hold or reduce, or swap it for an approved same-muscle exercise) and say so in the reason; if a note says a machine was busy/broken or a weight felt easy/too hard, act on it; if a note asks for a change, make it within the hard rules. Quote the note briefly in the reason of any change it drove, and mention in coaching_notes any note you could not act on.
    - Any exercise that has been at the same weight for 3+ weeks despite full completion → time to increase or swap
    - profile.weightLog shows recent body-weight readings: the user is in an aggressive cut (goal in profile.goal). Rapid weight loss reduces strength capacity — if body weight is dropping fast, favour holding weights and adding reps over adding load, and flag fatigue risk in coaching_notes
 2. ANCHOR EVERY WEIGHT HINT TO THE PR. profile.prs is the user's best recorded lift per exercise in next week's plan, joined to the plan by "id". All weights are KILOGRAMS, as are all sets_logged (.kg) and every hint you write. Fields: bestKg × reps is the best set, est1RM its Epley estimate, date/daysAgo when it was set, setThisWeek true if it landed in the last 7 days, hasPR false if the exercise has never been logged.
@@ -86,49 +98,20 @@ Rules:
     profile
   });
 
+  const text = await callOpenAI({ system, user, maxOutputTokens: 3000 });
+  let parsed;
   try {
-    const text = await callOpenAI({ system, user, maxOutputTokens: 3000 });
-    // Validate the AI output server-side before handing it to the client
-    let parsed;
-    try {
-      parsed = JSON.parse(text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim());
-    } catch {
-      console.error("[weekly-plan] AI returned invalid JSON:", text.slice(0, 300));
-      return res.status(502).json({ error: "AI returned invalid plan JSON" });
-    }
-    if (!parsed.week_plan || typeof parsed.week_plan !== "object") {
-      console.error("[weekly-plan] missing week_plan key:", text.slice(0, 300));
-      return res.status(502).json({ error: "AI plan missing week_plan" });
-    }
-    // Spine safety net: strip any AI "add" that violates the hard rules
-    const BANNED = [
-      /overhead/i, /military/i, /shoulder\s*press/i, /arnold/i, /push\s*press/i,
-      /\bsquat\b/i, /deadlift/i, /good\s*morning/i, /\blunge/i, /split\s*squat/i,
-      /step[\s-]?up/i, /stair/i, /box\s*jump/i, /\bjump/i, /burpee/i,
-      /\bstanding\b/i, /upright\s*row/i, /barbell\s*row/i, /bent[\s-]?over/i,
-      /\bclean\b/i, /snatch/i, /thruster/i, /farmer/i, /\bcarr(y|ies)\b/i, /\brunning?\b/i
-    ];
-    const banned = name => {
-      const n = String(name || "");
-      if (/lat\s*pulldown/i.test(n) && !/neutral|close/i.test(n)) return true;
-      return BANNED.some(rx => rx.test(n));
-    };
-    const stripped = [];
-    for (const [day, exs] of Object.entries(parsed.week_plan)) {
-      if (!Array.isArray(exs)) continue;
-      parsed.week_plan[day] = exs.filter(e => {
-        if (e && e.action === "add" && banned(e.name)) { stripped.push(e.name); return false; }
-        return true;
-      });
-    }
-    if (stripped.length) {
-      console.warn("[weekly-plan] blocked unsafe suggestions:", stripped.join(", "));
-      parsed.flags = parsed.flags || [];
-      parsed.flags.unshift("Blocked unsafe AI suggestions (spine rules): " + stripped.join(", "));
-    }
-    return res.json({ text: JSON.stringify(parsed) });
-  } catch (e) {
-    console.error("[weekly-plan]", e.message);
-    return res.status(502).json({ error: "AI service unavailable" });
+    parsed = JSON.parse(text.replace(/```[a-z]*\n?/gi, "").replace(/```/g, "").trim());
+  } catch {
+    console.error("[weekly-plan] AI returned invalid JSON:", text.slice(0, 300));
+    throw Object.assign(new Error("invalid plan JSON"), { status: "bad_json" });
   }
+  if (!parsed.week_plan || typeof parsed.week_plan !== "object") {
+    console.error("[weekly-plan] missing week_plan key:", text.slice(0, 300));
+    throw Object.assign(new Error("missing week_plan"), { status: "no_plan" });
+  }
+  // Spine safety net: strip any AI "add" that violates the hard rules.
+  sanitizePlan(parsed);
+  if (parsed.flags?.[0]?.startsWith("Blocked unsafe")) console.warn("[weekly-plan]", parsed.flags[0]);
+  return parsed;
 }

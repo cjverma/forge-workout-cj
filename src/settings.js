@@ -5,6 +5,7 @@ import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
 import { toKg, canonicalId, epley1RM } from "./workout.js";
+import { buildPlanPayload, sanitizePlan, isBannedExercise } from "./plan.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -665,165 +666,14 @@ function resetPlan(){
 // last set done at the most-used weight. The planner reads this to tell "load
 // is at the limit" (big drop) from "load is too light" (no drop), which the
 // best set alone cannot show.
-function setFatigue(sets){
-  const by={};
-  for(const s of sets){const k=String(s.kg);(by[k]??=[]).push(Number(s.reps)||0);}
-  const top=Object.entries(by).sort((a,b)=>b[1].length-a[1].length||Number(b[0])-Number(a[0]))[0];
-  if(!top||top[1].length<2)return null;
-  const reps=top[1],first=reps[0],last=reps[reps.length-1];
-  return{kg:Number(top[0]),reps,first,last,repDropPct:first?Math.round((first-last)/first*100):0};
-}
-function buildSessionHistory(maxWeeks=4){
-  const history=[];
-  for(let w=0;w<maxWeeks;w++){
-    const weekKey=nthPrevWk(w);
-    const weekData={weekKey,weekLabel:weekLabel(weekKey),sessions:{},sessionDurationMin:{}};
-    let hasData=false;
-    for(const[day,dayData]of Object.entries(PROG)){
-      const key=day+"_"+weekKey;
-      const sessData=S.sessions[key];
-      if(!sessData)continue;
-      const exs=[];
-      for(const ex of(dayData.exercises||[])){
-        const ed=sessData[ex.id];
-        if(!ed)continue;
-        // Set inputs are per-exercise lbs or kg, but the hint the AI writes back
-        // is always kg and PRs are stored in kg. Sent raw, a 120 lbs set read as
-        // 120 kg and the AI "progressed" it to a weight never lifted.
-        const setsDone=(ed.sets||[]).filter(s=>s.done)
-          .map(s=>({kg:toKg(s.weight,ed.unit),reps:s.reps}))
-          .filter(s=>s.kg!=null);
-        if(setsDone.length||ed.done||ed.skipped){
-          exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,fatigue:setFatigue(setsDone),completed:!!ed.done,skipped:!!ed.skipped});
-          hasData=true;
-        }
-      }
-      if(exs.length){
-        weekData.sessions[day]=exs;
-        if(sessData._duration)weekData.sessionDurationMin[day]=Math.round(sessData._duration/60);
-        if(w===0&&sessData._notes)weekData.sessions[day+"_notes"]=sessData._notes;
-      }
-    }
-    if(hasData)history.push(weekData);
-  }
-  return history;
-}
-
-// The Monday of the week being planned. Plans are always generated for NEXT
-// week, so anything describing "the plan" must be built from that week's
-// program, not today's. Today (Aug 3) still has physio stripped; next week
-// does not, and a snapshot taken from today would hide that from the AI.
+// The plan's inputs are built by src/plan.js, the same code the Sunday server
+// cron (api/cron-weekly-plan.js) runs, so the app and the cron cannot drift.
 function planWeekStart(){return planMon();}
-
-function buildApprovedExercises(){
-  const seen=new Set();
-  const list=[];
-  for(const[,dayData]of Object.entries(programFor(planWeekStart()))){
-    for(const ex of(dayData.exercises||[])){
-      if(ex.cat==="cardio"||ex.cat==="physio")continue;
-      const key=ex.name.toLowerCase().trim();
-      if(seen.has(key))continue;
-      seen.add(key);
-      list.push({name:ex.name,muscles:ex.muscles||[],hint:ex.hint||""});
-    }
-  }
-  return list;
-}
-
-// Rest days are included with an empty exercise list, not dropped. Dropping
-// them let the AI assume the missing day was simply unplanned and schedule
-// work on it.
-function buildPlanSnapshot(){
-  const prog=programFor(planWeekStart());
-  const snap={};
-  for(const[day,dayData]of Object.entries(prog)){
-    const exs=dayData.exercises||[];
-    snap[day]={label:dayData.label,rest:!exs.some(e=>e.cat==="gym"),
-      exercises:exs.map(ex=>({id:ex.id,name:ex.name,cat:ex.cat,sets:ex.sets,reps:ex.reps,hint:ex.hint,muscles:ex.muscles||[]}))};
-  }
-  return snap;
-}
-
-// Best lift on record for every gym exercise in the week being planned, so
-// progressive overload is anchored to what the user has actually lifted rather
-// than inferred from four weeks of session logs alone. Without it the AI could
-// only see recent sets: an exercise returning after a gap looked like it had no
-// history and got a hint pulled from thin air, and a PR set in a week that had
-// scrolled out of sessionHistory was invisible.
-//
-// Keyed by the plan's exercise id (the key the AI writes back) AND the canonical
-// PR slug, since S.prs is keyed by name-slug and the two must be joined here
-// rather than by the model. PR weights are kg, always.
-function buildPRRecords(){
-  const prs=S.prs||{};
-  const today=new Date(isoToday()+"T00:00:00").getTime();
-  const out=[];const seen=new Set();
-  for(const[,dayData]of Object.entries(programFor(planWeekStart()))){
-    for(const ex of(dayData.exercises||[])){
-      if(ex.cat!=="gym")continue;
-      const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
-      if(seen.has(slug))continue;
-      seen.add(slug);
-      const entries=prs[slug]||prs[canonicalId(ex.id)]||[];
-      if(!entries.length){out.push({id:ex.id,name:ex.name,slug,hasPR:false});continue;}
-      const best=entries.reduce((b,e)=>e.est>b.est?e:b,entries[0]);
-      const days=Math.round((today-new Date(best.date+"T00:00:00").getTime())/86400000);
-      out.push({id:ex.id,name:ex.name,slug,hasPR:true,
-        bestKg:kg1(best.weight),reps:best.reps,est1RM:best.est,date:best.date,
-        daysAgo:days,setThisWeek:days<=7,prCount:entries.length});
-    }
-  }
-  return out;
-}
-
-// Tells the AI which program it is editing and which day it must not touch,
-// instead of leaving the schedule to be inferred from the snapshot.
-function buildProgramMeta(){
-  const mon=planWeekStart();
-  const prog=programFor(mon);
-  const rest=Object.keys(prog).filter(d=>!(prog[d].exercises||[]).some(e=>e.cat==="gym"));
-  return {
-    name:PROG_NAME[programKeyFor(mon)]||"current program",
-    version:programKeyFor(mon),
-    weekStarting:isoDate(mon),
-    restDays:rest,
-    trainingDays:Object.keys(prog).filter(d=>!rest.includes(d))
-  };
-}
 
 let _pendingPlan=null;
 
-// Spine safety net: the AI is instructed not to suggest these, but never trust it.
-// Any "add" matching a banned pattern is stripped before preview and flagged.
-const BANNED_EX=[
-  /overhead/i,/military/i,/shoulder\s*press/i,/arnold/i,/push\s*press/i,
-  /\bsquat\b/i,/deadlift/i,/good\s*morning/i,/\blunge/i,/split\s*squat/i,
-  /step[\s-]?up/i,/stair/i,/box\s*jump/i,/\bjump/i,/burpee/i,
-  /\bstanding\b/i,/upright\s*row/i,/barbell\s*row/i,/bent[\s-]?over/i,
-  /\bclean\b/i,/snatch/i,/thruster/i,/farmer/i,/\bcarr(y|ies)\b/i,/\brunning?\b/i
-];
-export function isBannedExercise(name){
-  const n=String(name||"");
-  if(/lat\s*pulldown/i.test(n)&&!/neutral|close/i.test(n))return true; // standard lat pulldown banned
-  return BANNED_EX.some(rx=>rx.test(n));
-}
-function sanitizePlan(parsed){
-  if(!parsed||!parsed.week_plan)return parsed;
-  const stripped=[];
-  for(const[day,exs]of Object.entries(parsed.week_plan)){
-    if(!Array.isArray(exs))continue;
-    parsed.week_plan[day]=exs.filter(e=>{
-      if(e&&e.action==="add"&&isBannedExercise(e.name)){stripped.push(e.name);return false;}
-      return true;
-    });
-  }
-  if(stripped.length){
-    parsed.flags=parsed.flags||[];
-    parsed.flags.unshift("Blocked unsafe AI suggestions (spine rules): "+stripped.join(", "));
-  }
-  return parsed;
-}
-
+// Spine filter + plan sanitiser live in src/plan.js, shared with the server
+// cron (isBannedExercise is imported above and reaches ctx from there).
 // auto=true: the weekend auto-run (maybeAutoPlan). No button needed, no review
 // modal: the plan is applied directly and the coaching notes kept for later.
 async function genWeeklyPlan(auto){
@@ -837,8 +687,7 @@ async function genWeeklyPlan(auto){
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},
       body:JSON.stringify({
-        sessionHistory:buildSessionHistory(4),
-        profile:{equipment:GYM,program:buildProgramMeta(),currentPlan:buildPlanSnapshot(),prs:buildPRRecords(),approvedExercises:buildApprovedExercises(),weightLog:(()=>{const ws=S.nutrition.weights||{};return Object.keys(ws).sort().slice(-8).map(d=>({date:d,kg:ws[d]}));})(),goal:{targetKg:USER.targetKg,byDate:isoDate(USER.goalDate)}}
+        ...buildPlanPayload(S,{canonicalId})
       })
     },60000);
     if(!r.ok)throw new Error("Request failed");

@@ -438,6 +438,26 @@ Four surfaces resolve those keys back to names, and all four must agree:
   handler; a web app cannot disable it (iPhone Settings → Accessibility →
   Touch → Shake to Undo).
 
+## The weekly plan is built in ONE place (`src/plan.js`)
+
+`src/plan.js` holds everything the plan needs: `planMonFor`, the payload
+builders (`buildPlanPayload` and friends), `isBannedExercise`/`sanitizePlan`
+and `planToUpdates`. It is pure (no ctx/DOM/localStorage), so the app AND the
+server import it: `genWeeklyPlan()` in the app, and `api/cron-weekly-plan.js`,
+which runs every **Sunday 23:00 UTC** (7 PM Toronto), generates the coming
+week's plan if none exists and writes the same `week_plan_updates` rows the
+app does, so the week is planned even if the app is never opened.
+`api/weekly-plan.js` exports `generateWeeklyPlan()` so both share one prompt.
+
+- Every `src` file is inlined into ONE script by `build.mjs` (an explicit
+  list: add new files there), so top-level names must be unique across files.
+  `plan.js` keeps its private helpers prefixed (`planToKg`, `PLAN_LB_TO_KG`).
+- Dates for the AI come from `planYmd()`, not `isoDate()`: `isoDate` converts
+  to Toronto, which on the UTC server turns Monday 00:00 into Sunday.
+- **Session notes are instructions.** `buildSessionHistory` sends
+  `sessionNotes` (note + calf-twinge count) for every week and every day that
+  has one, and the prompt ranks them above the numbers.
+
 ## Calf twinge makes the session note mandatory
 
 `stopSess()` refuses to stop while `_calfTwinges` is non-empty and `_notes` is
