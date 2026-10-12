@@ -661,6 +661,18 @@ function resetPlan(){
   location.reload();
 }
 
+// Set-to-set trend at a single weight: how far reps fell from the first to the
+// last set done at the most-used weight. The planner reads this to tell "load
+// is at the limit" (big drop) from "load is too light" (no drop), which the
+// best set alone cannot show.
+function setFatigue(sets){
+  const by={};
+  for(const s of sets){const k=String(s.kg);(by[k]??=[]).push(Number(s.reps)||0);}
+  const top=Object.entries(by).sort((a,b)=>b[1].length-a[1].length||Number(b[0])-Number(a[0]))[0];
+  if(!top||top[1].length<2)return null;
+  const reps=top[1],first=reps[0],last=reps[reps.length-1];
+  return{kg:Number(top[0]),reps,first,last,repDropPct:first?Math.round((first-last)/first*100):0};
+}
 function buildSessionHistory(maxWeeks=4){
   const history=[];
   for(let w=0;w<maxWeeks;w++){
@@ -682,7 +694,7 @@ function buildSessionHistory(maxWeeks=4){
           .map(s=>({kg:toKg(s.weight,ed.unit),reps:s.reps}))
           .filter(s=>s.kg!=null);
         if(setsDone.length||ed.done||ed.skipped){
-          exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,completed:!!ed.done,skipped:!!ed.skipped});
+          exs.push({id:ex.id,name:ex.name,target_sets:ex.sets,target_reps:ex.reps,current_hint:ex.hint,sets_logged:setsDone,fatigue:setFatigue(setsDone),completed:!!ed.done,skipped:!!ed.skipped});
           hasData=true;
         }
       }

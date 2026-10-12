@@ -33,7 +33,7 @@ const SEED = (seedEx) => {
   S._v6MonDone1 = true;
   const iso = (d) => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" });
   const j = new Date(new Date().getFullYear(), 0, 1);
-  const wk = (y) => y.getFullYear() + "W" + Math.ceil(((y - j) / 86400000 + j.getDay() + 1) / 7);
+  const wk = (y) => (()=>{const _d=new Date(y.getFullYear(),y.getMonth(),y.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})(); // Monday-based, as the app
   const now = new Date(), nxt = new Date(); nxt.setDate(nxt.getDate() + 7);
   S.weekPlans = { [wk(now)]: { Monday: [] }, [wk(nxt)]: { Monday: [] } };
   const ago = (n) => { const d = new Date(); d.setDate(d.getDate() - n); return iso(d); };
@@ -201,6 +201,8 @@ try {
     note("an exercise with no history says so rather than being omitted",
       prs.some((p) => p.hasPR === false));
     const logged = body?.sessionHistory?.[0]?.sessions?.[SEED_EX.day]?.find((e) => e.id === SEED_EX.id);
+    note("the AI gets each exercise's set-to-set trend (fatigue) alongside its sets",
+      !!logged && "fatigue" in logged, JSON.stringify(logged?.fatigue));
     note("logged sets reach the AI in kg, not the typed lbs",
       !!logged && logged.sets_logged?.[0]?.kg === 99.8, JSON.stringify(logged?.sets_logged));
     await page.close();
@@ -277,7 +279,7 @@ try {
       });
       const day = await page.evaluate((exId) => {
         const S = JSON.parse(localStorage.f5);
-        const wkOf = (d) => { const j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7); };
+        const wkOf = (d) => (()=>{const _d=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})();
         const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
         S.sessions = {};
         for (let n = 1; n <= 4; n++) {
@@ -410,7 +412,7 @@ try {
     });
     await page.evaluate(([a, b]) => {
       const S = JSON.parse(localStorage.f5);
-      const wkOf = (d) => { const j = new Date(d.getFullYear(), 0, 1); return d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7); };
+      const wkOf = (d) => (()=>{const _d=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})();
       const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
       const prev = new Date(); prev.setDate(prev.getDate() - 7);
       S.sessions = {
@@ -429,9 +431,103 @@ try {
       ph: document.getElementById(`wi-${b}-0`)?.placeholder || "",
     }), ex);
     note("overload badge uses the best set (weight x reps, in kg): a PR set shows up, not down", r.up && !r.down, JSON.stringify(r));
-    note("'Last:' converts the previous session's unit (90 lbs -> 40.8 kg)", /Last: 40\.8 kg × 12/.test(r.ghost), r.ghost);
+    note("'Last best:' converts the previous session's unit (90 lbs -> 40.8 kg)", /Last best: 40\.8 kg × 12/.test(r.ghost), r.ghost);
     note("an lbs weight box hint is converted numbers only, never a kg range labelled lbs", !/lbs|kg/i.test(r.ph), "placeholder=" + r.ph);
     await page.close();
+  }
+
+  // A running workout survives the app being unloaded (iOS kills backgrounded
+  // PWAs; it used to come back with Start Workout showing and the timer gone).
+  // And the target is last session's best set, pre-filled.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`active: ${e.message}`));
+    page.on("dialog", (d) => d.accept());
+    // Pinned to a Monday (a gym day) so this does not depend on the day it runs.
+    await page.clock.install({ time: new Date("2026-10-12T10:00:00-04:00") });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    // A gym exercise (physio has no weight target), so this works on rest days too.
+    const exId = await page.evaluate(() => {
+      const ids = [...document.querySelectorAll(".si")].filter((i) => /^wi-.*-1$/.test(i.id)).map((i) => i.id.replace("wi-", "").replace(/-\d+$/, ""));
+      return ids.find((id) => document.querySelector(`#ex-${id} .ex-icon.gym`)) || ids[0];
+    });
+    await page.evaluate((a) => {
+      const S = JSON.parse(localStorage.f5);
+      const wkOf = (d) => (()=>{const _d=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})();
+      const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+      const prev = new Date(); prev.setDate(prev.getDate() - 7);
+      S.sessions = { [day + "_" + wkOf(prev)]: { [a]: { unit: "kg", done: true, sets: [{ weight: "40", reps: "12", done: true }, { weight: "45", reps: "10", done: true }] } } };
+      S._v6MonDone1 = true; S._planMove41 = true;
+      localStorage.f5 = JSON.stringify(S);
+      try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
+    }, exId);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-meta`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
+    note("the suggested weight is last session's best set (Beat 45 kg × 10), pre-filled", /Beat 45 kg × 10/.test(t.meta) && t.pre === "45", JSON.stringify(t));
+    await page.evaluate(() => window.startSess());
+    await page.waitForTimeout(300);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const on = await page.evaluate(() => ({ stop: document.getElementById("bStop")?.classList.contains("show"), start: !document.getElementById("bStart")?.classList.contains("hide") }));
+    note("a running workout survives a reload (iOS unloading the app)", on.stop && !on.start, JSON.stringify(on));
+    await page.evaluate(() => window.stopSess());
+    await page.waitForTimeout(300);
+    await page.evaluate(() => window.closeSummary?.());
+    await page.reload({ waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const off = await page.evaluate(() => !document.getElementById("bStop")?.classList.contains("show"));
+    note("a stopped workout stays stopped after a reload", off);
+    await page.close();
+  }
+
+  // The weekend week-rollover, replayed from the user's real backup shape.
+  // Old formula: on Sat/Sun "this week" pointed at next week's key. Tue-Thu
+  // Oct 6-8 were filed W41 (correct) but invisible on Sunday; Friday Oct 9 was
+  // edited on Saturday and filed W42 (so it showed on Fri Oct 16); the deload
+  // Saturday Oct 3 was filed W41. The repair must put every one back, queue
+  // the server delete of the misfiled key, and the streak must survive Sunday.
+  {
+    const ids = (date, day) => programFor(date)[day].exercises.filter((e) => e.cat === "gym").slice(0, 2).map((e) => e.id);
+    const ex = (list) => Object.fromEntries(list.map((id) => [id, { done: true, sets: [{ weight: "40", reps: "10", done: true }] }]));
+    const seed = {
+      Tuesday_2026W41: ex(ids(new Date(2026, 9, 6), "Tuesday")),
+      Wednesday_2026W41: ex(ids(new Date(2026, 9, 7), "Wednesday")),
+      Thursday_2026W41: ex(ids(new Date(2026, 9, 8), "Thursday")),
+      Friday_2026W42: ex(ids(new Date(2026, 9, 9), "Friday")),
+      Saturday_2026W41: ex(ids(new Date(2026, 9, 3), "Saturday")),
+      Saturday_2026W42: ex(ids(new Date(2026, 9, 10), "Saturday")),
+    };
+    for (const [when, prev] of [["2026-10-11T15:00:00-04:00", false], ["2026-10-12T15:00:00-04:00", true]]) {
+      const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+      page.on("pageerror", (e) => jsErrors.push(`weekfix: ${e.message}`));
+      await page.clock.install({ time: new Date(when) });
+      await page.addInitScript((sess) => {
+        window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+        if (!localStorage.f5) localStorage.f5 = JSON.stringify({ sessions: sess, _v6MonDone1: true, _planMove41: true });
+      }, seed);
+      await page.goto(URL, { waitUntil: "networkidle" });
+      await page.waitForTimeout(900);
+      if (prev) { await page.evaluate(() => window.shiftWeek(-1)); await page.waitForTimeout(300); }
+      const shown = {};
+      for (const d of ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]) {
+        await page.evaluate((d) => window.selectDay(d), d);
+        await page.waitForTimeout(150);
+        shown[d] = await page.evaluate(() => Number((document.querySelector(".hero")?.innerText.match(/(\d+) of \d+/) || [0, 0])[1]));
+      }
+      const r = await page.evaluate(() => {
+        const S = JSON.parse(localStorage.f5);
+        return { keys: Object.keys(S.sessions).sort(), del: JSON.parse(localStorage.f5_outbox || "[]").filter((m) => m.entity === "session_key_delete").map((m) => m.payload.sessionKey), streak: (document.body.innerText.match(/(\d+) day streak/) || [0, 0])[1] };
+      });
+      const tag = prev ? "Monday, viewing the week of Oct 5" : "Sunday, this week";
+      note(`${tag}: Tue-Sat Oct 6-10 all show their logged work`, Object.values(shown).every((n) => n >= 2), JSON.stringify(shown));
+      note(`${tag}: misfiled sessions moved back (Fri Oct 9 -> W41, deload Sat Oct 3 -> W40) and their old keys deleted server-side`,
+        r.keys.includes("Friday_2026W41") && !r.keys.includes("Friday_2026W42") && r.keys.includes("Saturday_2026W40") && r.del.includes("Friday_2026W42"), JSON.stringify(r));
+      note(`${tag}: the streak survives an unlogged physio Sunday (>= 5 days)`, Number(r.streak) >= 5, "streak=" + r.streak);
+      await page.close();
+    }
   }
 
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
@@ -450,7 +546,7 @@ try {
     await page.evaluate(([A, B]) => {
       const S = JSON.parse(localStorage.f5);
       const d = new Date(), j = new Date(d.getFullYear(), 0, 1);
-      const wk = d.getFullYear() + "W" + Math.ceil(((d - j) / 86400000 + j.getDay() + 1) / 7);
+      const wk = (()=>{const _d=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})();
       const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][d.getDay()];
       const mk = (ts, n) => ({ id: "c_" + ts, name: n, cat: "gym", sets: 3, reps: 12, hint: "", custom: true });
       S.custom = { [day]: [mk(Date.now() - 90 * 86400000, "StaleCustomX"), mk(Date.now(), "FreshCustomX")] };

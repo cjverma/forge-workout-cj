@@ -4,7 +4,7 @@ import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW, sessionKeyToIso } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { isBannedExercise, renderST } from "./settings.js";
@@ -222,6 +222,58 @@ if(!S._planMove41){
   if(wk()!=="2026W41"||wp[to])S._planMove41=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// One-time repair for the Saturday rollover (see weekKeyOf). Sessions written
+// on a weekend were filed under NEXT week's key: weekend workouts a week late,
+// and any day ticked on a weekend (Friday Oct 9, edited Saturday) landed on the
+// following week, so it showed on a day that had not happened yet and its own
+// week looked empty. Evidence decides what moves back one week:
+//  - a session dated in the FUTURE cannot have been logged: always misfiled;
+//  - Saturday/Sunday keys were written on the weekend: move, unless their
+//    exercise ids fit the later week's program strictly better;
+//  - other past weekdays move only if their ids fit the earlier week's
+//    program strictly better (a program change makes the misfiling visible).
+// Never overwrites: on a collision the entry with more done sets wins. The old
+// key is deleted server-side AFTER the moved entries are queued, so a sync
+// cannot bring the misfiled copy back.
+function keyToDate(day,wkKey){
+  const yr=+wkKey.slice(0,4),d=new Date(yr-1,11,20,12);
+  for(let i=0;i<400;i++){if(weekKeyOf(d)===wkKey&&DAYS[(d.getDay()+6)%7]===day)return new Date(d);d.setDate(d.getDate()+1);}
+  return null;
+}
+if(!S._wkFix1){
+  const today=new Date();today.setHours(23,59,59,999);
+  const doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length+(e?.done?1:0);
+  const fit=(sess,date)=>{const ids=new Set((programFor(date)[DAYS[(date.getDay()+6)%7]]?.exercises||[]).map(e=>e.id));return Object.keys(sess).filter(k=>!k.startsWith("_")&&ids.has(k)).length;};
+  const moves=[];
+  for(const[key,sess]of Object.entries(S.sessions||{})){
+    const m=/^([A-Za-z]+)_(\d{4}W\d+)$/.exec(key);
+    if(!m||!sess||typeof sess!=="object")continue;
+    if(!Object.keys(sess).some(k=>!k.startsWith("_")&&doneN(sess[k])))continue;
+    const date=keyToDate(m[1],m[2]);if(!date)continue;
+    const prev=new Date(date);prev.setDate(prev.getDate()-7);
+    const now=fit(sess,date),before=fit(sess,prev);
+    const weekend=m[1]==="Saturday"||m[1]==="Sunday";
+    const move=date>today||(weekend?!(now>before):before>now);
+    if(move)moves.push({from:key,to:m[1]+"_"+weekKeyOf(prev)});
+  }
+  // Oldest first, so a chain (W42 -> W41 while W41 -> W40) never collides
+  // with an entry that is itself about to move.
+  moves.sort((a,b)=>a.to.localeCompare(b.to));
+  for(const{from,to}of moves){
+    const src=S.sessions[from],dst=S.sessions[to]=S.sessions[to]||{};
+    for(const[k,v]of Object.entries(src)){
+      if(k.startsWith("_")){if(dst[k]==null||(Array.isArray(dst[k])&&!dst[k].length))dst[k]=v;continue;}
+      if(!dst[k]||doneN(v)>doneN(dst[k]))dst[k]=v;
+    }
+    delete S.sessions[from];
+    for(const k of Object.keys(dst))if(!k.startsWith("_"))queueSession(to,k);
+    queueSessionMeta(to);
+    queueMutation("session_key_delete",{sessionKey:from});
+  }
+  S._wkFix1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(moves.length)setTimeout(()=>showToast(moves.length+" session"+(moves.length===1?"":"s")+" moved back to the right week"),2500);
+}
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are
 // unverifiable, so they were left standing in lbs: a 203kg seated leg curl, a
@@ -353,7 +405,7 @@ function trainedOn(dateIso){
   const d=new Date(dateIso+"T12:00:00");
   const dayName=DAYS[d.getDay()===0?6:d.getDay()-1];
   const j=new Date(d.getFullYear(),0,1);
-  const wkKey=d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+  const wkKey=weekKeyOf(d);
   const sess=S.sessions[dayName+"_"+wkKey];
   if(!sess)return false;
   // Manual completion counts as trained. Sessions are keyed by EXERCISE ID, so
@@ -504,6 +556,16 @@ ctx.renderNutrition=renderNutrition;
 function initApp(){
   buildNav();
   const t=DAYS[new Date().getDay()===0?6:new Date().getDay()-1];
+  // A running workout lived only in memory. iOS unloads a backgrounded PWA
+  // (switching to music, messages, the camera) and the reload came back with
+  // Start Workout showing and the timer gone, so it looked like the workout
+  // "closed on its own". startSess persists it; restore it here if it is
+  // today's session and under 6 hours old.
+  try{
+    const a=JSON.parse(localStorage.getItem("f5_active")||"null");
+    if(a&&a.key===t+"_"+wk()&&Date.now()-a.start<6*3600000){workoutOn=true;sessStart=a.start;}
+    else if(a)localStorage.removeItem("f5_active");
+  }catch(_){}
   selectDay(t);
   updateDayNavDates();
   // Restore the tab the user was on before a refresh (sessionStorage:
@@ -579,16 +641,16 @@ function selectDay(day){
   renderW();
 }
 
-function wk(){const d=new Date(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
-function nextWk(){const d=new Date();d.setDate(d.getDate()+(d.getDay()===0?1:7));const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function wk(){return weekKeyOf(new Date());}
+function nextWk(){const d=new Date();d.setDate(d.getDate()+7);return weekKeyOf(d);}
 // The week a generated plan is FOR. On Monday that is the week just starting:
 // it was always "next week", so a plan generated Monday morning (Mon 5 Oct)
 // landed on the following Monday (12 Oct) and this week ran unplanned. Sunday
 // and Tue-Sat still target the coming Monday. One source for the key, the
 // program stamp, the AI's snapshot and every label, so they cannot disagree.
 function planMon(){const d=new Date();d.setHours(0,0,0,0);const dow=d.getDay();if(dow!==1)d.setDate(d.getDate()+(dow===0?1:8-dow));return d;}
-function planWk(){const d=planMon(),j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
-function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function planWk(){return weekKeyOf(planMon());}
+function nthPrevWk(n){const d=new Date();d.setDate(d.getDate()-n*7);return weekKeyOf(d);}
 function weekLabel(wkStr){const m=wkStr.match(/(\d{4})W(\d+)/);if(!m)return wkStr;const yr=+m[1],wn=+m[2],jan1=new Date(yr,0,1),dow=jan1.getDay()||7,mon=new Date(yr,0,1+(wn-1)*7-(dow-1));return fmtDate(mon.toISOString().slice(0,10));}
 // Returns the Monday Date object for the Mon-Sun week containing Date d.
 // Named distinctly from the ISO-string mondayOf() defined later in this file.
@@ -600,7 +662,7 @@ Object.defineProperty(ctx,"viewMon",{get:()=>_viewMon,set:v=>{_viewMon=v;},enume
 // vwk() must return a wkStr whose session key matches what was stored this week.
 // wk() uses a formula that may put Sunday in the NEXT week, so for non-current weeks
 // we apply wk()'s formula to Wednesday of the viewed week (safely mid-week).
-function _wkFromDate(d){const j=new Date(d.getFullYear(),0,1);return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);}
+function _wkFromDate(d){return weekKeyOf(d);}
 function vwk(){
   if(!_viewMon)return wk();
   const wed=new Date(_viewMon);wed.setDate(_viewMon.getDate()+2);

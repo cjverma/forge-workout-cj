@@ -600,11 +600,6 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 @keyframes demoflip{0%{opacity:0}50%{opacity:1}100%{opacity:0}}
 
 /* ── REST TIMER (background-safe) ── */
-.rest-timer-overlay{display:none;position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:200;background:var(--s1);border:1px solid var(--orange);border-radius:16px;padding:14px 24px;min-width:180px;text-align:center;box-shadow:var(--shadow-lift);}
-.rest-timer-overlay.show{display:block;}
-.rest-timer-num{font-family:var(--font-display);font-size:56px;font-weight:700;color:var(--orange);letter-spacing:.5px;line-height:1;font-variant-numeric:tabular-nums;}
-.rest-timer-lbl{font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);color:var(--dim);text-transform:uppercase;margin-top:2px;}
-.rest-timer-skip{margin-top:10px;background:transparent;border:1px solid var(--b2);border-radius:8px;padding:7px 16px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;}
 
 /* ── NUTRITION ── */
 .nut-wrap{padding:14px 18px 20px;}.nut-date-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}.nut-date-nav button{background:transparent;border:1px solid var(--b2);border-radius:6px;color:var(--mid);font-family:var(--font-body);font-size:18px;width:36px;height:36px;cursor:pointer;}.nut-date-lbl{font-size:13px;font-weight:600;color:var(--lt);}.nut-card{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r-lg);padding:var(--sp-4);margin-bottom:var(--sp-3);}.nut-card-title{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--mid);margin-bottom:10px;}.burn-row{display:flex;gap:8px;}.burn-col{flex:1;text-align:center;}.burn-val{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-0.5px;}.burn-val.tappable{cursor:pointer;border-bottom:1px solid var(--b2);}.burn-lbl{font-size:10px;color:var(--dim);margin-top:2px;}.target-display{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}.target-num{font-size:28px;font-weight:700;letter-spacing:-0.5px;}.target-pill-g{padding:4px 10px;border-radius:6px;font-size:11px;font-weight:700;}.tpill-green{background:var(--green-lo);color:var(--green);}.tpill-amber{background:var(--amber-lo);color:var(--amber);}.tpill-red{background:var(--red-lo);color:var(--red);}.prog-bar-wrap{height:8px;background:var(--b1);border-radius:var(--r-pill);overflow:visible;margin-bottom:8px;position:relative;}.prog-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-text),var(--hero-accent));border-radius:var(--r-pill);transition:width .4s ease;position:relative;}.prog-thumb{position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:14px;height:14px;border-radius:50%;background:var(--hero-accent);box-shadow:0 0 8px var(--accent);}.macro-row{display:flex;gap:6px;margin-top:6px;}.macro-chip{flex:1;background:var(--s2);border-radius:8px;padding:8px 6px;text-align:center;}.macro-val{font-size:16px;font-weight:700;color:var(--white);}.macro-lbl{font-size:10px;font-weight:var(--fw-cap);color:var(--dim);margin-top:2px;}.net-line{font-size:12px;margin-top:8px;text-align:center;font-weight:600;}.net-green{color:var(--green);}.net-red{color:var(--red);}/* Shock day is an exception you reach for occasionally, not the primary
@@ -809,7 +804,6 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .pm-cancel{flex:1;padding:15px;background:transparent;border:1px solid var(--b2);border-radius:10px;font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--mid);cursor:pointer;}
 
 /* ── REST TIMER ── */
-.rest-timer{position:fixed;bottom:72px;left:50%;transform:translateX(-50%);max-width:300px;width:90%;background:var(--s1);border:2px solid var(--accent-text);border-radius:16px;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 24px;cursor:pointer;box-shadow:var(--shadow-lift);}
 .rt-label{font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);color:var(--orange);text-transform:uppercase;margin-bottom:4px;}
 .rt-count{font-family:var(--font-display);font-size:64px;font-weight:700;color:var(--orange);letter-spacing:.5px;line-height:1;font-variant-numeric:tabular-nums;}
 .rt-skip{font-size:11px;color:var(--dim);margin-top:6px;letter-spacing:0.5px;}
@@ -982,12 +976,6 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 
 <div class="toast" id="toast"></div>
 
-<div class="rest-timer-overlay" id="restOverlay">
-  <div class="rest-timer-num" id="restNum">30</div>
-  <div class="rest-timer-lbl">Rest</div>
-  <br>
-  <button class="rest-timer-skip" onclick="skipRest()">Skip</button>
-</div>
 
 <div class="plan-modal" id="planModal"></div>
 <div class="swap-modal" id="swapModal">

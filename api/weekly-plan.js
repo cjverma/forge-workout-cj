@@ -53,6 +53,7 @@ Your job:
    - Increase by the smallest sensible increment (usually 2.5–5 kg for machines)
    - If an exercise was skipped or unlogged in the most recent week → no change
    - If logged weights are consistently below the bottom of the hint range across 2+ weeks, lower the hint to match actual performance — don't leave an aspirational range the user isn't reaching
+   - READ THE SET-BY-SET TREND, not just the best set. Each logged exercise carries "fatigue": the reps on the first and last set done at the SAME weight, and repDropPct. A big drop at one weight (repDropPct >= 30, e.g. 12 then 7 at 50 kg) means the load is right at the limit for that many sets: hold the weight and add reps before adding load, or keep the load and say the target is matching set 1's reps on every set. Little or no drop (repDropPct <= 10) across all sets means the weight is too light for the sets programmed: step it up. Say which pattern you saw in the reason ("12, 11, 11 at 50 kg, barely any drop, so 52.5 kg").
 3. VARIETY: You MAY swap a stalled or repeatedly-skipped exercise for a different movement targeting the same muscle group. When using action:"add", you MUST only use exercises from profile.approvedExercises — do not invent movements outside this list. Pick the closest muscle-group match from the approved list.
 4. FORMAT: Return ONLY valid JSON — no markdown, no explanation:
 {

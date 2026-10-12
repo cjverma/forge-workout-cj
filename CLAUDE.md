@@ -200,6 +200,23 @@ are moss `#55700B`; keep it consistent if editing the report builder.
 - Modals / overlays: 1000
 - Never below 1000 for full-screen takeovers
 
+## Week keys run Monday to Sunday (`weekKeyOf`)
+
+Sessions are keyed `Day_YYYYWnn`. `weekKeyOf(date)` in `src/constants.js` is
+the ONE week rule: the old formula applied to the WEDNESDAY of the date's
+Mon-Sun week. The old formula applied to the date itself rolled over partway
+through Saturday, so every weekend "this week" read next week's sessions
+(Mon-Wed vanished from view), weekend workouts were filed a week late, and a
+day ticked on the weekend landed on the following week. `wk`, `nextWk`,
+`planWk`, `nthPrevWk`, `vwk`, `trainedOn` and the volume chart all use it;
+never reintroduce the raw formula (the test seeds in `verify-runtime.mjs` use
+the Monday-based one too). `S._wkFix1` moved misfiled sessions back once and
+queued `session_key_delete` for the old keys so a sync cannot restore them.
+
+`isProgramRestDay` means "no GYM work" (like `isGymRestDay`): Sunday carries a
+physio block, and "no exercises at all" made every unlogged Sunday break the
+streak, so it reset each Monday.
+
 ## Known issue: two different "today" (not yet fixed)
 
 The app disagrees with itself about which calendar day it is:
@@ -398,6 +415,28 @@ Four surfaces resolve those keys back to names, and all four must agree:
   a hand-written 166-entry map keyed by day-prefixed ids, none from V4 and none
   name-slugs, so every PR lookup missed and the CSV emailed raw slugs. Do not
   reintroduce a literal map.
+
+## Session flow and targets
+
+- **A running workout is persisted** (`f5_active`: session key + start time),
+  written by `startSess`/`resumeSess`, cleared by `stopSess`/`closeSummary`,
+  restored in `initApp()` when it is today's session and under 6 hours old.
+  It used to live only in memory, and iOS unloading the backgrounded PWA made
+  the workout look like it "closed on its own".
+- **No rest timer.** Removed at the user's request; `ex.rest` stays on the
+  program data but nothing reads it for a timer.
+- **The target is last session's best set.** The user aims for a PR every
+  session, so the card shows "Beat W × R" (best set by estimated 1RM from
+  `lastSessionEx().top`, in the box's unit) and pre-fills every set with that
+  weight; the program `hint` is only the fallback for an exercise with no
+  history. `lastSessionEx` matches by canonical exercise, not day id, so it
+  follows an exercise across program versions.
+- **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
+  `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and
+  the prompt says: big drop = hold load, add reps; little drop = step up.
+- **The Shake to Undo prompt is iOS, not FORGE.** The app has no shake
+  handler; a web app cannot disable it (iPhone Settings → Accessibility →
+  Touch → Shake to Undo).
 
 ## Calf twinge makes the session note mandatory
 

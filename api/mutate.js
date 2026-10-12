@@ -26,6 +26,16 @@ export default async function handler(req, res) {
                   sets=EXCLUDED.sets, updated_at=now()`;
         break;
       }
+      // Removes every row under one session key. Used only by the week-key
+      // repair, AFTER the moved entries were queued under the correct key, so
+      // a sync cannot bring the misfiled copy back.
+      case "session_key_delete": {
+        const { sessionKey } = payload;
+        if (!sessionKey) break;
+        await q`DELETE FROM sessions WHERE session_key=${sessionKey}`;
+        await q`DELETE FROM session_meta WHERE session_key=${sessionKey}`;
+        break;
+      }
       case "session_meta": {
         const { sessionKey, calfTwinges, notes, duration, stopped } = payload;
         await q`INSERT INTO session_meta(session_key, calf_twinges, notes, duration, stopped, updated_at)

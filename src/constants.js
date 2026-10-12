@@ -575,7 +575,7 @@ export const PROG_V3={
 // Push/Pull/Rest split; all exercises seated or chest-supported for lower back safety.
 export const PROG_V4={
   Monday:{label:"Chest & Triceps",tag:"Heavy",sub:"Chest · Triceps · Forearms",exercises:[
-    {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"m4_cpwu",name:"Warm-Up · Chest Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["chest", "triceps", "front delt"],rest:60},
     {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:4,reps:"8-10",hint:"35-40 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Primary mass builder. Go heavy. Full range, 2-3s eccentric, no arching.",muscles:["chest", "triceps", "front delt"],rest:90},
     {id:"m4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"30-35 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest is the priority for this look.",muscles:["upper chest", "front delt", "triceps"],rest:90},
@@ -584,10 +584,10 @@ export const PROG_V4={
     {id:"m4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:3,reps:"12-15",hint:"17.5-25 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60},
     {id:"m4_wc",name:"Seated DB Wrist Curl",cat:"gym",sets:3,reps:15,hint:"4-9 kg",url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range. Slow.",muscles:["forearms"],rest:45},
     {id:"m4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"m4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"m4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Tuesday:{label:"Back & Biceps",tag:"Heavy",sub:"Back · Lats · Biceps",exercises:[
-    {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"t4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"t4_csrwu",name:"Warm-Up · Chest Supported Row",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["mid back", "rear delt", "biceps"],rest:60},
     {id:"t4_csr",name:"Chest Supported Row",cat:"gym",sets:4,reps:"8-10",hint:"15-22.5 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Wide grip, elbows out at 45 to 60 degrees. Chest stays on the pad.",muscles:["mid back", "rear delt", "biceps"],rest:90},
     {id:"t4_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:3,reps:"10-12",hint:"27.5-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Lean back a few degrees, pull to the collarbone. Vertical pull for lat width.",muscles:["lats", "mid back", "biceps"],rest:90},
@@ -597,10 +597,10 @@ export const PROG_V4={
     {id:"t4_sdc",name:"Seated Dumbbell Curl",cat:"gym",sets:3,reps:"10-12",hint:"7-9 kg",url:"https://www.youtube.com/watch?v=sAq_ocpRh_I",cue:"Seated. Full supination at the top. No swinging.",muscles:["biceps"],rest:75},
     {id:"t4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"7-9 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
     {id:"t4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"t4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"t4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Wednesday:{label:"Legs & Shoulders",tag:"Heavy",sub:"Legs · Glutes · Delts · Core",exercises:[
-    {id:"w4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"w4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"w4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"w4_lp",name:"Leg Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"45-62.5 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Feet HIGH on the plate. 90 degrees max. Back flat. Drive through heels.",muscles:["quads", "glutes", "hamstrings"],rest:90},
     {id:"w4_slc",name:"Seated Leg Curl",cat:"gym",sets:4,reps:"12-15",hint:"22.5-30 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:75},
@@ -611,10 +611,10 @@ export const PROG_V4={
     {id:"w4_slr",name:"Seated Lateral Raise",cat:"gym",sets:2,reps:15,hint:"5-7 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Placed here because nothing pre-fatigues the shoulders on leg day. Kept light: Thursday leads with this same movement.",muscles:["side delt"],rest:60},
     {id:"w4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:"15-20",hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45,ss:"w4_a"},
     {id:"w4_pp",name:"Pallof Press",cat:"gym",sets:5,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:45,ss:"w4_a"},
-    {id:"w4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"w4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Thursday:{label:"Shoulders & Chest",tag:"Volume",sub:"Delts · Chest · Triceps",exercises:[
-    {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"th4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"th4_lrwu",name:"Warm-Up · Lateral Raise",cat:"gym",sets:1,reps:15,hint:"Very light",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Very light. Groove the pattern, do not fatigue.",muscles:["side delt"],rest:60},
     {id:"th4_slr",name:"Seated Lateral Raise",cat:"gym",sets:6,reps:"12-15",hint:"5-7 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"The most important exercise in the plan. Shoulder width is the differentiator.",muscles:["side delt"],rest:60},
     {id:"th4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:4,reps:15,hint:"12.5-17.5 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows soft. Squeeze rear delts.",muscles:["rear delt", "traps"],rest:60},
@@ -624,10 +624,10 @@ export const PROG_V4={
     {id:"th4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:4,reps:15,hint:"17.5-25 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60,ss:"th4_a"},
     {id:"th4_cbc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:15,hint:"11-16 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Constant cable tension. Full supination.",muscles:["biceps"],rest:60,ss:"th4_a"},
     {id:"th4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"th4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"th4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Friday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
-    {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"f4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"Light",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Light. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
     {id:"f4_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:3,reps:12,hint:"27.5-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Pull to the collarbone.",muscles:["lats", "mid back", "biceps"],rest:75},
     {id:"f4_rpo",name:"Seated Cable Rope Pullover",cat:"gym",sets:3,reps:"12-15",hint:"12.5-22.5 kg",url:"https://www.youtube.com/results?search_query=seated+cable+rope+pullover+lats",cue:"Seated, rope high. Arms almost straight, drive down with the lats only.",muscles:["lats"],rest:60,from:"2026-08-10"},
@@ -637,10 +637,10 @@ export const PROG_V4={
     {id:"f4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"7-9 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
     {id:"f4_wc",name:"Seated DB Wrist Curl",cat:"gym",sets:3,reps:15,hint:"4-9 kg",url:"https://www.youtube.com/results?search_query=seated+wrist+curl+forearm",cue:"Wrists over knees. Full range. Slow.",muscles:["forearms"],rest:45},
     {id:"f4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
-    {id:"f4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"f4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Saturday:{label:"Legs & Core",tag:"Volume",sub:"Legs · Glutes · Core",exercises:[
-    {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 6-8",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 6-8. Always first. Joints before load.",muscles:[]},
+    {id:"sa4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"sa4_lpwu",name:"Warm-Up · Leg Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["quads", "glutes", "hamstrings"],rest:60},
     {id:"sa4_lp",name:"Leg Press Machine",cat:"gym",sets:3,reps:15,hint:"45-62.5 kg",url:"https://www.youtube.com/watch?v=IZxyjW7MPJQ",cue:"Higher reps than Wednesday. Same setup: feet high, 90 degrees max.",muscles:["quads", "glutes", "hamstrings"],rest:75},
     {id:"sa4_slc",name:"Seated Leg Curl",cat:"gym",sets:3,reps:15,hint:"22.5-30 kg",url:"https://www.youtube.com/watch?v=1Tq3QdYUuHs",cue:"Full range. Slow eccentric.",muscles:["hamstrings"],rest:60},
@@ -651,7 +651,7 @@ export const PROG_V4={
     {id:"sa4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"22.5-40 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
     {id:"sa4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:20,hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45,ss:"sa4_a"},
     {id:"sa4_pp",name:"Pallof Press",cat:"gym",sets:5,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:45,ss:"sa4_a"},
-    {id:"sa4_tm",name:"Treadmill Cool-Down",cat:"cardio",sets:1,reps:"10 min",hint:"Incline 1-2%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Easy walk at 1-2% incline. Heart rate down.",muscles:[]},
+    {id:"sa4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Sunday:{label:"Rest & Physio",sub:"Morning physio · no gym",exercises:[
     {id:"su4_k2c",name:"Knee-to-Chest Stretch",cat:"physio",sets:3,reps:"30s each side",hint:"Bodyweight",url:"https://www.youtube.com/watch?v=Kn5AROv5bag",cue:"Always first. Opens your spine.",muscles:[]},
@@ -784,7 +784,7 @@ function _v6Day(pfx,label,sub,list){
 }
 const _WU=pfx=>["bike","Stationary Bike","10 min",0,{hint:"Level 5-7",cue:"Easy warm-up. Joints before load."}];
 // Longer cool-down walk is where the extra cardio lives: same treadmill, no new machine.
-const _CD=mins=>["tm","Treadmill Cool-Down",mins,0,{hint:"Incline 3-5%",cue:"Brisk walk. Heart rate up, then easing down for the last few minutes."}];
+const _CD=mins=>["tm","Incline Treadmill Walk",mins,0,{hint:"Incline 3-5%",cue:"Brisk walk. Heart rate up, then easing down for the last few minutes."}];
 export const PROG_V6={
   Monday:_v6Day("m6","Back & Biceps","Back · Biceps",[_WU(),
     ["csr","Chest Supported Row","10-12",75],["spd","Seated Pulldown (Neutral Grip)","10-12",75],["scr","Seated Cable Row","10-12",75],
@@ -945,3 +945,18 @@ export function isGymRestDay(dateIso){
 export const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 export const GYM="Stationary bike, treadmill, seated cable machine (rope and bar attachments), seated pulldown station (neutral and close grip only), chest press machine, incline chest press machine, pec fly machine, rear delt fly machine, tricep extension machine, chest supported row machine, leg press (feet high 90 deg max), seated leg curl, leg extension, inner and outer thigh machines, seated calf raise, flat bench, dumbbells 5-30kg";
 export const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300;
+
+// THE week key ("2026W41") for any date. Weeks run Monday to Sunday, so the
+// key is taken from the WEDNESDAY of the date's Mon-Sun week. The old formula
+// was applied to the date itself and rolled over to the next week partway
+// through Saturday: every weekend, "this week" pointed at next week's sessions,
+// Mon-Wed vanished from view, weekend workouts were filed a week late, and the
+// streak broke. Same numbers as before for Mon-Fri, and the inverse used by
+// sessionKeyToIso/weekLabel (Monday of week N) was already Monday-based.
+export function weekKeyOf(date){
+  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);
+  const off=(d.getDay()+6)%7;              // days since Monday
+  d.setDate(d.getDate()-off+2);            // Wednesday of that week
+  const j=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+}
