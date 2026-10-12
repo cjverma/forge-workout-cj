@@ -3,7 +3,7 @@ import { isoToday, isoDate, proteinTargetG } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
-import { EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, GYM } from "./constants.js";
+import { weekKeyOf, EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -192,8 +192,7 @@ function undoCalfTwinge(){
 // the live weekly plan, not the static base program.
 function wkForDate(d){
   // Compute the same week key that wk() would return for a given Date object.
-  const j=new Date(d.getFullYear(),0,1);
-  return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+  return weekKeyOf(d);
 }
 function buildVolumeData(){
   const S=ctx.getS();
@@ -1420,7 +1419,10 @@ function isProgramRestDay(iso){
   const day=DAYS[d.getDay()===0?6:d.getDay()-1];
   // programFor(d), not PROG: PROG is a snapshot of TODAY's program, so using it
   // would judge a past date by a schedule that wasn't in force yet.
-  return !(programFor(d)[day]?.exercises||[]).length;
+  // No GYM work, not "no exercises": Sunday carries a physio block, and with
+  // the old check an unlogged Sunday read as a missed training day, so the
+  // streak reset every Monday. Same definition as isGymRestDay().
+  return !(programFor(d)[day]?.exercises||[]).some(e=>e.cat==="gym");
 }
 
 // Walks back from today and returns both numbers the UI needs:

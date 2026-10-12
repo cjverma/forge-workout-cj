@@ -31,7 +31,7 @@
 import { readFileSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
-  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6 } from "./src/constants.js";
+  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, weekKeyOf as REAL_WEEK_KEY_OF } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // settings.js assigns to window at import time, so isBannedExercise cannot be
 // imported into Node. Rebuilt from the SHIPPED source rather than hand-copied,
@@ -1649,6 +1649,22 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
           /if\(day==="_prog"\)continue;/.test(S3) && /dayName:"_prog",update:S\.weekPlans\[nwk\]\._prog/.test(S3));
         ok("the server rejoins a stamp stored one character per row (\"v\",\"4\" -> \"v4\")",
           /r\.day_name === "_prog"/.test(ST3) && /parts\.join\(""\)/.test(ST3) && /delete w\.__progParts/.test(ST3));
+      }
+      {
+        // Weeks run Monday to Sunday at EVERY hour. The old formula rolled over
+        // partway through Saturday, so on weekends "this week" read next week's
+        // sessions (Mon-Wed vanished) and weekend workouts were filed late.
+        const bad = [];
+        for (const mon of ["2026-10-05", "2026-12-28", "2027-03-08", "2026-11-02"]) {
+          const base = new Date(mon + "T00:00:00");
+          const key = REAL_WEEK_KEY_OF(base);
+          for (let h = 0; h < 7 * 24; h++) { const d = new Date(base); d.setHours(h); if (REAL_WEEK_KEY_OF(d) !== key) bad.push(d.toString().slice(0, 21)); }
+          const next = new Date(base); next.setDate(next.getDate() + 7);
+          if (REAL_WEEK_KEY_OF(next) === key) bad.push("next Monday same week as " + mon);
+        }
+        ok(`a week key never rolls over before Monday 00:00 (every hour, incl. DST and New Year)${bad.length ? " — " + bad.slice(0, 3).join(", ") : ""}`, bad.length === 0);
+        ok("Mon-Fri keys are unchanged from the old formula (2026-10-05..09 -> 2026W41)",
+          ["05", "06", "07", "08", "09", "10", "11"].every((d) => REAL_WEEK_KEY_OF(new Date(`2026-10-${d}T20:00:00`)) === "2026W41"));
       }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",

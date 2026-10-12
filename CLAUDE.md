@@ -200,6 +200,23 @@ are moss `#55700B`; keep it consistent if editing the report builder.
 - Modals / overlays: 1000
 - Never below 1000 for full-screen takeovers
 
+## Week keys run Monday to Sunday (`weekKeyOf`)
+
+Sessions are keyed `Day_YYYYWnn`. `weekKeyOf(date)` in `src/constants.js` is
+the ONE week rule: the old formula applied to the WEDNESDAY of the date's
+Mon-Sun week. The old formula applied to the date itself rolled over partway
+through Saturday, so every weekend "this week" read next week's sessions
+(Mon-Wed vanished from view), weekend workouts were filed a week late, and a
+day ticked on the weekend landed on the following week. `wk`, `nextWk`,
+`planWk`, `nthPrevWk`, `vwk`, `trainedOn` and the volume chart all use it;
+never reintroduce the raw formula (the test seeds in `verify-runtime.mjs` use
+the Monday-based one too). `S._wkFix1` moved misfiled sessions back once and
+queued `session_key_delete` for the old keys so a sync cannot restore them.
+
+`isProgramRestDay` means "no GYM work" (like `isGymRestDay`): Sunday carries a
+physio block, and "no exercises at all" made every unlogged Sunday break the
+streak, so it reset each Monday.
+
 ## Known issue: two different "today" (not yet fixed)
 
 The app disagrees with itself about which calendar day it is:

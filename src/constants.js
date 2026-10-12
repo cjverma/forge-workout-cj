@@ -945,3 +945,18 @@ export function isGymRestDay(dateIso){
 export const DAYS=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
 export const GYM="Stationary bike, treadmill, seated cable machine (rope and bar attachments), seated pulldown station (neutral and close grip only), chest press machine, incline chest press machine, pec fly machine, rear delt fly machine, tricep extension machine, chest supported row machine, leg press (feet high 90 deg max), seated leg curl, leg extension, inner and outer thigh machines, seated calf raise, flat bench, dumbbells 5-30kg";
 export const FIBRE_TARGET=38,SUGAR_LIMIT=50,SODIUM_LIMIT=2300;
+
+// THE week key ("2026W41") for any date. Weeks run Monday to Sunday, so the
+// key is taken from the WEDNESDAY of the date's Mon-Sun week. The old formula
+// was applied to the date itself and rolled over to the next week partway
+// through Saturday: every weekend, "this week" pointed at next week's sessions,
+// Mon-Wed vanished from view, weekend workouts were filed a week late, and the
+// streak broke. Same numbers as before for Mon-Fri, and the inverse used by
+// sessionKeyToIso/weekLabel (Monday of week N) was already Monday-based.
+export function weekKeyOf(date){
+  const d=new Date(date.getFullYear(),date.getMonth(),date.getDate(),12);
+  const off=(d.getDay()+6)%7;              // days since Monday
+  d.setDate(d.getDate()-off+2);            // Wednesday of that week
+  const j=new Date(d.getFullYear(),0,1);
+  return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
+}
