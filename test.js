@@ -1382,7 +1382,8 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   // Exercise counts straight from the plan as written.
   // Sizes at FULL rollout. Staged movements (from:"…") are absent earlier, so
   // reading this off the app before Aug 17 will show fewer.
-  const want = { Monday:10, Tuesday:11, Wednesday:12, Thursday:11, Friday:11, Saturday:12, Sunday:7 };
+  // +1 Tue/Wed/Thu/Sat from Oct 12 2026 (volume additions, staged by date).
+  const want = { Monday:10, Tuesday:12, Wednesday:13, Thursday:12, Friday:11, Saturday:13, Sunday:7 };
   const bad = Object.entries(want).filter(([d,n]) => counts[d].n !== n)
     .map(([d,n]) => `${d} ${counts[d].n}!=${n}`);
   ok(`Southpaw day sizes match the plan${bad.length ? " — " + bad.join(", ") : ""}`, bad.length === 0);
@@ -1591,16 +1592,19 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       keyAt("2026-09-27T12:00:00") === "v4" && keyAt("2026-09-28T12:00:00") === "v6" &&
       keyAt("2026-10-04T12:00:00") === "v6" && keyAt("2026-10-05T12:00:00") === "v4" &&
       REAL_PROGRAM_FOR(new Date("2026-09-28T12:00:00")).Monday === REAL_V6.Monday &&
-      REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")).Monday === REAL_V4.Monday);
+      // Southpaw weeks are a dated COPY (staging/setsBefore), so compare content.
+      REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")).Monday.label === REAL_V4.Monday.label &&
+      REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")).Monday.exercises.every((e) => REAL_V4.Monday.exercises.some((x) => x.id === e.id)));
     // programFor and programKeyFor are two independently-maintained cascades;
     // the only thing keeping them in sync is agreeing at every boundary.
     for (const iso of ["2026-09-10T12:00:00", "2026-09-11T12:00:00", "2026-09-20T12:00:00", "2026-09-21T12:00:00"]) {
       const key = keyAt(iso);
       const prog = REAL_PROGRAM_FOR(new Date(iso));
       const wantSize = { v4: Object.keys(REAL_V4).length, v5: Object.keys(REAL_V5).length }[key];
+      const ref = Object.values(key === "v5" ? REAL_V5 : REAL_V4)[0], got = Object.values(prog)[0];
       ok(`programFor(${iso}) matches programKeyFor's version (${key})`,
-        Object.keys(prog).length === wantSize &&
-        JSON.stringify(Object.values(prog)[0]) === JSON.stringify(Object.values(key === "v5" ? REAL_V5 : REAL_V4)[0]));
+        Object.keys(prog).length === wantSize && got.label === ref.label &&
+        got.exercises.every((e) => ref.exercises.some((x) => x.id === e.id)));
     }
 
     // Every V5 exercise name exists in V4. S.prs is keyed by a slug of the
@@ -1696,6 +1700,30 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         ok("the cron never overwrites a plan already made for that week", out2.skipped === true && called === 0);
         const VJ = JSON.parse(readFileSync("vercel.json", "utf8"));
         ok("the cron is scheduled for Sunday evening", VJ.crons.some(c => c.path === "/api/cron-weekly-plan" && /^\d+ \d+ \* \* 0$/.test(c.schedule)));
+      }
+      {
+        // Six volume additions (Oct 12): one per training day, each a movement
+        // the user already does on another Southpaw day, so nothing new for the
+        // spine. Staged with from:"2026-10-12" so past weeks do not grow.
+        // Mon/Fri got an extra SET instead (a new exercise there would train a
+        // muscle 24h after or before the same muscle: the recovery rule).
+        const ADDED = { Tuesday: "t4_cbc", Wednesday: "w4_gkb", Thursday: "th4_tex", Saturday: "sa4_slr" };
+        const before = REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")), after = REAL_PROGRAM_FOR(new Date("2026-10-12T12:00:00"));
+        const ok1 = Object.entries(ADDED).every(([d, id]) => after[d].exercises.some((e) => e.id === id) && !before[d].exercises.some((e) => e.id === id));
+        ok("the four volume additions appear from Mon Oct 12, never in earlier weeks", ok1);
+        const v4Base = new Set(Object.values(REAL_V4).flatMap((d) => d.exercises.filter((e) => !Object.values(ADDED).includes(e.id)).map((e) => e.name)));
+        const added = Object.entries(ADDED).map(([d, id]) => after[d].exercises.find((e) => e.id === id)).filter(Boolean);
+        ok("each addition is a movement already in Southpaw (no new pattern for the spine) and passes the spine filter",
+          added.length === 4 && added.every((e) => v4Base.has(e.name) && !REAL_IS_BANNED(e.name)));
+        const setsAt = (iso, d, id) => REAL_PROGRAM_FOR(new Date(iso + "T12:00:00"))[d].exercises.find((e) => e.id === id)?.sets;
+        ok("Mon Chest Press 4 -> 5 sets and Fri Seated Pulldown 3 -> 4 sets from Oct 12, unchanged in earlier weeks",
+          setsAt("2026-10-05", "Monday", "m4_cp") === 4 && setsAt("2026-10-12", "Monday", "m4_cp") === 5 &&
+          setsAt("2026-10-09", "Friday", "f4_spd") === 3 && setsAt("2026-10-16", "Friday", "f4_spd") === 4);
+        // Superset partners must be ADJACENT, not just paired: an addition once
+        // landed between Seated Calf Raise and its Pallof Press partner.
+        const split = [];
+        for (const [d, v] of Object.entries(after)) v.exercises.forEach((e, i) => { if (e.ss) { const j = v.exercises.findIndex((x, k) => k !== i && x.ss === e.ss); if (Math.abs(j - i) !== 1) split.push(d + "/" + e.name); } });
+        ok(`superset partners sit next to each other${split.length ? " — " + split.join(", ") : ""}`, split.length === 0);
       }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",

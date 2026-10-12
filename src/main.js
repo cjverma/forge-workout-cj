@@ -5,7 +5,7 @@ import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showTo
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { planMonFor, isBannedExercise } from "./plan.js";
-import { weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { FEATURES, weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW, sessionKeyToIso } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { renderST } from "./settings.js";
@@ -574,8 +574,9 @@ function initApp(){
   let lastTab=null;
   try{lastTab=sessionStorage.getItem("forge_tab");}catch(_){}
   if(lastTab==="nutrition"||lastTab==="settings")go(lastTab);
-  cycleQ();
-  setInterval(cycleQ,9000);
+  // Quote card switched off (FEATURES): hide it and skip the rotation timer.
+  if(FEATURES.quoteCard){cycleQ();setInterval(cycleQ,9000);}
+  else{const q=document.getElementById("quoteEl");if(q)q.style.display="none";}
   handleHKSync();
   _appReady=true;
   // Sequential, not concurrent: a queued restore_all (or any pending write)

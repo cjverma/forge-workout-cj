@@ -577,7 +577,7 @@ export const PROG_V4={
   Monday:{label:"Chest & Triceps",tag:"Heavy",sub:"Chest · Triceps · Forearms",exercises:[
     {id:"m4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"m4_cpwu",name:"Warm-Up · Chest Press",cat:"gym",sets:1,reps:15,hint:"50%",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"50% of your working weight. Groove the pattern, do not fatigue.",muscles:["chest", "triceps", "front delt"],rest:60},
-    {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:4,reps:"8-10",hint:"35-40 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Primary mass builder. Go heavy. Full range, 2-3s eccentric, no arching.",muscles:["chest", "triceps", "front delt"],rest:90},
+    {id:"m4_cp",name:"Chest Press Machine",cat:"gym",sets:5,reps:"8-10",hint:"35-40 kg",url:"https://www.youtube.com/watch?v=xUm0BiZCX_I",cue:"Primary mass builder. Go heavy. Full range, 2-3s eccentric, no arching.",muscles:["chest", "triceps", "front delt"],rest:90,setsBefore:{until:"2026-10-12",sets:4}},
     {id:"m4_icp",name:"Incline Chest Press Machine",cat:"gym",sets:4,reps:"10-12",hint:"30-35 kg",url:"https://www.youtube.com/watch?v=DbFgADa2PL8",cue:"Upper chest is the priority for this look.",muscles:["upper chest", "front delt", "triceps"],rest:90},
     {id:"m4_pf",name:"Pec Fly Machine",cat:"gym",sets:3,reps:"12-15",hint:"22.5-30 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return.",muscles:["chest"],rest:60},
     {id:"m4_tex",name:"Tricep Extension Machine",cat:"gym",sets:4,reps:"10-12",hint:"22.5-27.5 kg",url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Overhead for long head mass. Elbows aligned with the pivot.",muscles:["triceps"],rest:75},
@@ -596,6 +596,7 @@ export const PROG_V4={
     {id:"t4_rdf",name:"Rear Delt Fly Machine",cat:"gym",sets:3,reps:15,hint:"12.5-17.5 kg",url:"https://www.youtube.com/watch?v=6Fzep104f0s",cue:"Arms wide, elbows soft. Squeeze rear delts.",muscles:["rear delt", "traps"],rest:60},
     {id:"t4_sdc",name:"Seated Dumbbell Curl",cat:"gym",sets:3,reps:"10-12",hint:"7-9 kg",url:"https://www.youtube.com/watch?v=sAq_ocpRh_I",cue:"Seated. Full supination at the top. No swinging.",muscles:["biceps"],rest:75},
     {id:"t4_hc",name:"Hammer Curl",cat:"gym",sets:3,reps:12,hint:"7-9 kg",url:"https://www.youtube.com/watch?v=zC3nLlEvin4",cue:"Neutral grip. Brachialis for arm thickness.",muscles:["biceps", "brachialis"],rest:60},
+    {id:"t4_cbc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:15,hint:"11-16 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Added for volume. Constant cable tension. Full supination.",muscles:["biceps"],rest:60,from:"2026-10-12"},
     {id:"t4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
     {id:"t4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
@@ -609,6 +610,7 @@ export const PROG_V4={
     {id:"w4_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:15,hint:"22.5-40 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range. Glute medius and hip stability.",muscles:["glutes", "hip abductors"],rest:60},
     {id:"w4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"22.5-40 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
     {id:"w4_slr",name:"Seated Lateral Raise",cat:"gym",sets:2,reps:15,hint:"5-7 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Placed here because nothing pre-fatigues the shoulders on leg day. Kept light: Thursday leads with this same movement.",muscles:["side delt"],rest:60},
+    {id:"w4_gkb",name:"Cable Glute Kickback",cat:"gym",sets:3,reps:"12 each side",hint:"4-14 kg",url:"https://www.youtube.com/results?search_query=cable+glute+kickback+form",cue:"Added for volume. Hold the frame, torso still. Drive the heel back from the glute.",muscles:["glutes"],rest:45,from:"2026-10-12"},
     {id:"w4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:"15-20",hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45,ss:"w4_a"},
     {id:"w4_pp",name:"Pallof Press",cat:"gym",sets:5,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:45,ss:"w4_a"},
     {id:"w4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
@@ -623,13 +625,14 @@ export const PROG_V4={
     {id:"th4_pf",name:"Pec Fly Machine",cat:"gym",sets:2,reps:15,hint:"22.5-30 kg",url:"https://www.youtube.com/watch?v=Z57CtFmRMxA",cue:"Squeeze at peak. Slow return.",muscles:["chest"],rest:60},
     {id:"th4_tpd",name:"Cable Tricep Pushdown",cat:"gym",sets:4,reps:15,hint:"17.5-25 kg",url:"https://www.youtube.com/results?search_query=cable+tricep+rope+pushdown+form",cue:"Rope. Flare at the bottom. Elbows fixed.",muscles:["triceps"],rest:60,ss:"th4_a"},
     {id:"th4_cbc",name:"Cable Bicep Curl",cat:"gym",sets:3,reps:15,hint:"11-16 kg",url:"https://www.youtube.com/watch?v=av7-8igZSWE",cue:"Constant cable tension. Full supination.",muscles:["biceps"],rest:60,ss:"th4_a"},
+    {id:"th4_tex",name:"Tricep Extension Machine",cat:"gym",sets:3,reps:12,hint:"22.5-27.5 kg",url:"https://www.youtube.com/watch?v=2-LAMcpzODU",cue:"Added for volume. Elbows aligned with the pivot. Slow negative.",muscles:["triceps"],rest:75,from:"2026-10-12"},
     {id:"th4_pp",name:"Pallof Press",cat:"gym",sets:2,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation. No floor needed.",muscles:["core", "obliques"],rest:45},
     {id:"th4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
   ]},
   Friday:{label:"Back & Biceps",tag:"Volume",sub:"Lats · Back · Biceps · Forearms",exercises:[
     {id:"f4_bike",name:"Stationary Bike",cat:"cardio",sets:1,reps:"15 min",hint:"Level 8-10",url:"https://www.youtube.com/watch?v=_GBMmuWFJrI",cue:"Level 8-10. Always first. Joints before load, then get the heart rate up.",muscles:[]},
     {id:"f4_sapwu",name:"Warm-Up · Straight Arm Pulldown",cat:"gym",sets:1,reps:15,hint:"Light",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Light. Groove the pattern, do not fatigue.",muscles:["lats", "triceps"],rest:60},
-    {id:"f4_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:3,reps:12,hint:"27.5-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Pull to the collarbone.",muscles:["lats", "mid back", "biceps"],rest:75},
+    {id:"f4_spd",name:"Seated Pulldown (Neutral Grip)",cat:"gym",sets:4,reps:12,hint:"27.5-35 kg",url:"https://www.youtube.com/results?search_query=neutral+grip+seated+pulldown+form",cue:"Neutral or close grip only. Pull to the collarbone.",muscles:["lats", "mid back", "biceps"],rest:75,setsBefore:{until:"2026-10-12",sets:3}},
     {id:"f4_rpo",name:"Seated Cable Rope Pullover",cat:"gym",sets:3,reps:"12-15",hint:"12.5-22.5 kg",url:"https://www.youtube.com/results?search_query=seated+cable+rope+pullover+lats",cue:"Seated, rope high. Arms almost straight, drive down with the lats only.",muscles:["lats"],rest:60,from:"2026-08-10"},
     {id:"f4_sap",name:"Straight Arm Pulldown",cat:"gym",sets:2,reps:"12-15",hint:"17.5-25 kg",url:"https://www.youtube.com/results?search_query=straight+arm+cable+pulldown+form",cue:"Lat width. Kept light here: triceps assist and Thursday already trained them.",muscles:["lats", "triceps"],rest:60},
     {id:"f4_csr",name:"Chest Supported Row",cat:"gym",sets:3,reps:12,hint:"15-22.5 kg",url:"https://www.youtube.com/watch?v=T3N-TO4reLQ",cue:"Wide grip. Chest on pad, lower back protected. Pull elbows back.",muscles:["mid back", "rear delt", "biceps"],rest:75},
@@ -649,6 +652,7 @@ export const PROG_V4={
     {id:"sa4_gkb",name:"Cable Glute Kickback",cat:"gym",sets:3,reps:"12 each side",hint:"4-14 kg",url:"https://www.youtube.com/results?search_query=cable+glute+kickback+form",cue:"Hold the frame, torso still. Drive the heel back from the glute, no lower-back arch.",muscles:["glutes"],rest:45,from:"2026-08-17"},
     {id:"sa4_hiab",name:"Outer Thigh Machine",cat:"gym",sets:2,reps:15,hint:"22.5-40 kg",url:"https://www.youtube.com/watch?v=SjEcTMDMIJw",cue:"Slow outward press, pause at end range.",muscles:["glutes", "hip abductors"],rest:60},
     {id:"sa4_hiad",name:"Inner Thigh Machine",cat:"gym",sets:2,reps:15,hint:"22.5-40 kg",url:"https://www.youtube.com/results?search_query=hip+adduction+machine+form",cue:"Slow controlled squeeze. Hold briefly.",muscles:["inner thigh", "adductors"],rest:60},
+    {id:"sa4_slr",name:"Seated Lateral Raise",cat:"gym",sets:3,reps:15,hint:"5-7 kg",url:"https://www.youtube.com/watch?v=3VcKaXpzqRo",cue:"Added for volume. Seated, shoulder height max. Lead with the elbows.",muscles:["side delt"],rest:60,from:"2026-10-12"},
     {id:"sa4_calf",name:"Seated Calf Raise",cat:"gym",sets:4,reps:20,hint:"20-30 kg",url:"https://www.youtube.com/watch?v=JbyjNymZOt0",cue:"Slow and controlled. Full range both directions.",muscles:["calves"],rest:45,ss:"sa4_a"},
     {id:"sa4_pp",name:"Pallof Press",cat:"gym",sets:5,reps:"12 each side",hint:"11-16 kg",url:"https://www.youtube.com/watch?v=AH_QZLm_0-s",cue:"Stand sideways to the cable. Press out and resist rotation.",muscles:["core", "obliques"],rest:45,ss:"sa4_a"},
     {id:"sa4_tm",name:"Incline Treadmill Walk",cat:"cardio",sets:1,reps:"15 min",hint:"Incline 5-8%",url:"https://www.youtube.com/watch?v=ASdvN_XEl_c",cue:"Brisk walk on an incline. Hands off the rails. Drop the incline if the calf twinges. Last 2 minutes easy.",muscles:[]},
@@ -855,17 +859,22 @@ export function programKeyFor(date){
 // only attributable if a single thing changed. An exercise carries from:"ISO"
 // and simply does not exist before that date.
 const _stCache=new Map();
+// setsBefore:{until,sets}: a set-count change that takes effect on a date, so
+// a past week keeps showing the sets it actually had (Mon Chest Press 4 -> 5
+// and Fri Seated Pulldown 3 -> 4 from Oct 12 2026).
 function _stage(p,date){
   const t=date.getTime();
-  const cut=[...new Set(Object.values(p).flatMap(v=>(v.exercises||[]).map(e=>e.from).filter(Boolean)))]
-    .filter(d=>t<new Date(d+"T00:00:00").getTime());
-  if(!cut.length)return p;
+  const before=d=>t<new Date(d+"T00:00:00").getTime();
+  const cut=[...new Set(Object.values(p).flatMap(v=>(v.exercises||[]).map(e=>e.from).filter(Boolean)))].filter(before);
+  const older=[...new Set(Object.values(p).flatMap(v=>(v.exercises||[]).map(e=>e.setsBefore?.until).filter(Boolean)))].filter(before);
+  if(!cut.length&&!older.length)return p;
   const key=p===PROG_V4?"v4":"x";
-  const ck=key+"|"+cut.sort().join(",");
+  const ck=key+"|"+cut.sort().join(",")+"|s"+older.sort().join(",");
   if(_stCache.has(ck))return _stCache.get(ck);
   const o={};
   for(const[d,v]of Object.entries(p))
-    o[d]={...v,exercises:(v.exercises||[]).filter(e=>!e.from||!cut.includes(e.from))};
+    o[d]={...v,exercises:(v.exercises||[]).filter(e=>!e.from||!cut.includes(e.from))
+      .map(e=>e.setsBefore&&older.includes(e.setsBefore.until)?{...e,sets:e.setsBefore.sets}:e)};
   _stCache.set(ck,o);return o;
 }
 
@@ -960,3 +969,13 @@ export function weekKeyOf(date){
   const j=new Date(d.getFullYear(),0,1);
   return d.getFullYear()+"W"+Math.ceil(((d-j)/86400000+j.getDay()+1)/7);
 }
+
+// Features the user switched off to simplify the app (Oct 2026). Hidden, not
+// deleted: data and code stay, and flipping a flag back to true restores it.
+export const FEATURES={
+  quoteCard:false,        // rotating quote at the top
+  medicationCard:false,   // Zepbound card on Nutrition
+  complianceGrid:false,   // "This week's compliance" grid in the phase card
+  progressCharts:false,   // Settings: Volume This Week + Progress group
+  prList:false,           // Personal Records section in the Insights drawer
+};

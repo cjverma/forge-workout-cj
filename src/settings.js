@@ -3,7 +3,7 @@ import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, late
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
-import { PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
+import { FEATURES, PROG, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, programKeyFor, programFor, PROG_NAME, kg1, PR_ALIAS, prSlug } from "./constants.js";
 import { toKg, canonicalId, epley1RM } from "./workout.js";
 import { buildPlanPayload, sanitizePlan, isBannedExercise } from "./plan.js";
 
@@ -31,7 +31,7 @@ export function renderST(){
           ${Object.keys(S.weekPlans||{}).length?`<button class="btn-g" onclick="resetPlan()">Reset to Default</button>`:''}
           <button class="btn-g" onclick="openUnitReview()" style="margin-top:8px">Check kg/lbs mix-ups</button>
         </div>
-        <details class="st-acc">
+        ${FEATURES.progressCharts?`        <details class="st-acc">
           <summary><div><div>${icon("gym",20)} Volume This Week</div><div class="st-acc-sub">Sets done vs planned by muscle</div></div></summary>
           <div class="st-acc-inner">
         ${(()=>{
@@ -46,11 +46,11 @@ export function renderST(){
             }).join("")+`</div>`;
         })()}
           </div>
-        </details>
+        </details>`:""}
       </div>
     </details>
 
-    <!-- Group 2: Progress -->
+    ${FEATURES.progressCharts?`    <!-- Group 2: Progress -->
     <details class="st-acc" open>
       <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
       <div class="st-acc-inner">
@@ -141,8 +141,7 @@ export function renderST(){
         <div class="st-sec">Weekly Review</div>
         ${buildWeeklyReviewCard()}
       </div>
-    </details>
-
+    </details>`:""}
     <!-- Group 3: App (appearance + data) -->
     <details class="st-acc" open>
       <summary><div><div>${icon("gear",20)} App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
