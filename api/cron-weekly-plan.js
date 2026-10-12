@@ -1,5 +1,5 @@
 import { assembleState } from "./state.js";
-import { sql, ensureSchema } from "./db.js";
+import { sql, ensureSchema } from "./_db.js";
 import { generateWeeklyPlan } from "./weekly-plan.js";
 import { buildPlanPayload, planMonFor, planToUpdates } from "../src/plan.js";
 import { programKeyFor } from "../src/constants.js";

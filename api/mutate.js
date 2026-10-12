@@ -1,5 +1,5 @@
 import { setCors, checkAuth } from "./_shared.js";
-import { sql, ensureSchema } from "./db.js";
+import { sql, ensureSchema } from "./_db.js";
 import { kg1 } from "../src/constants.js";
 import { dayMetaUpsertSql } from "./healthkit.js";
 

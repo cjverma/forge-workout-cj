@@ -3,7 +3,7 @@
 // stores AI diet feedback (sandwich approach) in diet_reviews for the app to
 // display on next open.
 import { HARD_RULES, setCors, checkAuth, callOpenAI } from "./_shared.js";
-import { sql, ensureSchema } from "./db.js";
+import { sql, ensureSchema } from "./_db.js";
 import { assembleState } from "./state.js";
 import { kg1 } from "../src/constants.js";
 
