@@ -530,6 +530,33 @@ try {
     }
   }
 
+  // Weekly summary "Calories compliance" printed "undefined%": the summary read
+  // wc.calories after weekCompliance stopped returning it. Sunday Oct 11 shows
+  // the summary for the week just ending; seed food on some days.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 2200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`calcomp: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-10-11T15:00:00-04:00") });
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) {
+        const days = {};
+        for (const [d, k] of [["2026-10-05", 1500], ["2026-10-06", 2600], ["2026-10-07", 1400], ["2026-10-08", 1550]]) days[d] = { items: [{ name: "x", kcal: k, protein: 150 }], active: 600 };
+        localStorage.f5 = JSON.stringify({ nutrition: { days, weights: { "2026-10-05": 133, "2026-10-10": 132 } }, _v6MonDone1: true, _planMove41: true, _wkFix1: true });
+      }
+    });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => document.getElementById("nav-nutrition")?.click());
+    await page.waitForTimeout(900);
+    // textContent, not innerText: the phase card may sit in a collapsed section.
+    const txt = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
+    const m = txt.match(/Calories compliance\s*([^A-Z]+?)(?=Deficit vs required)/);
+    const und = txt.match(/.{60}undefined.{40}/g);
+    note("weekly summary shows a real calories-compliance figure, never 'undefined'", !und && !!m && /^\d+%$|^·$/.test(m[1].trim()), JSON.stringify(m && m[1]) + " " + JSON.stringify(und));
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every

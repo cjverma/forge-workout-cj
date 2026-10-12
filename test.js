@@ -2229,9 +2229,20 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
 // Compliance: the in-progress day must not be scored as a completed one.
 {
   const NUT3 = readFileSync("src/nutrition.js", "utf8");
+  {
+    // Every compliance field the UI reads must be one weekCompliance returns.
+    // The summary read wc.calories after the field was dropped, and printed
+    // "undefined%" for weeks.
+    const fn = NUT3.slice(NUT3.indexOf("function weekCompliance("));
+    const block = fn.slice(fn.indexOf("const m={"), fn.indexOf("};", fn.indexOf("const m={")));
+    const produced = new Set([...block.matchAll(/^\s*([a-zA-Z]+):/gm)].map((x) => x[1]).concat(["overall", "calculating"]));
+    const read = [...new Set([...NUT3.matchAll(/\b(?:wc|comp)\.([a-zA-Z]+)/g)].map((x) => x[1]))];
+    const missing = read.filter((k) => !produced.has(k));
+    ok(`every compliance field the UI reads is produced by weekCompliance${missing.length ? " — missing: " + missing.join(", ") : ""}`, missing.length === 0);
+  }
   ok("today is excluded from the deficit/weigh-in denominators",
     /const inProgress=d===isoToday\(\)&&days\.length>1;/.test(NUT3) &&
-    /if\(!inProgress\)\{[\s\S]{0,300}defReq\+=phaseRequiredDeficit/.test(NUT3));
+    /if\(!inProgress\)\{[\s\S]{0,700}defReq\+=phaseRequiredDeficit/.test(NUT3));
   ok("weigh-in rate divides by scored days, not raw range length",
     /weighins:Math\.round\(weighinDays\?weighins\/weighinDays/.test(NUT3) &&
     !/weighins\/days\.length/.test(NUT3));
