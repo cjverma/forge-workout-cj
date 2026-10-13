@@ -5,13 +5,27 @@ import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showTo
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { planMonFor, isBannedExercise } from "./plan.js";
-import { FEATURES, weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { FEATURES, weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, v4IdToV7, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW, sessionKeyToIso } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { renderST } from "./settings.js";
 import { closeForgeChat } from "./chat.js";
 
 let S=JSON.parse(localStorage.getItem("f5")||"{}");
+// One-time repairs are guarded by S._flags, but the server does not store
+// those flags: every sync replaced S and wiped them, so EVERY repair re-ran on
+// every launch. One of them (the week repair) then moved a workout logged
+// early on Wednesday's screen into the previous week. Flags now also live in
+// their own localStorage key, which a sync never touches.
+const _ONCE_KEY="f5_once";
+try{for(const k of JSON.parse(localStorage.getItem(_ONCE_KEY)||"[]"))S[k]=true;}catch(_){}
+function persistOnceFlags(){
+  try{
+    const have=new Set(JSON.parse(localStorage.getItem(_ONCE_KEY)||"[]"));
+    for(const[k,v]of Object.entries(S))if(k.startsWith("_")&&v===true)have.add(k);
+    localStorage.setItem(_ONCE_KEY,JSON.stringify([...have]));
+  }catch(_){}
+}
 ctx.getS=()=>S;
 ctx.setS=(ns)=>{S=ns;};
 if(!S.sessions)S.sessions={};
@@ -52,7 +66,7 @@ ctx.seedCustomNames=seedCustomNames;
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
-  for(const P of [PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const P of [PROG,PROG_V7,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
   seedCustomNames();
 })();
@@ -223,57 +237,137 @@ if(!S._planMove41){
   if(wk()!=="2026W41"||wp[to])S._planMove41=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
-// One-time repair for the Saturday rollover (see weekKeyOf). Sessions written
-// on a weekend were filed under NEXT week's key: weekend workouts a week late,
-// and any day ticked on a weekend (Friday Oct 9, edited Saturday) landed on the
-// following week, so it showed on a day that had not happened yet and its own
-// week looked empty. Evidence decides what moves back one week:
-//  - a session dated in the FUTURE cannot have been logged: always misfiled;
-//  - Saturday/Sunday keys were written on the weekend: move, unless their
-//    exercise ids fit the later week's program strictly better;
-//  - other past weekdays move only if their ids fit the earlier week's
-//    program strictly better (a program change makes the misfiling visible).
-// Never overwrites: on a collision the entry with more done sets wins. The old
-// key is deleted server-side AFTER the moved entries are queued, so a sync
-// cannot bring the misfiled copy back.
+// Date of a session key ("Wednesday_2026W42" -> that Wednesday).
 function keyToDate(day,wkKey){
   const yr=+wkKey.slice(0,4),d=new Date(yr-1,11,20,12);
   for(let i=0;i<400;i++){if(weekKeyOf(d)===wkKey&&DAYS[(d.getDay()+6)%7]===day)return new Date(d);d.setDate(d.getDate()+1);}
   return null;
 }
-if(!S._wkFix1){
-  const today=new Date();today.setHours(23,59,59,999);
-  const doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length+(e?.done?1:0);
-  const fit=(sess,date)=>{const ids=new Set((programFor(date)[DAYS[(date.getDay()+6)%7]]?.exercises||[]).map(e=>e.id));return Object.keys(sess).filter(k=>!k.startsWith("_")&&ids.has(k)).length;};
-  const moves=[];
-  for(const[key,sess]of Object.entries(S.sessions||{})){
-    const m=/^([A-Za-z]+)_(\d{4}W\d+)$/.exec(key);
-    if(!m||!sess||typeof sess!=="object")continue;
-    if(!Object.keys(sess).some(k=>!k.startsWith("_")&&doneN(sess[k])))continue;
-    const date=keyToDate(m[1],m[2]);if(!date)continue;
-    const prev=new Date(date);prev.setDate(prev.getDate()-7);
-    const now=fit(sess,date),before=fit(sess,prev);
-    const weekend=m[1]==="Saturday"||m[1]==="Sunday";
-    const move=date>today||(weekend?!(now>before):before>now);
-    if(move)moves.push({from:key,to:m[1]+"_"+weekKeyOf(prev)});
-  }
-  // Oldest first, so a chain (W42 -> W41 while W41 -> W40) never collides
-  // with an entry that is itself about to move.
-  moves.sort((a,b)=>a.to.localeCompare(b.to));
-  for(const{from,to}of moves){
-    const src=S.sessions[from],dst=S.sessions[to]=S.sessions[to]||{};
-    for(const[k,v]of Object.entries(src)){
-      if(k.startsWith("_")){if(dst[k]==null||(Array.isArray(dst[k])&&!dst[k].length))dst[k]=v;continue;}
-      if(!dst[k]||doneN(v)>doneN(dst[k]))dst[k]=v;
+// The week-key repair (S._wkFix1) is gone. It ran once on Oct 12 and its
+// result reached the database, but with the flag wiped by every sync it kept
+// re-running, and its "a session dated in the future is misfiled" rule moved a
+// workout logged early on Wednesday's screen into the previous week. Nothing
+// may move logged sessions automatically again.
+// One-time, for this user's data (verified against their Oct 11 and Oct 13
+// backups). The week repair above, re-running after every sync, treated the
+// Legs session logged on Mon 12 Oct (on the Wednesday Oct 14 screen) as
+// "dated in the future" and merged it into Wednesday Oct 7: Calf Raise, Inner
+// Thigh and Lateral Raise were added there, and Oct 7's Seated Leg Curl
+// (160x12, 145x10 lbs) was overwritten by Oct 12's (60/70/70/70 kg). Move the
+// Oct 12 exercises to Monday Oct 12 under their V7 (Legs & Shoulders) ids and
+// restore Oct 7's leg curl. Runs only if the data is exactly that shape.
+if(!S._oct12Fix1){
+  const W41=S.sessions?.Wednesday_2026W41,slc=W41?.w4_slc;
+  const sig=e=>(e?.sets||[]).filter(x=>x&&x.done).map(x=>x.weight+"x"+x.reps).join(",");
+  if(W41&&slc&&slc.unit==="kg"&&sig(slc)==="60x15,70x17,70x17,70x18"&&W41.w4_calf&&W41.w4_hiad&&W41.w4_slr){
+    const mon=S.sessions.Monday_2026W42=S.sessions.Monday_2026W42||{};
+    for(const[from,to]of[["w4_calf","m7_calf"],["w4_hiad","m7_hiad"],["w4_slr","m7_slr"],["w4_slc","m7_slc"]]){
+      if(!mon[to])mon[to]=W41[from];
+      delete W41[from];
     }
-    delete S.sessions[from];
-    for(const k of Object.keys(dst))if(!k.startsWith("_"))queueSession(to,k);
-    queueSessionMeta(to);
-    queueMutation("session_key_delete",{sessionKey:from});
+    W41.w4_slc={done:true,skipped:false,unit:"lbs",sets:[{done:true,reps:"12",weight:"160",attempted:true},{done:true,reps:"10",weight:"145",attempted:true}]};
+    queueMutation("session_key_delete",{sessionKey:"Wednesday_2026W41"});
+    for(const k of Object.keys(W41))if(!k.startsWith("_"))queueSession("Wednesday_2026W41",k);
+    queueSessionMeta("Wednesday_2026W41");
+    for(const k of Object.keys(mon))if(!k.startsWith("_"))queueSession("Monday_2026W42",k);
+    queueSessionMeta("Monday_2026W42");
+    setTimeout(()=>showToast("Monday's legs session restored to Oct 12 ✓"),3000);
   }
-  S._wkFix1=true;
+  S._oct12Fix1=true;
   localStorage.setItem("f5",JSON.stringify(S));
-  if(moves.length)setTimeout(()=>showToast(moves.length+" session"+(moves.length===1?"":"s")+" moved back to the right week"),2500);
+}
+// Second half of the Oct 12 repair: the merge into Wednesday Oct 7 kept Oct
+// 7's Leg Press / Outer Thigh / Inner Thigh / warm-up (more sets) and DROPPED
+// Oct 12's. The device keeps snapshots taken before each sync (f5_snapshots)
+// and daily backups (f5_daily_*); one taken on Oct 12 after the workout still
+// holds Wednesday_2026W42 as logged. Put back any Oct 12 exercise found there
+// that Monday Oct 12 does not have yet. Only ADDS; never overwrites or deletes.
+if(!S._oct12Recover1){
+  const srcs=[];
+  try{for(const sn of JSON.parse(localStorage.getItem("f5_snapshots")||"[]"))if(sn?.state?.sessions)srcs.push(sn.state.sessions);}catch(_){}
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("f5_daily_"))try{const st=JSON.parse(localStorage.getItem(k));if(st?.sessions)srcs.push(st.sessions);}catch(_){}}
+  const doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length;
+  const best={};
+  for(const ses of srcs){
+    const w=ses.Wednesday_2026W42;if(!w||typeof w!=="object")continue;
+    for(const[id,ed]of Object.entries(w)){
+      if(id.startsWith("_")||!/^w4_/.test(id)||!doneN(ed))continue;
+      if(!best[id]||doneN(ed)>doneN(best[id]))best[id]=ed;
+    }
+  }
+  const mon=S.sessions.Monday_2026W42=S.sessions.Monday_2026W42||{};
+  const restored=[];
+  for(const[id,ed]of Object.entries(best)){
+    const to=id.replace(/^w4_/,"m7_");
+    if(doneN(mon[to])>0)continue;
+    mon[to]=JSON.parse(JSON.stringify(ed));
+    queueSession("Monday_2026W42",to);
+    restored.push(id);
+  }
+  if(!Object.keys(mon).length)delete S.sessions.Monday_2026W42;
+  S._oct12Recover1=true;
+  S._oct12Restored=restored;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(restored.length)setTimeout(()=>showToast("Recovered "+restored.length+" exercise"+(restored.length===1?"":"s")+" from Monday Oct 12 ✓"),3500);
+  else setTimeout(()=>showToast("No backup of Monday's leg press found on this device"),3500);
+}
+// One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
+// Monday). The user did Legs & Shoulders on Monday the 12th, which under the
+// old order lived on Wednesday, so this week's (2026W42) sessions and plan
+// are moved onto the day that now holds each exercise, with its V7 id.
+// Only that week; never overwrites an exercise that already has done sets; old
+// keys are deleted server-side after the moved entries are queued.
+if(!S._v7Move1){
+  const W="2026W42",doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length+(e?.done?1:0);
+  const touched=new Set(),emptied=new Set();
+  for(const day of DAYS){
+    const key=day+"_"+W,sess=S.sessions?.[key];
+    if(!sess||typeof sess!=="object")continue;
+    for(const[id,ed]of Object.entries(sess)){
+      if(id.startsWith("_"))continue;
+      const to=v4IdToV7(id);
+      if(!to||(to.day===day&&to.id===id))continue;
+      // Never move logged work onto a day that has not happened yet: Monday's
+      // chest sets would otherwise land on Wednesday Oct 14. Left in place,
+      // they show under "Also logged this day".
+      const tDate=keyToDate(to.day,W),today=new Date();today.setHours(23,59,59,999);
+      if(!tDate||tDate>today)continue;
+      const tkey=to.day+"_"+W,dst=S.sessions[tkey]=S.sessions[tkey]||{};
+      if(!dst[to.id]||doneN(ed)>doneN(dst[to.id]))dst[to.id]=ed;
+      delete sess[id];touched.add(tkey);emptied.add(key);
+      // The session meta (duration, notes, twinges) travels with the workout.
+      for(const mk of["_duration","_notes","_calfTwinges","_stopped","_complete"])
+        if(sess[mk]!=null&&dst[mk]==null){dst[mk]=sess[mk];}
+    }
+  }
+  for(const key of emptied){
+    const sess=S.sessions[key];
+    if(sess&&!Object.keys(sess).some(k=>!k.startsWith("_"))){
+      for(const mk of["_duration","_notes","_calfTwinges","_stopped","_complete"])delete sess[mk];
+      delete S.sessions[key];queueMutation("session_key_delete",{sessionKey:key});
+    }else if(sess){queueMutation("session_key_delete",{sessionKey:key});for(const k of Object.keys(sess))if(!k.startsWith("_"))queueSession(key,k);queueSessionMeta(key);}
+  }
+  for(const key of touched){for(const k of Object.keys(S.sessions[key]))if(!k.startsWith("_"))queueSession(key,k);queueSessionMeta(key);}
+  // This week's plan follows its exercises to their new days.
+  const wp=(S.weekPlans||{})[W];
+  if(wp&&wp._prog==="v4"){
+    const np={_prog:"v7"};
+    for(const[day,ups]of Object.entries(wp)){
+      if(day==="_prog"||!Array.isArray(ups))continue;
+      for(const u of ups){
+        const to=u.id?v4IdToV7(u.id):null;
+        const d=to?to.day:day;
+        (np[d]=np[d]||[]).push(to?{...u,id:to.id}:u);
+      }
+    }
+    S.weekPlans[W]=np;
+    queueMutation("week_plan_reset",{weekKey:W});
+    for(const[day,ups]of Object.entries(np)){if(day==="_prog")continue;for(const u of ups)queueMutation("week_plan_update",{weekKey:W,dayName:day,update:u});}
+    queueMutation("week_plan_update",{weekKey:W,dayName:"_prog",update:"v7"});
+  }
+  S._v7Move1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(touched.size)setTimeout(()=>showToast("This week moved to the new day order ✓"),2500);
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are
@@ -366,6 +460,7 @@ if(!S._wtBackfill2){
   S._wtBackfill2=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+persistOnceFlags();
 hydrateCustomExercises();
 applyDroppedExercises();
 applyPlanOverrides();

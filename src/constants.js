@@ -819,6 +819,35 @@ export const PROG_V6={
 
 
 
+// ── PROGRAM V7: Southpaw, days reordered, from Mon 12 Oct 2026 ─────────────
+// Chest moved off Monday (the busiest gym day) after the user did Legs &
+// Shoulders on Mon 12 Oct. Same six sessions, same exercises, same heavy-then-
+// volume order per muscle group, each pair still three days apart:
+//   Mon Legs & Shoulders · Tue Back & Biceps · Wed Chest & Triceps ·
+//   Thu Legs & Core · Fri Back & Biceps · Sat Shoulders & Chest · Sun rest.
+// Tue/Fri/Sun are the SAME days as Southpaw, so they keep their ids (t4_/f4_/
+// su4_) and anything logged on them stays attached. Moved days get the
+// m7_/w7_/th7_/sa7_ prefix of the day they now sit on. Cues that named a
+// weekday ("lighter than Monday") are dropped: the weekday is no longer true.
+export const V7_FROM={Monday:"Wednesday",Tuesday:"Tuesday",Wednesday:"Monday",Thursday:"Saturday",Friday:"Friday",Saturday:"Thursday",Sunday:"Sunday"};
+const _V7_PFX={Monday:"m7",Wednesday:"w7",Thursday:"th7",Saturday:"sa7"};
+const _V4_DAY_PFX=/^(m4|t4|w4|th4|f4|sa4|su4)_/;
+const _noWeekday=c=>String(c||"").split(/(?<=\.)\s+/).filter(x=>!/(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day/.test(x)).join(" ")||c;
+export const PROG_V7=Object.fromEntries(Object.entries(V7_FROM).map(([day,src])=>{
+  const d=PROG_V4[src],p=_V7_PFX[day];
+  const ren=id=>p?id.replace(_V4_DAY_PFX,p+"_"):id;
+  return[day,{...d,exercises:d.exercises.map(e=>({...e,id:ren(e.id),cue:_noWeekday(e.cue),...(e.ss?{ss:ren(e.ss)}:{})}))}];
+}));
+// Where a Southpaw (V4) exercise id lives in V7: {day, id}. Used to move this
+// week's already-logged sessions and plan onto the reordered days.
+export function v4IdToV7(id){
+  const m=_V4_DAY_PFX.exec(String(id));if(!m)return null;
+  const src={m4:"Monday",t4:"Tuesday",w4:"Wednesday",th4:"Thursday",f4:"Friday",sa4:"Saturday",su4:"Sunday"}[m[1]];
+  const day=Object.keys(V7_FROM).find(d=>V7_FROM[d]===src);
+  const p=_V7_PFX[day];
+  return{day,id:p?String(id).replace(_V4_DAY_PFX,p+"_"):id};
+}
+
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
 // day and silently turn it into a second rest day. Southpaw moves physio to
@@ -845,7 +874,8 @@ function _sp(p){
 // Which program version a plan was generated against. Stamped onto weekPlans so
 // an override written for an older program cannot inject into a newer one.
 export function programKeyFor(date){
-  return date>=new Date(2026,9,5)?"v4"
+  return date>=new Date(2026,9,12)?"v7"
+    :date>=new Date(2026,9,5)?"v4"
     :date>=new Date(2026,8,28)?"v6"
     :date>=new Date(2026,8,21)?"v4"
     :date>=new Date(2026,8,11)?"v5"
@@ -879,7 +909,8 @@ function _stage(p,date){
 }
 
 export function programFor(date){
-  const base=date>=new Date(2026,9,5)?PROG_V4
+  const base=date>=new Date(2026,9,12)?PROG_V7
+    :date>=new Date(2026,9,5)?PROG_V4
     :date>=new Date(2026,8,28)?PROG_V6
     :date>=new Date(2026,8,21)?PROG_V4
     :date>=new Date(2026,8,11)?PROG_V5
@@ -894,7 +925,8 @@ const _pd=new Date();
 export const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
   v4:"Southpaw (Jake Gyllenhaal) hypertrophy program",
   v5:"return block (full body, easy)",
-  v6:"Southpaw deload week (shuffled days, reduced volume)"};
+  v6:"Southpaw deload week (shuffled days, reduced volume)",
+  v7:"Southpaw (Jake Gyllenhaal) hypertrophy program, days reordered: chest off Monday"};
 
 export const PROG=programFor(_pd);
 

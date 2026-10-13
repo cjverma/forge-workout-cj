@@ -3,7 +3,7 @@ import { isoToday, isoDate, proteinTargetG } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
-import { weekKeyOf, EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, DAYS, GYM } from "./constants.js";
+import { weekKeyOf, EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
@@ -86,7 +86,9 @@ function lastSessionEx(exId){
     if(!best||ord>best.ord){best={ord,sets:doneSets,unit:ed.unit==="lbs"?"lbs":"kg"};}
   }
   if(!best)return null;
-  const kgSets=best.sets.map(s=>({kg:toKg(s.weight,best.unit),reps:Number(s.reps)})).filter(s=>s.kg>0);
+  // raw = the number as typed, so a box in the same unit pre-fills exactly
+  // what was lifted instead of a kg round trip.
+  const kgSets=best.sets.map(s=>({kg:toKg(s.weight,best.unit),reps:Number(s.reps),raw:s.weight})).filter(s=>s.kg>0);
   if(!kgSets.length)return null;
   const reps=best.sets.map(s=>s.reps).find(r=>r)||"?";
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
@@ -95,6 +97,9 @@ function lastSessionEx(exId){
   return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
+// A weight you can actually load: converting last session's kg to lbs gave
+// "145.1". Pre-filled boxes snap to the nearest 2.5 lbs / 0.5 kg.
+const inUnitLoadable=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG/2.5)*2.5:Math.round(kg*2)/2;
 // Best set by estimated 1RM, so weight AND reps count and every set does.
 const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?epley1RM(s.kg,s.reps):0),0);
 
@@ -377,11 +382,11 @@ export function renderW(){
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
     const _allExMap={};
-    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5,PROG_V6].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
+    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5,PROG_V6,PROG_V7].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Logged on previous program</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Also logged this day</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
@@ -676,7 +681,7 @@ function card(ex,sess,key,rdOnly=false){
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
         // Every set starts at last session's best weight: the target is a PR.
-        if(lastSetsForCarry.top)weightVal=inUnit(lastSetsForCarry.top.kg,exUnit);
+        if(lastSetsForCarry.top)weightVal=lastSetsForCarry.unit===exUnit?Number(lastSetsForCarry.top.raw):inUnitLoadable(lastSetsForCarry.top.kg,exUnit);
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
