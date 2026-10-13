@@ -485,51 +485,64 @@ try {
     await page.close();
   }
 
-  // The weekend week-rollover, replayed from the user's real backup shape.
-  // Old formula: on Sat/Sun "this week" pointed at next week's key. Tue-Thu
-  // Oct 6-8 were filed W41 (correct) but invisible on Sunday; Friday Oct 9 was
-  // edited on Saturday and filed W42 (so it showed on Fri Oct 16); the deload
-  // Saturday Oct 3 was filed W41. The repair must put every one back, queue
-  // the server delete of the misfiled key, and the streak must survive Sunday.
+  // NOTHING may move logged work automatically. The week repair, re-running
+  // after every sync (its flag was never stored server-side), treated a Legs
+  // session logged early on the Wednesday Oct 14 screen as "dated in the
+  // future" and merged it into the previous Wednesday, overwriting a set.
+  // Seed exactly that, reload, then simulate a sync wiping the S._ flags and
+  // reload again: the session must stay where it was logged, both times.
   {
-    const ids = (date, day) => programFor(date)[day].exercises.filter((e) => e.cat === "gym").slice(0, 2).map((e) => e.id);
-    const ex = (list) => Object.fromEntries(list.map((id) => [id, { done: true, sets: [{ weight: "40", reps: "10", done: true }] }]));
-    const seed = {
-      Tuesday_2026W41: ex(ids(new Date(2026, 9, 6), "Tuesday")),
-      Wednesday_2026W41: ex(ids(new Date(2026, 9, 7), "Wednesday")),
-      Thursday_2026W41: ex(ids(new Date(2026, 9, 8), "Thursday")),
-      Friday_2026W42: ex(ids(new Date(2026, 9, 9), "Friday")),
-      Saturday_2026W41: ex(ids(new Date(2026, 9, 3), "Saturday")),
-      Saturday_2026W42: ex(ids(new Date(2026, 9, 10), "Saturday")),
-    };
-    for (const [when, prev] of [["2026-10-11T15:00:00-04:00", false], ["2026-10-12T15:00:00-04:00", true]]) {
-      const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
-      page.on("pageerror", (e) => jsErrors.push(`weekfix: ${e.message}`));
-      await page.clock.install({ time: new Date(when) });
-      await page.addInitScript((sess) => {
-        window.FORGE_API_CFG = { baseUrl: "", token: "x" };
-        if (!localStorage.f5) localStorage.f5 = JSON.stringify({ sessions: sess, _v6MonDone1: true, _planMove41: true });
-      }, seed);
-      await page.goto(URL, { waitUntil: "networkidle" });
-      await page.waitForTimeout(900);
-      if (prev) { await page.evaluate(() => window.shiftWeek(-1)); await page.waitForTimeout(300); }
-      const shown = {};
-      for (const d of ["Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]) {
-        await page.evaluate((d) => window.selectDay(d), d);
-        await page.waitForTimeout(150);
-        shown[d] = await page.evaluate(() => Number((document.querySelector(".hero")?.innerText.match(/(\d+) of \d+/) || [0, 0])[1]));
-      }
-      const r = await page.evaluate(() => {
-        const S = JSON.parse(localStorage.f5);
-        return { keys: Object.keys(S.sessions).sort(), del: JSON.parse(localStorage.f5_outbox || "[]").filter((m) => m.entity === "session_key_delete").map((m) => m.payload.sessionKey), streak: (document.body.innerText.match(/(\d+) day streak/) || [0, 0])[1] };
-      });
-      const tag = prev ? "Monday, viewing the week of Oct 5" : "Sunday, this week";
-      note(`${tag}: Tue-Sat Oct 6-10 all show their logged work`, Object.values(shown).every((n) => n >= 2), JSON.stringify(shown));
-      note(`${tag}: misfiled sessions moved back (Fri Oct 9 -> W41, deload Sat Oct 3 -> W40) and their old keys deleted server-side`,
-        r.keys.includes("Friday_2026W41") && !r.keys.includes("Friday_2026W42") && r.keys.includes("Saturday_2026W40") && r.del.includes("Friday_2026W42"), JSON.stringify(r));
-      note(`${tag}: the streak survives an unlogged physio Sunday (>= 5 days)`, Number(r.streak) >= 5, "streak=" + r.streak);
-      await page.close();
-    }
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`nomove: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-10-12T20:00:00-04:00") });
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ sessions: {
+        Wednesday_2026W42: { w7_cp: { done: true, unit: "kg", sets: [{ weight: "50", reps: "10", done: true }] } },
+        Wednesday_2026W41: { w4_slc: { done: true, unit: "lbs", sets: [{ weight: "160", reps: "12", done: true }] } } } });
+    });
+    const keys = () => page.evaluate(() => { const S = JSON.parse(localStorage.f5); return { w42: Object.keys(S.sessions.Wednesday_2026W42 || {}), w41: JSON.stringify(S.sessions.Wednesday_2026W41?.w4_slc?.sets) }; });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const a = await keys();
+    // A sync replaces S wholesale: drop every S._flag as the server would.
+    await page.evaluate(() => { const S = JSON.parse(localStorage.f5); for (const k of Object.keys(S)) if (k.startsWith("_")) delete S[k]; localStorage.f5 = JSON.stringify(S); });
+    await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const b = await keys();
+    const ok = (k) => k.w42.includes("w7_cp") && /160/.test(k.w41);
+    note("a session logged early on a future day's screen stays where it was logged (no auto-move)", ok(a), JSON.stringify(a));
+    note("...and still stays after a sync wipes the S._ flags (one-time repairs do not re-run)", ok(b), JSON.stringify(b));
+    note("one-time repair flags survive a sync (kept outside the synced state)",
+      await page.evaluate(() => JSON.parse(localStorage.f5_once || "[]").includes("_v7Move1")));
+    await page.close();
+  }
+
+  // The user's Oct 12 data, exactly as the re-running repair left it: Oct 12's
+  // Legs exercises inside Wednesday Oct 7, Oct 7's leg curl overwritten, and
+  // Monday Oct 12 holding the chest sets logged that day. The one-off repair
+  // moves Oct 12's work to Monday (V7 ids), restores Oct 7's leg curl, and
+  // leaves Monday's chest sets on Monday (never onto Wednesday Oct 14).
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`oct12: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-10-13T10:00:00-04:00") });
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      const st = (u, ws) => ({ done: true, skipped: false, unit: u, sets: ws.map(([w, r]) => ({ done: true, reps: String(r), weight: String(w), attempted: true })) });
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ sessions: {
+        Wednesday_2026W41: { w4_lp: st("kg", [[118, 21]]), w4_slc: st("kg", [[60, 15], [70, 17], [70, 17], [70, 18]]), w4_calf: st("kg", [[51, 12]]), w4_hiad: st("kg", [[72, 15]]), w4_slr: st("lbs", [[12.5, 12]]) },
+        Monday_2026W42: { m4_cp: st("kg", [[54, 9], [50, 8]]), m4_cpwu: st("kg", [[50, 12]]) } },
+        weekPlans: {} });
+    });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(900);
+    const r = await page.evaluate(() => { const S = JSON.parse(localStorage.f5); return { w41: Object.keys(S.sessions.Wednesday_2026W41).sort(), slc: S.sessions.Wednesday_2026W41.w4_slc, mon: Object.keys(S.sessions.Monday_2026W42).sort(), wed42: Object.keys(S.sessions.Wednesday_2026W42 || {}) }; });
+    note("Oct 12's legs move from Wed Oct 7 to Mon Oct 12 (V7 ids), Oct 7's leg curl restored (160x12, 145x10 lbs)",
+      ["m7_calf", "m7_hiad", "m7_slc", "m7_slr"].every((k) => r.mon.includes(k)) && !r.w41.includes("w4_calf") &&
+      r.slc.unit === "lbs" && r.slc.sets.map((x) => x.weight + "x" + x.reps).join() === "160x12,145x10", JSON.stringify(r));
+    note("Monday's chest sets stay on Monday, never moved onto Wednesday Oct 14", r.mon.includes("m4_cp") && !r.wed42.includes("w7_cp"), JSON.stringify(r));
+    await page.evaluate(() => window.selectDay("Monday")); await page.waitForTimeout(300);
+    const txt = await page.evaluate(() => document.getElementById("tc")?.innerText || "");
+    note("Monday shows its legs work and, below, the chest sets under 'Also logged this day'", /Also logged this day/i.test(txt) && /Chest Press/.test(txt));
+    await page.close();
   }
 
   // Weekly summary "Calories compliance" printed "undefined%": the summary read

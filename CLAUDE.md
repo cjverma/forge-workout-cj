@@ -210,8 +210,21 @@ through Saturday, so every weekend "this week" read next week's sessions
 day ticked on the weekend landed on the following week. `wk`, `nextWk`,
 `planWk`, `nthPrevWk`, `vwk`, `trainedOn` and the volume chart all use it;
 never reintroduce the raw formula (the test seeds in `verify-runtime.mjs` use
-the Monday-based one too). `S._wkFix1` moved misfiled sessions back once and
-queued `session_key_delete` for the old keys so a sync cannot restore them.
+the Monday-based one too). The one-time repair that moved misfiled sessions
+(`S._wkFix1`) is DELETED: it re-ran after every sync and, by its "dated in the
+future = misfiled" rule, merged a Legs session logged early on Wednesday's
+screen into the previous Wednesday, overwriting a set (repaired by
+`S._oct12Fix1`). **Nothing may move logged sessions automatically**, and a
+one-off move must never target a day in the future.
+
+## One-time repairs must not re-run (`f5_once`)
+
+`S._flags` guarding one-time repairs are NOT stored server-side, so every sync
+wiped them and every repair re-ran on every launch. `persistOnceFlags()` (end
+of the repair section in `src/main.js`) copies every `S._x === true` into the
+`f5_once` localStorage key, and boot restores them before any repair runs. A
+new repair must sit ABOVE `persistOnceFlags()`. Assume a repair can still run
+twice (another device, cleared storage): make it a no-op on already-fixed data.
 
 `isProgramRestDay` means "no GYM work" (like `isGymRestDay`): Sunday carries a
 physio block, and "no exercises at all" made every unlogged Sunday break the
