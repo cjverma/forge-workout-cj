@@ -518,6 +518,24 @@ try {
     await page.close();
   }
 
+  // Oct 12's Leg Extension (68x15, a PR) and Leg Press (280 lbs x 12) re-entered
+  // from the user's numbers onto Monday Oct 12, without touching existing sets.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`manual: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-10-13T12:00:00-04:00") });
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ sessions: { Monday_2026W42: { m7_lp: { done: true, unit: "kg", sets: [{ done: true, weight: "120", reps: "10" }] } } },
+        prs: { leg_extension_machine: [{ date: "2026-09-29", weight: 65.8, reps: 15, est: 99 }] }, _oct12Fix1: true, _oct12Recover1: true });
+    });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(900);
+    const r = await page.evaluate(() => { const S = JSON.parse(localStorage.f5), m = S.sessions.Monday_2026W42; return { le: m.m7_le?.sets?.[0], lp: m.m7_lp.sets.map((x) => x.weight).join(), pr: S.prs.leg_extension_machine.map((e) => e.weight + "x" + e.reps).join() }; });
+    note("Oct 12 Leg Extension 68x15 added (and saved as a PR); an existing Leg Press entry is not overwritten",
+      r.le?.weight === "68" && r.le?.reps === "15" && r.lp === "120" && /68x15/.test(r.pr), JSON.stringify(r));
+    await page.close();
+  }
+
   // NOTHING may move logged work automatically. The week repair, re-running
   // after every sync (its flag was never stored server-side), treated a Legs
   // session logged early on the Wednesday Oct 14 screen as "dated in the
