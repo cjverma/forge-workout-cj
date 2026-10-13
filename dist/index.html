@@ -254,6 +254,14 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .swap-modal.show{display:flex;}
 .swap-sheet{width:100%;max-height:78vh;overflow-y:auto;background:var(--black);border-top:1px solid var(--b1);border-radius:var(--r-xl) var(--r-xl) 0 0;padding:var(--sp-4);padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--sp-4));box-shadow:var(--shadow-lift);}
 .swap-head{margin-bottom:var(--sp-3);}
+/* Finish-workout sheet: replaces the native confirm() (unstylable on iOS). */
+.stop-sheet{text-align:center;padding-top:var(--sp-3);}
+.stop-grab{width:40px;height:4px;border-radius:var(--r-pill);background:var(--b2);margin:0 auto var(--sp-4);}
+.stop-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2);margin:var(--sp-4) 0 var(--sp-2);}
+.stop-stat{background:var(--s2);border:1px solid var(--b1);border-radius:var(--r-md);padding:12px 6px;}
+.stop-stat-val{font-family:var(--font-display);font-weight:700;font-size:26px;line-height:1;color:var(--white);font-variant-numeric:tabular-nums;}
+.stop-stat-lbl{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--dim);margin-top:4px;}
+.stop-cancel{width:100%;margin-top:var(--sp-2);background:transparent;color:var(--mid);border:1px solid var(--b1);border-radius:var(--r-pill);padding:13px;font-family:var(--font-body);font-size:14px;font-weight:600;cursor:pointer;}
 .swap-title{font-family:var(--font-display);font-weight:600;text-transform:uppercase;font-size:20px;color:var(--white);letter-spacing:.01em;}
 .swap-sub{font-size:var(--fs-cap);font-weight:var(--fw-cap);color:var(--mid);margin-top:2px;}
 .swap-list{display:flex;flex-direction:column;gap:var(--sp-2);}
@@ -981,6 +989,16 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 
 
 <div class="plan-modal" id="planModal"></div>
+<div class="swap-modal" id="stopModal" onclick="if(event.target===this)closeStopSheet()">
+  <div class="swap-sheet stop-sheet" role="dialog" aria-modal="true" aria-labelledby="stopTitle">
+    <div class="stop-grab"></div>
+    <div class="swap-title" id="stopTitle">Finish workout?</div>
+    <div class="swap-sub" id="stopSub">Your sets are saved as you go. This ends the session.</div>
+    <div class="stop-stats" id="stopStats"></div>
+    <button class="swap-keep" id="stopConfirm" onclick="stopSess(true)">Finish &amp; save</button>
+    <button class="stop-cancel" onclick="closeStopSheet()">Keep going</button>
+  </div>
+</div>
 <div class="swap-modal" id="swapModal">
   <div class="swap-sheet">
     <div class="swap-head">
@@ -4258,7 +4276,20 @@ function startSess(){
   renderW();
 }
 
-function stopSess(){
+function openStopSheet(){
+  const S=ctx.getS(),m=document.getElementById("stopModal");
+  if(!m)return;
+  const key=ctx.cDay+"_"+ctx.wk(),sess=S.sessions[key]||{},prog=curProg();
+  const el=ctx.sessStart?Math.floor((Date.now()-ctx.sessStart)/1000):0;
+  const sets=prog.exercises.reduce((a,ex)=>a+((sess[ex.id]?.sets||[]).filter(s=>s&&s.done).length),0);
+  const exDone=prog.exercises.filter(ex=>sess[ex.id]?.done).length;
+  const stat=(v,l)=>`<div class="stop-stat"><div class="stop-stat-val">${v}</div><div class="stop-stat-lbl">${l}</div></div>`;
+  document.getElementById("stopStats").innerHTML=stat(Math.floor(el/60)+"m","Time")+stat(sets,"Sets")+stat(`${exDone}/${prog.exercises.length}`,"Exercises");
+  m.classList.add("show");
+}
+function closeStopSheet(){document.getElementById("stopModal")?.classList.remove("show");}
+window.closeStopSheet=closeStopSheet;
+function stopSess(confirmed){
   const S=ctx.getS();
   const sKey=ctx.sk(ctx.cDay);
   const sess=S.sessions[sKey]||{};
@@ -4276,7 +4307,10 @@ function stopSess(){
     if(navigator.vibrate)navigator.vibrate([60,40,60]);
     return;
   }
-  if(!confirm("Stop workout and save session?"))return;
+  // A styled sheet instead of the native confirm() (which iOS renders as a
+  // plain system box). The sheet's "Finish & save" calls stopSess(true).
+  if(confirmed!==true){openStopSheet();return;}
+  closeStopSheet();
   ctx.workoutOn=false;clearInterval(ctx.sessTimer);clearActive();
   const el=Math.floor((Date.now()-ctx.sessStart)/1000);
   const m=Math.floor(el/60),s=el%60;

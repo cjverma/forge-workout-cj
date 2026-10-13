@@ -1257,7 +1257,20 @@ function startSess(){
   renderW();
 }
 
-function stopSess(){
+function openStopSheet(){
+  const S=ctx.getS(),m=document.getElementById("stopModal");
+  if(!m)return;
+  const key=ctx.cDay+"_"+ctx.wk(),sess=S.sessions[key]||{},prog=curProg();
+  const el=ctx.sessStart?Math.floor((Date.now()-ctx.sessStart)/1000):0;
+  const sets=prog.exercises.reduce((a,ex)=>a+((sess[ex.id]?.sets||[]).filter(s=>s&&s.done).length),0);
+  const exDone=prog.exercises.filter(ex=>sess[ex.id]?.done).length;
+  const stat=(v,l)=>`<div class="stop-stat"><div class="stop-stat-val">${v}</div><div class="stop-stat-lbl">${l}</div></div>`;
+  document.getElementById("stopStats").innerHTML=stat(Math.floor(el/60)+"m","Time")+stat(sets,"Sets")+stat(`${exDone}/${prog.exercises.length}`,"Exercises");
+  m.classList.add("show");
+}
+function closeStopSheet(){document.getElementById("stopModal")?.classList.remove("show");}
+window.closeStopSheet=closeStopSheet;
+function stopSess(confirmed){
   const S=ctx.getS();
   const sKey=ctx.sk(ctx.cDay);
   const sess=S.sessions[sKey]||{};
@@ -1275,7 +1288,10 @@ function stopSess(){
     if(navigator.vibrate)navigator.vibrate([60,40,60]);
     return;
   }
-  if(!confirm("Stop workout and save session?"))return;
+  // A styled sheet instead of the native confirm() (which iOS renders as a
+  // plain system box). The sheet's "Finish & save" calls stopSess(true).
+  if(confirmed!==true){openStopSheet();return;}
+  closeStopSheet();
   ctx.workoutOn=false;clearInterval(ctx.sessTimer);clearActive();
   const el=Math.floor((Date.now()-ctx.sessStart)/1000);
   const m=Math.floor(el/60),s=el%60;

@@ -2022,7 +2022,9 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("a logged calf twinge blocks stopping until the note is written",
     /_calfTwinges\|\|\[\]\)\.filter\(ts=>Number\.isFinite\(ts\)\)\.length&&!String\(sess\._notes\|\|""\)\.trim\(\)/.test(WORKOUT) &&
     /Describe the calf twinge before stopping/.test(WORKOUT) &&
-    WORKOUT.indexOf("Describe the calf twinge") < WORKOUT.indexOf('confirm("Stop workout and save session?")'));
+    // The twinge block must run BEFORE the finish sheet opens.
+    WORKOUT.indexOf("Describe the calf twinge") < WORKOUT.indexOf("if(confirmed!==true){openStopSheet();return;}") &&
+    !/confirm\("Stop workout and save session\?"\)/.test(WORKOUT));
   ok("the requirement is shown before you try to stop",
     /const needNote=twinges>0&&!savedNotes\.trim\(\);/.test(WORKOUT) &&
     /class="notes-req/.test(WORKOUT) && /class="notes-hint"/.test(WORKOUT) &&
