@@ -5,7 +5,7 @@ import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showTo
 import { save, autoBackupTick, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { planMonFor, isBannedExercise } from "./plan.js";
-import { FEATURES, weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
+import { FEATURES, weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, v4IdToV7, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
 import { renderW, sessionKeyToIso } from "./workout.js";
 import { renderNutrition, buildSparkline } from "./nutrition.js";
 import { renderST } from "./settings.js";
@@ -52,7 +52,7 @@ ctx.seedCustomNames=seedCustomNames;
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
-  for(const P of [PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const P of [PROG,PROG_V7,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
   seedCustomNames();
 })();
@@ -274,6 +274,59 @@ if(!S._wkFix1){
   S._wkFix1=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(moves.length)setTimeout(()=>showToast(moves.length+" session"+(moves.length===1?"":"s")+" moved back to the right week"),2500);
+}
+// One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
+// Monday). The user did Legs & Shoulders on Monday the 12th, which under the
+// old order lived on Wednesday, so this week's (2026W42) sessions and plan
+// are moved onto the day that now holds each exercise, with its V7 id.
+// Only that week; never overwrites an exercise that already has done sets; old
+// keys are deleted server-side after the moved entries are queued.
+if(!S._v7Move1){
+  const W="2026W42",doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length+(e?.done?1:0);
+  const touched=new Set(),emptied=new Set();
+  for(const day of DAYS){
+    const key=day+"_"+W,sess=S.sessions?.[key];
+    if(!sess||typeof sess!=="object")continue;
+    for(const[id,ed]of Object.entries(sess)){
+      if(id.startsWith("_"))continue;
+      const to=v4IdToV7(id);
+      if(!to||(to.day===day&&to.id===id))continue;
+      const tkey=to.day+"_"+W,dst=S.sessions[tkey]=S.sessions[tkey]||{};
+      if(!dst[to.id]||doneN(ed)>doneN(dst[to.id]))dst[to.id]=ed;
+      delete sess[id];touched.add(tkey);emptied.add(key);
+      // The session meta (duration, notes, twinges) travels with the workout.
+      for(const mk of["_duration","_notes","_calfTwinges","_stopped","_complete"])
+        if(sess[mk]!=null&&dst[mk]==null){dst[mk]=sess[mk];}
+    }
+  }
+  for(const key of emptied){
+    const sess=S.sessions[key];
+    if(sess&&!Object.keys(sess).some(k=>!k.startsWith("_"))){
+      for(const mk of["_duration","_notes","_calfTwinges","_stopped","_complete"])delete sess[mk];
+      delete S.sessions[key];queueMutation("session_key_delete",{sessionKey:key});
+    }else if(sess){queueMutation("session_key_delete",{sessionKey:key});for(const k of Object.keys(sess))if(!k.startsWith("_"))queueSession(key,k);queueSessionMeta(key);}
+  }
+  for(const key of touched){for(const k of Object.keys(S.sessions[key]))if(!k.startsWith("_"))queueSession(key,k);queueSessionMeta(key);}
+  // This week's plan follows its exercises to their new days.
+  const wp=(S.weekPlans||{})[W];
+  if(wp&&wp._prog==="v4"){
+    const np={_prog:"v7"};
+    for(const[day,ups]of Object.entries(wp)){
+      if(day==="_prog"||!Array.isArray(ups))continue;
+      for(const u of ups){
+        const to=u.id?v4IdToV7(u.id):null;
+        const d=to?to.day:day;
+        (np[d]=np[d]||[]).push(to?{...u,id:to.id}:u);
+      }
+    }
+    S.weekPlans[W]=np;
+    queueMutation("week_plan_reset",{weekKey:W});
+    for(const[day,ups]of Object.entries(np)){if(day==="_prog")continue;for(const u of ups)queueMutation("week_plan_update",{weekKey:W,dayName:day,update:u});}
+    queueMutation("week_plan_update",{weekKey:W,dayName:"_prog",update:"v7"});
+  }
+  S._v7Move1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(touched.size)setTimeout(()=>showToast("This week moved to the new day order ✓"),2500);
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are

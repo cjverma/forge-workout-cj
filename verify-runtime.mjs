@@ -627,6 +627,59 @@ try {
     await page.close();
   }
 
+  // V7 reorder: the user did Legs & Shoulders on Mon 12 Oct, logged on the old
+  // Wednesday screen (w4_ ids). It must land on Monday with V7 ids, the old key
+  // deleted server-side, this week's v4 plan restamped v7 on the new days. Also
+  // the weight/unit overlap ("145.1" ran under "LBS") and the 145.1 pre-fill.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`v7move: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-10-12T21:00:00-04:00") });
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({
+        sessions: {
+          Wednesday_2026W42: { w4_lp: { done: true, unit: "kg", sets: [{ weight: "118", reps: "12", done: true }] }, w4_le: { unit: "kg", sets: [{ weight: "65.8", reps: "12", done: true }] }, _notes: "legs today" },
+          Thursday_2026W41: { th4_slr: { done: true, unit: "lbs", sets: [{ weight: "145", reps: "10", done: true }] } },
+        },
+        weekPlans: { "2026W42": { _prog: "v4", Wednesday: [{ id: "w4_lp", hint: "120 kg" }], Monday: [{ id: "m4_cp", sets: 5 }] } },
+        _v6MonDone1: true, _planMove41: true, _wkFix1: true,
+      });
+      try { localStorage.setItem("f5_unitreview_2026-10-12", "1"); } catch {}
+    });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(900);
+    const r = await page.evaluate(() => {
+      const S = JSON.parse(localStorage.f5), ob = JSON.parse(localStorage.f5_outbox || "[]");
+      return { mon: Object.keys(S.sessions.Monday_2026W42 || {}).sort(), wed: !!S.sessions.Wednesday_2026W42, note: S.sessions.Monday_2026W42?._notes,
+        plan: S.weekPlans["2026W42"], del: ob.filter((m) => m.entity === "session_key_delete").map((m) => m.payload.sessionKey) };
+    });
+    note("this week's Wednesday-logged legs session moves to Monday with V7 ids (notes too)",
+      r.mon.includes("m7_lp") && r.mon.includes("m7_le") && !r.wed && r.note === "legs today" && r.del.includes("Wednesday_2026W42"), JSON.stringify(r));
+    note("this week's v4 plan follows its exercises (w4_lp -> Monday m7_lp, m4_cp -> Wednesday w7_cp) and is restamped v7",
+      r.plan?._prog === "v7" && r.plan.Monday?.[0]?.id === "m7_lp" && r.plan.Wednesday?.[0]?.id === "w7_cp", JSON.stringify(r.plan));
+    const hero = await page.evaluate(() => document.querySelector(".hero-title")?.textContent || "");
+    note("Monday now shows Legs & Shoulders, with today's logged work", /Legs/.test(hero), hero);
+    // Overlap: the input reserves the unit label's corner.
+    // Measure the real render: the typed number's text box and the unit label
+    // must not overlap, and "147.5" must fit without clipping.
+    await page.evaluate(() => { const top = [...document.querySelectorAll(".ex-card")].find((c) => c.querySelector(".ex-icon.gym"))?.querySelector(".ex-top"); top?.click(); });
+    await page.waitForTimeout(300);
+    const ov = await page.evaluate(() => {
+      const i = [...document.querySelectorAll(".wt-wrap .si")].find((x) => x.getBoundingClientRect().width > 0); if (!i) return null;
+      i.value = "147.5";
+      const c = document.createElement("canvas").getContext("2d"), cs = getComputedStyle(i);
+      c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+      const textW = c.measureText(i.value).width, ir = i.getBoundingClientRect();
+      const avail = ir.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      const lab = getComputedStyle(i.parentElement, "::after"), wr = i.parentElement.getBoundingClientRect();
+      const labTop = wr.bottom - parseFloat(lab.bottom || 0) - parseFloat(lab.fontSize);
+      return { fits: textW <= avail, textW: Math.round(textW), avail: Math.round(avail), below: labTop >= ir.top + ir.height * 0.6 };
+    });
+    note("weight and unit never overlap, and a wide number (147.5) is not clipped", !!ov && ov.fits && ov.below, JSON.stringify(ov));
+    await page.close();
+  }
+
   // Per-weekday user edits (custom adds, swap drops) must only apply to the
   // week they were made in. Both were once keyed by weekday alone, so a
   // one-off edit silently reshaped that weekday in every later week and every

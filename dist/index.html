@@ -355,7 +355,10 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Unit printed inside every weight box, so kg vs lbs is visible on the row
    being typed into, not only once in the header. */
 .wt-wrap{position:relative;display:block;min-width:0;}
-.wt-wrap::after{content:attr(data-unit);position:absolute;right:2px;bottom:1px;font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);pointer-events:none;}
+/* The unit sits UNDER the number, centred. In the corner a wide number
+   (145.1) ran underneath "LBS", and reserving the corner clipped "147.5". */
+.wt-wrap{padding-bottom:9px;}
+.wt-wrap::after{content:attr(data-unit);position:absolute;left:0;right:0;text-align:center;bottom:-1px;line-height:1;font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);pointer-events:none;}
 .uf-btns{display:flex;gap:8px;margin-top:10px;}
 .uf-sm{padding:9px;font-size:11px;}
 .si::placeholder{color:var(--b2);font-size:14px;font-weight:400;}
@@ -1836,6 +1839,35 @@ const PROG_V6={
 
 
 
+// ── PROGRAM V7: Southpaw, days reordered, from Mon 12 Oct 2026 ─────────────
+// Chest moved off Monday (the busiest gym day) after the user did Legs &
+// Shoulders on Mon 12 Oct. Same six sessions, same exercises, same heavy-then-
+// volume order per muscle group, each pair still three days apart:
+//   Mon Legs & Shoulders · Tue Back & Biceps · Wed Chest & Triceps ·
+//   Thu Legs & Core · Fri Back & Biceps · Sat Shoulders & Chest · Sun rest.
+// Tue/Fri/Sun are the SAME days as Southpaw, so they keep their ids (t4_/f4_/
+// su4_) and anything logged on them stays attached. Moved days get the
+// m7_/w7_/th7_/sa7_ prefix of the day they now sit on. Cues that named a
+// weekday ("lighter than Monday") are dropped: the weekday is no longer true.
+const V7_FROM={Monday:"Wednesday",Tuesday:"Tuesday",Wednesday:"Monday",Thursday:"Saturday",Friday:"Friday",Saturday:"Thursday",Sunday:"Sunday"};
+const _V7_PFX={Monday:"m7",Wednesday:"w7",Thursday:"th7",Saturday:"sa7"};
+const _V4_DAY_PFX=/^(m4|t4|w4|th4|f4|sa4|su4)_/;
+const _noWeekday=c=>String(c||"").split(/(?<=\.)\s+/).filter(x=>!/(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day/.test(x)).join(" ")||c;
+const PROG_V7=Object.fromEntries(Object.entries(V7_FROM).map(([day,src])=>{
+  const d=PROG_V4[src],p=_V7_PFX[day];
+  const ren=id=>p?id.replace(_V4_DAY_PFX,p+"_"):id;
+  return[day,{...d,exercises:d.exercises.map(e=>({...e,id:ren(e.id),cue:_noWeekday(e.cue),...(e.ss?{ss:ren(e.ss)}:{})}))}];
+}));
+// Where a Southpaw (V4) exercise id lives in V7: {day, id}. Used to move this
+// week's already-logged sessions and plan onto the reordered days.
+function v4IdToV7(id){
+  const m=_V4_DAY_PFX.exec(String(id));if(!m)return null;
+  const src={m4:"Monday",t4:"Tuesday",w4:"Wednesday",th4:"Thursday",f4:"Friday",sa4:"Saturday",su4:"Sunday"}[m[1]];
+  const day=Object.keys(V7_FROM).find(d=>V7_FROM[d]===src);
+  const p=_V7_PFX[day];
+  return{day,id:p?String(id).replace(_V4_DAY_PFX,p+"_"):id};
+}
+
 // The Sunday exemption is for the LEGACY programs (V1-V3), where Sunday is
 // Active Recovery and its entire content is physio: stripping would empty the
 // day and silently turn it into a second rest day. Southpaw moves physio to
@@ -1862,7 +1894,8 @@ function _sp(p){
 // Which program version a plan was generated against. Stamped onto weekPlans so
 // an override written for an older program cannot inject into a newer one.
 function programKeyFor(date){
-  return date>=new Date(2026,9,5)?"v4"
+  return date>=new Date(2026,9,12)?"v7"
+    :date>=new Date(2026,9,5)?"v4"
     :date>=new Date(2026,8,28)?"v6"
     :date>=new Date(2026,8,21)?"v4"
     :date>=new Date(2026,8,11)?"v5"
@@ -1896,7 +1929,8 @@ function _stage(p,date){
 }
 
 function programFor(date){
-  const base=date>=new Date(2026,9,5)?PROG_V4
+  const base=date>=new Date(2026,9,12)?PROG_V7
+    :date>=new Date(2026,9,5)?PROG_V4
     :date>=new Date(2026,8,28)?PROG_V6
     :date>=new Date(2026,8,21)?PROG_V4
     :date>=new Date(2026,8,11)?PROG_V5
@@ -1911,7 +1945,8 @@ const _pd=new Date();
 const PROG_NAME={v1:"original rehab program",v2:"program v2",v3:"program v3",
   v4:"Southpaw (Jake Gyllenhaal) hypertrophy program",
   v5:"return block (full body, easy)",
-  v6:"Southpaw deload week (shuffled days, reduced volume)"};
+  v6:"Southpaw deload week (shuffled days, reduced volume)",
+  v7:"Southpaw (Jake Gyllenhaal) hypertrophy program, days reordered: chest off Monday"};
 
 const PROG=programFor(_pd);
 
@@ -3052,7 +3087,9 @@ function lastSessionEx(exId){
     if(!best||ord>best.ord){best={ord,sets:doneSets,unit:ed.unit==="lbs"?"lbs":"kg"};}
   }
   if(!best)return null;
-  const kgSets=best.sets.map(s=>({kg:toKg(s.weight,best.unit),reps:Number(s.reps)})).filter(s=>s.kg>0);
+  // raw = the number as typed, so a box in the same unit pre-fills exactly
+  // what was lifted instead of a kg round trip.
+  const kgSets=best.sets.map(s=>({kg:toKg(s.weight,best.unit),reps:Number(s.reps),raw:s.weight})).filter(s=>s.kg>0);
   if(!kgSets.length)return null;
   const reps=best.sets.map(s=>s.reps).find(r=>r)||"?";
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
@@ -3061,6 +3098,9 @@ function lastSessionEx(exId){
   return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
+// A weight you can actually load: converting last session's kg to lbs gave
+// "145.1". Pre-filled boxes snap to the nearest 2.5 lbs / 0.5 kg.
+const inUnitLoadable=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG/2.5)*2.5:Math.round(kg*2)/2;
 // Best set by estimated 1RM, so weight AND reps count and every set does.
 const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?epley1RM(s.kg,s.reps):0),0);
 
@@ -3343,7 +3383,7 @@ function renderW(){
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
     const _allExMap={};
-    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5,PROG_V6].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
+    [PROG_V1,PROG_V2,PROG_V3,PROG_V4,PROG_V5,PROG_V6,PROG_V7].forEach(pv=>Object.values(pv).forEach(day=>(day.exercises||[]).forEach(e=>{_allExMap[e.id]=e;})));
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
@@ -3642,7 +3682,7 @@ function card(ex,sess,key,rdOnly=false){
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
         // Every set starts at last session's best weight: the target is a PR.
-        if(lastSetsForCarry.top)weightVal=inUnit(lastSetsForCarry.top.kg,exUnit);
+        if(lastSetsForCarry.top)weightVal=lastSetsForCarry.unit===exUnit?Number(lastSetsForCarry.top.raw):inUnitLoadable(lastSetsForCarry.top.kg,exUnit);
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
@@ -6137,7 +6177,7 @@ async function aiWeeklyReview(){
 // ── CSV / EMAIL EXPORT ──
 function buildFullCSV(){
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6),...Object.values(PROG_V7)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   function weekKeyToDate(dayName,weekKey){
@@ -6302,7 +6342,7 @@ function buildPDFReport(){
   let weeklySessions=0;for(let i=0;i<7;i++){const d=new Date(mon);d.setDate(mon.getDate()+i);if(isoDate(d)<=isoToday()&&trainedOn(isoDate(d)))weeklySessions++;}
   // PRs
   const exMap={};
-  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
+  [...Object.values(PROG_V1),...Object.values(PROG_V2),...Object.values(PROG_V3),...Object.values(PROG_V4),...Object.values(PROG_V5),...Object.values(PROG_V6),...Object.values(PROG_V7)].forEach(p=>(p.exercises||[]).forEach(e=>{exMap[e.id]=e.name;}));
   Object.values(S.custom||{}).forEach(arr=>{if(Array.isArray(arr))arr.forEach(e=>{if(e.id&&e.name)exMap[e.id]=e.name;});});
   const exName=id=>exMap[id]||ctx.prName(id);
   const prRows=Object.entries(S.prs||{}).map(([id,entries])=>{
@@ -6958,7 +6998,7 @@ ctx.seedCustomNames=seedCustomNames;
   const add=ex=>{const raw=prSlug(ex.name);const slug=PR_ALIAS[raw]||raw;
     if(ex.id&&!_prCanonMap[ex.id])_prCanonMap[ex.id]=slug;
     if(!_prNameMap[slug])_prNameMap[slug]=ex.name;};
-  for(const P of [PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
+  for(const P of [PROG,PROG_V7,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1])for(const[,dd] of Object.entries(P))for(const ex of(dd.exercises||[]))add(ex);
   for(const ex of EX_DB)add(ex);
   seedCustomNames();
 })();
@@ -7180,6 +7220,59 @@ if(!S._wkFix1){
   S._wkFix1=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(moves.length)setTimeout(()=>showToast(moves.length+" session"+(moves.length===1?"":"s")+" moved back to the right week"),2500);
+}
+// One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
+// Monday). The user did Legs & Shoulders on Monday the 12th, which under the
+// old order lived on Wednesday, so this week's (2026W42) sessions and plan
+// are moved onto the day that now holds each exercise, with its V7 id.
+// Only that week; never overwrites an exercise that already has done sets; old
+// keys are deleted server-side after the moved entries are queued.
+if(!S._v7Move1){
+  const W="2026W42",doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length+(e?.done?1:0);
+  const touched=new Set(),emptied=new Set();
+  for(const day of DAYS){
+    const key=day+"_"+W,sess=S.sessions?.[key];
+    if(!sess||typeof sess!=="object")continue;
+    for(const[id,ed]of Object.entries(sess)){
+      if(id.startsWith("_"))continue;
+      const to=v4IdToV7(id);
+      if(!to||(to.day===day&&to.id===id))continue;
+      const tkey=to.day+"_"+W,dst=S.sessions[tkey]=S.sessions[tkey]||{};
+      if(!dst[to.id]||doneN(ed)>doneN(dst[to.id]))dst[to.id]=ed;
+      delete sess[id];touched.add(tkey);emptied.add(key);
+      // The session meta (duration, notes, twinges) travels with the workout.
+      for(const mk of["_duration","_notes","_calfTwinges","_stopped","_complete"])
+        if(sess[mk]!=null&&dst[mk]==null){dst[mk]=sess[mk];}
+    }
+  }
+  for(const key of emptied){
+    const sess=S.sessions[key];
+    if(sess&&!Object.keys(sess).some(k=>!k.startsWith("_"))){
+      for(const mk of["_duration","_notes","_calfTwinges","_stopped","_complete"])delete sess[mk];
+      delete S.sessions[key];queueMutation("session_key_delete",{sessionKey:key});
+    }else if(sess){queueMutation("session_key_delete",{sessionKey:key});for(const k of Object.keys(sess))if(!k.startsWith("_"))queueSession(key,k);queueSessionMeta(key);}
+  }
+  for(const key of touched){for(const k of Object.keys(S.sessions[key]))if(!k.startsWith("_"))queueSession(key,k);queueSessionMeta(key);}
+  // This week's plan follows its exercises to their new days.
+  const wp=(S.weekPlans||{})[W];
+  if(wp&&wp._prog==="v4"){
+    const np={_prog:"v7"};
+    for(const[day,ups]of Object.entries(wp)){
+      if(day==="_prog"||!Array.isArray(ups))continue;
+      for(const u of ups){
+        const to=u.id?v4IdToV7(u.id):null;
+        const d=to?to.day:day;
+        (np[d]=np[d]||[]).push(to?{...u,id:to.id}:u);
+      }
+    }
+    S.weekPlans[W]=np;
+    queueMutation("week_plan_reset",{weekKey:W});
+    for(const[day,ups]of Object.entries(np)){if(day==="_prog")continue;for(const u of ups)queueMutation("week_plan_update",{weekKey:W,dayName:day,update:u});}
+    queueMutation("week_plan_update",{weekKey:W,dayName:"_prog",update:"v7"});
+  }
+  S._v7Move1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(touched.size)setTimeout(()=>showToast("This week moved to the new day order ✓"),2500);
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
 // logged set it came from. Entries whose set was later edited or deleted are

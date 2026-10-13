@@ -355,7 +355,10 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Unit printed inside every weight box, so kg vs lbs is visible on the row
    being typed into, not only once in the header. */
 .wt-wrap{position:relative;display:block;min-width:0;}
-.wt-wrap::after{content:attr(data-unit);position:absolute;right:2px;bottom:1px;font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);pointer-events:none;}
+/* The unit sits UNDER the number, centred. In the corner a wide number
+   (145.1) ran underneath "LBS", and reserving the corner clipped "147.5". */
+.wt-wrap{padding-bottom:9px;}
+.wt-wrap::after{content:attr(data-unit);position:absolute;left:0;right:0;text-align:center;bottom:-1px;line-height:1;font-size:9px;font-weight:600;letter-spacing:.4px;text-transform:uppercase;color:var(--dim);pointer-events:none;}
 .uf-btns{display:flex;gap:8px;margin-top:10px;}
 .uf-sm{padding:9px;font-size:11px;}
 .si::placeholder{color:var(--b2);font-size:14px;font-weight:400;}

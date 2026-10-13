@@ -276,6 +276,17 @@ muscle the day before or after the same muscle: **the recovery rule (no small
 muscle on back-to-back days) beats adding volume**. Superset partners must be
 adjacent; additions go before a superset pair, never between it.
 
+**From Mon 12 Oct 2026 the days are reordered (`PROG_V7`, key `v7`)** so chest
+is off Monday, the busiest gym day: Mon Legs & Shoulders · Tue Back & Biceps ·
+Wed Chest & Triceps · Thu Legs & Core · Fri Back & Biceps · Sat Shoulders &
+Chest · Sun rest. Same sessions and exercises; each muscle group's pair still
+3 days apart, heavy first. Built from `PROG_V4` via `V7_FROM`. Tue/Fri/Sun
+are unchanged and keep their V4 ids (`t4_`/`f4_`/`su4_`) so logged work stays
+attached; moved days use `m7_`/`w7_`/`th7_`/`sa7_`. `v4IdToV7()` maps an old
+id to its new day + id; `S._v7Move1` used it once to move week 2026W42's
+sessions (Legs logged on the old Wednesday screen -> Monday) and plan. Weekday
+cues are stripped in V7. The split line below is the ORIGINAL Southpaw order.
+
 - **Sunday is the only rest day.** Mon-Sat all train. The rest day is derived,
   never hardcoded: `isGymRestDay()` means "no GYM work", so Sunday still counts
   as rest once its physio block returns.

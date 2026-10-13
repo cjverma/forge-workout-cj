@@ -31,7 +31,7 @@
 import { readFileSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
-  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, weekKeyOf as REAL_WEEK_KEY_OF } from "./src/constants.js";
+  PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, PROG_V7 as REAL_V7, v4IdToV7 as REAL_V4_TO_V7, weekKeyOf as REAL_WEEK_KEY_OF } from "./src/constants.js";
 const EXDB_NAMES = REAL_EX_DB.map(e => e.name);
 // The spine filter lives in src/plan.js (shared by the app and the server
 // cron), which is pure, so the real one is imported directly.
@@ -1509,7 +1509,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
       const recs = REAL_PLAN.buildPRRecords({ prs: { outer_thigh_machine: [{ date: "2026-10-01", weight: 40, reps: 12, est: 56 }] } }, new Date(2026, 9, 12), "2026-10-08");
       const ot = recs.find(r => r.slug === "outer_thigh_machine");
       ok("PR records are built for the week being PLANNED and joined by id",
-        !!ot && ot.hasPR && /^(w4|sa4)_/.test(ot.id) && ot.daysAgo === 7 && ot.setThisWeek);
+        !!ot && ot.hasPR && /^(m7|th7)_/.test(ot.id) && ot.daysAgo === 7 && ot.setThisWeek);  // V7: legs on Mon/Thu
     }
     // A non-canonical slug that skips the alias reads as "no PR" for an
     // exercise that has one, and the hint is then built from nothing.
@@ -1518,8 +1518,8 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
     // Sets are typed in lbs or kg per exercise; hints and PRs are always kg.
     // Sent raw, 120 lbs read as 120 kg and got "progressed" from there.
     {
-      const h = REAL_PLAN.buildSessionHistory({ sessions: { Monday_2026W42: { m4_cp: { unit: "lbs", done: true, sets: [{ weight: "120", reps: "10", done: true }, { weight: "120", reps: "6", done: true }] } } } }, new Date(2026, 9, 14, 12));
-      const cp = h[0]?.sessions?.Monday?.[0];
+      const h = REAL_PLAN.buildSessionHistory({ sessions: { Wednesday_2026W42: { w7_cp: { unit: "lbs", done: true, sets: [{ weight: "120", reps: "10", done: true }, { weight: "120", reps: "6", done: true }] } } } }, new Date(2026, 9, 14, 12));
+      const cp = h[0]?.sessions?.Wednesday?.[0];  // V7: chest moved to Wednesday
       ok("session weights are converted to kg before the AI sees them (120 lbs -> 54.4)", cp?.sets_logged?.[0]?.kg === 54.4, JSON.stringify(cp?.sets_logged));
       ok("the AI sees each exercise's set-to-set fatigue (10 -> 6 reps at one weight = 40% drop)", cp?.fatigue?.repDropPct === 40);
     }
@@ -1689,14 +1689,14 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         const CR = await import("./api/cron-weekly-plan.js");
         const sunday = new Date(2026, 9, 11, 19);
         let wrote = null, called = 0;
-        const fakeAI = async () => { called++; return { week_plan: { Monday: [{ id: "m4_cp", sets: 4, hint: "40-45 kg" }, { id: "zz_nope", sets: 9 }], Sunday: [{ id: "nonexistent" }] }, coaching_notes: "n" }; };
+        const fakeAI = async () => { called++; return { week_plan: { Wednesday: [{ id: "w7_cp", sets: 4, hint: "40-45 kg" }, { id: "zz_nope", sets: 9 }], Sunday: [{ id: "nonexistent" }] }, coaching_notes: "n" }; };
         const out = await CR.runWeeklyPlan({ now: sunday, state: { sessions: {}, prs: {}, nutrition: { weights: {} }, weekPlans: {} }, generate: fakeAI, write: async (u) => { wrote = u; } });
         ok("the Sunday cron plans the coming week (Sun Oct 11 -> week of Oct 12, 2026W42, Southpaw)",
-          !out.skipped && called === 1 && wrote?.weekKey === "2026W42" && wrote?.prog === "v4", JSON.stringify(out));
+          !out.skipped && called === 1 && wrote?.weekKey === "2026W42" && wrote?.prog === "v7", JSON.stringify(out));
         ok("the cron keeps only updates whose ids exist in that week's program",
-          wrote?.days?.Monday?.length === 1 && wrote.days.Monday[0].id === "m4_cp" && !wrote.days.Sunday, JSON.stringify(wrote?.days));
+          wrote?.days?.Wednesday?.length === 1 && wrote.days.Wednesday[0].id === "w7_cp" && !wrote.days.Sunday, JSON.stringify(wrote?.days));
         called = 0;
-        const out2 = await CR.runWeeklyPlan({ now: sunday, state: { weekPlans: { "2026W42": { _prog: "v4", Monday: [] } } }, generate: fakeAI, write: async () => {} });
+        const out2 = await CR.runWeeklyPlan({ now: sunday, state: { weekPlans: { "2026W42": { _prog: "v7", Monday: [] } } }, generate: fakeAI, write: async () => {} });
         ok("the cron never overwrites a plan already made for that week", out2.skipped === true && called === 0);
         const VJ = JSON.parse(readFileSync("vercel.json", "utf8"));
         ok("the cron is scheduled for Sunday evening", VJ.crons.some(c => c.path === "/api/cron-weekly-plan" && /^\d+ \d+ \* \* 0$/.test(c.schedule)));
@@ -1707,23 +1707,46 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         // spine. Staged with from:"2026-10-12" so past weeks do not grow.
         // Mon/Fri got an extra SET instead (a new exercise there would train a
         // muscle 24h after or before the same muscle: the recovery rule).
+        // Added on the Southpaw days Tue/Wed/Thu/Sat; from Oct 12 those sessions
+        // sit on Tue/Mon/Sat/Thu (V7 reorder), so check by NAME on the new day.
         const ADDED = { Tuesday: "t4_cbc", Wednesday: "w4_gkb", Thursday: "th4_tex", Saturday: "sa4_slr" };
+        const NEWDAY = { Tuesday: ["Tuesday", "Cable Bicep Curl"], Wednesday: ["Monday", "Cable Glute Kickback"], Thursday: ["Saturday", "Tricep Extension Machine"], Saturday: ["Thursday", "Seated Lateral Raise"] };
         const before = REAL_PROGRAM_FOR(new Date("2026-10-05T12:00:00")), after = REAL_PROGRAM_FOR(new Date("2026-10-12T12:00:00"));
-        const ok1 = Object.entries(ADDED).every(([d, id]) => after[d].exercises.some((e) => e.id === id) && !before[d].exercises.some((e) => e.id === id));
+        const ok1 = Object.entries(ADDED).every(([d, id]) => !before[d].exercises.some((e) => e.id === id) &&
+          after[NEWDAY[d][0]].exercises.some((e) => e.name === NEWDAY[d][1] && e.from === "2026-10-12"));
         ok("the four volume additions appear from Mon Oct 12, never in earlier weeks", ok1);
         const v4Base = new Set(Object.values(REAL_V4).flatMap((d) => d.exercises.filter((e) => !Object.values(ADDED).includes(e.id)).map((e) => e.name)));
-        const added = Object.entries(ADDED).map(([d, id]) => after[d].exercises.find((e) => e.id === id)).filter(Boolean);
+        const added = Object.entries(ADDED).map(([d]) => after[NEWDAY[d][0]].exercises.find((e) => e.name === NEWDAY[d][1] && e.from === "2026-10-12")).filter(Boolean);
         ok("each addition is a movement already in Southpaw (no new pattern for the spine) and passes the spine filter",
           added.length === 4 && added.every((e) => v4Base.has(e.name) && !REAL_IS_BANNED(e.name)));
         const setsAt = (iso, d, id) => REAL_PROGRAM_FOR(new Date(iso + "T12:00:00"))[d].exercises.find((e) => e.id === id)?.sets;
         ok("Mon Chest Press 4 -> 5 sets and Fri Seated Pulldown 3 -> 4 sets from Oct 12, unchanged in earlier weeks",
-          setsAt("2026-10-05", "Monday", "m4_cp") === 4 && setsAt("2026-10-12", "Monday", "m4_cp") === 5 &&
+          setsAt("2026-10-05", "Monday", "m4_cp") === 4 && setsAt("2026-10-14", "Wednesday", "w7_cp") === 5 &&
           setsAt("2026-10-09", "Friday", "f4_spd") === 3 && setsAt("2026-10-16", "Friday", "f4_spd") === 4);
         // Superset partners must be ADJACENT, not just paired: an addition once
         // landed between Seated Calf Raise and its Pallof Press partner.
         const split = [];
         for (const [d, v] of Object.entries(after)) v.exercises.forEach((e, i) => { if (e.ss) { const j = v.exercises.findIndex((x, k) => k !== i && x.ss === e.ss); if (Math.abs(j - i) !== 1) split.push(d + "/" + e.name); } });
         ok(`superset partners sit next to each other${split.length ? " — " + split.join(", ") : ""}`, split.length === 0);
+      }
+      {
+        // V7 (from Oct 12): Southpaw reordered so chest is off Monday.
+        const P = REAL_PROGRAM_FOR(new Date("2026-10-14T12:00:00"));
+        ok("from Oct 12 the week is Legs&Sh · Back&Bi · Chest&Tri · Legs&Core · Back&Bi · Sh&Chest · rest",
+          REAL_PROGRAM_KEY_FOR(new Date("2026-10-12T12:00:00")) === "v7" && REAL_PROGRAM_KEY_FOR(new Date("2026-10-11T12:00:00")) === "v4" &&
+          ["Legs & Shoulders", "Back & Biceps", "Chest & Triceps", "Legs & Core", "Back & Biceps", "Shoulders & Chest"].every((l, i) => P[["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][i]].label === l));
+        ok("no chest on Monday (the busiest gym day)", !/chest/i.test(P.Monday.label) && !P.Monday.exercises.some((e) => /chest|pec fly/i.test(e.name)));
+        const DAYI = { Monday: 0, Tuesday: 1, Wednesday: 2, Thursday: 3, Friday: 4, Saturday: 5 };
+        const daysWith = (rx) => Object.entries(P).filter(([d, v]) => d in DAYI && rx.test(v.label)).map(([d]) => DAYI[d]);
+        const gap = (rx) => { const d = daysWith(rx); return d.length === 2 && d[1] - d[0] === 3; };
+        ok("each muscle group's two sessions are three days apart (legs, chest, back)", gap(/^Legs/) && gap(/Chest/) && gap(/^Back/));
+        ok("Tue/Fri/Sun are unchanged Southpaw days and keep their ids (logged work stays attached)",
+          ["Tuesday", "Friday", "Sunday"].every((d) => JSON.stringify(REAL_V7[d].exercises.map((e) => e.id)) === JSON.stringify(REAL_V4[d].exercises.map((e) => e.id))));
+        const P7 = { Monday: "m7", Wednesday: "w7", Thursday: "th7", Saturday: "sa7" };
+        ok("moved days carry their new day's prefix", Object.entries(P7).every(([d, p]) => REAL_V7[d].exercises.every((e) => e.id.startsWith(p + "_"))));
+        ok("no V7 cue names a weekday that is no longer true", !Object.values(REAL_V7).some((d) => d.exercises.some((e) => /(Mon|Tues|Wednes|Thurs|Fri|Satur)day/.test(e.cue || ""))));
+        ok("a Southpaw id maps to the day that now holds it (w4_lp -> Monday m7_lp, m4_cp -> Wednesday w7_cp)",
+          JSON.stringify(REAL_V4_TO_V7("w4_lp")) === JSON.stringify({ day: "Monday", id: "m7_lp" }) && JSON.stringify(REAL_V4_TO_V7("m4_cp")) === JSON.stringify({ day: "Wednesday", id: "w7_cp" }) && REAL_V4_TO_V7("t4_csr").id === "t4_csr");
       }
       ok("PROG_V6 adds no new exercises: every name is already in Southpaw", v6Names.every(n => v4Names.has(n)));
       ok("PROG_V6 is 5-6 exercises per training day, plus cardio either side",
@@ -2200,7 +2223,7 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
   ok("one shared PR name resolver with a de-slug fallback",
     /ctx\.prName=prName/.test(MAIN2) &&
     /replace\(\/_\/g," "\)/.test(MAIN2) &&
-    /for\(const P of \[PROG,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
+    /for\(const P of \[PROG,PROG_V7,PROG_V6,PROG_V5,PROG_V4,PROG_V3,PROG_V2,PROG_V1\]\)/.test(MAIN2));
   ok("no call site falls back to printing the raw slug",
     !/EX_NAMES\[id\]\|\|\(id\.startsWith/.test(NUT) &&
     !/_prNameMap\[id\]\|\|id/.test(SET) &&
