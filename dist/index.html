@@ -7222,6 +7222,41 @@ if(!S._oct12Fix1){
   S._oct12Fix1=true;
   localStorage.setItem("f5",JSON.stringify(S));
 }
+// Second half of the Oct 12 repair: the merge into Wednesday Oct 7 kept Oct
+// 7's Leg Press / Outer Thigh / Inner Thigh / warm-up (more sets) and DROPPED
+// Oct 12's. The device keeps snapshots taken before each sync (f5_snapshots)
+// and daily backups (f5_daily_*); one taken on Oct 12 after the workout still
+// holds Wednesday_2026W42 as logged. Put back any Oct 12 exercise found there
+// that Monday Oct 12 does not have yet. Only ADDS; never overwrites or deletes.
+if(!S._oct12Recover1){
+  const srcs=[];
+  try{for(const sn of JSON.parse(localStorage.getItem("f5_snapshots")||"[]"))if(sn?.state?.sessions)srcs.push(sn.state.sessions);}catch(_){}
+  for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(k&&k.startsWith("f5_daily_"))try{const st=JSON.parse(localStorage.getItem(k));if(st?.sessions)srcs.push(st.sessions);}catch(_){}}
+  const doneN=e=>(e?.sets||[]).filter(x=>x&&x.done).length;
+  const best={};
+  for(const ses of srcs){
+    const w=ses.Wednesday_2026W42;if(!w||typeof w!=="object")continue;
+    for(const[id,ed]of Object.entries(w)){
+      if(id.startsWith("_")||!/^w4_/.test(id)||!doneN(ed))continue;
+      if(!best[id]||doneN(ed)>doneN(best[id]))best[id]=ed;
+    }
+  }
+  const mon=S.sessions.Monday_2026W42=S.sessions.Monday_2026W42||{};
+  const restored=[];
+  for(const[id,ed]of Object.entries(best)){
+    const to=id.replace(/^w4_/,"m7_");
+    if(doneN(mon[to])>0)continue;
+    mon[to]=JSON.parse(JSON.stringify(ed));
+    queueSession("Monday_2026W42",to);
+    restored.push(id);
+  }
+  if(!Object.keys(mon).length)delete S.sessions.Monday_2026W42;
+  S._oct12Recover1=true;
+  S._oct12Restored=restored;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(restored.length)setTimeout(()=>showToast("Recovered "+restored.length+" exercise"+(restored.length===1?"":"s")+" from Monday Oct 12 ✓"),3500);
+  else setTimeout(()=>showToast("No backup of Monday's leg press found on this device"),3500);
+}
 // One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
 // Monday). The user did Legs & Shoulders on Monday the 12th, which under the
 // old order lived on Wednesday, so this week's (2026W42) sessions and plan

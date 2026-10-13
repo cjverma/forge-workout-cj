@@ -485,6 +485,30 @@ try {
     await page.close();
   }
 
+  // Oct 12's Leg Press / Outer Thigh were DROPPED by the merge (Oct 7's had
+  // more sets). A snapshot saved before an Oct 12 sync still holds them under
+  // Wednesday_2026W42: they must come back to Monday Oct 12, without
+  // overwriting what Monday already has (m7_calf, from the first repair).
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`recover: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-10-13T10:00:00-04:00") });
+    await page.addInitScript(() => {
+      window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      const st = (u, ws) => ({ done: true, unit: u, sets: ws.map(([w, r]) => ({ done: true, reps: String(r), weight: String(w) })) });
+      if (!localStorage.f5) {
+        localStorage.f5 = JSON.stringify({ sessions: { Monday_2026W42: { m7_calf: st("kg", [[51, 12], [51, 12], [51, 12], [51, 12]]) } }, _oct12Fix1: true });
+        localStorage.f5_snapshots = JSON.stringify([{ ts: 1, weight: 1, state: { sessions: { Wednesday_2026W42: {
+          w4_lp: st("kg", [[123, 15], [127, 12]]), w4_hiab: st("kg", [[72, 15], [76, 12]]), w4_calf: st("kg", [[40, 10]]) } } } }]);
+      }
+    });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(900);
+    const r = await page.evaluate(() => { const S = JSON.parse(localStorage.f5); const m = S.sessions.Monday_2026W42; return { keys: Object.keys(m).sort(), calf: m.m7_calf.sets.length, lp: (m.m7_lp?.sets || []).map((x) => x.weight).join() }; });
+    note("Monday's Leg Press / Outer Thigh come back from a pre-sync snapshot, without overwriting Monday's existing sets",
+      r.keys.includes("m7_lp") && r.keys.includes("m7_hiab") && r.lp === "123,127" && r.calf === 4, JSON.stringify(r));
+    await page.close();
+  }
+
   // NOTHING may move logged work automatically. The week repair, re-running
   // after every sync (its flag was never stored server-side), treated a Legs
   // session logged early on the Wednesday Oct 14 screen as "dated in the
