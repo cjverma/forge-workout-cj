@@ -475,7 +475,16 @@ try {
     await page.waitForTimeout(900);
     const on = await page.evaluate(() => ({ stop: document.getElementById("bStop")?.classList.contains("show"), start: !document.getElementById("bStart")?.classList.contains("hide") }));
     note("a running workout survives a reload (iOS unloading the app)", on.stop && !on.start, JSON.stringify(on));
+    // Stop opens the styled sheet (no native confirm); confirm through it.
     await page.evaluate(() => window.stopSess());
+    await page.waitForTimeout(200);
+    const sheet = await page.evaluate(() => ({ shown: document.getElementById("stopModal")?.classList.contains("show"), stats: document.getElementById("stopStats")?.innerText || "" }));
+    note("Stop Workout opens the styled finish sheet with time, sets and exercises (no native dialog)", sheet.shown && /Time/.test(sheet.stats) && /Sets/.test(sheet.stats) && /Exercises/.test(sheet.stats), JSON.stringify(sheet));
+    await page.evaluate(() => window.closeStopSheet());
+    const keptGoing = await page.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
+    note("'Keep going' closes the sheet and the workout keeps running", keptGoing);
+    await page.evaluate(() => window.stopSess());
+    await page.locator("#stopConfirm").click();
     await page.waitForTimeout(300);
     await page.evaluate(() => window.closeSummary?.());
     await page.reload({ waitUntil: "networkidle" });
