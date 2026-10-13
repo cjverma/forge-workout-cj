@@ -311,6 +311,25 @@ if(!S._oct12Recover1){
   if(restored.length)setTimeout(()=>showToast("Recovered "+restored.length+" exercise"+(restored.length===1?"":"s")+" from Monday Oct 12 ✓"),3500);
   else setTimeout(()=>showToast("No backup of Monday's leg press found on this device"),3500);
 }
+// Oct 12's Leg Extension and Leg Press were lost to the merge and were not in
+// any on-device snapshot. Re-entered from the user's own numbers: Leg
+// Extension 68 kg x 15 (a PR: est 102 > 65.8x15 = 99) and Leg Press 280 lbs
+// x 12 (127 kg, est 178: below the 123x21 = 209 record, so no PR). Only adds
+// where Monday has no done sets for that exercise, and only adds the PR once.
+if(!S._oct12Manual1){
+  const mon=S.sessions.Monday_2026W42=S.sessions.Monday_2026W42||{};
+  const has=id=>(mon[id]?.sets||[]).some(x=>x&&x.done);
+  const add=(id,unit,w,r)=>{if(has(id))return false;mon[id]={done:true,skipped:false,unit,sets:[{done:true,reps:String(r),weight:String(w),attempted:true}]};queueSession("Monday_2026W42",id);return true;};
+  add("m7_le","kg",68,15);
+  add("m7_lp","lbs",280,12);
+  const le=(S.prs=S.prs||{}).leg_extension_machine=S.prs.leg_extension_machine||[];
+  if(!le.some(e=>e.date==="2026-10-12"&&Number(e.weight)===68&&Number(e.reps)===15)){
+    const pr={date:"2026-10-12",weight:68,reps:15,est:102};
+    le.push(pr);queueMutation("pr",{exerciseId:"leg_extension_machine",...pr});
+  }
+  S._oct12Manual1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 // One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
 // Monday). The user did Legs & Shoulders on Monday the 12th, which under the
 // old order lived on Wednesday, so this week's (2026W42) sessions and plan
