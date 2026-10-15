@@ -3120,7 +3120,11 @@ const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg
 // "145.1". Pre-filled boxes snap to the nearest 2.5 lbs / 0.5 kg.
 const inUnitLoadable=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG/2.5)*2.5:Math.round(kg*2)/2;
 // Best set by estimated 1RM, so weight AND reps count and every set does.
-const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?epley1RM(s.kg,s.reps):0),0);
+// UNROUNDED Epley for the arrow. epley1RM() rounds to whole kg, which on a
+// light lift erases a rep: 14x10 (18.67) and 14x11 (19.13) both became 19 and
+// showed "=" for a rep fewer. Stored/displayed PRs still use the rounded one.
+const e1rmExact=(kg,r)=>r===1?kg:kg*(1+r/30);
+const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?e1rmExact(s.kg,s.reps):0),0);
 
 // ── OVERLOAD DIRECTION ──
 function overloadDir(exId,sess){
@@ -3136,8 +3140,10 @@ function overloadDir(exId,sess){
   if(!cur.length)return null;
   const now=bestE1RM(cur),then=bestE1RM(last.kgSets);
   if(!then)return null;
-  if(now>then*1.01)return"up";
-  if(now<then*0.99)return"down";
+  // Equal only when it really is the same (float noise aside): one rep more or
+  // less at the same weight must move the arrow. The old 1% band hid it.
+  if(now>then+0.01)return"up";
+  if(now<then-0.01)return"down";
   return"eq";
 }
 
