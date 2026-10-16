@@ -745,6 +745,8 @@ ok("read-only cardio row's cursor style is a real attribute, not text leaked int
 // September 22nd.
 {
   const NUT_SRC2 = readFileSync("src/nutrition.js", "utf8");
+  ok("the goal card's summary chip uses the exact weigh-in comparison, never the old 'In range' band",
+    !/In range/.test(NUT_SRC2) && /else if\(health\)chipBits\.push\(health\.label\);/.test(NUT_SRC2));
   ok("the medication card and its dose schedule are gone", !/zepCardHtml|zepSchedule|logZepDose/.test(NUT_SRC2) && /function dropPR\(cid\)/.test(NUT_SRC2));
 }
 ok("toggleSet reads the live weight/reps inputs by id before checking completeness",
@@ -1051,7 +1053,7 @@ ok("Diet review and weight history render collapsed; phase card collapsed unless
   (!/st-acc" open>\s*<summary><div><div>🥗/.test(HTML) && HTML.includes(`st==="completed"?" open":""`)));
 
 ok("Phase summary carries the live status chip (%, range/paused state, compliance)",
-  HTML.includes("chipBits") && HTML.includes("✓ In range") && HTML.includes("compliance ${comp.overall}%"));
+  HTML.includes("chipBits") && HTML.includes("chipBits.push(health.label)") && HTML.includes("compliance ${comp.overall}%"));
 
 ok("client has manual generate/regenerate button wired with auth + busy guard",
   HTML.includes("generateDietReview") && HTML.includes("dietRevBtn") &&
