@@ -3,14 +3,14 @@ import { kg1 } from "./constants.js";
 import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
-export const USER={birthDate:new Date(1995,7,1),weightKg:140,targetKg:90,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,21)};
+export const USER={birthDate:new Date(1995,7,1),weightKg:128.5,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,2,1)};
 export const ACTIVE_MULT=0.75;
 
 export function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 export function isoToday(){return isoDate(new Date());}
 
-// Fallback when no phase covers a date: date-driven deficit toward 90kg by
-// Feb 21, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
+// Fallback when no phase covers a date: date-driven deficit toward 95kg by
+// Mar 1, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
 
 // ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
@@ -35,12 +35,18 @@ export const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
    eatKcal:1600,restingKcal:2446,activeTargetWorkout:900,activeTargetRest:390},
+  // phase_2 ran Sep 22 -> Oct 15 2026 and is kept as history only: the plan
+  // was replaced on Oct 16 by ONE goal (no phases), so its end is cut there.
   {id:"phase_2",version:2,strategy:"fat_loss",curve:"linear",
-   start:"2026-09-22",plannedEnd:"2026-11-30",startKg:128,targetKg:107,
+   start:"2026-09-22",plannedEnd:"2026-10-15",startKg:128,targetKg:107,
    eatKcal:1600},
-  {id:"phase_3",version:2,strategy:"fat_loss",curve:"linear",
-   start:"2026-12-01",plannedEnd:"2027-02-21",startKg:107,targetKg:90,
-   eatKcal:1600},
+  // THE goal from Oct 16 2026: 128.5 -> 95 kg by Mar 1 2027, one straight line.
+  // 33.5 kg over 136 days = 1,897 kcal/day required deficit (fixed). Eat 1,500
+  // with ~1.8 g/kg protein; the Watch active target is solved DAILY from the
+  // real resting burn, so it rises (~870 -> ~1,250) as resting falls.
+  {id:"goal",name:"Goal · 95 kg by Mar 1",version:3,strategy:"fat_loss",curve:"linear",
+   start:"2026-10-16",plannedEnd:"2027-03-01",startKg:128.5,targetKg:95,
+   eatKcal:1500},
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;

@@ -227,10 +227,21 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
 // was actually built, using the real logged weight as of then, rather than
 // keeping the stale Sep 8 boundary and understating the true remaining rate.
 // Sep 8-21 falls into an accepted gap — see the note on this in phase.js.
-ok("phaseFor boundaries: Jul 27 null · Jul 28 & Sep 7 phase_1 · Sep 8-21 gap (phase_2 now starts Sep 22) · Dec 1 phase_3",
+// Oct 16 2026: phases replaced by ONE goal (128.5 -> 95 kg by Mar 1 2027).
+// phase_2 is kept as history only, cut to Sep 22 -> Oct 15.
+ok("phaseFor boundaries: phase_1 Jul 28-Sep 7 · gap · phase_2 Sep 22-Oct 15 · ONE goal Oct 16-Mar 1",
   E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
   E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
-  E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-12-01")?.id === "phase_3");
+  E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
+  E.phaseFor("2026-10-16")?.id === "goal" && E.phaseFor("2026-12-01")?.id === "goal" &&
+  E.phaseFor("2027-03-01")?.id === "goal" && !E.PHASES.some((p) => p.id === "phase_3"));
+{
+  const G = E.PHASES.find((p) => p.id === "goal");
+  ok("the goal: 128.5 -> 95 kg, Oct 16 2026 -> Mar 1 2027, eat 1,500, ~1,880 kcal/day required deficit",
+    G.startKg === 128.5 && G.targetKg === 95 && G.start === "2026-10-16" && G.plannedEnd === "2027-03-01" &&
+    G.eatKcal === 1500 && Math.abs(E.phaseRequiredDeficit(G) - 1883) <= 20 && G.restingKcal === undefined);
+  ok("the goal's curve lands exactly on 95 kg on Mar 1", Math.abs(E.phaseCurveKg(G, "2027-03-01") - 95) < 0.05);
+}
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
 const pausedS = { nutrition: { weights: {}, days: {} }, phaseRun: { phase_1: { pauses: [{ start: "2026-08-10", resumed: "2026-08-15", extend: true }], completedAt: null, locked: false } } };
@@ -294,8 +305,8 @@ ok("restingFor: phase default 2,446 · per-day override wins",
 // WITHOUT those fields (phase_2/phase_3) computes live from the latest
 // logged weight instead.
 const phase2 = E.PHASES.find(p => p.id === "phase_2");
-const phase3 = E.PHASES.find(p => p.id === "phase_3");
-ok("phase_2/phase_3 omit the flat resting/active fields (dynamic path)",
+const phase3 = E.PHASES.find(p => p.id === "goal");  // the single goal (dynamic, like phase_2)
+ok("phase_2 and the goal omit the flat resting/active fields (dynamic path)",
   phase2.restingKcal === undefined && phase2.activeTargetWorkout === undefined &&
   phase3.restingKcal === undefined && phase3.activeTargetWorkout === undefined);
 
@@ -442,9 +453,9 @@ ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 90 · goalDate Feb 21 2027",
-  HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:90,heightCm:") &&
-  HTML.includes("goalDate:new Date(2027,1,21)"));
+ok("USER.targetKg 95 · goalDate Mar 1 2027",
+  HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:95,heightCm:") &&
+  HTML.includes("goalDate:new Date(2027,2,1)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -625,8 +636,8 @@ ok(`MAX_PROMPT ≥ 4000 (actual: ${MAX_PROMPT})`, MAX_PROMPT >= 4000);
 section("16 · USER.weightKg fallback");
 
 const userLine = HTML.match(/const USER=\{[^}]+\}/)?.[0] || "";
-ok("USER.weightKg is defined as fallback (140)",
-  userLine.includes("weightKg:140"));
+ok("USER.weightKg is defined as fallback (128.5, the goal start)",
+  userLine.includes("weightKg:128.5"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 15b. Active-calorie compliance target adjusts for actual eaten, not the budget
@@ -756,8 +767,8 @@ ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
 // state server-side) — it's a documented, hand-synced mirror, matching how
 // GOALS.targetKg/goalDate already work in this file. Just check it was
 // actually re-synced, not left stale.
-ok("server diet-review cron mirror re-synced (targetKg 90, protein snapshot updated)",
-  /targetKg: 90,/.test(CRON_SRC) && !/targetKg: 95,/.test(CRON_SRC) &&
+ok("server diet-review cron mirror re-synced (targetKg 95 by 2027-03-01, one goal, protein snapshot)",
+  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-03-01"/.test(CRON_SRC) && /ONE goal/.test(CRON_SRC) &&
   /proteinTargetG: 230,/.test(CRON_SRC));
 
 // Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()

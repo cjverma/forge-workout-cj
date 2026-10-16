@@ -688,6 +688,17 @@ try {
     const s1 = await tick(0, "35", "10");   // below last session's 40x10
     const s2 = await tick(1, "45", "10");   // beats it
     note("arrow follows later sets: down after a weaker set 1, up once set 2 beats last session", s1 === "ol-down" && s2 === "ol-up", `set1=${s1} set2=${s2}`);
+    // One rep fewer at the same light weight must read DOWN, not "=": 14x10
+    // vs last session's 14x11 both rounded to a 19 kg estimate and showed equal.
+    const s3 = await page.evaluate((a) => {
+      const S = JSON.parse(localStorage.f5);
+      S.sessions.Tuesday_2026W41[a] = { unit: "kg", done: true, sets: [{ weight: "14", reps: "11", done: true }] };
+      S.sessions.Tuesday_2026W42 = { [a]: { unit: "kg", sets: [{ weight: "14", reps: "10", done: true }] } };
+      localStorage.f5 = JSON.stringify(S); return true;
+    }, exId);
+    await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(700);
+    const light = await page.evaluate((a) => document.querySelector(`#ol-${a} span`)?.className || "none", exId);
+    note("one rep fewer at the same light weight shows down, not equal (14x10 vs 14x11)", light === "ol-down", "arrow=" + light);
     await page.close();
   }
 

@@ -14,9 +14,9 @@ import { kg1 } from "../src/constants.js";
 // no access to logged weight state the way the browser does), so re-sync
 // this number periodically rather than expecting it to track automatically.
 const GOALS = {
-  targetKg: 90,
-  goalDate: "2027-02-21",
-  phase: "Phase 2 (Sep 22 2026 onward, revised for the 90kg goal): 128 -> 107 kg by Nov 30, then Phase 3: 107 -> 90 kg by Feb 21 2027. Eat 1,600 kcal/day fixed. Active-calorie targets are DYNAMIC, not fixed -- they're solved daily from the phase's required deficit and the user's live logged weight (BMR falls as real weight drops), so they rise through the phase rather than sitting at one number. Medication: Zepbound 10mg weekly on Tuesday.",
+  targetKg: 95,
+  goalDate: "2027-03-01",
+  phase: "ONE goal from Oct 16 2026 (no phases): 128.5 -> 95 kg by Mar 1 2027, a straight line, ~1.7 kg/week, ~1,900 kcal/day required deficit. Eat 1,500 kcal/day fixed, protein ~1.8 g/kg. The user accepts an aggressive pace; most of the deficit comes from activity (daily 35-min incline walk after training). Active-calorie targets are DYNAMIC, not fixed -- they're solved daily from the phase's required deficit and the user's live logged weight (BMR falls as real weight drops), so they rise through the phase rather than sitting at one number. Medication: Zepbound 10mg weekly on Tuesday.",
   proteinTargetG: 230,
   fibreTargetG: 38,
   sugarLimitG: 50,
@@ -70,7 +70,7 @@ export function buildPrompt(weekDays, weights) {
 
 Medical context (non-negotiable): ${HARD_RULES}
 
-The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, executed in phases. Current: ${GOALS.phase}. Judge the week against the phase's fixed 1,600 kcal/day eating target and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
+The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, executed as ONE goal with no phases. Current: ${GOALS.phase}. Judge the week against the phase's fixed 1,600 kcal/day eating target and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
 
 Write your feedback with a SANDWICH structure, in this exact order:
 1. Start with 2-3 specific things done WELL this week — name actual foods from the log, not generalities.
