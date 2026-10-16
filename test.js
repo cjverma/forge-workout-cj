@@ -235,6 +235,8 @@ ok("phaseFor boundaries: phase_1 Jul 28-Sep 7 · gap · phase_2 Sep 22-Oct 15 ·
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
   E.phaseFor("2026-10-16")?.id === "goal" && E.phaseFor("2026-12-01")?.id === "goal" &&
   E.phaseFor("2027-03-01")?.id === "goal" && !E.PHASES.some((p) => p.id === "phase_3"));
+ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 days",
+  Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "phase_2")) - 2343) <= 60);
 {
   const G = E.PHASES.find((p) => p.id === "goal");
   ok("the goal: 128.5 -> 95 kg, Oct 16 2026 -> Mar 1 2027, eat 1,500, ~1,880 kcal/day required deficit",
@@ -311,13 +313,23 @@ ok("phase_2 and the goal omit the flat resting/active fields (dynamic path)",
   phase3.restingKcal === undefined && phase3.activeTargetWorkout === undefined);
 
 const loggedMid = mkEngine({ nutrition: { weights: { "2026-10-15": 120 }, days: {} } });
-ok("restingForPhase: dynamic phase computes live BMR from the logged weight, not startKg",
-  loggedMid.restingForPhase(phase2, "2026-10-15") === Math.round(10 * 120 + 6.25 * 190.5 - 5 * 31 + 5) &&
-  loggedMid.restingForPhase(phase2, "2026-10-15") !== Math.round(10 * 128 + 6.25 * 190.5 - 5 * 31 + 5));
+// Oct 2026: an unlogged day no longer uses the formula (~2,300, ~500 too low
+// for this user). It averages the last 5 logged resting values; none -> 2,800.
+ok("restingForPhase: an unlogged day with no resting history uses the 2,800 fallback, not the formula",
+  loggedMid.restingForPhase(phase2, "2026-10-15") === 2800);
+{
+  const days = {};
+  [["2026-10-01", 2700], ["2026-10-02", 2900], ["2026-10-03", 2600], ["2026-10-04", 3000], ["2026-10-05", 2800], ["2026-10-06", 2500], ["2026-10-20", 9999]]
+    .forEach(([d, v]) => (days[d] = { items: [], restingOverride: v }));
+  const avg = mkEngine({ nutrition: { weights: {}, days } });
+  ok("restingForPhase: an unlogged day averages the LAST 5 logged values before it (not later ones)",
+    avg.restingForPhase(phase3, "2026-10-10") === Math.round((2900 + 2600 + 3000 + 2800 + 2500) / 5));
+  ok("restingForPhase: a day's own logged value still wins over the average", avg.restingForPhase(phase3, "2026-10-04") === 3000);
+}
 
 const noLog = mkEngine({ nutrition: { weights: {}, days: {} } });
-ok("restingForPhase: no weigh-in yet falls back to the phase's own startKg",
-  noLog.restingForPhase(phase2, "2026-09-25") === Math.round(10 * 128 + 6.25 * 190.5 - 5 * 31 + 5));
+ok("restingForPhase: no weigh-in and no resting logged falls back to 2,800",
+  noLog.restingForPhase(phase2, "2026-09-25") === 2800);
 
 // The whole point: phaseDayDeficit should stay anchored near
 // phaseRequiredDeficit regardless of which weight is fed in, because
@@ -350,9 +362,11 @@ ok("phase_1's historical figures are unaffected by the dynamic path existing",
 // gap that isn't real — and if hit, overshoots the phase's actual required
 // deficit by the same amount every day.
 {
-  const overridden = mkEngine({ nutrition: { weights: {}, days: { "2026-10-01": { items: [], restingOverride: 2750 } } } });
-  ok("restingForPhase respects a manual resting override, not just the formula",
-    overridden.restingForPhase(phase2, "2026-10-01") === 2750);
+  // 3,000 logged vs the 2,800 no-history default: higher real resting must
+  // lower the solved active target.
+  const overridden = mkEngine({ nutrition: { weights: {}, days: { "2026-10-01": { items: [], restingOverride: 3000 } } } });
+  ok("restingForPhase respects a manual resting override, not just the default",
+    overridden.restingForPhase(phase2, "2026-10-01") === 3000);
   const targetsWith = overridden.phaseActiveTargets(phase2, "2026-10-01");
   const targetsWithout = noLog.phaseActiveTargets(phase2, "2026-10-01");
   ok("a higher real resting figure correctly LOWERS the solved active target",
@@ -411,9 +425,10 @@ ok("verdict bands: 127.5 green · 129.3 yellow · 131 orange · 133 red",
 // "calories" and "active" were proxies measured against hardcoded phase
 // constants; they collapse into one metric measuring the deficit actually
 // produced against what the phase still needs. Their combined 0.55 carries over.
-ok("compliance weights are 50/20/15/5/5/5 and sum to 1",
-  HTML.includes("COMPLIANCE_WEIGHTS={deficit:0.50,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05,streak:0.05}") &&
-  Math.abs(0.50 + 0.20 + 0.15 + 0.05 + 0.05 + 0.05 - 1) < 1e-12);
+// Medication tracking removed (Oct 2026): its 5% moved to the deficit.
+ok("compliance weights are 55/20/15/5/5 (no medication) and sum to 1",
+  HTML.includes("COMPLIANCE_WEIGHTS={deficit:0.55,protein:0.20,workouts:0.15,weighins:0.05,streak:0.05}") &&
+  Math.abs(0.55 + 0.20 + 0.15 + 0.05 + 0.05 - 1) < 1e-12);
 // Streak rewards not breaking the chain, which "workouts" alone does not: you
 // can train 4 of 6 days every week and never build one.
 ok("streak is scored from the workout streak, a full week reading 100",
@@ -422,11 +437,15 @@ ok("streak is scored from the workout streak, a full week reading 100",
 // Renamed on the FRONTEND only. Storage keys keep the real name so dose history
 // is not orphaned, and the AI context keeps it so the GLP-1 class still informs
 // nutrition advice. Only what renders on screen is generic.
-ok("medication reads generically on screen but keeps its real name internally",
-  !/>Zepbound</.test(HTML) && !/'Zepbound'/.test(HTML) &&
-  /compGridItem\('Medication'/.test(HTML) &&
-  /\$\{icon\("syringe",20\)\} Medication/.test(HTML) &&
-  /meds\??\.zepbound/.test(HTML) && /name:"Zepbound"/.test(HTML));
+// The user asked for NO medication tracking and no mentions anywhere: not on
+// screen, not in what syncs, not in any AI prompt. Stored dose rows stay in
+// the database untouched; nothing reads or writes them.
+{
+  const files = ["src/nutrition.js", "src/chat.js", "src/sync.js", "src/settings.js", "src/plan.js", "src/phase.js", "src/main.js", "src/workout.js", "src/constants.js",
+    "api/state.js", "api/mutate.js", "api/_db.js", "api/weekly-plan.js", "api/cron-diet-review.js", "api/coach.js", "api/_shared.js", "api/nutrition.js", "index.html"];
+  const hits = files.filter((f) => /zepbound|tirzepatide|med_dose|S\.meds|medicationCard|>Medication</i.test(readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "")));
+  ok(`no Zepbound / medication tracking anywhere (UI, sync, server, AI prompts)${hits.length ? " — " + hits.join(", ") : ""}`, hits.length === 0);
+}
 ok("compliance is NaN-safe (Calculating placeholder) and caps protein/deficit at 100",
   HTML.includes("calculating:true") && HTML.includes("Calculating…") &&
   /protein:Math\.min\(100/.test(HTML) && /deficit:Math\.min\(100/.test(HTML));
@@ -726,8 +745,7 @@ ok("read-only cardio row's cursor style is a real attribute, not text leaked int
 // September 22nd.
 {
   const NUT_SRC2 = readFileSync("src/nutrition.js", "utf8");
-  ok("same-day overdue reads 'was due by 5 PM today', not 'overdue since <today>'",
-    /overdue\?\(due===today\?"overdue · was due by 5 PM today":`overdue since \$\{fmtDate\(due\)\}`\)/.test(NUT_SRC2));
+  ok("the medication card and its dose schedule are gone", !/zepCardHtml|zepSchedule|logZepDose/.test(NUT_SRC2) && /function dropPR\(cid\)/.test(NUT_SRC2));
 }
 ok("toggleSet reads the live weight/reps inputs by id before checking completeness",
   /document\.getElementById\(`wi-\$\{exId\}-\$\{i\}`\)/.test(WK_TOGGLE) &&

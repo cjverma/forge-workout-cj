@@ -639,10 +639,12 @@ try {
     await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
     const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
     const shown = {
-      quoteCard: quote, medicationCard: /Zepbound|next dose|overdue/i.test(nut), complianceGrid: /This week's compliance/i.test(nut),
+      quoteCard: quote, complianceGrid: /This week's compliance/i.test(nut),
       progressCharts: /Volume This Week|Weekly Calorie Deficit/.test(st), prList: /Personal Records/.test(dr),
     };
     const wrong = Object.entries(shown).filter(([k, v]) => v !== FEATURES[k]).map(([k, v]) => `${k}:${v ? "shown" : "hidden"}`);
+    // Medication tracking is removed outright (not just switched off).
+    note("no medication card or dose schedule anywhere on Nutrition", !/Zepbound|Medication|next dose/i.test(nut));
     note(`each switched-off feature is hidden, each switched-on one shown${wrong.length ? " · " + wrong.join(", ") : ""}`, wrong.length === 0);
     note("the rest of the Insights menu stays (trends, Machine Busy)", /7-Day Trends/.test(dr) && /Machine Busy/.test(dr));
     await page.close();

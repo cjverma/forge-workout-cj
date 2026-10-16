@@ -16,7 +16,7 @@ import { kg1 } from "../src/constants.js";
 const GOALS = {
   targetKg: 95,
   goalDate: "2027-03-01",
-  phase: "ONE goal from Oct 16 2026 (no phases): 128.5 -> 95 kg by Mar 1 2027, a straight line, ~1.7 kg/week, ~1,900 kcal/day required deficit. Eat 1,500 kcal/day fixed, protein ~1.8 g/kg. The user accepts an aggressive pace; most of the deficit comes from activity (daily 35-min incline walk after training). Active-calorie targets are DYNAMIC, not fixed -- they're solved daily from the phase's required deficit and the user's live logged weight (BMR falls as real weight drops), so they rise through the phase rather than sitting at one number. Medication: Zepbound 10mg weekly on Tuesday.",
+  phase: "ONE goal from Oct 16 2026 (no phases): 128.5 -> 95 kg by Mar 1 2027, a straight line, ~1.7 kg/week, ~1,900 kcal/day required deficit. Eat 1,500 kcal/day fixed, protein ~1.8 g/kg. The user accepts an aggressive pace; most of the deficit comes from activity (daily 35-min incline walk after training). Active-calorie targets are DYNAMIC, not fixed -- they're solved daily from the phase's required deficit and the user's live logged weight (BMR falls as real weight drops), so they rise through the phase rather than sitting at one number.",
   proteinTargetG: 230,
   fibreTargetG: 38,
   sugarLimitG: 50,

@@ -240,7 +240,12 @@ eating less: the Watch active target is solved daily from the real resting
 burn (dynamic path, no flat fields), so it rises from ~870 to ~1,250 as weight
 drops. `phase_1` and a cut-short `phase_2` (Sep 22 -> Oct 15) stay as history.
 `USER` is 128.5 / 95 / Mar 1 2027, and `api/cron-diet-review.js` GOALS mirrors
-it. The incline walk is 35 min from Oct 16 (`before:{until,reps}` keeps past
+it. **Resting burn** for a day with nothing logged is `restingDefaultFor()`:
+the average of the last 5 logged resting values on or before that day
+(manual and HealthKit both land in `restingOverride`), else **2,800**. The
+Mifflin formula (~2,300 for this user, ~500 low) is no longer used for it.
+`phase_2` was cut at Oct 15 with targetKg 120.8 so its history keeps its real
+~2,310/day deficit (107 over 24 days made it ~6,700). The incline walk is 35 min from Oct 16 (`before:{until,reps}` keeps past
 weeks at 15). Don't reintroduce phase_3 or a second goal unasked.
 
 ## Known issue: two different "today" (not yet fixed)
@@ -521,11 +526,19 @@ app does, so the week is planned even if the app is never opened.
 
 The user simplified the app (Oct 2026). Hidden, not deleted: data and code
 stay, and setting a flag back to `true` restores the feature. Off: the quote
-card (and its rotation timer), the Zepbound medication card, the "This week's
+card (and its rotation timer), the "This week's
 compliance" grid, Settings' Volume This Week + Progress group, and the
 Personal Records section of the Insights drawer (the rest of that drawer:
 7-day trends, Machine Busy, How Hard stays). `verify-runtime.mjs` checks the
 rendered UI matches every flag. Don't re-add hidden features unasked.
+
+**Medication (Zepbound) tracking is REMOVED, not switched off** (Oct 2026, the
+user's request: "no Zepbound tracking, remove all mentions"). Gone from the UI,
+the compliance score (its 5% went to the deficit: 55/20/15/5/5), sync
+(`api/state.js` no longer returns `meds`), the mutations, the schema, the AI
+chat context and every AI prompt. The `med_doses` table and its rows are left
+in the database untouched; nothing reads or writes them. `node test.js` fails
+if zepbound / tirzepatide / med_dose / S.meds reappears anywhere.
 
 ## Calf twinge makes the session note mandatory
 

@@ -37,8 +37,11 @@ export const PHASES=[
    eatKcal:1600,restingKcal:2446,activeTargetWorkout:900,activeTargetRest:390},
   // phase_2 ran Sep 22 -> Oct 15 2026 and is kept as history only: the plan
   // was replaced on Oct 16 by ONE goal (no phases), so its end is cut there.
+  // targetKg is the ORIGINAL line's value on Oct 15 (128 -> 107 over Sep 22 ->
+  // Nov 30, 70 days inclusive = 2,310/day; 120.8 over these 24 days matches), so
+  // the cut-short history keeps its real deficit. 107 made it ~6,700/day.
   {id:"phase_2",version:2,strategy:"fat_loss",curve:"linear",
-   start:"2026-09-22",plannedEnd:"2026-10-15",startKg:128,targetKg:107,
+   start:"2026-09-22",plannedEnd:"2026-10-15",startKg:128,targetKg:120.8,
    eatKcal:1600},
   // THE goal from Oct 16 2026: 128.5 -> 95 kg by Mar 1 2027, one straight line.
   // 33.5 kg over 136 days = 1,897 kcal/day required deficit (fixed). Eat 1,500
@@ -132,7 +135,18 @@ export function restingForPhase(p,dateIso){
   // compensate for a gap that isn't real, and — if hit — overshoots the
   // phase's actual required deficit by the same amount every day.
   const ovr=phaseStore().nutrition?.days?.[dateIso]?.restingOverride;
-  return ovr!=null?ovr:calcBMR(latestWeightLog()||p.startKg);
+  return ovr!=null?ovr:restingDefaultFor(dateIso);
+}
+// Resting burn for a day with nothing logged: the average of the user's last
+// 5 logged resting values (manual or HealthKit, both land in restingOverride)
+// on or before that day, else 2,800 (their measured figure). The formula
+// (Mifflin-St Jeor, ~2,300 for them) understated it by ~500 kcal, which
+// inflated every solved active target. Oct 2026, the user's choice.
+export const RESTING_FALLBACK=2800;
+export function restingDefaultFor(dateIso){
+  const days=phaseStore().nutrition?.days||{};
+  const vals=Object.keys(days).filter(d=>d<=dateIso&&days[d]?.restingOverride!=null).sort().slice(-5).map(d=>Number(days[d].restingOverride)).filter(Number.isFinite);
+  return vals.length?Math.round(vals.reduce((a,b)=>a+b,0)/vals.length):RESTING_FALLBACK;
 }
 // Active-calorie target for a specific phase+date, split workout/rest. A
 // phase with authored activeTargetWorkout/Rest (phase_1, historical) returns
@@ -194,7 +208,7 @@ export function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,d
 export function restingFor(dateIso,dayData){
   if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;
   const p=phaseFor(dateIso);
-  return p?restingForPhase(p,dateIso):calcBMR(latestWeightLog()||USER.weightKg);
+  return p?restingForPhase(p,dateIso):restingDefaultFor(dateIso);
 }
 export function sevenDayAvg(dateIso){
   const S=phaseStore();
