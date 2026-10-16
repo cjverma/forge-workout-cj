@@ -230,6 +230,19 @@ twice (another device, cleared storage): make it a no-op on already-fixed data.
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
 
+## The weight goal: ONE goal, no phases (from Oct 16 2026)
+
+`PHASES` in `src/phase.js` ends in a single entry `id:"goal"`: **128.5 kg on
+Oct 16 2026 -> 95 kg by Mar 1 2027**, linear, eat **1,500 kcal**, ~1,883
+kcal/day required deficit (~1.7 kg/week). The user asked for this pace
+explicitly ("no matter how aggressive"); it is carried by activity, not by
+eating less: the Watch active target is solved daily from the real resting
+burn (dynamic path, no flat fields), so it rises from ~870 to ~1,250 as weight
+drops. `phase_1` and a cut-short `phase_2` (Sep 22 -> Oct 15) stay as history.
+`USER` is 128.5 / 95 / Mar 1 2027, and `api/cron-diet-review.js` GOALS mirrors
+it. The incline walk is 35 min from Oct 16 (`before:{until,reps}` keeps past
+weeks at 15). Don't reintroduce phase_3 or a second goal unasked.
+
 ## Known issue: two different "today" (not yet fixed)
 
 The app disagrees with itself about which calendar day it is:
