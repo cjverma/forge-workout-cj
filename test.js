@@ -1733,6 +1733,53 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         ok("the cron is scheduled for Sunday evening", VJ.crons.some(c => c.path === "/api/cron-weekly-plan" && /^\d+ \d+ \* \* 0$/.test(c.schedule)));
       }
       {
+        // The weekly email is a REPORT now, not "your CSV is attached": verdict
+        // vs the goal line, weight trend, intake/protein/deficit vs target,
+        // sessions + volume + PRs vs last week, and a focus list for next week.
+        // Seeded with one full goal-phase week (Oct 19-25) and sent Mon Oct 26.
+        const { buildWeeklyReport } = await import("./api/_weeklyReport.js");
+        const { weekKeyOf, DAYS: RD } = await import("./src/constants.js");
+        const RT = await import("./src/runtime.js");
+        const iso = (d) => d.toISOString().slice(0, 10);
+        const S = { sessions: {}, prs: {}, custom: {}, nutrition: { days: {}, weights: {} } };
+        for (let i = 0; i < 18; i++) { const d = new Date(Date.UTC(2026, 9, 8 + i)); S.nutrition.weights[iso(d)] = 128.6 - i * 0.25 + 0.00000001; }
+        for (let i = 0; i < 6; i++) S.nutrition.days[iso(new Date(Date.UTC(2026, 9, 19 + i)))] = { items: [{ name: "x", kcal: 1450, protein: 200 }], active: 900, restingOverride: 2800 };
+        let firstName = null;
+        for (let i = 0; i < 5; i++) {   // Mon-Fri trained, Sat skipped
+          const d = new Date(Date.UTC(2026, 9, 19 + i, 12)), day = RD[i];
+          const ex = REAL_PROGRAM_FOR(d)[day].exercises.filter((e) => e.cat === "gym");
+          const sess = {};
+          for (const e of ex) sess[e.id] = { sets: [{ weight: 40, reps: 10, done: true }, { weight: 40, reps: 9, done: true }] };
+          if (i === 2) { sess._notes = "Left calf tight on the walk"; sess._calfTwinges = [Date.now()]; }
+          S.sessions[day + "_" + weekKeyOf(new Date(iso(d) + "T12:00:00"))] = sess;
+          if (i === 0) firstName = ex[0].name;
+        }
+        S.prs.seated_leg_curl = [{ date: "2026-10-01", weight: 60, reps: 12, est: 84 }, { date: "2026-10-21", weight: 65, reps: 12, est: 91 }];
+        const before = RT.ctx.getS;
+        const rep = buildWeeklyReport({ state: S, now: new Date("2026-10-26T12:00:00Z") });
+        const x = rep.data, all = rep.subject + rep.html + rep.text;
+        ok("the weekly report covers last Mon-Sun when sent on Monday", x.mon === "2026-10-19" && x.today === "2026-10-25", x.mon + " " + x.today);
+        ok("the report subject carries weight, vs-the-line and sessions",
+          /^FORGE week of Oct 19 · 124\.4 kg · \d+\.\d kg (ahead|behind) · 5\/6 sessions$/.test(rep.subject), rep.subject);
+        ok("the report verdict is measured against the one goal line to 95 kg", /the line to 95 kg/.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
+        ok("the report scores nutrition against the goal (1,500 kcal, 1,883 deficit)",
+          x.eatTarget === 1500 && x.req === 1883 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report lists missed sessions and missing food logs in the focus list",
+          x.focus.some((f) => /Training: Sat missed/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
+        ok("the report shows the PR with its gain over the previous best",
+          x.prs.length === 1 && x.prs[0].name === "Seated Leg Curl" && x.prs[0].gain === 7 && /Seated Leg Curl/.test(rep.html), JSON.stringify(x.prs));
+        ok("the report carries session notes and calf twinges", /Left calf tight on the walk/.test(rep.html) && /1 calf twinge/.test(rep.html));
+        ok("the report has a projected finish once there are enough weigh-ins", x.proj?.status === "ok");
+        ok("the report has no em dash, raw float noise, undefined, NaN or medication",
+          !all.includes("—") && !/00000/.test(all) && !/undefined|NaN|zepbound|tirzepatide/i.test(all));
+        ok("the report restores ctx.getS after building", RT.ctx.getS === before);
+        const EM = readFileSync("api/cron-weekly-email.js", "utf8");
+        ok("the weekly email sends the report as html + text with the CSV still attached",
+          /buildWeeklyReport\(\{ state: S \}\)/.test(EM) && /html: rep\.html/.test(EM) && /text: rep\.text/.test(EM) && /subject: rep\.subject/.test(EM) && /attachments: \[\{ filename, content \}\]/.test(EM));
+        ok("the weekly email goes out Monday morning, after the week is complete",
+          JSON.parse(readFileSync("vercel.json", "utf8")).crons.some(c => c.path === "/api/cron-weekly-email" && c.schedule === "0 12 * * 1"));
+      }
+      {
         // Six volume additions (Oct 12): one per training day, each a movement
         // the user already does on another Southpaw day, so nothing new for the
         // spine. Staged with from:"2026-10-12" so past weeks do not grow.

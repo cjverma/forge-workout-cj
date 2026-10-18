@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron-weekly-email",
-      "schedule": "0 20 * * 0"
+      "schedule": "0 12 * * 1"
     },
     {
       "path": "/api/cron-diet-review",

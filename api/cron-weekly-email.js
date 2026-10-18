@@ -1,6 +1,8 @@
-// Vercel Cron: runs every Sunday at 20:00 UTC (~1:30 AM IST Monday)
-// Reads state from Postgres, builds CSV, emails to recipient via Resend.
+// Vercel Cron: runs every Monday at 12:00 UTC (8 AM Toronto, 7 AM in winter).
+// Reads state from Postgres, builds the weekly report for the week that just
+// ended (api/_weeklyReport.js) plus the CSV export, emails it via Resend.
 import { assembleState } from "./state.js";
+import { buildWeeklyReport } from "./_weeklyReport.js";
 import { EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, PR_ALIAS, prSlug, kg1 } from "../src/constants.js";
 
 const RECIPIENT = "chiranjay.verma@gmail.com";
@@ -131,6 +133,7 @@ export default async function handler(req, res) {
   if (!S) return res.status(503).json({ error: "No synced state found — sync from the app first" });
 
   const csv = buildCSV(S);
+  const rep = buildWeeklyReport({ state: S });
   const date = new Date().toISOString().slice(0, 10);
   const filename = `forge-weekly-${date}.csv`;
   // base64-encode (Node Buffer available in Vercel serverless)
@@ -142,8 +145,9 @@ export default async function handler(req, res) {
     body: JSON.stringify({
       from: "FORGE <onboarding@resend.dev>",
       to: [RECIPIENT],
-      subject: `FORGE Weekly Summary — ${date}`,
-      text: "Your weekly FORGE data export is attached. Keep pushing! 💪",
+      subject: rep.subject,
+      html: rep.html,
+      text: rep.text,
       attachments: [{ filename, content }],
     }),
   });

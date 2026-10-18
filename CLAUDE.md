@@ -502,6 +502,18 @@ an existing endpoint (e.g. a new `entity` in `api/mutate.js`, a new branch in
 an existing cron) rather than a new file, unless the user moves to Vercel Pro.
 Check `ls api | grep -vc '^_'` before adding anything under `api/`.
 
+## The weekly email is a report (`api/_weeklyReport.js`)
+
+`api/cron-weekly-email.js` runs **Monday 12:00 UTC** (8 AM Toronto) and sends
+`buildWeeklyReport({ state })`: a verdict vs the goal line, weight trend and
+projected finish, intake/protein/deficit/active vs target, the session strip,
+sets and volume vs the same days last week, PRs with their gain, session notes,
+and a rule-based "focus for next week" list. The CSV is still attached. It
+covers COMPLETE days only (the week containing yesterday), so a half-logged
+day never skews the averages. Every number comes from `src/phase.js`, the same
+engine as the app; the builder is pure and `_`-prefixed (not a function, see
+the 12-function limit) and is tested with a seeded week in `test.js`.
+
 ## The weekly plan is built in ONE place (`src/plan.js`)
 
 `src/plan.js` holds everything the plan needs: `planMonFor`, the payload
