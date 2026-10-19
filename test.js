@@ -1759,16 +1759,17 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         const rep = buildWeeklyReport({ state: S, now: new Date("2026-10-26T12:00:00Z") });
         const x = rep.data, all = rep.subject + rep.html + rep.text;
         ok("the weekly report covers last Mon-Sun when sent on Monday", x.mon === "2026-10-19" && x.today === "2026-10-25", x.mon + " " + x.today);
-        ok("the report subject carries weight, vs-the-line and sessions",
-          /^FORGE week of Oct 19 · 124\.4 kg · \d+\.\d kg (ahead|behind) · 5\/6 sessions$/.test(rep.subject), rep.subject);
-        ok("the report verdict is measured against the one goal line to 95 kg", /the line to 95 kg/.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
+        ok("the report subject is plain: no weight or stats in it",
+          rep.subject === "Your FORGE week · Oct 19 to Oct 25" && !/kg|\d\/\d/.test(rep.subject), rep.subject);
+        ok("the email is short: three tiles, at most three focus items, no detail tables",
+          (rep.html.match(/<li /g) || []).length <= 3 && (rep.html.match(/width="33%"/g) || []).length === 3 && !/Resting burn|Average deficit/.test(rep.html));
+        ok("the report verdict is measured against the one goal plan to 95 kg", /ahead of plan\. On track for 95 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
         ok("the report scores nutrition against the goal (1,500 kcal, 1,883 deficit)",
           x.eatTarget === 1500 && x.req === 1883 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("the report lists missed sessions and missing food logs in the focus list",
-          x.focus.some((f) => /Training: Sat missed/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
+          x.focus.some((f) => /Missed: Sat\./.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
           x.prs.length === 1 && x.prs[0].name === "Seated Leg Curl" && x.prs[0].gain === 7 && /Seated Leg Curl/.test(rep.html), JSON.stringify(x.prs));
-        ok("the report carries session notes and calf twinges", /Left calf tight on the walk/.test(rep.html) && /1 calf twinge/.test(rep.html));
         ok("the report has a projected finish once there are enough weigh-ins", x.proj?.status === "ok");
         ok("the report has no em dash, raw float noise, undefined, NaN or medication",
           !all.includes("—") && !/00000/.test(all) && !/undefined|NaN|zepbound|tirzepatide/i.test(all));

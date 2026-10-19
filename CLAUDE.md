@@ -505,10 +505,11 @@ Check `ls api | grep -vc '^_'` before adding anything under `api/`.
 ## The weekly email is a report (`api/_weeklyReport.js`)
 
 `api/cron-weekly-email.js` runs **Monday 12:00 UTC** (8 AM Toronto) and sends
-`buildWeeklyReport({ state })`: a verdict vs the goal line, weight trend and
-projected finish, intake/protein/deficit/active vs target, the session strip,
-sets and volume vs the same days last week, PRs with their gain, session notes,
-and a rule-based "focus for next week" list. The CSV is still attached. It
+`buildWeeklyReport({ state })`. The user asked for it SHORT and for a plain
+subject (no weight or stats in it): a one-line verdict vs the goal plan, three
+tiles (weight change, workouts, calories/day), a progress bar, the Mon-Sun
+strip, up to three PRs and at most three "next week" items (ordered by impact).
+Don't grow it back into tables; detail lives in the app and the attached CSV. It
 covers COMPLETE days only (the week containing yesterday), so a half-logged
 day never skews the averages. Every number comes from `src/phase.js`, the same
 engine as the app; the builder is pure and `_`-prefixed (not a function, see
