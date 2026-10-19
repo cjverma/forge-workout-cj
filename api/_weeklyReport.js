@@ -205,7 +205,12 @@ function tile(label, value, sub, col) {
     <div style="font-size:11px;color:${C.dim};margin-top:2px">${esc(sub)}</div></div></td>`;
 }
 const section = (title, body) => `<tr><td style="padding:16px 22px 0"><div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:${C.moss};margin-bottom:8px">${esc(title)}</div>${body}</td></tr>`;
-const bar = (pct, col) => `<div style="background:${C.line};border-radius:99px;height:8px;overflow:hidden"><div style="width:${Math.max(0, Math.min(100, pct))}%;background:${col};height:8px"></div></div>`;
+// Drawn with BORDERS, not backgrounds. The Gmail app dropped every background
+// (the bar vanished in both themes, the dark header went white-on-white in
+// light mode and its white text turned grey in dark). Borders survive both
+// Gmail's light rendering and its dark-mode colour inversion.
+const bar = (pct, col) => { const p = Math.max(1, Math.min(99, Math.round(pct)));
+  return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr><td width="${p}%" style="border-top:8px solid ${col};font-size:0;line-height:0">&nbsp;</td><td width="${100 - p}%" style="border-top:8px solid ${C.line};font-size:0;line-height:0">&nbsp;</td></tr></table>`; };
 
 // Ideal (the plan's line for that day) next to the actual weigh-in, so the
 // verdict's "ahead/behind" is visible as two numbers rather than a claim.
@@ -227,9 +232,9 @@ function renderHtml(x) {
   return `<!doctype html><html><body style="margin:0;padding:0;background:#F4F4F5;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F5"><tr><td align="center" style="padding:16px 8px">
 <table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#FFFFFF;border-radius:14px;overflow:hidden">
-<tr><td style="background:${C.hero};padding:22px">
-  <div style="font-size:12px;letter-spacing:2px;color:${C.volt};font-weight:700">FORGE · WEEK OF ${dShort(x.mon).toUpperCase()}</div>
-  <div style="font-size:21px;font-weight:700;color:#FFFFFF;margin-top:10px;line-height:1.3">${esc(x.verdict)}</div>
+<tr><td style="border-top:6px solid ${C.volt};padding:20px 22px 4px">
+  <div style="font-size:12px;letter-spacing:2px;color:${C.moss};font-weight:700">FORGE · WEEK OF ${dShort(x.mon).toUpperCase()}</div>
+  <div style="font-size:21px;font-weight:700;color:${C.ink};margin-top:8px;line-height:1.3">${esc(x.verdict)}</div>
 </td></tr>
 <tr><td style="padding:12px 17px 0"><table width="100%" cellpadding="0" cellspacing="0"><tr>
   ${tile("Weight", x.weekChange != null ? `${sgn(x.weekChange)} kg` : "·", x.latest != null ? `now ${x.latest} kg` : "no weigh-in", x.weekChange != null && x.weekChange < 0 ? C.good : C.warn)}

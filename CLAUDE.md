@@ -516,7 +516,11 @@ subject (no weight or stats in it): a one-line verdict vs the goal plan, three
 tiles (weight change, workouts, calories/day), ideal (plan line) vs actual
 weight, a progress bar, the Mon-Sun
 strip, up to three PRs and at most three "next week" items (ordered by impact).
-Don't grow it back into tables; detail lives in the app and the attached CSV. It
+Don't grow it back into tables; detail lives in the app and the attached CSV.
+**Never rely on a background colour in the email.** The Gmail app dropped every
+background: the dark header went white-on-white in light mode, its white text
+turned grey under dark-mode inversion, and the progress bar vanished. Text is
+dark on the white card, the brand stripe and the bar are BORDERS. Tested. It
 covers COMPLETE days only (the week containing yesterday), so a half-logged
 day never skews the averages. Every number comes from `src/phase.js`, the same
 engine as the app; the builder is pure and `_`-prefixed (not a function, see

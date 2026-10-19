@@ -1776,6 +1776,10 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           !all.includes("—") && !/00000/.test(all) && !/undefined|NaN|zepbound|tirzepatide/i.test(all));
         ok("the report shows ideal (plan) weight next to actual weight",
           /Ideal weight on Oct 25/.test(rep.html) && rep.html.includes(`${x.vs.expected} kg`) && rep.html.includes(`${x.vs.kg} kg`) && /Ideal weight .* · actual /.test(rep.text));
+        // The Gmail app drops backgrounds: anything that needs one to be
+        // readable or visible (white text, a background-filled bar) fails there.
+        ok("the email needs no background to be readable: no white text, the bar is drawn with borders",
+          !/color:#FFFFFF/i.test(rep.html) && /border-top:8px solid/.test(rep.html) && !/height:8px;overflow:hidden/.test(rep.html));
         ok("the report restores ctx.getS after building", RT.ctx.getS === before);
         const EM = readFileSync("api/cron-weekly-email.js", "utf8");
         ok("the weekly email sends the report as html + text with the CSV still attached",
