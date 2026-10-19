@@ -659,7 +659,18 @@ ctx.isPast=isPast;
 ctx.isFuture=isFuture;
 ctx.isPastDay=isPastDay;
 ctx.isReadOnly=isReadOnly;
-ctx.trainedOn=trainedOn;
+// ?demo=streak previews the week streak with 4 fake past weeks (Mon-Fri)
+// layered over the real log. DISPLAY ONLY: it swaps the trainedOn the streak
+// reads, writes nothing to S, and checkMilestones skips its longestStreak
+// write so the fake run can never reach the database. Drop the query to exit.
+const DEMO_STREAK=typeof location!=="undefined"&&/[?&]demo=streak\b/.test(location.search||"");
+ctx.demoStreak=DEMO_STREAK;
+ctx.trainedOn=DEMO_STREAK?(iso=>{
+  if(trainedOn(iso))return true;
+  const t=isoToday(),dow=new Date(t+"T12:00:00Z").getUTCDay(),mon=addDaysIso(t,dow===0?-6:1-dow);
+  const wd=new Date(iso+"T12:00:00Z").getUTCDay();
+  return iso<mon&&iso>=addDaysIso(mon,-28)&&wd>=1&&wd<=5;
+}):trainedOn;
 ctx.rememberCustom=rememberCustom;
 ctx.weekLabel=weekLabel;
 ctx.isBannedExercise=isBannedExercise;

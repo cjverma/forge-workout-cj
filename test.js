@@ -1364,6 +1364,11 @@ ok("the badge reads in weeks, with this week's progress",
   /\$\{weeks\} week streak/.test(WORKOUT) && /\$\{thisWeek\}\/\$\{need\} this week/.test(WORKOUT) && !/ day streak/.test(WORKOUT));
 // longestStreak used to be stored in days; it is recomputed in weeks from the
 // log so the old figure can't read as "best 23 weeks".
+// The ?demo=streak preview must never write: fake weeks reaching the
+// database would become the real longest streak on every device.
+ok("the streak demo is display-only (no longestStreak write, no toast)",
+  /if\(!ctx\.demoStreak&&longest!==/.test(WORKOUT) && /if\(!ctx\.demoStreak&&thisWeek===need\)/.test(WORKOUT) &&
+  /ctx\.trainedOn=DEMO_STREAK\?/.test(readFileSync("src/main.js", "utf8")));
 ok("the longest streak is recomputed in weeks, not accumulated",
   /const longest=longestWeekStreak\(\);/.test(WORKOUT) && /S\.milestones\.longestStreak=longest;/.test(WORKOUT));
 

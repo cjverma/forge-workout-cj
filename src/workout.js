@@ -1501,9 +1501,9 @@ function checkMilestones(){
   // ── streak: update longest + fire 3-day toast ──
   const {weeks,thisWeek,need}=currentStreak();
   const longest=longestWeekStreak();
-  if(longest!==(S.milestones.longestStreak||0)){S.milestones.longestStreak=longest;save();queueMilestones();}
+  if(!ctx.demoStreak&&longest!==(S.milestones.longestStreak||0)){S.milestones.longestStreak=longest;save();queueMilestones();}
   // Once per week, the moment this week starts counting toward the streak.
-  if(thisWeek===need){let seen=null;try{seen=localStorage.getItem("f5_streak_toast");}catch(_){}
+  if(!ctx.demoStreak&&thisWeek===need){let seen=null;try{seen=localStorage.getItem("f5_streak_toast");}catch(_){}
     if(seen!==wkKey){try{localStorage.setItem("f5_streak_toast",wkKey);}catch(_){}showToastBig(`🔥 ${need} workouts this week. ${weeks} week streak!`);}}
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
