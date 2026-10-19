@@ -1093,7 +1093,7 @@ ok("all Barlow faces pre-cached in sw.js for offline",
   SW.includes("/fonts/barlow-condensed-700.woff2"));
 
 ok("sw.js cache version bumped past v15 so clients pick up the new fonts",
-  /const V = "forge-v(1[6-9]|[2-9]\d)"/.test(SW));
+  /const V = "forge-v(1[6-9]|[2-9]\d|[1-9]\d{2,})"/.test(SW));
 
 // Preload: only the two first-paint faces, and crossorigin is mandatory even
 // same-origin — without it the browser fetches each font file twice.
