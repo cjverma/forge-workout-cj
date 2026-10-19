@@ -243,6 +243,30 @@ try {
     note("auto-plan runs once: a plan already in place is never regenerated", calls === 1, "calls=" + calls);
     await page.close();
   }
+  // The streak counts WEEKS: 5 trained days in a Mon-Sun week keep it, one
+  // missed day doesn't reset it, and the week in progress can't break it.
+  // trainedOn is stubbed so this tests the counting rule, not the session log.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 1200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`streak: ${e.message}`));
+    await page.clock.setFixedTime(new Date("2026-10-21T12:00:00-04:00"));   // Wed
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(1000);
+    const r = await page.evaluate(() => {
+      const F = globalThis.__forge, real = F.trainedOn;
+      const run = (days) => { const set = new Set(days); F.trainedOn = (iso) => set.has(iso); const out = F.currentStreak(); F.trainedOn = real; return out; };
+      return {
+        // Oct 5-11: Mon-Sat (6). Oct 12-18: Mon,Tue,Thu,Fri,Sat (5, Wed missed). This week: Mon,Tue.
+        two: run(["2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-10","2026-10-12","2026-10-13","2026-10-15","2026-10-16","2026-10-17","2026-10-19","2026-10-20"]),
+        // Oct 12-18 with only 4: the streak is over, this week's progress remains.
+        broken: run(["2026-10-05","2026-10-06","2026-10-07","2026-10-08","2026-10-09","2026-10-12","2026-10-13","2026-10-15","2026-10-16","2026-10-19"]),
+      };
+    });
+    note("a week with 5 workouts keeps the streak (one missed day doesn't reset it)", r.two.weeks === 2 && r.two.thisWeek === 2 && r.two.need === 5, JSON.stringify(r.two));
+    note("a finished week under 5 workouts ends the streak", r.broken.weeks === 0 && r.broken.thisWeek === 1, JSON.stringify(r.broken));
+    await page.close();
+  }
   // A plan stamped for another program does not count as planned: it would be
   // refused at apply time, so auto-plan replaces it instead of leaving the
   // week unplanned. Mon 5 Oct 2026 (Southpaw, v4) with a stale v6 plan.

@@ -226,6 +226,12 @@ of the repair section in `src/main.js`) copies every `S._x === true` into the
 new repair must sit ABOVE `persistOnceFlags()`. Assume a repair can still run
 twice (another device, cleared storage): make it a no-op on already-fixed data.
 
+**The streak counts WEEKS** (user's rule): a Mon-Sun week with 5 trained days
+(`STREAK_WEEK_MIN`, or fewer if the program plans fewer) keeps it alive, so one
+missed day no longer resets it. The week in progress only counts once it
+qualifies and never breaks it. `S.milestones.longestStreak` is in weeks,
+recomputed from the log by `longestWeekStreak()` (it used to hold days).
+
 `isProgramRestDay` means "no GYM work" (like `isGymRestDay`): Sunday carries a
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
@@ -507,7 +513,8 @@ Check `ls api | grep -vc '^_'` before adding anything under `api/`.
 `api/cron-weekly-email.js` runs **Monday 12:00 UTC** (8 AM Toronto) and sends
 `buildWeeklyReport({ state })`. The user asked for it SHORT and for a plain
 subject (no weight or stats in it): a one-line verdict vs the goal plan, three
-tiles (weight change, workouts, calories/day), a progress bar, the Mon-Sun
+tiles (weight change, workouts, calories/day), ideal (plan line) vs actual
+weight, a progress bar, the Mon-Sun
 strip, up to three PRs and at most three "next week" items (ordered by impact).
 Don't grow it back into tables; detail lives in the app and the attached CSV. It
 covers COMPLETE days only (the week containing yesterday), so a half-logged

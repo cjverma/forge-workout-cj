@@ -336,7 +336,7 @@ export function renderW(){
     </div>`:"";})():""}
     ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
     <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const {days:streak}=currentStreak();const longest=S.milestones.longestStreak||0;return streak>=1?`<div class="hero-streak">${icon("flame",18)} ${streak} day streak${longest>streak?` · best ${longest}`:""}</div>`:"";})()} `}
+    ${(()=>{const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;const bits=[];if(weeks>=1)bits.push(`${weeks} week streak`);if(thisWeek<need&&(weeks>=1||thisWeek>0))bits.push(`${thisWeek}/${need} this week`);if(weeks>=1&&longest>weeks)bits.push(`best ${longest}`);return bits.length?`<div class="hero-streak">${icon("flame",18)} ${bits.join(" · ")}</div>`:"";})()} `}
   </div>`;
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
@@ -1461,45 +1461,50 @@ function isProgramRestDay(iso){
   return !(programFor(d)[day]?.exercises||[]).some(e=>e.cat==="gym");
 }
 
-// Walks back from today and returns both numbers the UI needs:
-//   days     — what the badge shows. Rest days COUNT, because resting on a
-//              scheduled rest day is following the program, not missing it.
-//   sessions — actual workouts in that run, used for milestones so "3 days in
-//              a row" can't fire off two workouts plus a rest day.
+// The streak counts WEEKS, not days (the user's rule, Oct 2026): a Mon-Sun
+// week keeps it alive once it has STREAK_WEEK_MIN trained days. A single
+// missed day used to reset weeks of consistency to zero on a 6-day plan.
+//   weeks    — completed qualifying weeks in a row, plus this week once it
+//              qualifies. The week in progress never breaks the streak: it
+//              only counts or doesn't, so the badge can't vanish on Monday.
+//   thisWeek — trained days so far this week, need — what this week needs.
+// A week the program schedules fewer training days for (a deload) needs only
+// as many as it plans, so following the program always keeps the streak.
+const STREAK_WEEK_MIN=5;
+function shiftIso(iso,n){const d=new Date(iso+"T12:00:00");d.setDate(d.getDate()+n);return isoDate(d);}
+function weekTrainCount(mon){
+  let n=0,plan=0;
+  for(let i=0;i<7;i++){const iso=shiftIso(mon,i);if(!isProgramRestDay(iso))plan++;if(ctx.trainedOn(iso))n++;}
+  return{n,need:Math.max(1,Math.min(STREAK_WEEK_MIN,plan))};
+}
+function weekQualifies(mon){const r=weekTrainCount(mon);return r.n>=r.need;}
 function currentStreak(){
-  const today=isoToday();
-  let days=0,sessions=0,pendingRest=0;
-  for(let i=0;i<365;i++){
-    const d=new Date(today+"T12:00:00");
-    d.setDate(d.getDate()-i);
-    const iso=isoDate(d);
-    if(isProgramRestDay(iso)){
-      // Buffered, not counted yet. A rest day may only EXTEND a streak that an
-      // older session already established, never start one — otherwise a fresh
-      // install would read "1 day streak" just for opening the app on a
-      // Wednesday, and a trailing rest day would pad the run by one.
-      pendingRest++;
-      continue;
-    }
-    if(ctx.trainedOn(iso)){
-      days+=pendingRest+1;pendingRest=0;sessions++;
-      continue;
-    }
-    // Today not being logged yet is an unfinished day, not a broken streak.
-    // Without this the badge vanished every morning until the first set.
-    if(i===0)continue;
-    break;
-  }
-  return{days,sessions};
+  const mon=mondayOf(isoToday());
+  const cur=weekTrainCount(mon);
+  let weeks=0;
+  for(let w=1;w<520&&weekQualifies(shiftIso(mon,-7*w));w++)weeks++;
+  if(cur.n>=cur.need)weeks++;
+  return{weeks,thisWeek:cur.n,need:cur.need};
+}
+// Longest run, recomputed from the log rather than accumulated, so the stored
+// figure (which used to be in DAYS) is simply replaced by the right one.
+function longestWeekStreak(){
+  const mon=mondayOf(isoToday());
+  let best=0,run=0;
+  for(let w=104;w>=0;w--){if(weekQualifies(shiftIso(mon,-7*w))){run++;if(run>best)best=run;}else if(w>0)run=0;}
+  return best;
 }
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
   const wkKey=ctx.wk();
   // ── streak: update longest + fire 3-day toast ──
-  const {days:streak,sessions}=currentStreak();
-  if(streak>(S.milestones.longestStreak||0)){S.milestones.longestStreak=streak;save();queueMilestones();}
-  if(sessions===3)showToastBig("🔥 3 days in a row. You're on a streak!");
+  const {weeks,thisWeek,need}=currentStreak();
+  const longest=longestWeekStreak();
+  if(longest!==(S.milestones.longestStreak||0)){S.milestones.longestStreak=longest;save();queueMilestones();}
+  // Once per week, the moment this week starts counting toward the streak.
+  if(thisWeek===need){let seen=null;try{seen=localStorage.getItem("f5_streak_toast");}catch(_){}
+    if(seen!==wkKey){try{localStorage.setItem("f5_streak_toast",wkKey);}catch(_){}showToastBig(`🔥 ${need} workouts this week. ${weeks} week streak!`);}}
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);

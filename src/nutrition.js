@@ -522,9 +522,9 @@ function weekCompliance(p,weekStartIso,endIso){
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/proteinTargetG()*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
-    // A full unbroken week reads as 100. Rest days count toward the streak, so
-    // seven is reachable without training seven days.
-    streak:Math.min(100,Math.round((ctx.currentStreak?.().days||0)/7*100)),
+    // Any live week streak reads as 100; otherwise progress toward this week's
+    // qualifying count (5 workouts) is the score.
+    streak:(()=>{const st=ctx.currentStreak?.();return st?(st.weeks>=1?100:Math.min(100,Math.round(st.thisWeek/st.need*100))):0;})(),
   };
   m.overall=Math.round(Object.entries(COMPLIANCE_WEIGHTS).reduce((s,[k,w])=>s+(m[k]||0)*w,0));
   return m;

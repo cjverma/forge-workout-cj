@@ -173,7 +173,10 @@ function build(S, now) {
   if (eatTarget && nut.avgKcal != null && nut.avgKcal > eatTarget) focus.push(`Eat ${fmt(eatTarget)} a day. You averaged ${fmt(nut.avgKcal)}.`);
   else if (req && nut.avgDeficit != null && nut.avgDeficit < req) focus.push(`Move more: the deficit was ${fmt(req - nut.avgDeficit)} kcal a day short.`);
   const missed = dayRows.filter((r) => r.status === "missed");
-  if (missed.length) focus.push(`Train every planned day. Missed: ${missed.map((r) => r.day.slice(0, 3)).join(", ")}.`);
+  // Same rule as the app's streak: 5 workouts a week (or all the plan has).
+  const weekNeed = Math.min(5, dayRows.filter((r) => r.planned).length);
+  const trainedN = dayRows.filter((r) => r.status === "done" || r.status === "partial").length;
+  if (missed.length && trainedN < weekNeed) focus.push(`Get to ${weekNeed} workouts to keep your streak. Missed: ${missed.map((r) => r.day.slice(0, 3)).join(", ")}.`);
   if (nut.avgProt != null && nut.avgProt < protTarget) focus.push(`Get ${protTarget} g protein a day. You averaged ${nut.avgProt} g.`);
   if (nut.avgActiveTarget && nut.avgActive != null && nut.avgActive < nut.avgActiveTarget) focus.push(`Hit ${fmt(nut.avgActiveTarget)} active kcal a day. You averaged ${fmt(nut.avgActive)}.`);
   if (missedFood > 0) focus.push(`Log food every day. ${missedFood} day${missedFood === 1 ? "" : "s"} missing.`);
@@ -204,6 +207,16 @@ function tile(label, value, sub, col) {
 const section = (title, body) => `<tr><td style="padding:16px 22px 0"><div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:${C.moss};margin-bottom:8px">${esc(title)}</div>${body}</td></tr>`;
 const bar = (pct, col) => `<div style="background:${C.line};border-radius:99px;height:8px;overflow:hidden"><div style="width:${Math.max(0, Math.min(100, pct))}%;background:${col};height:8px"></div></div>`;
 
+// Ideal (the plan's line for that day) next to the actual weigh-in, so the
+// verdict's "ahead/behind" is visible as two numbers rather than a claim.
+function planVsActual(x, onTrack) {
+  const ideal = onTrack ? x.vs.expected : x.lineToday, actual = onTrack ? x.vs.kg : x.latest;
+  if (ideal == null) return "";
+  const cell = (label, v, col) => `<td width="50%" align="center" style="padding:4px"><div style="font-size:12px;color:${C.mid}">${label}</div><div style="font-size:18px;font-weight:700;color:${col}">${v != null ? `${v} kg` : "·"}</div></td>`;
+  const when = onTrack ? ` on ${dShort(x.vs.date)}` : "";
+  return `<tr><td style="padding:10px 17px 0"><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:10px"><tr>${cell(`Ideal weight${when}`, ideal, C.mid)}${cell("Actual weight", actual, onTrack ? toneCol(x.tone) : C.ink)}</tr></table></td></tr>`;
+}
+
 function renderHtml(x) {
   const n = x.nut;
   const statusCell = { done: ["✓", C.good], partial: ["◐", C.warn], missed: ["✕", C.bad], rest: ["·", C.dim], upcoming: ["○", C.dim], today: ["○", C.mid] };
@@ -220,9 +233,10 @@ function renderHtml(x) {
 </td></tr>
 <tr><td style="padding:12px 17px 0"><table width="100%" cellpadding="0" cellspacing="0"><tr>
   ${tile("Weight", x.weekChange != null ? `${sgn(x.weekChange)} kg` : "·", x.latest != null ? `now ${x.latest} kg` : "no weigh-in", x.weekChange != null && x.weekChange < 0 ? C.good : C.warn)}
-  ${tile("Workouts", `${x.thisT.trained}/${x.plannedSessions}`, "this week", x.thisT.trained >= x.plannedSessions ? C.good : C.warn)}
+  ${tile("Workouts", `${x.thisT.trained}/${x.plannedSessions}`, "this week", x.thisT.trained >= Math.min(5, x.plannedSessions) ? C.good : C.warn)}
   ${tile("Calories/day", n.avgKcal != null ? fmt(n.avgKcal) : "·", `goal ${fmt(x.eatTarget)}`, n.avgKcal != null && n.avgKcal <= x.eatTarget ? C.good : C.warn)}
 </tr></table></td></tr>
+${planVsActual(x, onTrack)}
 <tr><td style="padding:14px 22px 0"><div style="font-size:13px;color:${C.mid};margin-bottom:6px">${x.lost ?? 0} of ${x.goal ? r1(x.goal.startKg - x.goal.targetKg) : "·"} kg lost · ${x.daysLeft} days to go</div>${bar(x.pct, onTrack ? toneCol(x.tone) : C.moss)}</td></tr>
 <tr><td style="padding:14px 17px 0"><table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed"><tr>${days}</tr></table></td></tr>
 ${x.prs.length ? section(`New PRs · ${x.prs.length}`, prs) : ""}
@@ -235,6 +249,7 @@ function renderText(x) {
   const n = x.nut, L = [];
   L.push(`FORGE · week of ${dShort(x.mon)}`, "", x.verdict, "");
   L.push(`Weight ${x.weekChange != null ? `${sgn(x.weekChange)} kg` : "·"} · workouts ${x.thisT.trained}/${x.plannedSessions} · calories ${n.avgKcal != null ? fmt(n.avgKcal) : "·"}/day (goal ${fmt(x.eatTarget)})`);
+  if (x.lineToday != null) L.push(x.vs && x.vs.date >= x.mon ? `Ideal weight ${x.vs.expected} kg · actual ${x.vs.kg} kg (${dShort(x.vs.date)})` : `Ideal weight today ${x.lineToday} kg · last weigh-in ${x.latest ?? "·"} kg`);
   if (x.prs.length) L.push(`New PRs: ${x.prs.slice(0, 3).map((p) => `${p.name} ${p.weight} kg x ${p.reps}`).join(", ")}`);
   L.push("", "Next week:", ...x.focus.slice(0, 3).map((f, i) => `${i + 1}. ${f}`));
   return L.join("\n");

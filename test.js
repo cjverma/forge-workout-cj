@@ -432,7 +432,7 @@ ok("compliance weights are 55/20/15/5/5 (no medication) and sum to 1",
 // Streak rewards not breaking the chain, which "workouts" alone does not: you
 // can train 4 of 6 days every week and never build one.
 ok("streak is scored from the workout streak, a full week reading 100",
-  /streak:Math\.min\(100,Math\.round\(\(ctx\.currentStreak/.test(HTML) &&
+  /streak:\(\(\)=>\{const st=ctx\.currentStreak\?\.\(\);return st\?\(st\.weeks>=1\?100:/.test(HTML) &&
   HTML.includes("ctx.currentStreak=currentStreak"));
 // Renamed on the FRONTEND only. Storage keys keep the real name so dose history
 // is not orphaned, and the AI context keeps it so the GLP-1 class still informs
@@ -1348,28 +1348,24 @@ ok("delete control is hidden on read-only days",
 // The active program is PROG_V3 with physio stripped until Aug 11, which leaves
 // Wednesday and Sunday with zero exercises. currentStreak() used to `break` on
 // the first untrained day, so a programmed rest day reset the streak to 1.
-ok("currentStreak has a rest-day branch that does not break",
-  /function isProgramRestDay/.test(WORKOUT) &&
-  /if\(isProgramRestDay\(iso\)\)\{[\s\S]{0,400}?pendingRest\+\+;[\s\S]{0,40}continue;/.test(WORKOUT));
-
-ok("an unlogged TODAY does not break the streak",
-  /if\(i===0\)continue;/.test(WORKOUT));
-
-// Rest days COUNT, but only once an older session commits them. Incrementing
-// directly would let a rest day start a streak, so a fresh install would read
-// "1 day streak" just for opening the app on a Wednesday.
-ok("a rest day cannot start a streak, only extend one",
-  /days\+=pendingRest\+1;pendingRest=0;/.test(WORKOUT) &&
-  !/isProgramRestDay\(iso\)\)\{days\+\+/.test(WORKOUT));
-
-// Milestones must count real workouts, not padded days, or "3 days in a row"
-// fires off two sessions plus a rest day.
-ok("milestone toast keys off real sessions, not padded days",
-  /if\(sessions===3\)showToastBig/.test(WORKOUT) &&
-  !/if\(streak===3\)showToastBig/.test(WORKOUT));
-
-// A genuine missed training day must still end the streak.
-ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WORKOUT));
+// The streak counts WEEKS (user's rule, Oct 2026): a Mon-Sun week with 5
+// trained days keeps it alive; one missed day no longer resets it to zero.
+ok("the streak counts weeks with at least 5 workouts",
+  /const STREAK_WEEK_MIN=5;/.test(WORKOUT) &&
+  /return\{n,need:Math\.max\(1,Math\.min\(STREAK_WEEK_MIN,plan\)\)\};/.test(WORKOUT) &&
+  /function weekQualifies\(mon\)\{const r=weekTrainCount\(mon\);return r\.n>=r\.need;\}/.test(WORKOUT));
+// The week in progress only counts once it qualifies; it can never break it.
+ok("the week in progress never breaks the streak",
+  /for\(let w=1;w<520&&weekQualifies\(shiftIso\(mon,-7\*w\)\);w\+\+\)weeks\+\+;\n  if\(cur\.n>=cur\.need\)weeks\+\+;/.test(WORKOUT));
+// Scheduled rest days are not missed workouts: they don't count toward "plan".
+ok("rest days are excluded from what a week needs",
+  /if\(!isProgramRestDay\(iso\)\)plan\+\+;if\(ctx\.trainedOn\(iso\)\)n\+\+;/.test(WORKOUT));
+ok("the badge reads in weeks, with this week's progress",
+  /\$\{weeks\} week streak/.test(WORKOUT) && /\$\{thisWeek\}\/\$\{need\} this week/.test(WORKOUT) && !/ day streak/.test(WORKOUT));
+// longestStreak used to be stored in days; it is recomputed in weeks from the
+// log so the old figure can't read as "best 23 weeks".
+ok("the longest streak is recomputed in weeks, not accumulated",
+  /const longest=longestWeekStreak\(\);/.test(WORKOUT) && /S\.milestones\.longestStreak=longest;/.test(WORKOUT));
 
 {
   const C = readFileSync("src/constants.js", "utf8");
@@ -1766,13 +1762,15 @@ ok("a missed training day still breaks the streak", /\n    break;\n  \}/.test(WO
         ok("the report verdict is measured against the one goal plan to 95 kg", /ahead of plan\. On track for 95 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
         ok("the report scores nutrition against the goal (1,500 kcal, 1,883 deficit)",
           x.eatTarget === 1500 && x.req === 1883 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
-        ok("the report lists missed sessions and missing food logs in the focus list",
-          x.focus.some((f) => /Missed: Sat\./.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
+        ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
+          !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
           x.prs.length === 1 && x.prs[0].name === "Seated Leg Curl" && x.prs[0].gain === 7 && /Seated Leg Curl/.test(rep.html), JSON.stringify(x.prs));
         ok("the report has a projected finish once there are enough weigh-ins", x.proj?.status === "ok");
         ok("the report has no em dash, raw float noise, undefined, NaN or medication",
           !all.includes("—") && !/00000/.test(all) && !/undefined|NaN|zepbound|tirzepatide/i.test(all));
+        ok("the report shows ideal (plan) weight next to actual weight",
+          /Ideal weight on Oct 25/.test(rep.html) && rep.html.includes(`${x.vs.expected} kg`) && rep.html.includes(`${x.vs.kg} kg`) && /Ideal weight .* · actual /.test(rep.text));
         ok("the report restores ctx.getS after building", RT.ctx.getS === before);
         const EM = readFileSync("api/cron-weekly-email.js", "utf8");
         ok("the weekly email sends the report as html + text with the CSV still attached",
