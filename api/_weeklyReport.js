@@ -68,7 +68,7 @@ function sessionStats(S, dates) {
   return { sets, volume: r0(volume), trained };
 }
 
-export function buildWeeklyReport({ state, now = new Date() }) {
+export function buildWeeklyReport({ state, now = new Date(), coach = null }) {
   const S = state;
   S.nutrition = S.nutrition || { days: {}, weights: {} };
   S.nutrition.days = S.nutrition.days || {}; S.nutrition.weights = S.nutrition.weights || {};
@@ -76,7 +76,10 @@ export function buildWeeklyReport({ state, now = new Date() }) {
   // caller sharing the module (the test suite, a warm function) is unaffected.
   const prevGetS = ctx.getS;
   ctx.getS = () => S;
-  try { return build(S, now); } finally { ctx.getS = prevGetS; }
+  try {
+    const data = build(S, now);
+    return { subject: subjectOf(data), html: renderHtml(data, coach), text: renderText(data, coach), data };
+  } finally { ctx.getS = prevGetS; }
 }
 
 function build(S, now) {
@@ -135,6 +138,14 @@ function build(S, now) {
     avgResting: mean(daysN, (x) => x.resting),
   };
   nut.impliedKg = r1(nut.weekDeficit / 7700);
+  // For the AI coach only: what the week was actually built from.
+  const allItems = elapsed.flatMap((d) => S.nutrition.days[d]?.items || []);
+  nut.avgCarbs = logged.length ? r0(allItems.reduce((a, i) => a + (i.carbs || 0), 0) / logged.length) : null;
+  nut.avgFat = logged.length ? r0(allItems.reduce((a, i) => a + (i.fat || 0), 0) / logged.length) : null;
+  const fc = {};
+  for (const i of allItems) { const k = String(i.canonical || i.name || "").trim().toLowerCase(); if (!k) continue; (fc[k] = fc[k] || { name: i.name, n: 0, kcal: 0 }).n++; fc[k].kcal += i.kcal || 0; }
+  nut.topFoods = Object.values(fc).sort((a, b) => b.n - a.n || b.kcal - a.kcal).slice(0, 6).map((f) => ({ name: f.name, times: f.n, kcalEach: r0(f.kcal / f.n) }));
+  nut.days = daysN.map((x) => ({ date: x.d, logged: x.logged, kcal: x.kcal, protein: x.prot, active: x.active }));
 
   // ── Training ────────────────────────────────────────────────────────────
   const dayRows = week.map((d) => {
@@ -186,9 +197,8 @@ function build(S, now) {
   if (wKeys.filter((d) => d >= mon && d <= today).length < 4) focus.push("Weigh in at least 4 mornings.");
   if (!focus.length) focus.push("Everything is on plan. Repeat this week.");
 
-  const data = { mon, today, goal: goal && { start: goal.start, end: goal.plannedEnd, startKg: goal.startKg, targetKg: goal.targetKg }, latest, latestDate, weekChange, avgThis, avgLast, vs, lineToday,
+  return { mon, today, goal: goal && { start: goal.start, end: goal.plannedEnd, startKg: goal.startKg, targetKg: goal.targetKg }, latest, latestDate, weekChange, avgThis, avgLast, vs, lineToday,
     lost, pct, daysLeft, totalDays, needPerWeek, proj, nut, protTarget, eatTarget, req, dayRows, thisT, lastT, plannedSessions, volChange, prs, verdict, tone, focus };
-  return { subject: subjectOf(data), html: renderHtml(data), text: renderText(data), data };
 }
 
 // Plain on purpose: numbers in a subject line read like a bank alert.
@@ -196,18 +206,53 @@ function subjectOf(x) {
   return `Your FORGE week · ${dShort(x.mon)} to ${dShort(addDaysIso(x.mon, 6))}`;
 }
 
-// ── HTML (email-safe: tables + inline styles, light paper like the PDF) ────
-// Deliberately short: a verdict, three numbers, the week at a glance, PRs and
-// at most three things to do. The full detail lives in the app.
-const C = { ink: "#18181B", mid: "#52525B", dim: "#A1A1AA", line: "#E4E4E7", card: "#FAFAF9", moss: "#55700B", good: "#15803D", warn: "#B45309", bad: "#B91C1C", hero: "#0A0A0B", volt: "#C8F135" };
-const toneCol = (t) => (t === "good" ? C.good : t === "warn" ? C.warn : C.bad);
-function tile(label, value, sub, col) {
-  return `<td width="33%" valign="top" style="padding:5px"><div style="background:${C.card};border:1px solid ${C.line};border-radius:10px;padding:12px 10px;text-align:center">
-    <div style="font-size:12px;color:${C.mid}">${esc(label)}</div>
-    <div style="font-size:22px;font-weight:700;color:${col || C.ink};margin-top:2px;white-space:nowrap">${esc(value)}</div>
-    <div style="font-size:11px;color:${C.dim};margin-top:2px">${esc(sub)}</div></div></td>`;
+// ── AI coach verdict ──────────────────────────────────────────────────────
+// The user wants a coach's READ of the week, not the numbers ("summary" meant
+// a verdict on how it went). The numbers above are the evidence the model is
+// given; it writes the words. The cron calls the model; this file stays pure.
+export function coachPrompt(x) {
+  const n = x.nut;
+  const facts = {
+    week: `${x.mon} to ${addDaysIso(x.mon, 6)}`,
+    goal: x.goal && { from: `${x.goal.startKg} kg on ${x.goal.start}`, to: `${x.goal.targetKg} kg by ${x.goal.end}`, daysLeft: x.daysLeft, kgPerWeekNeededNow: x.needPerWeek },
+    weight: { latest: x.latest, latestDate: x.latestDate, changeThisWeek: x.weekChange, idealOnThatDate: x.vs?.expected ?? x.lineToday, aheadOfPlanKg: x.vs && x.vs.date >= x.mon ? x.vs.diff : null, projectedFinish: x.proj?.status === "ok" ? x.proj.date : null },
+    diet: { eatTargetKcal: x.eatTarget, proteinTargetG: x.protTarget, requiredDeficitPerDay: x.req, daysLogged: n.daysLogged, daysInWeek: n.daysElapsed,
+      avgKcal: n.avgKcal, daysAtOrUnderTarget: n.onTarget, avgProteinG: n.avgProt, daysProteinHit: n.protHit, avgCarbsG: n.avgCarbs, avgFatG: n.avgFat,
+      avgDeficit: n.avgDeficit, avgActiveKcal: n.avgActive, activeTarget: n.avgActiveTarget, perDay: n.days, mostEaten: n.topFoods },
+    training: { streakRule: "5 workouts a Mon-Sun week keeps the streak", sessionsDone: x.thisT.trained, sessionsPlanned: x.plannedSessions, setsDone: x.thisT.sets, setsSameDaysLastWeek: x.lastT.sets, volumeChangePct: x.volChange,
+      days: x.dayRows.map((r) => ({ day: r.day, session: r.label || null, status: r.status, exercisesDone: r.doneEx, exercisesPlanned: r.planned, note: r.note || null, calfTwinges: r.twinges || 0 })),
+      prs: x.prs.map((p) => ({ exercise: p.name, weightKg: p.weight, reps: p.reps, gainKgEst1RM: p.gain })) },
+  };
+  const system = `You are FORGE's coach writing the user's Monday email about the week that just ended. The user is on an aggressive, self-chosen fat-loss plan (eat 1,500 kcal, most of the deficit from training plus a daily 35-min incline walk) and trains 6 days a week with a history of calf and spine issues.
+Write a VERDICT on how the week went, not a recap of numbers. Be honest and specific like a good coach: name what went well, what didn't, and why it matters for the goal. Use at most two numbers per paragraph, only where they make the point. Session notes and calf twinges are important: mention them if present. If data is missing (unlogged days, no weigh-in), say so plainly rather than guessing.
+Plain sentences. No em dashes, no emoji, no markdown, no headings. Never mention medication.
+Return ONLY JSON: {"headline": one sentence verdict on the whole week (max 14 words), "diet": 2-3 sentences, "training": 2-3 sentences, "nextWeek": [up to 3 short imperative sentences, most important first]}`;
+  return { system, user: "This week's data:\n" + JSON.stringify(facts) };
 }
-const section = (title, body) => `<tr><td style="padding:16px 22px 0"><div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:${C.moss};margin-bottom:8px">${esc(title)}</div>${body}</td></tr>`;
+
+// Model output -> {headline, diet, training, nextWeek[]} or null. Tolerates
+// code fences and stray prose around the JSON; normalises dashes the same way
+// mdLite() does in the app, so an em dash can never reach the email.
+export function parseCoach(text) {
+  try {
+    const m = String(text || "").match(/\{[\s\S]*\}/);
+    if (!m) return null;
+    const o = JSON.parse(m[0]);
+    const clean = (v) => String(v ?? "").replace(/[ \t]*—[ \t]*/g, " · ").replace(/–/g, "-").trim();
+    const out = { headline: clean(o.headline), diet: clean(o.diet), training: clean(o.training),
+      nextWeek: (Array.isArray(o.nextWeek) ? o.nextWeek : []).map(clean).filter(Boolean).slice(0, 3) };
+    return out.headline && out.diet && out.training ? out : null;
+  } catch { return null; }
+}
+
+// ── HTML (email-safe: tables + inline styles, light paper) ────────────────
+// The coach's words are the email. The only numbers kept are ideal vs actual
+// weight (asked for by the user). Without a coach (the model call failed) it
+// falls back to the rule-based verdict and focus list so Monday still lands.
+const C = { ink: "#18181B", mid: "#52525B", dim: "#A1A1AA", line: "#E4E4E7", moss: "#55700B", good: "#15803D", warn: "#B45309", bad: "#B91C1C", volt: "#C8F135" };
+const toneCol = (t) => (t === "good" ? C.good : t === "warn" ? C.warn : C.bad);
+const section = (title, body) => `<tr><td style="padding:18px 22px 0"><div style="font-size:11px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:${C.moss};margin-bottom:6px">${esc(title)}</div>${body}</td></tr>`;
+const para = (t) => `<div style="font-size:15px;color:${C.ink};line-height:1.55">${esc(t)}</div>`;
 // Drawn with BORDERS, not backgrounds. The Gmail app dropped every background
 // (the bar vanished in both themes, the dark header went white-on-white in
 // light mode and its white text turned grey in dark). Borders survive both
@@ -215,50 +260,39 @@ const section = (title, body) => `<tr><td style="padding:16px 22px 0"><div style
 const bar = (pct, col) => { const p = Math.max(1, Math.min(99, Math.round(pct)));
   return `<table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse"><tr><td width="${p}%" style="border-top:8px solid ${col};font-size:0;line-height:0">&nbsp;</td><td width="${100 - p}%" style="border-top:8px solid ${C.line};font-size:0;line-height:0">&nbsp;</td></tr></table>`; };
 
-// Ideal (the plan's line for that day) next to the actual weigh-in, so the
-// verdict's "ahead/behind" is visible as two numbers rather than a claim.
-function planVsActual(x, onTrack) {
+// Ideal (the plan's line for that day) next to the actual weigh-in.
+function planVsActual(x) {
+  const onTrack = x.vs && x.vs.date >= x.mon;
   const ideal = onTrack ? x.vs.expected : x.lineToday, actual = onTrack ? x.vs.kg : x.latest;
   if (ideal == null) return "";
-  const cell = (label, v, col) => `<td width="50%" align="center" style="padding:4px"><div style="font-size:12px;color:${C.mid}">${label}</div><div style="font-size:18px;font-weight:700;color:${col}">${v != null ? `${v} kg` : "·"}</div></td>`;
+  const cell = (label, v, col) => `<td width="50%" align="center" style="padding:6px 4px"><div style="font-size:12px;color:${C.mid}">${label}</div><div style="font-size:18px;font-weight:700;color:${col}">${v != null ? `${v} kg` : "·"}</div></td>`;
   const when = onTrack ? ` on ${dShort(x.vs.date)}` : "";
-  return `<tr><td style="padding:10px 17px 0"><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:10px"><tr>${cell(`Ideal weight${when}`, ideal, C.mid)}${cell("Actual weight", actual, onTrack ? toneCol(x.tone) : C.ink)}</tr></table></td></tr>`;
+  return `<tr><td style="padding:16px 17px 0"><table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid ${C.line};border-radius:10px"><tr>${cell(`Ideal weight${when}`, ideal, C.mid)}${cell("Actual weight", actual, onTrack ? toneCol(x.tone) : C.ink)}</tr></table>
+  <div style="font-size:12px;color:${C.mid};margin:10px 5px 6px">${x.lost ?? 0} of ${x.goal ? r1(x.goal.startKg - x.goal.targetKg) : "·"} kg lost · ${x.daysLeft} days to go</div><div style="padding:0 5px">${bar(x.pct, onTrack ? toneCol(x.tone) : C.moss)}</div></td></tr>`;
 }
 
-function renderHtml(x) {
-  const n = x.nut;
-  const statusCell = { done: ["✓", C.good], partial: ["◐", C.warn], missed: ["✕", C.bad], rest: ["·", C.dim], upcoming: ["○", C.dim], today: ["○", C.mid] };
-  const days = x.dayRows.map((r) => { const [g, col] = statusCell[r.status]; return `<td align="center" width="14%" style="padding:2px"><div style="font-size:11px;color:${C.mid}">${r.day.slice(0, 3)}</div><div style="font-size:18px;font-weight:700;color:${col}">${g}</div></td>`; }).join("");
-  const prs = x.prs.slice(0, 3).map((p) => `<div style="font-size:14px;color:${C.ink};margin:4px 0">${esc(p.name)} <span style="color:${C.good};font-weight:600">${p.weight} kg × ${p.reps}</span></div>`).join("")
-    + (x.prs.length > 3 ? `<div style="font-size:12px;color:${C.dim}">and ${x.prs.length - 3} more</div>` : "");
-  const onTrack = x.vs && x.vs.date >= x.mon;
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#F4F4F5;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
-<table width="100%" cellpadding="0" cellspacing="0" style="background:#F4F4F5"><tr><td align="center" style="padding:16px 8px">
-<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#FFFFFF;border-radius:14px;overflow:hidden">
-<tr><td style="border-top:6px solid ${C.volt};padding:20px 22px 4px">
+function renderHtml(x, coach) {
+  const headline = coach ? coach.headline : x.verdict;
+  const next = coach && coach.nextWeek.length ? coach.nextWeek : x.focus.slice(0, 3);
+  return `<!doctype html><html><body style="margin:0;padding:0;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding:16px 8px">
+<table width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;border:1px solid ${C.line};border-radius:14px;overflow:hidden">
+<tr><td style="border-top:6px solid ${C.volt};padding:20px 22px 0">
   <div style="font-size:12px;letter-spacing:2px;color:${C.moss};font-weight:700">FORGE · WEEK OF ${dShort(x.mon).toUpperCase()}</div>
-  <div style="font-size:21px;font-weight:700;color:${C.ink};margin-top:8px;line-height:1.3">${esc(x.verdict)}</div>
+  <div style="font-size:22px;font-weight:700;color:${C.ink};margin-top:8px;line-height:1.3">${esc(headline)}</div>
 </td></tr>
-<tr><td style="padding:12px 17px 0"><table width="100%" cellpadding="0" cellspacing="0"><tr>
-  ${tile("Weight", x.weekChange != null ? `${sgn(x.weekChange)} kg` : "·", x.latest != null ? `now ${x.latest} kg` : "no weigh-in", x.weekChange != null && x.weekChange < 0 ? C.good : C.warn)}
-  ${tile("Workouts", `${x.thisT.trained}/${x.plannedSessions}`, "this week", x.thisT.trained >= Math.min(5, x.plannedSessions) ? C.good : C.warn)}
-  ${tile("Calories/day", n.avgKcal != null ? fmt(n.avgKcal) : "·", `goal ${fmt(x.eatTarget)}`, n.avgKcal != null && n.avgKcal <= x.eatTarget ? C.good : C.warn)}
-</tr></table></td></tr>
-${planVsActual(x, onTrack)}
-<tr><td style="padding:14px 22px 0"><div style="font-size:13px;color:${C.mid};margin-bottom:6px">${x.lost ?? 0} of ${x.goal ? r1(x.goal.startKg - x.goal.targetKg) : "·"} kg lost · ${x.daysLeft} days to go</div>${bar(x.pct, onTrack ? toneCol(x.tone) : C.moss)}</td></tr>
-<tr><td style="padding:14px 17px 0"><table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed"><tr>${days}</tr></table></td></tr>
-${x.prs.length ? section(`New PRs · ${x.prs.length}`, prs) : ""}
-${section("Next week", `<ol style="margin:0;padding-left:18px">${x.focus.slice(0, 3).map((f) => `<li style="font-size:14px;color:${C.ink};margin:6px 0;line-height:1.45">${esc(f)}</li>`).join("")}</ol>`)}
-<tr><td style="padding:18px 22px 22px;font-size:11px;color:${C.dim}">The full week is in the app.</td></tr>
+${planVsActual(x)}
+${coach ? section("Diet", para(coach.diet)) + section("Training", para(coach.training)) : ""}
+${section("Next week", `<ol style="margin:0;padding-left:18px">${next.map((f) => `<li style="font-size:15px;color:${C.ink};margin:6px 0;line-height:1.45">${esc(f)}</li>`).join("")}</ol>`)}
+<tr><td style="padding:20px 22px 22px;font-size:11px;color:${C.dim}">${coach ? "Written by your FORGE coach from this week's logs." : "The full week is in the app."}</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
-function renderText(x) {
-  const n = x.nut, L = [];
-  L.push(`FORGE · week of ${dShort(x.mon)}`, "", x.verdict, "");
-  L.push(`Weight ${x.weekChange != null ? `${sgn(x.weekChange)} kg` : "·"} · workouts ${x.thisT.trained}/${x.plannedSessions} · calories ${n.avgKcal != null ? fmt(n.avgKcal) : "·"}/day (goal ${fmt(x.eatTarget)})`);
-  if (x.lineToday != null) L.push(x.vs && x.vs.date >= x.mon ? `Ideal weight ${x.vs.expected} kg · actual ${x.vs.kg} kg (${dShort(x.vs.date)})` : `Ideal weight today ${x.lineToday} kg · last weigh-in ${x.latest ?? "·"} kg`);
-  if (x.prs.length) L.push(`New PRs: ${x.prs.slice(0, 3).map((p) => `${p.name} ${p.weight} kg x ${p.reps}`).join(", ")}`);
-  L.push("", "Next week:", ...x.focus.slice(0, 3).map((f, i) => `${i + 1}. ${f}`));
+function renderText(x, coach) {
+  const L = [`FORGE · week of ${dShort(x.mon)}`, "", coach ? coach.headline : x.verdict, ""];
+  if (x.lineToday != null) L.push(x.vs && x.vs.date >= x.mon ? `Ideal weight ${x.vs.expected} kg · actual ${x.vs.kg} kg (${dShort(x.vs.date)})` : `Ideal weight today ${x.lineToday} kg · last weigh-in ${x.latest ?? "·"} kg`, "");
+  if (coach) L.push("DIET", coach.diet, "", "TRAINING", coach.training, "");
+  const next = coach && coach.nextWeek.length ? coach.nextWeek : x.focus.slice(0, 3);
+  L.push("NEXT WEEK", ...next.map((f, i) => `${i + 1}. ${f}`));
   return L.join("\n");
 }

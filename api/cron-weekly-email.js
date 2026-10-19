@@ -1,9 +1,11 @@
 // Vercel Cron: runs every Monday at 12:00 UTC (8 AM Toronto, 7 AM in winter).
 // Reads state from Postgres, builds the weekly report for the week that just
-// ended (api/_weeklyReport.js) and emails it via Resend. No attachment: the
+// ended (api/_weeklyReport.js), has the AI coach write the verdict, and
+// emails it via Resend. No attachment: the
 // user found the CSV useless, and the full detail lives in the app.
 import { assembleState } from "./state.js";
-import { buildWeeklyReport } from "./_weeklyReport.js";
+import { buildWeeklyReport, coachPrompt, parseCoach } from "./_weeklyReport.js";
+import { callOpenAI } from "./_shared.js";
 
 const RECIPIENT = "chiranjay.verma@gmail.com";
 
@@ -35,7 +37,15 @@ export default async function handler(req, res) {
   const S = await fetchState();
   if (!S) return res.status(503).json({ error: "No synced state found — sync from the app first" });
 
-  const rep = buildWeeklyReport({ state: S });
+  // The AI coach writes the verdict from the week's numbers. If the model call
+  // fails or returns junk, the rule-based verdict still goes out: a Monday
+  // email that never arrives is worse than a plainer one.
+  let coach = null;
+  try {
+    const { system, user } = coachPrompt(buildWeeklyReport({ state: S }).data);
+    coach = parseCoach(await callOpenAI({ system, user, maxOutputTokens: 700 }));
+  } catch (e) { console.error("[cron-weekly-email] coach failed, sending the rule-based report:", e.message); }
+  const rep = buildWeeklyReport({ state: S, coach });
   const date = new Date().toISOString().slice(0, 10);
 
   const r = await fetch("https://api.resend.com/emails", {

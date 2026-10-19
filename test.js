@@ -1762,15 +1762,17 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the weekly report covers last Mon-Sun when sent on Monday", x.mon === "2026-10-19" && x.today === "2026-10-25", x.mon + " " + x.today);
         ok("the report subject is plain: no weight or stats in it",
           rep.subject === "Your FORGE week · Oct 19 to Oct 25" && !/kg|\d\/\d/.test(rep.subject), rep.subject);
-        ok("the email is short: three tiles, at most three focus items, no detail tables",
-          (rep.html.match(/<li /g) || []).length <= 3 && (rep.html.match(/width="33%"/g) || []).length === 3 && !/Resting burn|Average deficit/.test(rep.html));
+        // Without a coach (the model call failed) the email still says something:
+        // the rule-based verdict and at most three next-week items.
+        ok("with no AI coach the email falls back to the rule-based verdict and focus",
+          rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
         ok("the report verdict is measured against the one goal plan to 95 kg", /ahead of plan\. On track for 95 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
         ok("the report scores nutrition against the goal (1,500 kcal, 1,883 deficit)",
           x.eatTarget === 1500 && x.req === 1883 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
-          x.prs.length === 1 && x.prs[0].name === "Seated Leg Curl" && x.prs[0].gain === 7 && /Seated Leg Curl/.test(rep.html), JSON.stringify(x.prs));
+          x.prs.length === 1 && x.prs[0].name === "Seated Leg Curl" && x.prs[0].gain === 7, JSON.stringify(x.prs));
         ok("the report has a projected finish once there are enough weigh-ins", x.proj?.status === "ok");
         ok("the report has no em dash, raw float noise, undefined, NaN or medication",
           !all.includes("—") && !/00000/.test(all) && !/undefined|NaN|zepbound|tirzepatide/i.test(all));
@@ -1781,9 +1783,27 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the email needs no background to be readable: no white text, the bar is drawn with borders",
           !/color:#FFFFFF/i.test(rep.html) && /border-top:8px solid/.test(rep.html) && !/height:8px;overflow:hidden/.test(rep.html));
         ok("the report restores ctx.getS after building", RT.ctx.getS === before);
+        // The AI coach writes the verdict (user: "summary" meant how it went,
+        // not the details). The prompt carries the evidence; the email the words.
+        const { coachPrompt, parseCoach } = await import("./api/_weeklyReport.js");
+        const pr = coachPrompt(x), facts = JSON.parse(pr.user.slice(pr.user.indexOf("{")));
+        ok("the coach prompt carries diet, training, notes and PRs, and asks for a verdict as JSON",
+          /VERDICT on how the week went/.test(pr.system) && /Return ONLY JSON/.test(pr.system) && /Never mention medication/.test(pr.system) &&
+          facts.diet.avgKcal === 1450 && facts.diet.mostEaten.length >= 1 && facts.training.prs[0].exercise === "Seated Leg Curl" &&
+          facts.training.days.some((d) => d.note === "Left calf tight on the walk" && d.calfTwinges === 1) && !/zepbound|tirzepatide/i.test(pr.user));
+        const coach = parseCoach('```json\n{"headline":"Strong week — keep it going","diet":"Calories held.","training":"Five of six done.","nextWeek":["Hit protein","Log Sunday","Walk 35","extra"]}\n```');
+        ok("the coach reply is parsed through code fences, dashes normalised, capped at 3 items",
+          coach && coach.headline === "Strong week · keep it going" && coach.nextWeek.length === 3);
+        ok("junk from the model gives no coach (so the fallback is used)", parseCoach("sorry, I can't") === null && parseCoach('{"headline":"x"}') === null);
+        const cr = buildWeeklyReport({ state: S, now: new Date("2026-10-26T12:00:00Z"), coach });
+        ok("with a coach, the email is the coach's words plus ideal vs actual weight",
+          cr.html.includes("Strong week · keep it going") && />Diet</.test(cr.html) && />Training</.test(cr.html) && cr.html.includes("Five of six done.") &&
+          /Ideal weight on Oct 25/.test(cr.html) && (cr.html.match(/<li /g) || []).length === 3 && !cr.html.includes("—") && /TRAINING\nFive of six done\./.test(cr.text));
         const EM = readFileSync("api/cron-weekly-email.js", "utf8");
         ok("the weekly email sends the report as html + text, with no attachment (user: useless)",
-          /buildWeeklyReport\(\{ state: S \}\)/.test(EM) && /html: rep\.html/.test(EM) && /text: rep\.text/.test(EM) && /subject: rep\.subject/.test(EM) && !/attachments|buildCSV/.test(EM) && !/CSV/.test(rep.html + rep.text));
+          /buildWeeklyReport\(\{ state: S, coach \}\)/.test(EM) && /html: rep\.html/.test(EM) && /text: rep\.text/.test(EM) && /subject: rep\.subject/.test(EM) && !/attachments|buildCSV/.test(EM) && !/CSV/.test(rep.html + rep.text));
+        ok("the weekly email asks the AI coach, and still sends if that fails",
+          /coach = parseCoach\(await callOpenAI\(/.test(EM) && /\} catch \(e\) \{ console\.error\("\[cron-weekly-email\] coach failed/.test(EM));
         ok("the weekly email goes out Monday morning, after the week is complete",
           JSON.parse(readFileSync("vercel.json", "utf8")).crons.some(c => c.path === "/api/cron-weekly-email" && c.schedule === "0 12 * * 1"));
       }

@@ -509,16 +509,20 @@ an existing endpoint (e.g. a new `entity` in `api/mutate.js`, a new branch in
 an existing cron) rather than a new file, unless the user moves to Vercel Pro.
 Check `ls api | grep -vc '^_'` before adding anything under `api/`.
 
-## The weekly email is a report (`api/_weeklyReport.js`)
+## The weekly email is an AI coach verdict (`api/_weeklyReport.js`)
 
-`api/cron-weekly-email.js` runs **Monday 12:00 UTC** (8 AM Toronto) and sends
-`buildWeeklyReport({ state })`. The user asked for it SHORT and for a plain
-subject (no weight or stats in it): a one-line verdict vs the goal plan, three
-tiles (weight change, workouts, calories/day), ideal (plan line) vs actual
-weight, a progress bar, the Mon-Sun
-strip, up to three PRs and at most three "next week" items (ordered by impact).
-Don't grow it back into tables; detail lives in the app. **No attachment**: the
-user dropped the CSV as useless.
+`api/cron-weekly-email.js` runs **Monday 12:00 UTC** (8 AM Toronto). It is an
+**AI coach's verdict**, not a stats report (the user: "summary" meant how the
+week went, not the details). `buildWeeklyReport` computes the week's numbers;
+`coachPrompt(data)` hands them to `callOpenAI` with session notes, calf
+twinges, PRs and the most-eaten foods; `parseCoach` turns the JSON reply into
+`{headline, diet, training, nextWeek[≤3]}` (code fences tolerated, dashes
+normalised). The email is: the coach's headline, ideal (plan line) vs actual
+weight + progress bar (the user asked for it), Diet and Training paragraphs,
+and up to three next-week items. **If the model call fails or returns junk,
+the rule-based verdict and focus list go out instead**: a Monday email that
+never arrives is worse than a plainer one. Plain subject (no weight or stats),
+no attachment (the CSV was dropped as useless). Don't grow it back into tables.
 **Never rely on a background colour in the email.** The Gmail app dropped every
 background: the dark header went white-on-white in light mode, its white text
 turned grey under dark-mode inversion, and the progress bar vanished. Text is
