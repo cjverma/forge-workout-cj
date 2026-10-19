@@ -456,7 +456,7 @@ Four surfaces resolve those keys back to names, and all four must agree:
 |---|---|
 | PR list (drawer) | `exName()` in `src/nutrition.js` → `ctx.prName` |
 | PDF report + backup | `exName()` in `src/settings.js` (x2) → `ctx.prName` |
-| weekly email CSV | `exName()` in `api/cron-weekly-email.js` |
+| weekly email | `nameOf()` in `api/_weeklyReport.js` |
 
 - **`prSlug()` in `src/constants.js` is the one slug rule.** It strips leading
   and trailing separators: 30 exercise names end in `)`, which without the trim
@@ -469,10 +469,11 @@ Four surfaces resolve those keys back to names, and all four must agree:
 - The **de-slug fallback** in `prName()` (and its mirror in the email) is the
   backstop: it guarantees a readable label for ANY key, including exercises
   that have left the program entirely.
-- `api/cron-weekly-email.js` imports from `src/constants.js`. It used to carry
-  a hand-written 166-entry map keyed by day-prefixed ids, none from V4 and none
-  name-slugs, so every PR lookup missed and the CSV emailed raw slugs. Do not
-  reintroduce a literal map.
+- The weekly email (`api/_weeklyReport.js`) builds its names from the programs
+  in `src/constants.js`. The old email carried a hand-written 166-entry map
+  keyed by day-prefixed ids, none from V4 and none name-slugs, so every PR
+  lookup missed and it emailed raw slugs. Do not reintroduce a literal map.
+  (The CSV attachment that map fed was dropped in Oct 2026: "useless".)
 
 ## Session flow and targets
 
@@ -516,7 +517,8 @@ subject (no weight or stats in it): a one-line verdict vs the goal plan, three
 tiles (weight change, workouts, calories/day), ideal (plan line) vs actual
 weight, a progress bar, the Mon-Sun
 strip, up to three PRs and at most three "next week" items (ordered by impact).
-Don't grow it back into tables; detail lives in the app and the attached CSV.
+Don't grow it back into tables; detail lives in the app. **No attachment**: the
+user dropped the CSV as useless.
 **Never rely on a background colour in the email.** The Gmail app dropped every
 background: the dark header went white-on-white in light mode, its white text
 turned grey under dark-mode inversion, and the progress bar vanished. Text is
@@ -595,7 +597,7 @@ Rounding is applied at **three** layers, and all three are needed:
 1. **Ingest** — `api/healthkit.js` and the manual form in `src/nutrition.js`.
 2. **Storage** — `api/mutate.js` on write, `api/state.js` on read (so rows
    already stored wrong are healed without a migration everyone must run).
-3. **Render/export** — both sparklines, the PDF report, both CSVs, the AI
+3. **Render/export** — both sparklines, the PDF report, the CSV export, the AI
    prompts, and `latestWeightLog()`.
 
 **Round at the source of a chart, not at its labels.** Both sparklines derive

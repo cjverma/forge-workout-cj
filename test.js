@@ -1782,8 +1782,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           !/color:#FFFFFF/i.test(rep.html) && /border-top:8px solid/.test(rep.html) && !/height:8px;overflow:hidden/.test(rep.html));
         ok("the report restores ctx.getS after building", RT.ctx.getS === before);
         const EM = readFileSync("api/cron-weekly-email.js", "utf8");
-        ok("the weekly email sends the report as html + text with the CSV still attached",
-          /buildWeeklyReport\(\{ state: S \}\)/.test(EM) && /html: rep\.html/.test(EM) && /text: rep\.text/.test(EM) && /subject: rep\.subject/.test(EM) && /attachments: \[\{ filename, content \}\]/.test(EM));
+        ok("the weekly email sends the report as html + text, with no attachment (user: useless)",
+          /buildWeeklyReport\(\{ state: S \}\)/.test(EM) && /html: rep\.html/.test(EM) && /text: rep\.text/.test(EM) && /subject: rep\.subject/.test(EM) && !/attachments|buildCSV/.test(EM) && !/CSV/.test(rep.html + rep.text));
         ok("the weekly email goes out Monday morning, after the week is complete",
           JSON.parse(readFileSync("vercel.json", "utf8")).crons.some(c => c.path === "/api/cron-weekly-email" && c.schedule === "0 12 * * 1"));
       }
@@ -1945,15 +1945,17 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   // ago, so every PR lookup missed and the CSV fell through to `|| exId`,
   // emailing "outer_thigh_machine" as the exercise name.
   {
-    const EMAIL = readFileSync("api/cron-weekly-email.js", "utf8");
+    // The CSV is gone (Oct 2026); PR names now reach the email through the
+    // report builder, which must follow the same rules.
+    const EMAIL = readFileSync("api/_weeklyReport.js", "utf8");
     ok("the weekly email builds names from the programs, not a hand-written map",
       /from "\.\.\/src\/constants\.js"/.test(EMAIL) &&
-      /const EX_NAMES = \(\(\) => \{/.test(EMAIL) &&
+      /const NAMES = \(\(\) => \{/.test(EMAIL) &&
       !/m_bike:"Stationary Bike"/.test(EMAIL));
-    ok("the weekly email has no raw-id fallback left",
-      !/\|\| exId/.test(EMAIL) && (EMAIL.match(/exName\(S, exId\)/g) || []).length === 2);
+    ok("the weekly email applies PR_ALIAS before looking a name up",
+      /canon = PR_ALIAS\[t\] \|\| t;\n  if \(NAMES\[canon\]\) return NAMES\[canon\];/.test(EMAIL));
     ok("the weekly email de-slugs anything it cannot resolve",
-      /function exName\(S, id\)/.test(EMAIL) &&
+      /const nameOf = \(S, key\) => \{/.test(EMAIL) &&
       /replace\(\/_\/g, " "\)/.test(EMAIL));
 
     // One slug rule shared by the app and the email, so a PR written by one is
@@ -2166,7 +2168,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
     // Exports and AI prompts.
     ok("every export and AI prompt rounds weight",
       /rows\.push\(`\$\{date\},\$\{kg1\(kg\)\}`\)/.test(SETTINGS) &&
-      /rows\.push\(`\$\{date\},\$\{kg1\(kg\)\}`\)/.test(readFileSync("api/cron-weekly-email.js", "utf8")) &&
+      /const latest = latestDate \? kg1\(ws\[latestDate\]\) : null;/.test(readFileSync("api/_weeklyReport.js", "utf8")) &&
       /weights\[d\] = kg1\(/.test(readFileSync("api/cron-diet-review.js", "utf8")) &&
       /\$\{kg1\(w0\)\}kg/.test(SETTINGS));
     // Values already stored wrong are healed rather than left for the user.

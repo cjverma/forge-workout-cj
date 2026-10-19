@@ -38,8 +38,11 @@ const NAMES = (() => {
   for (const ex of EX_DB) { const s = prSlug(ex.name); put(PR_ALIAS[s] || s, ex.name); }
   return out;
 })();
+// Same rule as prName() in the app: trim, apply PR_ALIAS, then the de-slug
+// fallback, so a PR key can never reach the email as "outer_thigh_machine".
 const nameOf = (S, key) => {
-  if (NAMES[key]) return NAMES[key];
+  const t = String(key).replace(/^_+|_+$/g, ""), canon = PR_ALIAS[t] || t;
+  if (NAMES[canon]) return NAMES[canon];
   for (const arr of Object.values(S.custom || {})) for (const e of (arr || [])) if (e.id === key) return e.name;
   return String(key).replace(/^c_\d+$/, "Custom exercise").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
 };
@@ -195,7 +198,7 @@ function subjectOf(x) {
 
 // ── HTML (email-safe: tables + inline styles, light paper like the PDF) ────
 // Deliberately short: a verdict, three numbers, the week at a glance, PRs and
-// at most three things to do. The full detail lives in the app and the CSV.
+// at most three things to do. The full detail lives in the app.
 const C = { ink: "#18181B", mid: "#52525B", dim: "#A1A1AA", line: "#E4E4E7", card: "#FAFAF9", moss: "#55700B", good: "#15803D", warn: "#B45309", bad: "#B91C1C", hero: "#0A0A0B", volt: "#C8F135" };
 const toneCol = (t) => (t === "good" ? C.good : t === "warn" ? C.warn : C.bad);
 function tile(label, value, sub, col) {
@@ -246,7 +249,7 @@ ${planVsActual(x, onTrack)}
 <tr><td style="padding:14px 17px 0"><table width="100%" cellpadding="0" cellspacing="0" style="table-layout:fixed"><tr>${days}</tr></table></td></tr>
 ${x.prs.length ? section(`New PRs · ${x.prs.length}`, prs) : ""}
 ${section("Next week", `<ol style="margin:0;padding-left:18px">${x.focus.slice(0, 3).map((f) => `<li style="font-size:14px;color:${C.ink};margin:6px 0;line-height:1.45">${esc(f)}</li>`).join("")}</ol>`)}
-<tr><td style="padding:18px 22px 22px;font-size:11px;color:${C.dim}">The full week is in the app, and attached as a CSV.</td></tr>
+<tr><td style="padding:18px 22px 22px;font-size:11px;color:${C.dim}">The full week is in the app.</td></tr>
 </table></td></tr></table></body></html>`;
 }
 
