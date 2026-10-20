@@ -183,7 +183,9 @@ async function workoutSets(state) {
   await p.click(`#ex-${id} .ex-top`); await wait(p);
   await flow("log a set + PR", async () => {
     const unit = await p.evaluate((id) => document.querySelector(`#ex-${id} .wt-wrap`).dataset.unit, id);
-    const w = unit === "lbs" ? "100" : "45";
+    // Beat the exercise's current best (any data): best kg + 5, in the box's unit.
+    const bestKg = await p.evaluate((id) => { const S = JSON.parse(localStorage.f5); const cid = canonicalId(id); return Math.max(40, ...(S.prs[cid] || []).map((e) => Number(e.weight))); }, id);
+    const wKg = Math.ceil(bestKg + 5), w = unit === "lbs" ? String(Math.round(wKg / 0.45359237)) : String(wKg);
     h.answer = false; // keep the typed unit if asked
     await p.fill(`#wi-${id}-0`, w); await p.fill(`#ri-${id}-0`, "11");
     await p.click(`#ex-${id} .sdone`); await wait(p, 400); await closePopups(p);
@@ -192,10 +194,10 @@ async function workoutSets(state) {
     const prs = Object.values(st.prs).flat().filter((e) => e.date === TODAY);
     await flush(h);
     note("tick a set: stored done, PR written in kg, session_set + pr mutations sent",
-      ed?.sets?.[0]?.done === true && prs.length === 1 && prs[0].weight === (unit === "lbs" ? 45.4 : 45) && sent(h, "session_set").length > 0 && sent(h, "pr").length === 1,
+      ed?.sets?.[0]?.done === true && prs.length === 1 && Math.abs(prs[0].weight - wKg) < 0.6 && sent(h, "session_set").length > 0 && sent(h, "pr").length === 1,
       JSON.stringify({ unit, name, set: ed?.sets?.[0], prs, muts: h.muts.map((m) => m.entity) }));
     const badge = await text(p, `#ex-${id} .pr-badge`);
-    note("the Best line shows the new PR", /Best (45|45\.4) kg × 11/.test(badge), badge);
+    note("the Best line shows the new PR", new RegExp(`Best ${Math.floor(wKg)}(\\.\\d)? kg × 11`).test(badge), badge);
   });
   await flow("untick, add set, delete set", async () => {
     await closePopups(p);
@@ -383,11 +385,12 @@ async function foodFlow(state) {
   });
   await flow("quick add + search + delete", async () => {
     await p.evaluate(() => { _foodSearchOpen = true; _foodSearchQ = ""; renderNutrition(); }); await wait(p);
-    await p.fill("#foodSearchInp", "chicken"); await wait(p, 300);
+    const food = await p.evaluate(() => { const S = JSON.parse(localStorage.f5); for (const d of Object.values(S.nutrition.days)) for (const i of d.items || []) if (i.name) return i.name; return "chicken"; });
+    await p.fill("#foodSearchInp", food.slice(0, 6)); await wait(p, 300);
     const rows = await p.evaluate(() => document.querySelectorAll("#foodSearchResults > div[onclick]").length);
     await p.evaluate(() => document.querySelector("#foodSearchResults > div[onclick]")?.click()); await wait(p, 400);
     const items = (await S(p)).nutrition.days[TODAY].items;
-    const added = items.find((i) => i.name === "Chicken rice bowl");
+    const added = items.at(-1);
     await p.evaluate(([d, id]) => delFood(d, id), [TODAY, added?.id]); await wait(p, 300);
     const left = (await S(p)).nutrition.days[TODAY].items.length;
     await flush(h);
@@ -485,7 +488,14 @@ async function settingsFlow(state) {
   });
   await flow("unit review + PR delete", async () => {
     // Plant a mix-up: last week's first set typed as 120 "kg" on a ~40 kg lift.
-    const where = await p.evaluate(() => { const S = JSON.parse(localStorage.f5); const k = Object.keys(S.sessions).find((k) => k.startsWith("Wednesday_") && k !== "Wednesday_" + wk()); const id = Object.keys(S.sessions[k]).find((x) => S.sessions[k][x]?.unit === "kg"); S.sessions[k][id].sets[0].weight = "120"; localStorage.f5 = JSON.stringify(S); return [k, id]; });
+    const where = await p.evaluate(() => {
+      const S = JSON.parse(localStorage.f5);
+      // A past, logged, kg set on an exercise whose usual load is well under 66 kg.
+      for (const k of Object.keys(S.sessions).filter((k) => !k.endsWith(wk())).sort().reverse()) for (const [id, ed] of Object.entries(S.sessions[k] || {})) {
+        if (id.startsWith("_") || !ed?.sets?.[0]?.done || (ed.unit || "kg") !== "kg" || !(Number(ed.sets[0].weight) > 5 && Number(ed.sets[0].weight) < 45)) continue;
+        ed.sets[0].weight = "120"; delete ed.sets[0].unitOk; localStorage.f5 = JSON.stringify(S); return [k, id];
+      }
+      return null; });
     await p.reload({ waitUntil: "networkidle" }); await wait(p, 600); await p.evaluate(() => { closeUnitReview?.(); });
     await p.evaluate(() => openUnitReview()); await wait(p, 300);
     const shown = await p.evaluate(() => !!document.querySelector("#planModal.show") && /120/.test(document.getElementById("planModal").innerText));
