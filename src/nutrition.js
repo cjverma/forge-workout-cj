@@ -2,7 +2,7 @@ import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
-import { API_CFG, queueDayMeta, queueMedDoseAdd, queueMedDoseDelete, queueMutation, queueSettings } from "./sync.js";
+import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
 import { FEATURES, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT, PROG, PR_ALIAS, kg1 } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -352,7 +352,6 @@ export function renderNutrition(){
       }
     </div>
 
-    ${FEATURES.medicationCard?zepCardHtml():""}
 
     <div class="st-sec">Progress</div>
 
@@ -408,9 +407,6 @@ function saveBurn(date,field,val){
     if(!a||(a.id!=="bvRest"&&a.id!=="bvAct"))renderNutrition();
   },0);
 }
-// ── ZEPBOUND ─────────────────────────────────────────────────────────────────
-const ZEP_DOSES_MG=[5,7.5,10,12.5,15];
-let _zepOpen=false,_zepDate="",_zepMg=10;
 // PRs are an append-only log, so deleting the set that produced one never
 // removed it. This drops the single BEST entry, which is the one a mistyped
 // weight creates, and lets the next-best legitimately resurface. Removing just
@@ -435,80 +431,6 @@ function dropPR(cid){
   if(typeof openDrawer==="function")setTimeout(()=>openDrawer(),0);
 }
 window.dropPR=dropPR;
-
-function zepDoses(){return(S.meds?.zepbound?.doses||[]).slice().sort((a,b)=>a.date<b.date?-1:1);}
-function zepSchedule(){
-  // Fixed schedule: every Tuesday at 17:00 America/Toronto
-  const now=new Date();
-  const todayToronto=now.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});
-  const hourToronto=Number(new Intl.DateTimeFormat("en-CA",{timeZone:"America/Toronto",hour:"numeric",hourCycle:"h23"}).format(now));
-  const dow=new Date(todayToronto+"T12:00:00Z").getUTCDay(); // 0=Sun 2=Tue 6=Sat
-  // Most recent Tuesday on or before today
-  const daysSinceTue=(dow-2+7)%7;
-  const lastTue=addDaysIso(todayToronto,-daysSinceTue);
-  // Has a dose been logged since last Tuesday (inclusive)?
-  const taken=zepDoses().some(d=>d.date>=lastTue);
-  // Overdue: past 17:00 Tuesday this cycle and not taken
-  const pastDueTime=dow===2?hourToronto>=17:(dow===0||dow>=3);
-  const overdue=!taken&&pastDueTime;
-  // Next due date
-  const thisTue=lastTue;
-  const nextTue=addDaysIso(thisTue,7);
-  const dueDate=taken?nextTue:thisTue;
-  return{dueDate,overdue,taken};
-}
-function nextZepDue(){return zepSchedule().dueDate;}
-function logZepDose(date,mg){
-  if(!S.meds)S.meds={};
-  if(!S.meds.zepbound)S.meds.zepbound={doses:[]};
-  S.meds.zepbound.doses=S.meds.zepbound.doses.filter(d=>d.date!==date);
-  const clientId="zep_"+date;
-  S.meds.zepbound.doses.push({date,mg:Number(mg),clientId});
-  _zepOpen=false;save();queueMedDoseAdd(clientId,date,Number(mg));renderNutrition();
-  showToast("💉 "+mg+"mg logged");
-}
-function delZepDose(date){
-  if(!S.meds?.zepbound?.doses)return;
-  S.meds.zepbound.doses=S.meds.zepbound.doses.filter(d=>d.date!==date);
-  save();queueMedDoseDelete(date);renderNutrition();
-}
-function toggleZepOpen(){_zepOpen=!_zepOpen;if(_zepOpen)_zepDate=isoToday();renderNutrition();}
-window.logZepDose=logZepDose;window.delZepDose=delZepDose;window.toggleZepOpen=toggleZepOpen;
-function zepCardHtml(){
-  const doses=zepDoses();
-  const last=doses.length?doses[doses.length-1]:null;
-  const sched=zepSchedule();
-  const due=sched.dueDate;
-  const today=isoToday();
-  const overdue=sched.overdue;
-  // "overdue since {date}" reads as multiple days outstanding even on the
-  // very day it became overdue — due date and today are the same date the
-  // moment 5 PM Tuesday passes without a logged dose, and the label didn't
-  // say so.
-  const dueLabel=sched.taken?fmtDate(due):overdue?(due===today?"overdue · was due by 5 PM today":`overdue since ${fmtDate(due)}`):(due===today?"today · by 5 PM":fmtDate(due)+" · 5 PM");
-  const lastLabel=last?`${last.mg}mg · ${fmtDate(last.date)}`:"Not logged yet";
-  return`<div class="nut-card" style="margin-bottom:10px">
-    <div class="nut-card-title">${icon("syringe",20)} Medication</div>
-    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:6px">
-      <span style="color:var(--mid)">Last dose</span><span style="font-weight:600">${lastLabel}</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;margin-bottom:10px">
-      <span style="color:var(--mid)">Next due</span><span style="font-weight:600;color:${overdue?"var(--red)":due===today?"var(--amber)":"var(--white)"}">${dueLabel}</span>
-    </div>
-    ${_zepOpen?`<div style="border-top:1px solid var(--b1);padding-top:12px;margin-top:4px">
-      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Date</div>
-      <input type="date" value="${_zepDate}" onchange="_zepDate=this.value" style="width:100%;background:var(--s2);border:1px solid var(--b2);border-radius:8px;padding:9px 12px;font-family:var(--font-body);font-size:13px;color:var(--white);outline:none;margin-bottom:10px;-webkit-appearance:none">
-      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">Dose</div>
-      <div style="display:flex;gap:6px;margin-bottom:12px">${ZEP_DOSES_MG.map(mg=>`<button onclick="_zepMg=${mg};renderNutrition()" style="flex:1;background:${_zepMg===mg?"var(--accent)":"var(--s2)"};color:${_zepMg===mg?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px 4px;font-family:var(--font-body);font-size:12px;font-weight:700;cursor:pointer">${mg}mg</button>`).join("")}</div>
-      <div style="display:flex;gap:8px">
-        <button onclick="logZepDose(_zepDate,_zepMg)" style="flex:1;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-size:13px;font-weight:700;cursor:pointer">Save</button>
-        <button onclick="toggleZepOpen()" style="padding:10px 16px;background:transparent;border:1px solid var(--b2);border-radius:8px;font-family:var(--font-body);font-size:13px;color:var(--dim);cursor:pointer">✕</button>
-      </div>
-    </div>`:`<button onclick="toggleZepOpen()" style="width:100%;padding:9px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--lt);cursor:pointer">+ Log Dose</button>`}
-    ${doses.length?`<div style="margin-top:10px;border-top:1px solid var(--b1);padding-top:10px"><div style="font-size:10px;font-weight:700;letter-spacing:1px;color:var(--dim);text-transform:uppercase;margin-bottom:6px">History</div>${doses.slice().reverse().slice(0,5).map(d=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:12px"><span style="color:var(--mid)">${fmtDate(d.date)}</span><span style="font-weight:600">${d.mg}mg</span><button onclick="delZepDose('${d.date}')" style="background:transparent;border:none;color:var(--dim);font-size:12px;cursor:pointer;padding:2px 6px">✕</button></div>`).join("")}</div>`:""}
-  </div>`;
-}
-// ── END ZEPBOUND ──────────────────────────────────────────────────────────────
 function toggleShock(date){
   if(nutLocked(date))return;const day=getDayData(date);day.shockProtocol=!day.shockProtocol;save();queueDayMeta(date,["shock"]);renderNutrition();}
 function openFood(){_foodChatOpen=true;_pendingFood=null;renderNutrition();setTimeout(()=>{const ta=document.getElementById("foodTa");if(ta)ta.focus();},50);}
@@ -542,9 +464,9 @@ async function generateDietReview(){
 // Streak added at 0.05, taken from deficit (0.55 -> 0.50) so the set still sums
 // to 1. It rewards not breaking the chain, which "workouts" alone does not:
 // you can train 4 of 6 days every week and never build a streak.
-// The zepbound key is kept as-is because it maps to stored data; only its
-// label shown on the frontend is "Medication".
-const COMPLIANCE_WEIGHTS={deficit:0.50,protein:0.20,workouts:0.15,weighins:0.05,zepbound:0.05,streak:0.05};
+// Medication tracking was removed (Oct 2026, user's request); its 5% moved to
+// the deficit, the one metric that decides the goal.
+const COMPLIANCE_WEIGHTS={deficit:0.55,protein:0.20,workouts:0.15,weighins:0.05,streak:0.05};
 function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addDaysIso(dateIso,dow===0?-6:1-dow);}
 // Weighted compliance for [weekStartIso .. endIso]. Returns {calculating:true}
 // until at least one day has food logged (NaN-safe denominators throughout).
@@ -588,8 +510,6 @@ function weekCompliance(p,weekStartIso,endIso){
     if(!isRestDay(d)){expWorkout++;if(trainedOn(d))workoutDays++;}
   }
   if(!calLogged)return{calculating:true};
-  // Zepbound: taken this Tuesday cycle (last Tue → now) = 100, else 0
-  const zepTaken=zepSchedule().taken?100:0;
   const m={
     calories:calDays?Math.round(calOk/calDays*100):null,
     deficit:Math.min(100,Math.round(defReq>0?Math.max(0,defSum)/defReq*100:0)),
@@ -602,10 +522,9 @@ function weekCompliance(p,weekStartIso,endIso){
     protein:Math.min(100,Math.round(protDays?(protSum/protDays)/proteinTargetG()*100:0)),
     workouts:Math.min(100,Math.round(expWorkout?workoutDays/expWorkout*100:100)),
     weighins:Math.round(weighinDays?weighins/weighinDays*100:0),
-    zepbound:zepTaken,
-    // A full unbroken week reads as 100. Rest days count toward the streak, so
-    // seven is reachable without training seven days.
-    streak:Math.min(100,Math.round((ctx.currentStreak?.().days||0)/7*100)),
+    // Any live week streak reads as 100; otherwise progress toward this week's
+    // qualifying count (5 workouts) is the score.
+    streak:(()=>{const st=ctx.currentStreak?.();return st?(st.weeks>=1?100:Math.min(100,Math.round(st.thisWeek/st.need*100))):0;})(),
   };
   m.overall=Math.round(Object.entries(COMPLIANCE_WEIGHTS).reduce((s,[k,w])=>s+(m[k]||0)*w,0));
   return m;
@@ -630,8 +549,8 @@ function phaseVerdict(p,finalAvg){
   const d=finalAvg-p.targetKg;
   if(d<=1)return{band:"green",title:"On Target",action:"No changes. Continue to the next phase exactly as planned."};
   if(d<=2)return{band:"yellow",title:"Slightly Behind",action:"Keep calories the same. Increase average active calories by 100/day. Recalculate the next phase."};
-  if(d<=4)return{band:"orange",title:"Moderately Behind",action:"Decision point. Option A: extend the timeline if Mar 1 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
-  return{band:"red",title:"Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, Medication dose and response, and any injury or illness. Only then adjust calories, activity, or the timeline."};
+  if(d<=4)return{band:"orange",title:"Moderately Behind",action:"Decision point. Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
+  return{band:"red",title:"Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, and any injury or illness. Only then adjust calories, activity, or the timeline."};
 }
 // Exactly one rule-based actionable recommendation (deterministic, no AI)
 function coachRecommendation(p,todayIso,comp){
@@ -829,7 +748,7 @@ function phaseCardHtml(){
     }
   }
 
-  // Fix A+B+C+D: weight block, range row, medication cell, short chip
+  // Fix A+B+C+D: weight block, range row, short chip
   const latestKg=latestWeightLog();
   const latest=latestKg??p.startKg;
   const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);
@@ -870,9 +789,7 @@ function phaseCardHtml(){
   let debtHtml='';
   if(banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?'Banked':'Behind schedule')+'</span><span style="background:'+(ahead?'var(--green-lo)':'var(--red-lo)')+';color:'+(ahead?'var(--green)':'var(--red)')+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?'▲':'▼')+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?'ahead':'behind')+'</span></div>';}
 
-  const zepOverdue=zepSchedule().overdue;
-  const compGridItem=(lbl,v,isZep)=>{
-    if(isZep&&!zepOverdue&&v===0)return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px;opacity:0.5;border:1px solid var(--b1)"><span style="font-size:15px;font-weight:700;color:var(--dim)">·</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">Medication<br><span style="font-size:9px">not due</span></span></div>';
+  const compGridItem=(lbl,v)=>{
     const col=v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
     return '<div style="display:flex;flex-direction:column;align-items:center;gap:3px;background:var(--s2);border-radius:8px;padding:8px 4px"><span style="font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;color:'+col+'">'+v+'%</span><span style="font-size:10px;color:var(--dim);text-align:center;line-height:1.2">'+lbl+'</span></div>';
   };
@@ -883,7 +800,6 @@ function phaseCardHtml(){
         compGridItem('Protein',comp.protein)+
         compGridItem('Workouts',comp.workouts)+
         compGridItem('Weigh-ins',comp.weighins)+
-        compGridItem('Medication',comp.zepbound??0,true)+
         compGridItem('Streak',comp.streak??0)+
       '</div>'+
       '<div class="comp-inputs">'+
@@ -901,7 +817,8 @@ function phaseCardHtml(){
   const chipBits=[`${pctDone}%`];
   if(st==="paused")chipBits.push("paused");
   else if(st==="completed")chipBits.push(`${icon("flag",18)} verdict ready`);
-  else if(avg!=null)chipBits.push(avg>=cor.lo&&avg<=cor.hi?"✓ In range":health?health.label:"");
+  // Exact weigh-in vs the line, same as the card body (no ±1 kg range).
+  else if(health)chipBits.push(health.label);
   if(!comp.calculating)chipBits.push(`compliance ${comp.overall}%`);
   return`<details class="st-acc"${st==="completed"?" open":""}>
     <summary><div><div>${icon("target",20)} ${esc(p.name||p.id.replace("_"," ").replace(/^p/,"P"))} · ${chipBits.filter(Boolean).join(" · ")}</div><div class="st-acc-sub">Day ${dayIn} of ${totalDays} · ${fmtD(p.start)} → ${fmtD(end)}${end!==p.plannedEnd?" (extended)":""} · ${p.startKg} → ${p.targetKg} kg · eat ${num(p.eatKcal)}/day</div></div></summary>

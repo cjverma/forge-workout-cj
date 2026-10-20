@@ -49,7 +49,19 @@ function planWeekLabel(weekKey) {
 
 // Set-to-set trend at one weight: how far reps fell from the first to the last
 // set at the most-used weight. Big drop = load at the limit; none = too light.
+//
+// Weight dropped from set to set (60, 55, 50) is a different signal, in the
+// user's words: "drop means I'm not able to work hard and the first set wasn't
+// right". The opening weight was too heavy to hold for the programmed sets, so
+// it is NOT a working weight to progress from. Flagged as pattern:"descending"
+// with the weight you could hold the most reps at, so the AI starts lower.
 export function setFatigue(sets) {
+  const kgs = sets.map((s) => Number(s.kg)), reps0 = sets.map((s) => Number(s.reps) || 0);
+  if (sets.length >= 2 && kgs.every((k, i) => i === 0 || k < kgs[i - 1])) {
+    return { pattern: "descending", weights: kgs, reps: reps0, topKg: kgs[0], lastKg: kgs[kgs.length - 1],
+      weightDropPct: kgs[0] ? Math.round((kgs[0] - kgs[kgs.length - 1]) / kgs[0] * 100) : 0,
+      repsFellToo: reps0[reps0.length - 1] < reps0[0] };
+  }
   const by = {};
   for (const s of sets) { const k = String(s.kg); (by[k] ??= []).push(Number(s.reps) || 0); }
   const top = Object.entries(by).sort((a, b) => b[1].length - a[1].length || Number(b[0]) - Number(a[0]))[0];

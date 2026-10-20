@@ -226,22 +226,42 @@ of the repair section in `src/main.js`) copies every `S._x === true` into the
 new repair must sit ABOVE `persistOnceFlags()`. Assume a repair can still run
 twice (another device, cleared storage): make it a no-op on already-fixed data.
 
+**The streak counts WEEKS** (user's rule): a Mon-Sun week with 5 trained days
+(`STREAK_WEEK_MIN`, or fewer if the program plans fewer) keeps it alive, so one
+missed day no longer resets it. The week in progress only counts once it
+qualifies and never breaks it. `S.milestones.longestStreak` is in weeks,
+recomputed from the log by `longestWeekStreak()` (it used to hold days).
+
 `isProgramRestDay` means "no GYM work" (like `isGymRestDay`): Sunday carries a
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
 
-## The weight goal: ONE goal, no phases (from Oct 16 2026)
+## The weight goal: ONE goal, no phases (reset Oct 20 2026)
 
-`PHASES` in `src/phase.js` ends in a single entry `id:"goal"`: **128.5 kg on
-Oct 16 2026 -> 95 kg by Mar 1 2027**, linear, eat **1,500 kcal**, ~1,883
-kcal/day required deficit (~1.7 kg/week). The user asked for this pace
-explicitly ("no matter how aggressive"); it is carried by activity, not by
-eating less: the Watch active target is solved daily from the real resting
-burn (dynamic path, no flat fields), so it rises from ~870 to ~1,250 as weight
-drops. `phase_1` and a cut-short `phase_2` (Sep 22 -> Oct 15) stay as history.
-`USER` is 128.5 / 95 / Mar 1 2027, and `api/cron-diet-review.js` GOALS mirrors
-it. The incline walk is 35 min from Oct 16 (`before:{until,reps}` keeps past
-weeks at 15). Don't reintroduce phase_3 or a second goal unasked.
+`PHASES` in `src/phase.js` ends in a single live entry `id:"goal"`: **130 kg on
+Oct 20 2026 -> 95 kg by Feb 20 2027**, linear, eat **1,500 kcal**, **2,173
+kcal/day** required deficit (~2 kg/week). The user set this (Oct 20: "current
+weight 130, goal 95 by Feb 20") and asked for the pace explicitly ("no matter
+how aggressive"); it is carried by activity, not by eating less: the Watch
+active target is solved daily from the real resting burn (dynamic path, no flat
+fields), ~1,180 workout / ~510 rest at the start, rising as resting falls.
+History entries stay so past days keep their real deficits: `phase_1`,
+`phase_2` (Sep 22 -> Oct 15, targetKg 120.8, ~2,310/day) and `goal_v1` (the
+first one-goal line, 128.5 -> 95 by Mar 1, cut at Oct 19 with targetKg 127.52,
+~1,883/day). `USER` is 130 / 95 / Feb 20 2027, and `api/cron-diet-review.js`
+GOALS mirrors it. **Resting burn** for a day with nothing logged is
+`restingDefaultFor()`: the average of the last 5 logged resting values on or
+before that day (manual and HealthKit both land in `restingOverride`), else
+**2,800**. The Mifflin formula (~2,300 for this user, ~500 low) is no longer
+used for it. The incline walk is 35 min from Oct 16 (`before:{until,reps}`
+keeps past weeks at 15). Don't reintroduce phase_3 or a second live goal unasked.
+
+**Descending weights in a session mean the first set was too heavy** (the
+user's rule: "drop means I'm not able to work hard and the first set wasn't
+right"). `setFatigue()` in `src/plan.js` flags weights falling set to set as
+`pattern:"descending"`, and the weekly-plan prompt makes that OVERRIDE the PR
+step-up: next week is straight sets at a weight the user can hold, never a
+progression from the top set.
 
 ## Known issue: two different "today" (not yet fixed)
 
@@ -445,7 +465,7 @@ Four surfaces resolve those keys back to names, and all four must agree:
 |---|---|
 | PR list (drawer) | `exName()` in `src/nutrition.js` → `ctx.prName` |
 | PDF report + backup | `exName()` in `src/settings.js` (x2) → `ctx.prName` |
-| weekly email CSV | `exName()` in `api/cron-weekly-email.js` |
+| weekly email | `nameOf()` in `api/_weeklyReport.js` |
 
 - **`prSlug()` in `src/constants.js` is the one slug rule.** It strips leading
   and trailing separators: 30 exercise names end in `)`, which without the trim
@@ -458,10 +478,11 @@ Four surfaces resolve those keys back to names, and all four must agree:
 - The **de-slug fallback** in `prName()` (and its mirror in the email) is the
   backstop: it guarantees a readable label for ANY key, including exercises
   that have left the program entirely.
-- `api/cron-weekly-email.js` imports from `src/constants.js`. It used to carry
-  a hand-written 166-entry map keyed by day-prefixed ids, none from V4 and none
-  name-slugs, so every PR lookup missed and the CSV emailed raw slugs. Do not
-  reintroduce a literal map.
+- The weekly email (`api/_weeklyReport.js`) builds its names from the programs
+  in `src/constants.js`. The old email carried a hand-written 166-entry map
+  keyed by day-prefixed ids, none from V4 and none name-slugs, so every PR
+  lookup missed and it emailed raw slugs. Do not reintroduce a literal map.
+  (The CSV attachment that map fed was dropped in Oct 2026: "useless".)
 
 ## Session flow and targets
 
@@ -497,6 +518,29 @@ an existing endpoint (e.g. a new `entity` in `api/mutate.js`, a new branch in
 an existing cron) rather than a new file, unless the user moves to Vercel Pro.
 Check `ls api | grep -vc '^_'` before adding anything under `api/`.
 
+## The weekly email is an AI coach verdict (`api/_weeklyReport.js`)
+
+`api/cron-weekly-email.js` runs **Monday 12:00 UTC** (8 AM Toronto). It is an
+**AI coach's verdict**, not a stats report (the user: "summary" meant how the
+week went, not the details). `buildWeeklyReport` computes the week's numbers;
+`coachPrompt(data)` hands them to `callOpenAI` with session notes, calf
+twinges, PRs and the most-eaten foods; `parseCoach` turns the JSON reply into
+`{headline, diet, training, nextWeek[≤3]}` (code fences tolerated, dashes
+normalised). The email is: the coach's headline, ideal (plan line) vs actual
+weight + progress bar (the user asked for it), Diet and Training paragraphs,
+and up to three next-week items. **If the model call fails or returns junk,
+the rule-based verdict and focus list go out instead**: a Monday email that
+never arrives is worse than a plainer one. Plain subject (no weight or stats),
+no attachment (the CSV was dropped as useless). Don't grow it back into tables.
+**Never rely on a background colour in the email.** The Gmail app dropped every
+background: the dark header went white-on-white in light mode, its white text
+turned grey under dark-mode inversion, and the progress bar vanished. Text is
+dark on the white card, the brand stripe and the bar are BORDERS. Tested. It
+covers COMPLETE days only (the week containing yesterday), so a half-logged
+day never skews the averages. Every number comes from `src/phase.js`, the same
+engine as the app; the builder is pure and `_`-prefixed (not a function, see
+the 12-function limit) and is tested with a seeded week in `test.js`.
+
 ## The weekly plan is built in ONE place (`src/plan.js`)
 
 `src/plan.js` holds everything the plan needs: `planMonFor`, the payload
@@ -521,11 +565,19 @@ app does, so the week is planned even if the app is never opened.
 
 The user simplified the app (Oct 2026). Hidden, not deleted: data and code
 stay, and setting a flag back to `true` restores the feature. Off: the quote
-card (and its rotation timer), the Zepbound medication card, the "This week's
+card (and its rotation timer), the "This week's
 compliance" grid, Settings' Volume This Week + Progress group, and the
 Personal Records section of the Insights drawer (the rest of that drawer:
 7-day trends, Machine Busy, How Hard stays). `verify-runtime.mjs` checks the
 rendered UI matches every flag. Don't re-add hidden features unasked.
+
+**Medication (Zepbound) tracking is REMOVED, not switched off** (Oct 2026, the
+user's request: "no Zepbound tracking, remove all mentions"). Gone from the UI,
+the compliance score (its 5% went to the deficit: 55/20/15/5/5), sync
+(`api/state.js` no longer returns `meds`), the mutations, the schema, the AI
+chat context and every AI prompt. The `med_doses` table and its rows are left
+in the database untouched; nothing reads or writes them. `node test.js` fails
+if zepbound / tirzepatide / med_dose / S.meds reappears anywhere.
 
 ## Calf twinge makes the session note mandatory
 
@@ -558,7 +610,7 @@ Rounding is applied at **three** layers, and all three are needed:
 1. **Ingest** — `api/healthkit.js` and the manual form in `src/nutrition.js`.
 2. **Storage** — `api/mutate.js` on write, `api/state.js` on read (so rows
    already stored wrong are healed without a migration everyone must run).
-3. **Render/export** — both sparklines, the PDF report, both CSVs, the AI
+3. **Render/export** — both sparklines, the PDF report, the CSV export, the AI
    prompts, and `latestWeightLog()`.
 
 **Round at the source of a chart, not at its labels.** Both sparklines derive

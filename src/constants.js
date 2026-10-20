@@ -1009,7 +1009,6 @@ export function weekKeyOf(date){
 // deleted: data and code stay, and flipping a flag back to true restores it.
 export const FEATURES={
   quoteCard:false,        // rotating quote at the top
-  medicationCard:false,   // Zepbound card on Nutrition
   complianceGrid:false,   // "This week's compliance" grid in the phase card
   progressCharts:false,   // Settings: Volume This Week + Progress group
   prList:false,           // Personal Records section in the Insights drawer
