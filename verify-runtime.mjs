@@ -519,8 +519,9 @@ try {
     }, exId);
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-meta`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
-    note("the suggested weight is last session's best set (Beat 45 kg × 10), pre-filled", /Beat 45 kg × 10/.test(t.meta) && t.pre === "45", JSON.stringify(t));
+    // iOS redesign: the target is the row's trailing value, like a Settings value.
+    const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-hint`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
+    note("the suggested weight is last session's best set (45 kg × 10 as the row's target), pre-filled", /^45 kg × 10$/.test(t.meta) && t.pre === "45", JSON.stringify(t));
     await page.evaluate(() => window.startSess());
     await page.waitForTimeout(300);
     await page.reload({ waitUntil: "networkidle" });
@@ -801,11 +802,17 @@ try {
       c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
       const textW = c.measureText(i.value).width, ir = i.getBoundingClientRect();
       const avail = ir.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      // iOS redesign: the unit sits inside the pill at its right edge, and the
+      // input's right padding reserves that space. The centred number's right
+      // edge must stay left of the unit's left edge.
       const lab = getComputedStyle(i.parentElement, "::after"), wr = i.parentElement.getBoundingClientRect();
-      const labTop = wr.bottom - parseFloat(lab.bottom || 0) - parseFloat(lab.fontSize);
-      return { fits: textW <= avail, textW: Math.round(textW), avail: Math.round(avail), below: labTop >= ir.top + ir.height * 0.6 };
+      c.font = `${lab.fontWeight} ${lab.fontSize} ${lab.fontFamily}`;
+      const unitW = c.measureText(i.parentElement.dataset.unit || "").width;
+      const unitLeft = wr.right - parseFloat(lab.right || 0) - unitW;
+      const contentL = ir.left + parseFloat(cs.paddingLeft), textRight = contentL + avail / 2 + textW / 2;
+      return { fits: textW <= avail, textW: Math.round(textW), avail: Math.round(avail), gap: Math.round(unitLeft - textRight), clear: textRight <= unitLeft };
     });
-    note("weight and unit never overlap, and a wide number (147.5) is not clipped", !!ov && ov.fits && ov.below, JSON.stringify(ov));
+    note("weight and unit never overlap, and a wide number (147.5) is not clipped", !!ov && ov.fits && ov.clear, JSON.stringify(ov));
     await page.close();
   }
 
