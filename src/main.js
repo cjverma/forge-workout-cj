@@ -488,7 +488,9 @@ applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme());
 let _appReady=false;
 ctx.save=save;
-if(!S.demoCache||(S.demoCacheV||0)<3){S.demoCache={};S.demoCacheV=3;}
+// v4: demos are all bundled now; the cache held remote MuscleWiki/GitHub URLs.
+// Cleared here AND on the server (queueSettings), so no device fetches them.
+if(!S.demoCache||(S.demoCacheV||0)<4){const had=Object.keys(S.demoCache||{}).length>0;S.demoCache={};S.demoCacheV=4;if(had)queueSettings();}
 function restoreDailyBackup(dateStr){
   const raw=localStorage.getItem("f5_daily_"+dateStr);
   if(!raw){showToast("Backup not found");return;}

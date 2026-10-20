@@ -1,254 +1,818 @@
 {
- "Seated Cable Row": [
-  "demos/seated-cable-row-0.jpg",
-  "demos/seated-cable-row-1.jpg"
- ],
- "Low Cable Row": [
-  "demos/low-cable-row-0.jpg",
-  "demos/low-cable-row-1.jpg"
- ],
- "Chest Press Machine": [
-  "demos/chest-press-machine-0.jpg",
-  "demos/chest-press-machine-1.jpg"
- ],
- "Incline Chest Press Machine": [
-  "demos/incline-chest-press-machine-0.jpg",
-  "demos/incline-chest-press-machine-1.jpg"
- ],
- "Pec Fly Machine": [
-  "demos/pec-fly-machine-0.jpg",
-  "demos/pec-fly-machine-1.jpg"
- ],
- "Rear Delt Fly Machine": [
-  "demos/rear-delt-fly-machine-0.jpg",
-  "demos/rear-delt-fly-machine-1.jpg"
- ],
- "Chest Supported Row": [
-  "demos/chest-supported-row-0.jpg",
-  "demos/chest-supported-row-1.jpg"
- ],
- "Tricep Extension Machine": [
-  "demos/tricep-extension-machine-0.jpg",
-  "demos/tricep-extension-machine-1.jpg"
- ],
- "Preacher Curl Machine": [
-  "demos/preacher-curl-machine-0.jpg",
-  "demos/preacher-curl-machine-1.jpg"
- ],
- "Leg Press Machine": [
-  "demos/leg-press-machine-0.jpg",
-  "demos/leg-press-machine-1.jpg"
- ],
- "Seated Leg Curl": [
-  "demos/seated-leg-curl-0.jpg",
-  "demos/seated-leg-curl-1.jpg"
- ],
- "Leg Extension Machine": [
-  "demos/leg-extension-machine-0.jpg",
-  "demos/leg-extension-machine-1.jpg"
- ],
- "Seated Calf Raise": [
-  "demos/seated-calf-raise-0.jpg",
-  "demos/seated-calf-raise-1.jpg"
- ],
- "Hip Abduction Machine": [
-  "demos/hip-abduction-machine-0.jpg",
-  "demos/hip-abduction-machine-1.jpg"
- ],
- "Hip Adduction Machine": [
-  "demos/hip-adduction-machine-0.jpg",
-  "demos/hip-adduction-machine-1.jpg"
- ],
- "Glute Kickback Machine": [
-  "demos/glute-kickback-machine-0.jpg",
-  "demos/glute-kickback-machine-1.jpg"
- ],
- "Neutral Grip Lat Pulldown": [
-  "demos/neutral-grip-lat-pulldown-0.jpg",
-  "demos/neutral-grip-lat-pulldown-1.jpg"
- ],
- "Straight Arm Pulldown": [
-  "demos/straight-arm-pulldown-0.jpg",
-  "demos/straight-arm-pulldown-1.jpg"
- ],
- "Cable Tricep Pushdown": [
-  "demos/cable-tricep-pushdown-0.jpg",
-  "demos/cable-tricep-pushdown-1.jpg"
- ],
- "Cable Tricep Pushdown (Rope)": [
-  "demos/cable-tricep-pushdown-rope-0.jpg",
-  "demos/cable-tricep-pushdown-rope-1.jpg"
- ],
- "Cable Bicep Curl": [
-  "demos/cable-bicep-curl-0.jpg",
-  "demos/cable-bicep-curl-1.jpg"
- ],
- "Dumbbell Row": [
-  "demos/dumbbell-row-0.jpg",
-  "demos/dumbbell-row-1.jpg"
- ],
- "Seated Dumbbell Curl": [
-  "demos/seated-dumbbell-curl-0.jpg",
-  "demos/seated-dumbbell-curl-1.jpg"
- ],
- "Hammer Curl": [
-  "demos/hammer-curl-0.jpg",
-  "demos/hammer-curl-1.jpg"
- ],
- "Concentration Curl": [
-  "demos/concentration-curl-0.jpg",
-  "demos/concentration-curl-1.jpg"
- ],
- "Reverse Curl": [
-  "demos/reverse-curl-0.jpg",
-  "demos/reverse-curl-1.jpg"
- ],
- "Incline Dumbbell Fly": [
-  "demos/incline-dumbbell-fly-0.jpg",
-  "demos/incline-dumbbell-fly-1.jpg"
- ],
- "Seated External Rotation": [
-  "demos/seated-external-rotation-0.jpg",
-  "demos/seated-external-rotation-1.jpg"
- ],
- "Seated Wrist Curl": [
-  "demos/seated-wrist-curl-0.jpg",
-  "demos/seated-wrist-curl-1.jpg"
- ],
- "Seated Lateral Raise": [
-  "demos/seated-lateral-raise-0.jpg",
-  "demos/seated-lateral-raise-1.jpg"
- ],
- "Cable Face Pull": [
-  "demos/cable-face-pull-0.jpg",
-  "demos/cable-face-pull-1.jpg"
- ],
- "Seated Cable Woodchop": [
-  "demos/seated-cable-woodchop-0.jpg",
-  "demos/seated-cable-woodchop-1.jpg"
- ],
- "Seated Cable Lateral Raise": [
-  "demos/seated-cable-lateral-raise-0.jpg",
-  "demos/seated-cable-lateral-raise-1.jpg"
- ],
- "Glute Bridge": [
-  "demos/glute-bridge-0.jpg",
-  "demos/glute-bridge-1.jpg"
- ],
- "Dead Bug": [
-  "demos/dead-bug-0.jpg",
-  "demos/dead-bug-1.jpg"
- ],
- "Cat-Cow": [
-  "demos/cat-cow-0.jpg",
-  "demos/cat-cow-1.jpg"
- ],
- "Pelvic Tilt": [
-  "demos/pelvic-tilt-0.jpg",
-  "demos/pelvic-tilt-1.jpg"
- ],
- "Supine Spinal Twist": [
-  "demos/supine-spinal-twist-0.jpg",
-  "demos/supine-spinal-twist-1.jpg"
- ],
- "Child's Pose": [
-  "demos/child-s-pose-0.jpg",
-  "demos/child-s-pose-1.jpg"
- ],
- "Piriformis Stretch": [
-  "demos/piriformis-stretch-0.jpg",
-  "demos/piriformis-stretch-1.jpg"
- ],
- "Calf Stretch (Seated)": [
-  "demos/calf-stretch-seated-0.jpg",
-  "demos/calf-stretch-seated-1.jpg"
- ],
- "Knee-to-Chest Stretch": [
-  "demos/knee-to-chest-stretch-0.jpg",
-  "demos/knee-to-chest-stretch-1.jpg"
- ],
- "Hip Flexor Stretch": [
-  "demos/hip-flexor-stretch-0.jpg",
-  "demos/hip-flexor-stretch-1.jpg"
- ],
- "Ankle Pumps": [
-  "demos/ankle-pumps-0.jpg",
-  "demos/ankle-pumps-1.jpg"
- ],
- "Recumbent Bike": [
-  "demos/recumbent-bike-0.jpg",
-  "demos/recumbent-bike-1.jpg"
- ],
  "Stationary Bike": [
-  "demos/stationary-bike-0.jpg",
-  "demos/stationary-bike-1.jpg"
- ],
- "Elliptical Machine": [
-  "demos/elliptical-machine-0.jpg",
-  "demos/elliptical-machine-1.jpg"
- ],
- "Treadmill Walk": [
-  "demos/treadmill-walk-0.jpg",
-  "demos/treadmill-walk-1.jpg"
- ],
- "Weighted Glute Bridge": [
-  "demos/weighted-glute-bridge-0.jpg",
-  "demos/weighted-glute-bridge-1.jpg"
- ],
- "Outer Thigh Machine": [
-  "demos/outer-thigh-machine-0.jpg",
-  "demos/outer-thigh-machine-1.jpg"
- ],
- "Inner Thigh Machine": [
-  "demos/inner-thigh-machine-0.jpg",
-  "demos/inner-thigh-machine-1.jpg"
- ],
- "Cable Glute Kickback": [
-  "demos/cable-glute-kickback-0.jpg",
-  "demos/cable-glute-kickback-1.jpg"
- ],
- "Pallof Press": [
-  "demos/pallof-press-0.jpg",
-  "demos/pallof-press-1.jpg"
- ],
- "Incline Treadmill Walk": [
-  "demos/incline-treadmill-walk-0.jpg",
-  "demos/incline-treadmill-walk-1.jpg"
- ],
- "Seated Pulldown (Neutral Grip)": [
-  "demos/seated-pulldown-neutral-grip-0.jpg",
-  "demos/seated-pulldown-neutral-grip-1.jpg"
- ],
- "Seated DB Wrist Curl": [
-  "demos/seated-db-wrist-curl-0.jpg",
-  "demos/seated-db-wrist-curl-1.jpg"
- ],
- "Seated Cable Rope Pullover": [
-  "demos/seated-cable-rope-pullover-0.jpg",
-  "demos/seated-cable-rope-pullover-1.jpg"
- ],
- "Glute Bridge (Modified)": [
-  "demos/glute-bridge-0.jpg",
-  "demos/glute-bridge-1.jpg"
+  "demos/stationary-bike-0.webp",
+  "demos/stationary-bike-1.webp"
  ],
  "Warm-Up · Leg Press": [
-  "demos/leg-press-machine-0.jpg",
-  "demos/leg-press-machine-1.jpg"
+  "demos/leg-press-machine-0.webp",
+  "demos/leg-press-machine-1.webp"
+ ],
+ "Leg Press Machine": [
+  "demos/leg-press-machine-0.webp",
+  "demos/leg-press-machine-1.webp"
+ ],
+ "Seated Leg Curl": [
+  "demos/seated-leg-curl-0.webp",
+  "demos/seated-leg-curl-1.webp"
+ ],
+ "Leg Extension Machine": [
+  "demos/leg-extension-machine-0.webp",
+  "demos/leg-extension-machine-1.webp"
+ ],
+ "Weighted Glute Bridge": [
+  "demos/weighted-glute-bridge-0.webp",
+  "demos/weighted-glute-bridge-1.webp"
+ ],
+ "Outer Thigh Machine": [
+  "demos/outer-thigh-machine-0.webp",
+  "demos/outer-thigh-machine-1.webp"
+ ],
+ "Inner Thigh Machine": [
+  "demos/inner-thigh-machine-0.webp",
+  "demos/inner-thigh-machine-1.webp"
+ ],
+ "Seated Lateral Raise": [
+  "demos/seated-lateral-raise-0.webp",
+  "demos/seated-lateral-raise-1.webp"
+ ],
+ "Cable Glute Kickback": [
+  "demos/cable-glute-kickback-0.webp",
+  "demos/cable-glute-kickback-1.webp"
+ ],
+ "Seated Calf Raise": [
+  "demos/seated-calf-raise-0.webp",
+  "demos/seated-calf-raise-1.webp"
+ ],
+ "Pallof Press": [
+  "demos/pallof-press-0.webp",
+  "demos/pallof-press-1.webp"
+ ],
+ "Incline Treadmill Walk": [
+  "demos/incline-treadmill-walk-0.webp",
+  "demos/incline-treadmill-walk-1.webp"
  ],
  "Warm-Up · Chest Supported Row": [
-  "demos/chest-supported-row-0.jpg",
-  "demos/chest-supported-row-1.jpg"
+  "demos/chest-supported-row-0.webp",
+  "demos/chest-supported-row-1.webp"
+ ],
+ "Chest Supported Row": [
+  "demos/chest-supported-row-0.webp",
+  "demos/chest-supported-row-1.webp"
+ ],
+ "Seated Pulldown (Neutral Grip)": [
+  "demos/seated-pulldown-neutral-grip-0.webp",
+  "demos/seated-pulldown-neutral-grip-1.webp"
+ ],
+ "Straight Arm Pulldown": [
+  "demos/straight-arm-pulldown-0.webp",
+  "demos/straight-arm-pulldown-1.webp"
+ ],
+ "Seated Cable Row": [
+  "demos/seated-cable-row-0.webp",
+  "demos/seated-cable-row-1.webp"
+ ],
+ "Rear Delt Fly Machine": [
+  "demos/rear-delt-fly-machine-0.webp",
+  "demos/rear-delt-fly-machine-1.webp"
+ ],
+ "Seated Dumbbell Curl": [
+  "demos/seated-dumbbell-curl-0.webp",
+  "demos/seated-dumbbell-curl-1.webp"
+ ],
+ "Hammer Curl": [
+  "demos/hammer-curl-0.webp",
+  "demos/hammer-curl-1.webp"
+ ],
+ "Cable Bicep Curl": [
+  "demos/cable-bicep-curl-0.webp",
+  "demos/cable-bicep-curl-1.webp"
  ],
  "Warm-Up · Chest Press": [
-  "demos/chest-press-machine-0.jpg",
-  "demos/chest-press-machine-1.jpg"
+  "demos/chest-press-machine-0.webp",
+  "demos/chest-press-machine-1.webp"
+ ],
+ "Chest Press Machine": [
+  "demos/chest-press-machine-0.webp",
+  "demos/chest-press-machine-1.webp"
+ ],
+ "Incline Chest Press Machine": [
+  "demos/incline-chest-press-machine-0.webp",
+  "demos/incline-chest-press-machine-1.webp"
+ ],
+ "Pec Fly Machine": [
+  "demos/pec-fly-machine-0.webp",
+  "demos/pec-fly-machine-1.webp"
+ ],
+ "Tricep Extension Machine": [
+  "demos/tricep-extension-machine-0.webp",
+  "demos/tricep-extension-machine-1.webp"
+ ],
+ "Cable Tricep Pushdown": [
+  "demos/cable-tricep-pushdown-0.webp",
+  "demos/cable-tricep-pushdown-1.webp"
+ ],
+ "Seated DB Wrist Curl": [
+  "demos/seated-db-wrist-curl-0.webp",
+  "demos/seated-db-wrist-curl-1.webp"
  ],
  "Warm-Up · Straight Arm Pulldown": [
-  "demos/straight-arm-pulldown-0.jpg",
-  "demos/straight-arm-pulldown-1.jpg"
+  "demos/straight-arm-pulldown-0.webp",
+  "demos/straight-arm-pulldown-1.webp"
+ ],
+ "Seated Cable Rope Pullover": [
+  "demos/seated-cable-rope-pullover-0.webp",
+  "demos/seated-cable-rope-pullover-1.webp"
  ],
  "Warm-Up · Lateral Raise": [
-  "demos/seated-lateral-raise-0.jpg",
-  "demos/seated-lateral-raise-1.jpg"
+  "demos/seated-lateral-raise-0.webp",
+  "demos/seated-lateral-raise-1.webp"
+ ],
+ "Knee-to-Chest Stretch": [
+  "demos/knee-to-chest-stretch-0.webp",
+  "demos/knee-to-chest-stretch-1.webp"
+ ],
+ "Glute Bridge (Modified)": [
+  "demos/glute-bridge-0.webp",
+  "demos/glute-bridge-1.webp"
+ ],
+ "Dead Bug": [
+  "demos/dead-bug-0.webp",
+  "demos/dead-bug-1.webp"
+ ],
+ "Hip Flexor Stretch": [
+  "demos/hip-flexor-stretch-0.webp",
+  "demos/hip-flexor-stretch-1.webp"
+ ],
+ "Cat-Cow": [
+  "demos/cat-cow-0.webp",
+  "demos/cat-cow-1.webp"
+ ],
+ "Preacher Curl Machine": [
+  "demos/preacher-curl-machine-0.webp",
+  "demos/preacher-curl-machine-1.webp"
+ ],
+ "Glute Kickback Machine": [
+  "demos/glute-kickback-machine-0.webp",
+  "demos/glute-kickback-machine-1.webp"
+ ],
+ "Cable Face Pull": [
+  "demos/cable-face-pull-0.webp",
+  "demos/cable-face-pull-1.webp"
+ ],
+ "Neutral Grip Lat Pulldown": [
+  "demos/neutral-grip-lat-pulldown-0.webp",
+  "demos/neutral-grip-lat-pulldown-1.webp"
+ ],
+ "Low Cable Row": [
+  "demos/low-cable-row-0.webp",
+  "demos/low-cable-row-1.webp"
+ ],
+ "Cable Tricep Pushdown (Rope)": [
+  "demos/cable-tricep-pushdown-rope-0.webp",
+  "demos/cable-tricep-pushdown-rope-1.webp"
+ ],
+ "Seated Cable Lateral Raise": [
+  "demos/seated-cable-lateral-raise-0.webp",
+  "demos/seated-cable-lateral-raise-1.webp"
+ ],
+ "Dumbbell Row": [
+  "demos/dumbbell-row-0.webp",
+  "demos/dumbbell-row-1.webp"
+ ],
+ "Concentration Curl": [
+  "demos/concentration-curl-0.webp",
+  "demos/concentration-curl-1.webp"
+ ],
+ "Reverse Curl": [
+  "demos/reverse-curl-0.webp",
+  "demos/reverse-curl-1.webp"
+ ],
+ "Incline Dumbbell Fly": [
+  "demos/incline-dumbbell-fly-0.webp",
+  "demos/incline-dumbbell-fly-1.webp"
+ ],
+ "Seated External Rotation": [
+  "demos/seated-external-rotation-0.webp",
+  "demos/seated-external-rotation-1.webp"
+ ],
+ "Seated Wrist Curl": [
+  "demos/seated-wrist-curl-0.webp",
+  "demos/seated-wrist-curl-1.webp"
+ ],
+ "Recumbent Bike": [
+  "demos/recumbent-bike-0.webp",
+  "demos/recumbent-bike-1.webp"
+ ],
+ "Treadmill Walk": [
+  "demos/treadmill-walk-0.webp",
+  "demos/treadmill-walk-1.webp"
+ ],
+ "Elliptical Machine": [
+  "demos/elliptical-machine-0.webp",
+  "demos/elliptical-machine-1.webp"
+ ],
+ "Glute Bridge": [
+  "demos/glute-bridge-0.webp",
+  "demos/glute-bridge-1.webp"
+ ],
+ "Pelvic Tilt": [
+  "demos/pelvic-tilt-0.webp",
+  "demos/pelvic-tilt-1.webp"
+ ],
+ "Supine Spinal Twist": [
+  "demos/supine-spinal-twist-0.webp",
+  "demos/supine-spinal-twist-1.webp"
+ ],
+ "Child's Pose": [
+  "demos/child-s-pose-0.webp",
+  "demos/child-s-pose-1.webp"
+ ],
+ "Piriformis Stretch": [
+  "demos/piriformis-stretch-0.webp",
+  "demos/piriformis-stretch-1.webp"
+ ],
+ "Calf Stretch (Seated)": [
+  "demos/calf-stretch-seated-0.webp",
+  "demos/calf-stretch-seated-1.webp"
+ ],
+ "Ankle Pumps": [
+  "demos/ankle-pumps-0.webp",
+  "demos/ankle-pumps-1.webp"
+ ],
+ "Cable Pallof Press": [
+  "demos/cable-pallof-press-0.webp",
+  "demos/cable-pallof-press-1.webp"
+ ],
+ "Wide-Grip Seated Row Machine": [
+  "demos/wide-grip-seated-row-machine-0.webp",
+  "demos/wide-grip-seated-row-machine-1.webp"
+ ],
+ "Close-Grip Underhand Pulldown": [
+  "demos/close-grip-underhand-pulldown-0.webp",
+  "demos/close-grip-underhand-pulldown-1.webp"
+ ],
+ "V-Bar Seated Row": [
+  "demos/v-bar-seated-row-0.webp",
+  "demos/v-bar-seated-row-1.webp"
+ ],
+ "Chest Decline Machine": [
+  "demos/chest-decline-machine-0.webp",
+  "demos/chest-decline-machine-1.webp"
+ ],
+ "Hip Extension Machine": [
+  "demos/hip-extension-machine-0.webp",
+  "demos/hip-extension-machine-1.webp"
+ ],
+ "Assisted Dip Machine": [
+  "demos/assisted-dip-machine-0.webp",
+  "demos/assisted-dip-machine-1.webp"
+ ],
+ "Low Row Machine": [
+  "demos/low-row-machine-0.webp",
+  "demos/low-row-machine-1.webp"
+ ],
+ "Seated Cable Fly": [
+  "demos/seated-cable-fly-0.webp",
+  "demos/seated-cable-fly-1.webp"
+ ],
+ "Low Cable Chest Fly": [
+  "demos/low-cable-chest-fly-0.webp",
+  "demos/low-cable-chest-fly-1.webp"
+ ],
+ "Seated Unilateral Cable Row": [
+  "demos/seated-unilateral-cable-row-0.webp",
+  "demos/seated-unilateral-cable-row-1.webp"
+ ],
+ "Cable Hammer Curl": [
+  "demos/cable-hammer-curl-0.webp",
+  "demos/cable-hammer-curl-1.webp"
+ ],
+ "Cable Reverse Fly": [
+  "demos/cable-reverse-fly-0.webp",
+  "demos/cable-reverse-fly-1.webp"
+ ],
+ "Seated Cable Shrug": [
+  "demos/seated-cable-shrug-0.webp",
+  "demos/seated-cable-shrug-1.webp"
+ ],
+ "Cable Kickback": [
+  "demos/cable-kickback-0.webp",
+  "demos/cable-kickback-1.webp"
+ ],
+ "Cable Wrist Curl": [
+  "demos/cable-wrist-curl-0.webp",
+  "demos/cable-wrist-curl-1.webp"
+ ],
+ "Seated Single-Arm Face Pull": [
+  "demos/seated-single-arm-face-pull-0.webp",
+  "demos/seated-single-arm-face-pull-1.webp"
+ ],
+ "Seated DB Shrug": [
+  "demos/seated-db-shrug-0.webp",
+  "demos/seated-db-shrug-1.webp"
+ ],
+ "Seated DB Front Raise": [
+  "demos/seated-db-front-raise-0.webp",
+  "demos/seated-db-front-raise-1.webp"
+ ],
+ "Seated Incline DB Curl": [
+  "demos/seated-incline-db-curl-0.webp",
+  "demos/seated-incline-db-curl-1.webp"
+ ],
+ "Lying DB Chest Press": [
+  "demos/lying-db-chest-press-0.webp",
+  "demos/lying-db-chest-press-1.webp"
+ ],
+ "Lying DB Fly": [
+  "demos/lying-db-fly-0.webp",
+  "demos/lying-db-fly-1.webp"
+ ],
+ "DB Zottman Curl": [
+  "demos/db-zottman-curl-0.webp",
+  "demos/db-zottman-curl-1.webp"
+ ],
+ "Lying DB Skull Crusher": [
+  "demos/lying-db-skull-crusher-0.webp",
+  "demos/lying-db-skull-crusher-1.webp"
+ ],
+ "Seated DB Tricep Kickback": [
+  "demos/seated-db-tricep-kickback-0.webp",
+  "demos/seated-db-tricep-kickback-1.webp"
+ ],
+ "Chest Supported Lateral Raise": [
+  "demos/chest-supported-lateral-raise-0.webp",
+  "demos/chest-supported-lateral-raise-1.webp"
+ ],
+ "DB Wrist Extension": [
+  "demos/db-wrist-extension-0.webp",
+  "demos/db-wrist-extension-1.webp"
+ ],
+ "DB Pullover": [
+  "demos/db-pullover-0.webp",
+  "demos/db-pullover-1.webp"
+ ],
+ "Band Pull-Apart": [
+  "demos/band-pull-apart-0.webp",
+  "demos/band-pull-apart-1.webp"
+ ],
+ "Seated Hamstring Stretch": [
+  "demos/seated-hamstring-stretch-0.webp",
+  "demos/seated-hamstring-stretch-1.webp"
+ ],
+ "Decline Chest Press Machine": [
+  "demos/decline-chest-press-machine-0.webp",
+  "demos/decline-chest-press-machine-1.webp"
+ ],
+ "Converging Chest Press Machine": [
+  "demos/converging-chest-press-machine-0.webp",
+  "demos/converging-chest-press-machine-1.webp"
+ ],
+ "Cable Crossover (High to Low)": [
+  "demos/cable-crossover-high-to-low-0.webp",
+  "demos/cable-crossover-high-to-low-1.webp"
+ ],
+ "Cable Crossover (Low to High)": [
+  "demos/cable-crossover-low-to-high-0.webp",
+  "demos/cable-crossover-low-to-high-1.webp"
+ ],
+ "Incline Cable Fly": [
+  "demos/incline-cable-fly-0.webp",
+  "demos/incline-cable-fly-1.webp"
+ ],
+ "Incline Machine Fly": [
+  "demos/incline-machine-fly-0.webp",
+  "demos/incline-machine-fly-1.webp"
+ ],
+ "Lying DB Incline Press": [
+  "demos/lying-db-incline-press-0.webp",
+  "demos/lying-db-incline-press-1.webp"
+ ],
+ "Lying DB Decline Press": [
+  "demos/lying-db-decline-press-0.webp",
+  "demos/lying-db-decline-press-1.webp"
+ ],
+ "Push-Up (Hands Elevated)": [
+  "demos/push-up-hands-elevated-0.webp",
+  "demos/push-up-hands-elevated-1.webp"
+ ],
+ "Machine Chest Fly (Single Arm)": [
+  "demos/machine-chest-fly-single-arm-0.webp",
+  "demos/machine-chest-fly-single-arm-1.webp"
+ ],
+ "Close-Grip Neutral Pulldown": [
+  "demos/close-grip-neutral-pulldown-0.webp",
+  "demos/close-grip-neutral-pulldown-1.webp"
+ ],
+ "Single-Arm Neutral Pulldown": [
+  "demos/single-arm-neutral-pulldown-0.webp",
+  "demos/single-arm-neutral-pulldown-1.webp"
+ ],
+ "Machine Pullover": [
+  "demos/machine-pullover-0.webp",
+  "demos/machine-pullover-1.webp"
+ ],
+ "Chest Supported T-Bar Row": [
+  "demos/chest-supported-t-bar-row-0.webp",
+  "demos/chest-supported-t-bar-row-1.webp"
+ ],
+ "Seated Row Machine (Neutral Grip)": [
+  "demos/seated-row-machine-neutral-grip-0.webp",
+  "demos/seated-row-machine-neutral-grip-1.webp"
+ ],
+ "Single-Arm Seated Cable Row": [
+  "demos/single-arm-seated-cable-row-0.webp",
+  "demos/single-arm-seated-cable-row-1.webp"
+ ],
+ "Seated Rope Face Pull": [
+  "demos/seated-rope-face-pull-0.webp",
+  "demos/seated-rope-face-pull-1.webp"
+ ],
+ "Assisted Pull-Up Machine (Neutral Grip)": [
+  "demos/assisted-pull-up-machine-neutral-grip-0.webp",
+  "demos/assisted-pull-up-machine-neutral-grip-1.webp"
+ ],
+ "Reverse Pec Deck": [
+  "demos/reverse-pec-deck-0.webp",
+  "demos/reverse-pec-deck-1.webp"
+ ],
+ "Prone Incline DB Row": [
+  "demos/prone-incline-db-row-0.webp",
+  "demos/prone-incline-db-row-1.webp"
+ ],
+ "Chest Supported Reverse Fly": [
+  "demos/chest-supported-reverse-fly-0.webp",
+  "demos/chest-supported-reverse-fly-1.webp"
+ ],
+ "Machine Lateral Raise": [
+  "demos/machine-lateral-raise-0.webp",
+  "demos/machine-lateral-raise-1.webp"
+ ],
+ "Single-Arm Cable Lateral Raise": [
+  "demos/single-arm-cable-lateral-raise-0.webp",
+  "demos/single-arm-cable-lateral-raise-1.webp"
+ ],
+ "Seated Rear Delt Raise (Chest Supported)": [
+  "demos/seated-rear-delt-raise-chest-supported-0.webp",
+  "demos/seated-rear-delt-raise-chest-supported-1.webp"
+ ],
+ "Machine Rear Delt Fly": [
+  "demos/machine-rear-delt-fly-0.webp",
+  "demos/machine-rear-delt-fly-1.webp"
+ ],
+ "Seated DB Scaption": [
+  "demos/seated-db-scaption-0.webp",
+  "demos/seated-db-scaption-1.webp"
+ ],
+ "Seated Y-Raise (Incline Bench)": [
+  "demos/seated-y-raise-incline-bench-0.webp",
+  "demos/seated-y-raise-incline-bench-1.webp"
+ ],
+ "Cable Rear Delt Row (Seated)": [
+  "demos/cable-rear-delt-row-seated-0.webp",
+  "demos/cable-rear-delt-row-seated-1.webp"
+ ],
+ "Seated External Rotation (Cable)": [
+  "demos/seated-external-rotation-cable-0.webp",
+  "demos/seated-external-rotation-cable-1.webp"
+ ],
+ "Seated Rope Tricep Extension": [
+  "demos/seated-rope-tricep-extension-0.webp",
+  "demos/seated-rope-tricep-extension-1.webp"
+ ],
+ "Single-Arm Cable Pushdown": [
+  "demos/single-arm-cable-pushdown-0.webp",
+  "demos/single-arm-cable-pushdown-1.webp"
+ ],
+ "Machine Tricep Dip": [
+  "demos/machine-tricep-dip-0.webp",
+  "demos/machine-tricep-dip-1.webp"
+ ],
+ "Lying Cable Tricep Extension": [
+  "demos/lying-cable-tricep-extension-0.webp",
+  "demos/lying-cable-tricep-extension-1.webp"
+ ],
+ "Close-Grip Machine Press": [
+  "demos/close-grip-machine-press-0.webp",
+  "demos/close-grip-machine-press-1.webp"
+ ],
+ "Bench Dip (Feet Supported)": [
+  "demos/bench-dip-feet-supported-0.webp",
+  "demos/bench-dip-feet-supported-1.webp"
+ ],
+ "Seated Two-Hand DB Extension": [
+  "demos/seated-two-hand-db-extension-0.webp",
+  "demos/seated-two-hand-db-extension-1.webp"
+ ],
+ "DB Skull Crusher (Incline)": [
+  "demos/db-skull-crusher-incline-0.webp",
+  "demos/db-skull-crusher-incline-1.webp"
+ ],
+ "Machine Bicep Curl": [
+  "demos/machine-bicep-curl-0.webp",
+  "demos/machine-bicep-curl-1.webp"
+ ],
+ "Seated Rope Hammer Curl": [
+  "demos/seated-rope-hammer-curl-0.webp",
+  "demos/seated-rope-hammer-curl-1.webp"
+ ],
+ "Incline Bench DB Curl": [
+  "demos/incline-bench-db-curl-0.webp",
+  "demos/incline-bench-db-curl-1.webp"
+ ],
+ "Spider Curl (Incline Bench)": [
+  "demos/spider-curl-incline-bench-0.webp",
+  "demos/spider-curl-incline-bench-1.webp"
+ ],
+ "Cable Preacher Curl": [
+  "demos/cable-preacher-curl-0.webp",
+  "demos/cable-preacher-curl-1.webp"
+ ],
+ "Seated DB Reverse Curl": [
+  "demos/seated-db-reverse-curl-0.webp",
+  "demos/seated-db-reverse-curl-1.webp"
+ ],
+ "Seated Reverse Wrist Curl": [
+  "demos/seated-reverse-wrist-curl-0.webp",
+  "demos/seated-reverse-wrist-curl-1.webp"
+ ],
+ "Cable Reverse Wrist Curl": [
+  "demos/cable-reverse-wrist-curl-0.webp",
+  "demos/cable-reverse-wrist-curl-1.webp"
+ ],
+ "Plate Pinch Hold": [
+  "demos/plate-pinch-hold-0.webp",
+  "demos/plate-pinch-hold-1.webp"
+ ],
+ "Wrist Roller": [
+  "demos/wrist-roller-0.webp",
+  "demos/wrist-roller-1.webp"
+ ],
+ "Horizontal Leg Press Machine": [
+  "demos/horizontal-leg-press-machine-0.webp",
+  "demos/horizontal-leg-press-machine-1.webp"
+ ],
+ "Single-Leg Press": [
+  "demos/single-leg-press-0.webp",
+  "demos/single-leg-press-1.webp"
+ ],
+ "Lying Leg Curl": [
+  "demos/lying-leg-curl-0.webp",
+  "demos/lying-leg-curl-1.webp"
+ ],
+ "Single-Leg Leg Curl": [
+  "demos/single-leg-leg-curl-0.webp",
+  "demos/single-leg-leg-curl-1.webp"
+ ],
+ "Single-Leg Extension": [
+  "demos/single-leg-extension-0.webp",
+  "demos/single-leg-extension-1.webp"
+ ],
+ "Calf Press on Leg Press": [
+  "demos/calf-press-on-leg-press-0.webp",
+  "demos/calf-press-on-leg-press-1.webp"
+ ],
+ "Single-Leg Calf Raise (Seated)": [
+  "demos/single-leg-calf-raise-seated-0.webp",
+  "demos/single-leg-calf-raise-seated-1.webp"
+ ],
+ "Assisted Nordic Curl": [
+  "demos/assisted-nordic-curl-0.webp",
+  "demos/assisted-nordic-curl-1.webp"
+ ],
+ "Hip Thrust Machine": [
+  "demos/hip-thrust-machine-0.webp",
+  "demos/hip-thrust-machine-1.webp"
+ ],
+ "Glute Drive Machine": [
+  "demos/glute-drive-machine-0.webp",
+  "demos/glute-drive-machine-1.webp"
+ ],
+ "Frog Pump": [
+  "demos/frog-pump-0.webp",
+  "demos/frog-pump-1.webp"
+ ],
+ "Cable Crunch (Kneeling)": [
+  "demos/cable-crunch-kneeling-0.webp",
+  "demos/cable-crunch-kneeling-1.webp"
+ ],
+ "Machine Ab Crunch": [
+  "demos/machine-ab-crunch-0.webp",
+  "demos/machine-ab-crunch-1.webp"
+ ],
+ "Cable Anti-Rotation Hold": [
+  "demos/cable-anti-rotation-hold-0.webp",
+  "demos/cable-anti-rotation-hold-1.webp"
+ ],
+ "Side Plank": [
+  "demos/side-plank-0.webp",
+  "demos/side-plank-1.webp"
+ ],
+ "Front Plank": [
+  "demos/front-plank-0.webp",
+  "demos/front-plank-1.webp"
+ ],
+ "Modified Curl-Up (McGill)": [
+  "demos/modified-curl-up-mcgill-0.webp",
+  "demos/modified-curl-up-mcgill-1.webp"
+ ],
+ "Stationary Bike Intervals": [
+  "demos/stationary-bike-intervals-0.webp",
+  "demos/stationary-bike-intervals-1.webp"
+ ],
+ "Figure-4 Stretch (Supine)": [
+  "demos/figure-4-stretch-supine-0.webp",
+  "demos/figure-4-stretch-supine-1.webp"
+ ],
+ "Single-Leg Glute Bridge": [
+  "demos/single-leg-glute-bridge-0.webp",
+  "demos/single-leg-glute-bridge-1.webp"
+ ],
+ "Ankle Dorsiflexion Stretch": [
+  "demos/ankle-dorsiflexion-stretch-0.webp",
+  "demos/ankle-dorsiflexion-stretch-1.webp"
+ ],
+ "Supine Hamstring Stretch (Strap)": [
+  "demos/supine-hamstring-stretch-strap-0.webp",
+  "demos/supine-hamstring-stretch-strap-1.webp"
+ ],
+ "Prone Quad Stretch": [
+  "demos/prone-quad-stretch-0.webp",
+  "demos/prone-quad-stretch-1.webp"
+ ],
+ "Precor Converging Chest Press": [
+  "demos/precor-converging-chest-press-0.webp",
+  "demos/precor-converging-chest-press-1.webp"
+ ],
+ "Precor Incline Press": [
+  "demos/precor-incline-press-0.webp",
+  "demos/precor-incline-press-1.webp"
+ ],
+ "Precor Diverging Pulldown (Neutral Grip)": [
+  "demos/precor-diverging-pulldown-neutral-grip-0.webp",
+  "demos/precor-diverging-pulldown-neutral-grip-1.webp"
+ ],
+ "Precor Fixed Pulldown (Neutral Grip)": [
+  "demos/precor-fixed-pulldown-neutral-grip-0.webp",
+  "demos/precor-fixed-pulldown-neutral-grip-1.webp"
+ ],
+ "Precor Diverging Seated Row": [
+  "demos/precor-diverging-seated-row-0.webp",
+  "demos/precor-diverging-seated-row-1.webp"
+ ],
+ "Precor Low Row": [
+  "demos/precor-low-row-0.webp",
+  "demos/precor-low-row-1.webp"
+ ],
+ "Precor Pec Fly": [
+  "demos/precor-pec-fly-0.webp",
+  "demos/precor-pec-fly-1.webp"
+ ],
+ "Precor Rear Delt Fly": [
+  "demos/precor-rear-delt-fly-0.webp",
+  "demos/precor-rear-delt-fly-1.webp"
+ ],
+ "Precor Lateral Raise": [
+  "demos/precor-lateral-raise-0.webp",
+  "demos/precor-lateral-raise-1.webp"
+ ],
+ "Precor Biceps Curl": [
+  "demos/precor-biceps-curl-0.webp",
+  "demos/precor-biceps-curl-1.webp"
+ ],
+ "Precor Triceps Extension": [
+  "demos/precor-triceps-extension-0.webp",
+  "demos/precor-triceps-extension-1.webp"
+ ],
+ "Precor Leg Press": [
+  "demos/precor-leg-press-0.webp",
+  "demos/precor-leg-press-1.webp"
+ ],
+ "Precor Leg Extension": [
+  "demos/precor-leg-extension-0.webp",
+  "demos/precor-leg-extension-1.webp"
+ ],
+ "Precor Seated Leg Curl": [
+  "demos/precor-seated-leg-curl-0.webp",
+  "demos/precor-seated-leg-curl-1.webp"
+ ],
+ "Precor Prone Leg Curl": [
+  "demos/precor-prone-leg-curl-0.webp",
+  "demos/precor-prone-leg-curl-1.webp"
+ ],
+ "Precor Glute Extension": [
+  "demos/precor-glute-extension-0.webp",
+  "demos/precor-glute-extension-1.webp"
+ ],
+ "Precor Outer Thigh": [
+  "demos/precor-outer-thigh-0.webp",
+  "demos/precor-outer-thigh-1.webp"
+ ],
+ "Precor Inner Thigh": [
+  "demos/precor-inner-thigh-0.webp",
+  "demos/precor-inner-thigh-1.webp"
+ ],
+ "Precor Abdominal Crunch": [
+  "demos/precor-abdominal-crunch-0.webp",
+  "demos/precor-abdominal-crunch-1.webp"
+ ],
+ "Precor Calf Extension": [
+  "demos/precor-calf-extension-0.webp",
+  "demos/precor-calf-extension-1.webp"
+ ],
+ "Precor Chin/Dip Assist": [
+  "demos/precor-chin-dip-assist-0.webp",
+  "demos/precor-chin-dip-assist-1.webp"
+ ],
+ "Precor EFX Elliptical": [
+  "demos/precor-efx-elliptical-0.webp",
+  "demos/precor-efx-elliptical-1.webp"
+ ],
+ "Precor AMT": [
+  "demos/precor-amt-0.webp",
+  "demos/precor-amt-1.webp"
+ ],
+ "Precor TRM Treadmill": [
+  "demos/precor-trm-treadmill-0.webp",
+  "demos/precor-trm-treadmill-1.webp"
+ ],
+ "Precor RBK Recumbent Bike": [
+  "demos/precor-rbk-recumbent-bike-0.webp",
+  "demos/precor-rbk-recumbent-bike-1.webp"
+ ],
+ "Precor UBK Upright Bike": [
+  "demos/precor-ubk-upright-bike-0.webp",
+  "demos/precor-ubk-upright-bike-1.webp"
+ ],
+ "Hoist ROC-IT Chest Press": [
+  "demos/hoist-roc-it-chest-press-0.webp",
+  "demos/hoist-roc-it-chest-press-1.webp"
+ ],
+ "Hoist ROC-IT Incline Press": [
+  "demos/hoist-roc-it-incline-press-0.webp",
+  "demos/hoist-roc-it-incline-press-1.webp"
+ ],
+ "Hoist ROC-IT Pulldown (Neutral Grip)": [
+  "demos/hoist-roc-it-pulldown-neutral-grip-0.webp",
+  "demos/hoist-roc-it-pulldown-neutral-grip-1.webp"
+ ],
+ "Hoist ROC-IT Seated Row": [
+  "demos/hoist-roc-it-seated-row-0.webp",
+  "demos/hoist-roc-it-seated-row-1.webp"
+ ],
+ "Hoist Dual Action Row": [
+  "demos/hoist-dual-action-row-0.webp",
+  "demos/hoist-dual-action-row-1.webp"
+ ],
+ "Hoist ROC-IT Leg Press": [
+  "demos/hoist-roc-it-leg-press-0.webp",
+  "demos/hoist-roc-it-leg-press-1.webp"
+ ],
+ "Hoist ROC-IT Leg Extension": [
+  "demos/hoist-roc-it-leg-extension-0.webp",
+  "demos/hoist-roc-it-leg-extension-1.webp"
+ ],
+ "Hoist ROC-IT Leg Curl": [
+  "demos/hoist-roc-it-leg-curl-0.webp",
+  "demos/hoist-roc-it-leg-curl-1.webp"
+ ],
+ "Hoist ROC-IT Abdominal Crunch": [
+  "demos/hoist-roc-it-abdominal-crunch-0.webp",
+  "demos/hoist-roc-it-abdominal-crunch-1.webp"
+ ],
+ "Hoist ROC-IT Biceps Curl": [
+  "demos/hoist-roc-it-biceps-curl-0.webp",
+  "demos/hoist-roc-it-biceps-curl-1.webp"
+ ],
+ "Hoist ROC-IT Triceps Extension": [
+  "demos/hoist-roc-it-triceps-extension-0.webp",
+  "demos/hoist-roc-it-triceps-extension-1.webp"
+ ],
+ "Hoist Pec Fly / Rear Delt": [
+  "demos/hoist-pec-fly-rear-delt-0.webp",
+  "demos/hoist-pec-fly-rear-delt-1.webp"
+ ],
+ "Hoist Lateral Raise": [
+  "demos/hoist-lateral-raise-0.webp",
+  "demos/hoist-lateral-raise-1.webp"
+ ],
+ "Hoist Glute Master": [
+  "demos/hoist-glute-master-0.webp",
+  "demos/hoist-glute-master-1.webp"
+ ],
+ "Hoist Outer Thigh": [
+  "demos/hoist-outer-thigh-0.webp",
+  "demos/hoist-outer-thigh-1.webp"
+ ],
+ "Hoist Inner Thigh": [
+  "demos/hoist-inner-thigh-0.webp",
+  "demos/hoist-inner-thigh-1.webp"
+ ],
+ "Hoist Seated Calf Raise": [
+  "demos/hoist-seated-calf-raise-0.webp",
+  "demos/hoist-seated-calf-raise-1.webp"
+ ],
+ "Hoist Chin/Dip Assist": [
+  "demos/hoist-chin-dip-assist-0.webp",
+  "demos/hoist-chin-dip-assist-1.webp"
  ]
 }

@@ -316,6 +316,9 @@ export function renderW(){
   const physioExs=dispExs.filter(e=>e.cat==="physio");
 
   let h=wkNav;
+  // Safari (not the Home Screen app) may evict stored data after 7 days of
+  // no use, offline demos included. One quiet line, dismissed for good.
+  if(showInstallHint())h=`<div class="install-hint" id="installHint">Add Forge to your Home Screen to keep demos offline.<button onclick="dismissInstallHint()">Dismiss</button></div>`+h;
   if(ctx.isPastDay()){
     h+=lockedPast
       ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day, read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
@@ -458,6 +461,17 @@ export function renderW(){
 }
 ctx.renderW=renderW;
 
+function showInstallHint(){
+  try{if(localStorage.getItem("f5_installHint")==="dismissed")return false;}catch(_){}
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent||"");
+  const standalone=navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);
+  return ios&&!standalone;
+}
+function dismissInstallHint(){
+  try{localStorage.setItem("f5_installHint","dismissed");}catch(_){}
+  document.getElementById("installHint")?.remove();
+}
+window.dismissInstallHint=dismissInstallHint;
 function heroCls(label){
   const l=(label||"").toLowerCase();
   if(/recovery|rest|mobility/.test(l))return"hero-rest";
@@ -470,181 +484,60 @@ function heroCls(label){
 // Photos removed: they fought the volt identity and added a network dependency.
 function heroStyleAttr(){return"";}
 
-// Exercise demo clips · candidates probed FROM THE BROWSER (MuscleWiki's CDN
-// blocks datacenter IPs; the phone loads it fine). Hits cached permanently in
-// S.demoCache (synced). Misses cached for this session only · retried next launch.
-const _demoMiss={}; // session-only misses
-const DEMO_CDN="https://media.musclewiki.com/media/uploads/videos/branded/";
-// MuscleWiki uses its own exercise names · curated alias slugs per FORGE exercise
-const DEMO_ALIASES={
-  "Seated Cable Row":["machine|seated-cable-row"],
-  "Chest Press Machine":["machine|chest-press","machine|seated-chest-press"],
-  "Incline Chest Press Machine":["machine|incline-chest-press"],
-  "Pec Fly Machine":["machine|pec-fly","machine|seated-pec-fly","machine|butterfly","machine|chest-fly"],
-  "Rear Delt Fly Machine":["machine|reverse-fly","machine|rear-delt-fly","machine|seated-reverse-fly"],
-  "Chest Supported Row":["machine|chest-supported-row","machine|seal-row","dumbbells|chest-supported-row"],
-  "Tricep Extension Machine":["machine|tricep-extension","machine|seated-dip","machine|tricep-dip"],
-  "Preacher Curl Machine":["machine|preacher-curl","barbell|preacher-curl","dumbbells|preacher-curl"],
-  "Leg Press Machine":["machine|sled-45-leg-press","machine|leg-press","machine|horizontal-leg-press","machine|sled-leg-press"],
-  "Seated Leg Curl":["machine|seated-leg-curl","machine|hamstring-curl","machine|lying-leg-curl","machine|leg-curl"],
-  "Leg Extension Machine":["machine|leg-extension","machine|seated-leg-extension"],
-  "Seated Calf Raise":["machine|seated-calf-raise","machine|calf-raise","barbell|seated-calf-raise"],
-  "Hip Abduction Machine":["machine|hip-abduction","machine|seated-hip-abduction"],
-  "Hip Adduction Machine":["machine|hip-adduction","machine|seated-hip-adduction"],
-  "Glute Kickback Machine":["machine|glute-kickback","cables|glute-kickback","machine|kickback"],
-  "Neutral Grip Lat Pulldown":["cables|lat-pulldown","machine|lat-pulldown","cables|close-grip-lat-pulldown","cables|neutral-grip-lat-pulldown"],
-  "Straight Arm Pulldown":["cables|straight-arm-pulldown","cables|straight-arm-pushdown"],
-  "Low Cable Row":["cables|seated-row","cables|low-row","machine|seated-cable-row"],
-  "Cable Tricep Pushdown":["cables|tricep-pushdown","cables|push-down","cables|pushdown","cables|tricep-extension"],
-  "Cable Tricep Pushdown (Rope)":["cables|rope-pushdown","cables|tricep-rope-pushdown","cables|tricep-pushdown"],
-  "Cable Bicep Curl":["cables|bicep-curl","cables|curl","cables|cable-curl"],
-  "Dumbbell Row":["dumbbells|bent-over-row","dumbbells|row","dumbbells|single-arm-row","dumbbells|row-unilateral"],
-  "Seated Dumbbell Curl":["dumbbells|seated-bicep-curl","dumbbells|bicep-curl","dumbbells|seated-curl","dumbbells|curl"],
-  "Hammer Curl":["dumbbells|hammer-curl","dumbbells|seated-hammer-curl"],
-  "Concentration Curl":["dumbbells|concentration-curl"],
-  "Reverse Curl":["dumbbells|reverse-curl","barbell|reverse-curl"],
-  "Incline Dumbbell Fly":["dumbbells|incline-fly","dumbbells|incline-chest-fly","dumbbells|fly"],
-  "Seated External Rotation":["dumbbells|external-rotation","dumbbells|seated-external-rotation","cables|external-rotation"],
-  "Seated Wrist Curl":["dumbbells|wrist-curl","dumbbells|seated-wrist-curl","barbell|wrist-curl"],
-  "Seated Lateral Raise":["dumbbells|lateral-raise","dumbbells|seated-lateral-raise"]
-};
-function demoCandidates(name){
-  const out=[];
-  const push=(eq,sl)=>{out.push(DEMO_CDN+"male-"+eq+"-"+sl+"-front.mp4");out.push(DEMO_CDN+"male-"+eq+"-"+sl+"-side.mp4");};
-  for(const a of(DEMO_ALIASES[name]||[])){const[eq,sl]=a.split("|");push(eq,sl);}
-  // generic fallbacks from the name itself
-  const n=name.toLowerCase().replace(/[()]/g,"").trim();
-  const base=n.replace(/\b(machine|cable|dumbbell)\b/g,"").replace(/\s+/g," ").trim().replace(/ /g,"-");
-  const eqs=n.includes("cable")?["cables"]:n.includes("dumbbell")?["dumbbells"]:["machine"];
-  for(const eq of eqs){push(eq,base);if(base.startsWith("seated-"))push(eq,base.slice(7));}
-  return[...new Set(out)];
-}
-function probeOne(url,ms){
-  return new Promise(res=>{
-    const v=document.createElement("video");
-    let done=false;
-    const fin=ok=>{if(done)return;done=true;v.onerror=null;v.onloadedmetadata=null;v.src="";res(ok);};
-    v.muted=true;v.preload="metadata";
-    v.onloadedmetadata=()=>fin(true);
-    v.onerror=()=>fin(false);
-    setTimeout(()=>fin(false),ms);
-    v.src=url;
-  });
-}
-async function probeBatches(cands){
-  for(let i=0;i<cands.length;i+=3){
-    const batch=cands.slice(i,i+3);
-    const results=await Promise.all(batch.map(u=>probeOne(u,4000)));
-    const hit=batch[results.indexOf(true)];
-    if(hit)return hit;
-  }
-  return null;
-}
-let _localDemos=null; // demos/map.json · clips shipped with the app
-let _localDemosReady=null; // Promise that resolves when map.json is loaded
-_localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
+// Form demos · ALL bundled with the app: demos/map.json + WebP start/end pairs,
+// built by scripts/build-demos.mjs from the public-domain free-exercise-db.
+// Nothing is fetched from another site, so demos also load offline (sw.js
+// caches them). Older builds stored remote MuscleWiki/GitHub URLs in synced
+// S.demoCache: never read here, and cleared by the demoCacheV 4 reset in main.js.
+let _localDemos=null; // name -> [frame0, frame1]
+const _localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
   _localDemos=m;
-  if(!m)return;
-  // Populate ALL placeholder wraps in DOM now — open or closed — so images are
-  // ready when the user taps to expand, with no further network request needed.
-  document.querySelectorAll(".demo-wrap[data-demo-name]").forEach(wrap=>{
-    const name=wrap.getAttribute("data-demo-name");
-    const loc=m[name];
-    if(!loc)return;
-    wrap.removeAttribute("data-demo-name");
-    if(Array.isArray(loc)){
-      wrap.innerHTML=`<div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div>`;
-    } else {
-      wrap.innerHTML=`<video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video>`;
-    }
-    wrap.style.display="";
-  });
+  // Fill any placeholders rendered before the map arrived.
+  document.querySelectorAll(".demo-wrap[data-demo-name]").forEach(w=>resolveDemo(w));
 }).catch(()=>{});
-let _demoIndex=null;   // demos/index.json · 870-exercise name index for fuzzy-matching custom exercises
-fetch("demos/index.json").then(r=>r.ok?r.json():null).then(m=>{_demoIndex=m;}).catch(()=>{});
-const DEMO_GH="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
-function fuzzyDemo(name){
-  if(!_demoIndex)return null;
-  const toks=s=>s.toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(t=>t&&!["the","a","machine","with"].includes(t));
-  const q=toks(name);if(!q.length)return null;
+// A free-typed custom exercise gets the closest BUNDLED demo (same scoring as
+// the build script, minus its hand aliases), never a remote one.
+const _DEMO_ABBR={db:"dumbbell",bb:"barbell",kb:"kettlebell",sa:"single"};
+const _demoToks=s=>String(s).toLowerCase().replace(/warm-up ·/g," ").replace(/[^a-z0-9 ]/g," ").split(/\s+/)
+  .map(t=>_DEMO_ABBR[t]||t).filter(t=>t&&!["the","a","with","machine","seated","standing","lying","precor","hoist"].includes(t));
+function localFuzzyDemo(name){
+  if(!_localDemos)return null;
+  const q=_demoToks(name);if(!q.length)return null;
   let best=null,bestScore=0;
-  for(const[n,dir]of _demoIndex){
-    const c=toks(n);
-    const overlap=q.filter(t=>c.includes(t)).length;
+  for(const k of Object.keys(_localDemos)){
+    const c=_demoToks(k),overlap=q.filter(t=>c.includes(t)).length;
     const score=overlap/Math.max(q.length,c.length)+(overlap===q.length?0.3:0);
-    if(score>bestScore){bestScore=score;best=dir;}
+    if(score>bestScore){bestScore=score;best=k;}
   }
-  if(bestScore<0.65)return null;
-  return[DEMO_GH+encodeURIComponent(best)+"/0.jpg",DEMO_GH+encodeURIComponent(best)+"/1.jpg"];
+  return bestScore>=0.75?_localDemos[best]:null;
 }
-function demoHtml(name){
-  const S=ctx.getS();
-  const loc=_localDemos&&_localDemos[name];
-  if(Array.isArray(loc))return`<div class="demo-wrap"><div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div></div>`;
-  if(loc)return`<div class="demo-wrap"><video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
-  const cached=S.demoCache[name];
-  if(Array.isArray(cached))return`<div class="demo-wrap"><div class="demo-flip"><img src="${cached[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${cached[1]}" loading="lazy"></div></div>`;
-  if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
-  if(_demoMiss[name])return"";
-  return`<div class="demo-wrap" data-demo-name="${esc(name)}" style="display:none"></div>`; // unresolved · probed on expand
+// undefined = map not loaded yet, null = no demo, array = the two frames.
+function demoFor(name){
+  if(!_localDemos)return undefined;
+  const d=_localDemos[name]||localFuzzyDemo(name);
+  return Array.isArray(d)?d:null;
+}
+const _demoFlip=pair=>`<div class="demo-flip"><img src="${pair[0]}" alt="" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${pair[1]}" alt="" loading="lazy"></div>`;
+// "No demo for this one. Works chest and triceps." beats an empty gap.
+function noDemoLine(muscles){
+  const m=(muscles||[]).filter(Boolean);
+  const list=m.length>1?m.slice(0,-1).join(", ")+" and "+m[m.length-1]:m[0];
+  return`<div class="demo-none">No demo for this one.${list?" Works "+esc(list)+".":""}</div>`;
+}
+function demoHtml(name,muscles){
+  const d=demoFor(name);
+  if(d===undefined)return`<div class="demo-wrap" data-demo-name="${esc(name)}" data-muscles="${esc((muscles||[]).join("|"))}" style="display:none"></div>`;
+  return d?`<div class="demo-wrap">${_demoFlip(d)}</div>`:noDemoLine(muscles);
 }
 async function resolveDemo(wrap){
-  const S=ctx.getS();
   const name=wrap.getAttribute("data-demo-name");
   if(!name)return;
+  if(!_localDemos)await _localDemosReady;
+  if(!_localDemos)return; // map failed to load: leave the card as it is
   wrap.removeAttribute("data-demo-name");
-  // Wait for local map if still loading, then check exact match (no external request needed)
-  if(!_localDemos&&_localDemosReady)await _localDemosReady;
-  const local=_localDemos&&_localDemos[name];
-  if(Array.isArray(local)){
-    wrap.innerHTML=`<div class="demo-flip"><img src="${local[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${local[1]}"></div>`;
-    wrap.style.display="";
-    return;
-  }
-  if(local){
-    wrap.innerHTML=`<video src="${local}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
-    wrap.style.display="";
-    return;
-  }
-  const pair=fuzzyDemo(name);
-  if(pair){
-    S.demoCache[name]=pair;save();
-    wrap.innerHTML=`<div class="demo-flip"><img src="${pair[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${pair[1]}"></div>`;
-    wrap.style.display="";
-    return;
-  }
-  const url=await probeBatches(demoCandidates(name));
-  if(url){
-    S.demoCache[name]=url;save();
-    wrap.innerHTML=`<video src="${url}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
-    wrap.style.display="";
-  }else{
-    _demoMiss[name]=1; // retry next session, not never
-  }
-}
-
-async function scanDemos(){
-  const S=ctx.getS();
-  const sub=document.getElementById("demoScanSub");
-  const names=[...new Set(Object.values(PROG).flatMap(d=>(d.exercises||[]).filter(e=>(e.cat||"gym").toLowerCase()==="gym").map(e=>e.name)).concat(Object.keys(DEMO_ALIASES)))]
-    .filter(n=>!S.demoCache[n]);
-  if(!names.length){showToast("All exercises already scanned ✓");return;}
-  showToast("Scanning "+names.length+" exercises…");
-  let found=0,missed=[];
-  for(let i=0;i<names.length;i++){
-    if(sub)sub.textContent="Scanning "+(i+1)+"/"+names.length+": "+names[i];
-    const url=await probeBatches(demoCandidates(names[i]));
-    if(url){S.demoCache[names[i]]=url;found++;save();}
-    else missed.push(names[i]);
-  }
-  if(sub)sub.textContent=found+" found · "+missed.length+" missing";
-  showToast("Done · "+found+" clips found");
-  if(missed.length){
-    const txt="Missing demo clips:\n"+missed.join("\n");
-    if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>showToast("Missing list copied · paste it to Claude")).catch(()=>{});
-    console.log(txt);
-  }
-  ctx.renderST();
+  const d=demoFor(name);
+  if(d){wrap.innerHTML=_demoFlip(d);wrap.style.display="";}
+  else wrap.outerHTML=noDemoLine((wrap.getAttribute("data-muscles")||"").split("|"));
 }
 
 function card(ex,sess,key,rdOnly=false){
@@ -666,7 +559,7 @@ function card(ex,sess,key,rdOnly=false){
   const _tUnit=getExUnit(key,ex.id);
   const target=_last?.top?{w:inUnit(_last.top.kg,_tUnit),r:_last.top.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
-  const demo=demoHtml(ex.name);
+  const demo=demoHtml(ex.name,ex.muscles);
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
@@ -1573,7 +1466,6 @@ window.stopSess=stopSess;
 window.resumeSess=resumeSess;
 window.closeSummary=closeSummary;
 window.aiRun=aiRun;
-window.scanDemos=scanDemos;
 window.prHint=prHint;
 window.toggleExUnit=toggleExUnit;
 window.onWtKey=onWtKey;

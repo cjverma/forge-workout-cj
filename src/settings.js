@@ -149,7 +149,6 @@ export function renderST(){
         <div class="st-sec">Appearance</div>
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
-          <div class="st-row" onclick="scanDemos()"><div class="st-icon">${icon("play",18)}</div><div class="st-info"><div class="st-ttl">Demo Clips</div><div class="st-sub" id="demoScanSub">${(()=>{const n=Object.keys(S.demoCache||{}).length;return n?n+" clips found · tap to rescan":"Finds exercise demo videos · takes ~1 min"})()}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
@@ -839,7 +838,6 @@ window.clearD=clearD;
 window.findN=findN;
 window.genExp=genExp;
 window.copyExp=copyExp;
-window.scanDemos=scanDemos;
 window.unlockDay=unlockDay;
 window.lockDay=lockDay;
 window.shiftWeek=shiftWeek;

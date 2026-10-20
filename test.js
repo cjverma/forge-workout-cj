@@ -1890,6 +1890,27 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           const brokenFiles = Object.values(MAP).flat().filter((f) => typeof f === "string" && f.startsWith("demos/")).filter((f) => { try { readFileSync(f); return false; } catch { return true; } });
           ok(`every program exercise has a bundled form demo (${names.length - missing.length - NO_SOURCE.size}/${names.length - NO_SOURCE.size})${missing.length ? " · missing: " + missing.join(", ") : ""}`, missing.length === 0);
           ok(`every demo file in map.json exists${brokenFiles.length ? " · " + brokenFiles.slice(0, 3).join(", ") : ""}`, brokenFiles.length === 0);
+          // All demos are bundled; nothing is fetched from another site.
+          const remote = Object.values(MAP).flat().filter((f) => /^https?:/.test(f));
+          const W = readFileSync("src/workout.js", "utf8"), ST = readFileSync("src/settings.js", "utf8");
+          ok("no demo is fetched online: no remote URL in map.json, no MuscleWiki/GitHub demo code, no scan",
+            remote.length === 0 && !/musclewiki|raw\.githubusercontent|DEMO_CDN|probeBatches|demoCandidates|scanDemos/.test(W + ST));
+          const libNames = REAL_EX_DB.map((e) => e.name), libHave = libNames.filter((n) => MAP[n]).length;
+          ok(`the add-exercise library has bundled demos (${libHave}/${libNames.length}, floor 80%)`, libHave / libNames.length >= 0.8);
+          const demoBytes = readdirSync("demos").reduce((t, f) => t + readFileSync("demos/" + f).length, 0);
+          ok(`demos/ stays inside its 12 MB budget (${(demoBytes / 1048576).toFixed(1)} MB)`, demoBytes <= 12 * 1048576);
+        }
+        // Offline mode: build.mjs ships sw.js into dist/ with every demo listed.
+        {
+          const DSW = readFileSync("dist/sw.js", "utf8"), MAP2 = JSON.parse(readFileSync("demos/map.json", "utf8"));
+          const want = [...new Set(Object.values(MAP2).flat())].map((f) => "/" + f);
+          ok(`dist/sw.js precaches every bundled demo (${want.length})`, want.every((f) => DSW.includes(JSON.stringify(f))));
+          ok("the service worker fails a partial install, serves demos cache-first and drops old caches",
+            /failed \/ DEMOS\.length > 0\.05\) throw/.test(DSW) && /if \(crit\.some\(r => r\.status === "rejected"\)\) throw/.test(DSW) &&
+            /\/\\\/demos\\\/\[\^\/\]\+\\\.\(webp\|jpe\?g\|png\)\$\/i\.test\(url\.pathname\)\) \{\s*e\.respondWith\(caches\.match\(req\)/.test(DSW) &&
+            /keys\.filter\(k => k !== V\)/.test(DSW) && /ignoreSearch: req\.mode === "navigate"/.test(DSW));
+          ok("build ships sw.js, the manifest and icons into dist/ (the only folder Vercel serves)",
+            ["sw.js", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "demos/map.json"].every((f) => { try { readFileSync("dist/" + f); return true; } catch { return false; } }));
         }
         ok("no V7 cue names a weekday that is no longer true", !Object.values(REAL_V7).some((d) => d.exercises.some((e) => /(Mon|Tues|Wednes|Thurs|Fri|Satur)day/.test(e.cue || ""))));
         ok("a Southpaw id maps to the day that now holds it (w4_lp -> Monday m7_lp, m4_cp -> Wednesday w7_cp)",

@@ -13,7 +13,8 @@
   },
   "devDependencies": {
     "esbuild": "^0.25.0",
-    "playwright": "^1.61.1"
+    "playwright": "^1.61.1",
+    "sharp": "^0.33.5"
   },
   "dependencies": {
     "@neondatabase/serverless": "^1.1.0",

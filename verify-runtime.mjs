@@ -897,6 +897,48 @@ try {
     await page.close();
   }
 
+  // Offline mode, served the way Vercel serves it: dist/ as the site root.
+  // The service worker must precache the app and every demo, and with the
+  // network cut the app must still open and show a form demo.
+  {
+    const express = (await import("express")).default;
+    const app = express(); app.use(express.static("dist"));
+    const srv = await new Promise((res) => { const s2 = app.listen(8792, () => res(s2)); });
+    const ctx2 = await browser.newContext({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto", serviceWorkers: "allow" });
+    const page = await ctx2.newPage();
+    const errs = [], foreign = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    page.on("request", (r) => { const u = r.url(); if (!u.startsWith("http://127.0.0.1:8792") && !u.startsWith("data:")) foreign.push(u); });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto("http://127.0.0.1:8792/", { waitUntil: "networkidle" });
+    const sw = await page.evaluate(async () => {
+      const reg = await navigator.serviceWorker.ready;
+      for (let i = 0; i < 100 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 100));
+      const keys = await caches.keys(), c = keys.length ? await caches.open(keys[0]) : null;
+      const n = c ? (await c.keys()).length : 0;
+      const map = await (await fetch("demos/map.json")).json();
+      const want = new Set(Object.values(map).flat()).size;
+      return { active: !!reg.active, controlled: !!navigator.serviceWorker.controller, cached: n, want };
+    });
+    note(`the service worker installs and precaches the app and every demo (${sw.cached} files, ${sw.want} demos)`,
+      sw.active && sw.controlled && sw.cached >= sw.want + 6, JSON.stringify(sw));
+    await ctx2.setOffline(true);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForTimeout(1200);
+    const off = await page.evaluate(async () => {
+      const card = [...document.querySelectorAll(".ex-card")].find((c) => c.querySelector(".ex-icon.gym"));
+      card?.querySelector(".ex-top")?.click();
+      await new Promise((r) => setTimeout(r, 900));
+      const img = card?.querySelector(".demo-wrap img");
+      if (img && !img.complete) await new Promise((r) => { img.onload = img.onerror = r; setTimeout(r, 2000); });
+      return { cards: document.querySelectorAll(".ex-card").length, demo: !!img && img.naturalWidth > 0, src: img?.getAttribute("src") || "" };
+    });
+    note("offline: the app opens and an exercise shows its form demo from the cache", off.cards > 0 && off.demo, JSON.stringify(off));
+    note("no request leaves the app's own origin (demos are all bundled)", foreign.length === 0, foreign.slice(0, 3).join(" | "));
+    note("no JS errors offline", errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx2.close(); srv.close();
+  }
+
   note("no JS errors on any tab", jsErrors.length === 0, jsErrors.slice(0, 3).join(" | "));
 } finally {
   if (browser) await browser.close();
