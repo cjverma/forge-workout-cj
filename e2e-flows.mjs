@@ -187,6 +187,7 @@ async function workoutSets(state) {
     const bestKg = await p.evaluate((id) => { const S = JSON.parse(localStorage.f5); const cid = canonicalId(id); return Math.max(40, ...(S.prs[cid] || []).map((e) => Number(e.weight))); }, id);
     const wKg = Math.ceil(bestKg + 5), w = unit === "lbs" ? String(Math.round(wKg / 0.45359237)) : String(wKg);
     h.answer = false; // keep the typed unit if asked
+    await flush(h); const prBefore = sent(h, "pr").length; // boot-time repairs may send their own
     await p.fill(`#wi-${id}-0`, w); await p.fill(`#ri-${id}-0`, "11");
     await p.click(`#ex-${id} .sdone`); await wait(p, 400); await closePopups(p);
     const st = await S(p), ed = st.sessions[key]?.[id];
@@ -194,7 +195,7 @@ async function workoutSets(state) {
     const prs = Object.values(st.prs).flat().filter((e) => e.date === TODAY);
     await flush(h);
     note("tick a set: stored done, PR written in kg, session_set + pr mutations sent",
-      ed?.sets?.[0]?.done === true && prs.length === 1 && Math.abs(prs[0].weight - wKg) < 0.6 && sent(h, "session_set").length > 0 && sent(h, "pr").length === 1,
+      ed?.sets?.[0]?.done === true && prs.length === 1 && Math.abs(prs[0].weight - wKg) < 0.6 && sent(h, "session_set").length > 0 && sent(h, "pr").length === prBefore + 1 && Math.abs(sent(h, "pr").at(-1).payload.weight - wKg) < 0.6,
       JSON.stringify({ unit, name, set: ed?.sets?.[0], prs, muts: h.muts.map((m) => m.entity) }));
     const badge = await text(p, `#ex-${id} .pr-badge`);
     note("the Best line shows the new PR", new RegExp(`Best ${Math.floor(wKg)}(\\.\\d)? kg × 11`).test(badge), badge);
