@@ -190,5 +190,65 @@
  "Treadmill Walk": [
   "demos/treadmill-walk-0.jpg",
   "demos/treadmill-walk-1.jpg"
+ ],
+ "Weighted Glute Bridge": [
+  "demos/weighted-glute-bridge-0.jpg",
+  "demos/weighted-glute-bridge-1.jpg"
+ ],
+ "Outer Thigh Machine": [
+  "demos/outer-thigh-machine-0.jpg",
+  "demos/outer-thigh-machine-1.jpg"
+ ],
+ "Inner Thigh Machine": [
+  "demos/inner-thigh-machine-0.jpg",
+  "demos/inner-thigh-machine-1.jpg"
+ ],
+ "Cable Glute Kickback": [
+  "demos/cable-glute-kickback-0.jpg",
+  "demos/cable-glute-kickback-1.jpg"
+ ],
+ "Pallof Press": [
+  "demos/pallof-press-0.jpg",
+  "demos/pallof-press-1.jpg"
+ ],
+ "Incline Treadmill Walk": [
+  "demos/incline-treadmill-walk-0.jpg",
+  "demos/incline-treadmill-walk-1.jpg"
+ ],
+ "Seated Pulldown (Neutral Grip)": [
+  "demos/seated-pulldown-neutral-grip-0.jpg",
+  "demos/seated-pulldown-neutral-grip-1.jpg"
+ ],
+ "Seated DB Wrist Curl": [
+  "demos/seated-db-wrist-curl-0.jpg",
+  "demos/seated-db-wrist-curl-1.jpg"
+ ],
+ "Seated Cable Rope Pullover": [
+  "demos/seated-cable-rope-pullover-0.jpg",
+  "demos/seated-cable-rope-pullover-1.jpg"
+ ],
+ "Glute Bridge (Modified)": [
+  "demos/glute-bridge-0.jpg",
+  "demos/glute-bridge-1.jpg"
+ ],
+ "Warm-Up · Leg Press": [
+  "demos/leg-press-machine-0.jpg",
+  "demos/leg-press-machine-1.jpg"
+ ],
+ "Warm-Up · Chest Supported Row": [
+  "demos/chest-supported-row-0.jpg",
+  "demos/chest-supported-row-1.jpg"
+ ],
+ "Warm-Up · Chest Press": [
+  "demos/chest-press-machine-0.jpg",
+  "demos/chest-press-machine-1.jpg"
+ ],
+ "Warm-Up · Straight Arm Pulldown": [
+  "demos/straight-arm-pulldown-0.jpg",
+  "demos/straight-arm-pulldown-1.jpg"
+ ],
+ "Warm-Up · Lateral Raise": [
+  "demos/seated-lateral-raise-0.jpg",
+  "demos/seated-lateral-raise-1.jpg"
  ]
 }

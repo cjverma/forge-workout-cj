@@ -1871,6 +1871,26 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           ["Tuesday", "Friday", "Sunday"].every((d) => JSON.stringify(REAL_V7[d].exercises.map((e) => e.id)) === JSON.stringify(REAL_V4[d].exercises.map((e) => e.id))));
         const P7 = { Monday: "m7", Wednesday: "w7", Thursday: "th7", Saturday: "sa7" };
         ok("moved days carry their new day's prefix", Object.entries(P7).every(([d, p]) => REAL_V7[d].exercises.every((e) => e.id.startsWith(p + "_"))));
+        // Cues are instructions, written plainly (Oct 2026: the user flagged
+        // "Groove the pattern, do not fatigue" as AI-sounding). No rationale,
+        // no marketing, no jargon where a plain word works.
+        {
+          const BAD = /Groove|Joints before|mass builder|for this look|differentiator|Added for volume|Placed here|Kept light here|supination|eccentric|Lat width\.|Volume day|Brachialis|in the tank|most important exercise/i;
+          const bad = [];
+          for (const P of [REAL_V4, REAL_V7]) for (const d of Object.values(P)) for (const e of d.exercises) if (BAD.test(e.cue || "")) bad.push(e.name);
+          ok(`exercise cues are plain instructions, no rationale or jargon${bad.length ? " · " + [...new Set(bad)].join(", ") : ""}`, bad.length === 0);
+        }
+        // Form demos: every exercise in the live program ships a bundled demo
+        // (offline), except the two with no free source yet.
+        {
+          const MAP = JSON.parse(readFileSync("demos/map.json", "utf8"));
+          const NO_SOURCE = new Set(["Bird Dog", "Nerve Floss Left Leg"]);
+          const names = [...new Set(Object.values(REAL_V7).flatMap((d) => d.exercises.map((e) => e.name)))];
+          const missing = names.filter((n) => !NO_SOURCE.has(n) && !MAP[n]);
+          const brokenFiles = Object.values(MAP).flat().filter((f) => typeof f === "string" && f.startsWith("demos/")).filter((f) => { try { readFileSync(f); return false; } catch { return true; } });
+          ok(`every program exercise has a bundled form demo (${names.length - missing.length - NO_SOURCE.size}/${names.length - NO_SOURCE.size})${missing.length ? " · missing: " + missing.join(", ") : ""}`, missing.length === 0);
+          ok(`every demo file in map.json exists${brokenFiles.length ? " · " + brokenFiles.slice(0, 3).join(", ") : ""}`, brokenFiles.length === 0);
+        }
         ok("no V7 cue names a weekday that is no longer true", !Object.values(REAL_V7).some((d) => d.exercises.some((e) => /(Mon|Tues|Wednes|Thurs|Fri|Satur)day/.test(e.cue || ""))));
         ok("a Southpaw id maps to the day that now holds it (w4_lp -> Monday m7_lp, m4_cp -> Wednesday w7_cp)",
           JSON.stringify(REAL_V4_TO_V7("w4_lp")) === JSON.stringify({ day: "Monday", id: "m7_lp" }) && JSON.stringify(REAL_V4_TO_V7("m4_cp")) === JSON.stringify({ day: "Wednesday", id: "w7_cp" }) && REAL_V4_TO_V7("t4_csr").id === "t4_csr");

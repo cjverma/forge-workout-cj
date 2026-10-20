@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
 import { build } from "esbuild";
 
 mkdirSync("dist", { recursive: true });
@@ -36,3 +36,13 @@ const inlineJs = [
 const builtHtml = html.replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);
 
 writeFileSync("dist/index.html", builtHtml);
+
+// Vercel serves ONLY dist/ (vercel.json outputDirectory). Static files the page
+// asks for must be copied in, or they 404 in production: the bundled form
+// demos (demos/map.json + images) never loaded for this reason, and the
+// manifest/icons were missing too. sw.js is deliberately NOT copied yet: its
+// PRECACHE lists /dist/app.js, which does not exist at the production root.
+cpSync("demos", "dist/demos", { recursive: true });
+for (const f of ["manifest.json", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]) {
+  if (existsSync(f)) cpSync(f, "dist/" + f);
+}
