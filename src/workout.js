@@ -178,10 +178,10 @@ function logCalfTwinge(){
     if(cnt>=3){btn.classList.add("calf-warn");}
   }
   if(cnt===3){
-    showToast("⚠️ 3 twinges · consider stopping the session");
+    showToast("Three calf twinges today. Consider stopping.");
     if(navigator.vibrate)navigator.vibrate([100,50,100,50,100]);
   } else {
-    showToast("Calf twinge logged");
+    
   }
   refreshNotesRequirement();
 }
@@ -192,7 +192,7 @@ function undoCalfTwinge(){
   if(!arr||!arr.length){showToast("Nothing to undo");return;}
   arr.pop();
   save();queueSessionMeta(key);
-  showToast("Twinge removed");
+  
   renderW();
   refreshNotesRequirement();
 }
@@ -708,8 +708,8 @@ function toggleSet(key,exId,i){
   sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
-  if(ed.done)showToast("Exercise complete 🔥");
+  if(sd.done){checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
+  
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   // Deferred one tick: an immediate blur here can reflow the viewport
   // mid-render on iOS Safari/standalone PWA (keyboard dismissing) in the
@@ -725,7 +725,7 @@ function toggleCardio(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].done=!S.sessions[key][exId].done;
-  if(S.sessions[key][exId].done)showToast("Done ✓");
+  if(S.sessions[key][exId].done)
   if(navigator.vibrate)navigator.vibrate([25]);
   save();queueSession(key,exId);renderW();
 }
@@ -736,7 +736,7 @@ function skipEx(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].skipped=true;
-  save();queueSession(key,exId);showToast("Exercise skipped");renderW();
+  save();queueSession(key,exId);renderW();
   setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
 }
 
@@ -760,7 +760,7 @@ function toggleDayComplete(){
   const now=!S.sessions[key]._complete;
   if(now)S.sessions[key]._complete=true;else delete S.sessions[key]._complete;
   save();queueSessionMeta(key);renderW();
-  showToast(now?"Day marked complete":"Completion removed");
+  
 }
 
 function addSet(key,exId){
@@ -863,7 +863,7 @@ function dropPRForSet(exId,weight,reps,unit){
   if(!list.length)delete S.prs[cid];
   queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
   const next=recoverPRFromLog(cid)||(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
-  showToast(next?`PR removed · now ${next.est}kg`:"PR removed with the set");
+  showToast(next?`PR removed. Best is now ${next.weight} kg × ${next.reps}.`:"PR removed with the set.");
 }
 
 function delSet(key,exId,i){
@@ -875,7 +875,7 @@ function delSet(key,exId,i){
   const n=setCount(ex,ed);
   // An exercise with no sets has no way back to a set UI, so keep the floor at
   // one. Use Skip if you're not doing the exercise at all.
-  if(n<=1){showToast("Keep at least one set · use Skip instead");return;}
+  if(n<=1){showToast("Keep at least one set. Use Skip instead.");return;}
   const sd=ed.sets[i];
   // Silent on empty rows; confirm only when there's logged data to lose. The
   // app has no undo, so a destructive action on real data needs a beat.
@@ -893,7 +893,7 @@ function delSet(key,exId,i){
   updateExerciseDone(key,exId);
   save();queueSession(key,exId);renderW();
   reopenEx(exId);
-  showToast("Set removed");
+  
 }
 
 function olBadgeHtml(exId,sess){
@@ -1137,12 +1137,12 @@ function restoreDropped(day,id){
   S.dropped[day]=S.dropped[day].filter(x=>x!==id);
   queueMutation("dropped_exercise_restore",{id});
   save();
-  showToast("Restored · reload to see it");
+  showToast("Restored. Reload to see it.");
   renderW();
 }
 
 function afterCustomAdd(day,ex,label){
-  save();showToast(label+" added ✓");
+  save();
   const si=document.getElementById("cfSearch");if(si)si.value="";
   document.getElementById("cfDD")?.classList.remove("show");
   renderW();
@@ -1159,7 +1159,7 @@ function saveActive(){try{localStorage.setItem("f5_active",JSON.stringify({key:c
 function clearActive(){try{localStorage.removeItem("f5_active");}catch(_){}}
 function startSess(){
   ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
-  showToast("Workout started ⚡");
+  
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
 }
@@ -1221,7 +1221,7 @@ function resumeSess(){
   const key=ctx.cDay+"_"+ctx.wk();
   if(S.sessions[key]?._stopped){delete S.sessions[key]._stopped;save();queueSessionMeta(key);}
   ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
-  showToast("Workout resumed ▶");
+  
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
 }
@@ -1340,7 +1340,7 @@ function checkAndStorePR(exId,weight,reps,unit){
     if(!S.prs[cid])S.prs[cid]=[];
     S.prs[cid].push({date:isoToday(),weight,reps,est});
     save();queueMutation("pr",{exerciseId:cid,date:isoToday(),weight,reps,est});
-    showToastBig("🏆 New PR! "+weight+"kg × "+reps);
+    showToastBig("New best: "+weight+" kg × "+reps);
   }
 }
 // A day the active program schedules nothing for. Right now that's Wednesday
@@ -1405,7 +1405,7 @@ function checkMilestones(){
   if(!ctx.demoStreak&&longest!==(S.milestones.longestStreak||0)){S.milestones.longestStreak=longest;save();queueMilestones();}
   // Once per week, the moment this week starts counting toward the streak.
   if(!ctx.demoStreak&&thisWeek===need){let seen=null;try{seen=localStorage.getItem("f5_streak_toast");}catch(_){}
-    if(seen!==wkKey){try{localStorage.setItem("f5_streak_toast",wkKey);}catch(_){}showToastBig(`🔥 ${need} workouts this week. ${weeks} week streak!`);}}
+    if(seen!==wkKey){try{localStorage.setItem("f5_streak_toast",wkKey);}catch(_){}showToastBig(`${need} workouts this week. ${weeks}-week streak.`);}}
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);
@@ -1565,13 +1565,13 @@ function rebuildPRsFor(cid){
 let _unitQueue=[];
 function openUnitReview(auto){
   _unitQueue=findUnitSuspects();
-  if(!_unitQueue.length){if(!auto)showToast("No kg/lbs mix-ups found ✓");return;}
+  if(!_unitQueue.length){if(!auto)showToast("No kg/lbs mix-ups found.");return;}
   renderUnitReview();
 }
 function renderUnitReview(){
   const m=document.getElementById("planModal");
   if(!m)return;
-  if(!_unitQueue.length){m.classList.remove("show");showToast("Units checked ✓ · PRs rebuilt");ctx.renderW?.();return;}
+  if(!_unitQueue.length){m.classList.remove("show");showToast("Units checked. PRs rebuilt.");ctx.renderW?.();return;}
   const rows=_unitQueue.map((s,idx)=>{
     const conv=s.to==="lbs"?`${r1(s.weight*LB_TO_KG)} kg`:`${r1(s.weight/LB_TO_KG)} lbs`;
     const typed=`${s.weight} ${s.unit}`;

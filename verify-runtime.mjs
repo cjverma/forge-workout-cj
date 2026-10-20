@@ -897,6 +897,26 @@ try {
     await page.close();
   }
 
+  // One tab at a time: Workout wears the iOS look, every other tab and the
+  // drawer keep main's look (warm background, volt accent) until their pass.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, colorScheme: "light", timezoneId: "America/Toronto" });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const look = () => page.evaluate(() => { const sc = getComputedStyle(document.getElementById("mainScroll")); return { bg: getComputedStyle(document.body).backgroundColor, accent: sc.getPropertyValue("--accent").trim(), nav: getComputedStyle(document.querySelector(".nav-item.active")).color }; });
+    const w = await look();
+    await page.locator("#nav-nutrition").click(); await page.waitForTimeout(600); const n = await look();
+    await page.locator("#nav-settings").click(); await page.waitForTimeout(600); const st = await look();
+    await page.evaluate(() => openDrawer()); await page.waitForTimeout(300);
+    const dr = await page.evaluate(() => getComputedStyle(document.getElementById("drawer")).getPropertyValue("--accent").trim());
+    await page.evaluate(() => closeDrawer());
+    await page.locator("#nav-workout").click(); await page.waitForTimeout(600); const w2 = await look();
+    const ios = (l) => /242, 242, 247/.test(l.bg) && /#007AFF/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
+    note("Workout wears the iOS look; Food, Settings and the drawer keep main's look; switching back restores iOS",
+      ios(w) && old(n) && old(st) && /#B9E425/i.test(dr) && ios(w2), JSON.stringify({ w, n, st, dr, w2 }));
+    await page.close();
+  }
+
   // Offline mode, served the way Vercel serves it: dist/ as the site root.
   // The service worker must precache the app and every demo, and with the
   // network cut the app must still open and show a form demo.

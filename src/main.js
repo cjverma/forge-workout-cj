@@ -740,6 +740,8 @@ window.addEventListener("DOMContentLoaded",()=>{
 function go(tab){
   closeForgeChat();
   cTab=tab;
+  // The iOS redesign ships one tab at a time; the stylesheet keys it on this.
+  document.body.dataset.tab=tab;
   try{sessionStorage.setItem("forge_tab",tab);}catch(_){}
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   const navEl=document.getElementById("nav-"+tab);

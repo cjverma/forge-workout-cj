@@ -1334,6 +1334,23 @@ ok("deleting a set with logged data asks first",
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
 
+// The iOS redesign ships ONE TAB AT A TIME (user, Oct 2026). Its tokens and
+// chrome are keyed on body[data-tab="workout"]; the default :root stays main's
+// old look so Food, Settings, the drawer and pop-ups are unchanged for now.
+{
+  const IDX = readFileSync("index.html", "utf8"), MAIN_SRC = readFileSync("src/main.js", "utf8");
+  const ROOT = IDX.slice(IDX.indexOf(":root{"), IDX.indexOf("html[data-theme=\"light\"]"));
+  ok("the default tokens are the old look (warm ramp, volt accent), not iOS",
+    ROOT.includes("--black:light-dark(#EDECEA,#08080A);") && ROOT.includes("--accent:light-dark(#B9E425,#C8F135);") && !ROOT.includes("#007AFF"));
+  ok("the iOS tokens apply only to the Workout tab's own regions",
+    IDX.includes('body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){') && /:is\(\.hdr,#dayNav,#mainScroll,\.bot-nav,\.toast\)\{[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX));
+  ok("go() marks the current tab on <body>, and the page starts on Workout",
+    /cTab=tab;[\s\S]{0,120}document\.body\.dataset\.tab=tab;/.test(MAIN_SRC) && IDX.includes('<body data-tab="workout">'));
+  ok("Workout toasts are quiet: no routine confirmations, no emoji",
+    !/showToast\("(Set logged|Workout started|Workout resumed|Exercise skipped|Set removed|Done ✓|Calf twinge logged|Twinge removed)/.test(readFileSync("src/workout.js", "utf8")) &&
+    !/showToast(Big)?\([^)]*[\u{1F300}-\u{1FAFF}\u26A1\u2705\u25B6]/u.test(readFileSync("src/workout.js", "utf8")));
+}
+
 // Buttons wired through the shared click listener (data-action) are not inline
 // handlers, so the browser's dead-button check cannot see them. Every action
 // used in markup must have a branch in that listener.
@@ -1618,7 +1635,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
       /lift-val">\$\{best\.weight\}<span class="lift-unit">kg × \$\{best\.reps\}/.test(NUT) &&
       /sort\(\(a,b\)=>b\.best\.est-a\.best\.est\)/.test(NUT));
     ok("the PR toast and delete confirm name the set, not the estimate",
-      /New PR! "\+weight\+"kg × "\+reps/.test(WORKOUT) &&
+      /New best: "\+weight\+" kg × "\+reps/.test(WORKOUT) &&
       /\$\{gone\.weight\}kg × \$\{gone\.reps\} \(est\. 1RM \$\{gone\.est\}kg\)/.test(NUT));
   }
 
