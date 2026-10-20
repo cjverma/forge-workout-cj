@@ -2654,6 +2654,19 @@ section("Runtime (rendered DOM)");
       out.split("\n").filter(Boolean).forEach((l) => console.log(l));
       ok("runtime checks", false, "see output above");
     }
+    // End-to-end user flows (e2e-flows.mjs): every user action driven in the
+    // built app with a mocked server. Needs dist/ built (node build.mjs).
+    section("End-to-end user flows");
+    try {
+      const out = execSync("node e2e-flows.mjs", { stdio: "pipe" }).toString();
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      const n = (out.match(/✓/g) || []).length;
+      for (let i = 0; i < n; i++) passed++;
+    } catch (e) {
+      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      ok("end-to-end flows", false, "see output above");
+    }
   }
 }
 

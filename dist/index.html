@@ -7814,15 +7814,17 @@ ctx.queueSettings=queueSettings;
 <script>
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("/sw.js").then(reg=>{
+    if(!reg)return; // some embedded browsers resolve without a registration
     reg.addEventListener("updatefound",()=>{
       const sw=reg.installing;
+      if(!sw)return;
       sw.addEventListener("statechange",()=>{
         if(sw.state==="installed"&&navigator.serviceWorker.controller){
-          navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload());
+          navigator.serviceWorker.addEventListener("controllerchange",()=>location.reload(),{once:true});
         }
       });
     });
-  });
+  }).catch(()=>{}); // a failed install retries on next launch; never an error toast
 }
 </script>
 </body>
