@@ -28,7 +28,7 @@
  *      addition, and an unwrapped text-stored timestamp fails Date parsing.
  */
 
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
   PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, PROG_V7 as REAL_V7, v4IdToV7 as REAL_V4_TO_V7, weekKeyOf as REAL_WEEK_KEY_OF } from "./src/constants.js";
@@ -1344,6 +1344,20 @@ ok("deleting a set with logged data asks first",
 
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
+
+// Every element the code looks up by a literal id must exist in the markup
+// (index.html or a render template). A redesign that renames or drops one
+// makes that piece of UI silently stop updating, with no error.
+{
+  const SRC_FILES = readdirSync("src").filter((f) => f.endsWith(".js")).map((f) => "src/" + f);
+  const JS_ALL = SRC_FILES.map((f) => readFileSync(f, "utf8")).join("\n");
+  const MARKUP = readFileSync("index.html", "utf8") + "\n" + JS_ALL;
+  // aiRun()'s conv/overload/warmup branches: no button calls them any more.
+  const DEAD = new Set(["ci", "oi", "wuEx", "wuWt"]);
+  const ids = [...new Set([...JS_ALL.matchAll(/getElementById\(\s*["']([\w-]+)["']\s*\)/g)].map((m) => m[1]))];
+  const missing = ids.filter((id) => !DEAD.has(id) && !new RegExp(`id=\\\\?["']${id}\\\\?["']`).test(MARKUP));
+  ok(`every id the code looks up exists in the markup (${ids.length} ids)${missing.length ? " · missing: " + missing.join(", ") : ""}`, missing.length === 0);
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Streak: rest days must not break it

@@ -126,6 +126,33 @@ try {
       leaks.push(`drawer: ${m}`);
     }
     note(`${theme}: no template placeholders in rendered text`, leaks.length === 0, [...new Set(leaks)].join(", "));
+    // Every inline handler on every tab (and the drawer and the static
+    // sheets/modals in index.html) must call functions that exist. A redesign
+    // that renames or drops one leaves a button that looks fine and does nothing.
+    const deadHandlers = []; let handlersSeen = 0;
+    for (const [tab, id] of [["workout", "#nav-workout"], ["nutrition", "#nav-nutrition"], ["settings", "#nav-settings"], ["drawer", null]]) {
+      await page.evaluate(() => window.closeDrawer && window.closeDrawer()); await page.waitForTimeout(250);
+      if (id) { await page.locator(id).click(); await page.waitForTimeout(700); }
+      else { await page.evaluate(() => window.openDrawer && window.openDrawer()); await page.waitForTimeout(500); }
+      await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+      const r = await page.evaluate((tab) => {
+        const KW = new Set(["if", "for", "while", "switch", "return", "function", "typeof", "catch", "new"]);
+        const out = []; let seen = 0;
+        for (const el of document.querySelectorAll("*")) for (const at of el.getAttributeNames()) {
+          if (!/^on[a-z]+$/.test(at)) continue;
+          const code = el.getAttribute(at);
+          try { new Function("event", code); } catch (e) { out.push(`${tab}: ${at}="${code.slice(0, 40)}" does not parse`); continue; }
+          seen++;
+          for (const m of code.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) {
+            if (!KW.has(m[1]) && typeof window[m[1]] !== "function") out.push(`${tab}: ${at} calls ${m[1]}()`);
+          }
+        }
+        return { out, seen };
+      }, tab);
+      deadHandlers.push(...r.out); handlersSeen += r.seen;
+    }
+    await page.evaluate(() => window.closeDrawer && window.closeDrawer()); await page.waitForTimeout(250);
+    note(`${theme}: every button and input calls a function that exists (${handlersSeen} handlers across tabs, drawer, sheets)`, deadHandlers.length === 0 && handlersSeen > 80, [...new Set(deadHandlers)].slice(0, 6).join(" | "));
 
     // Est. 1RM is a formula output, least accurate at the 10-12 reps this
     // program lives at, and there will never be a measured single to check it
