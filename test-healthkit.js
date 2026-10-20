@@ -62,7 +62,7 @@ ok("active-only payload is valid", p.ok && p.date === "2026-07-16" && p.applied.
 p = normalizeHealthKitPayload({ date: "bad", active: 1 }, "2026-07-16");
 ok("invalid date is rejected", !p.ok && p.errors.some(e => e.includes("date")));
 
-p = normalizeHealthKitPayload({ active: -1, resting: 799, weightKg: 301 }, "2026-07-16");
+p = normalizeHealthKitPayload({ active: -1, resting: 199, weightKg: 301 }, "2026-07-16"); // resting floor is 200 (api/healthkit.js)
 ok("bounds are enforced", !p.ok && p.errors.length === 3);
 
 p = normalizeHealthKitPayload({ foo: "ignored", active: 100 }, "2026-07-16");

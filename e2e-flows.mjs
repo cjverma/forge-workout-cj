@@ -61,7 +61,7 @@ function fixture(fresh) {
 
 // ── Harness ────────────────────────────────────────────────────────────────
 let browser, server, FRESH = null;
-async function boot({ state, theme = "light", ua, server: srvState = null } = {}) {
+async function boot({ state, theme = "light", ua, server: srvState = null, noCfg = false } = {}) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: "America/Toronto", serviceWorkers: "block", colorScheme: theme, userAgent: ua });
   const page = await ctx.newPage();
   const h = { ctx, page, errors: [], muts: [], mutStatus: [], serverState: srvState, dialogs: [], answer: true };
@@ -81,11 +81,11 @@ async function boot({ state, theme = "light", ua, server: srvState = null } = {}
     if (path === "/api/email") return json(200, { ok: true });
     return json(404, { error: "not mocked" });
   });
-  await page.addInitScript(([s, th]) => {
-    window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+  await page.addInitScript(([s, th, noCfg]) => {
+    if (!noCfg) window.FORGE_API_CFG = { baseUrl: "", token: "x" };
     if (s && !sessionStorage.__seeded) { localStorage.f5 = JSON.stringify(s); localStorage.removeItem("f5_outbox"); sessionStorage.__seeded = 1; }
     try { localStorage.setItem("forge_theme", th); } catch (_) {}
-  }, [state || null, theme]);
+  }, [state || null, theme, noCfg]);
   await page.goto(BASE, { waitUntil: "networkidle" });
   await page.waitForTimeout(800);
   await page.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
@@ -96,6 +96,9 @@ const outbox = (page) => page.evaluate(() => JSON.parse(localStorage.f5_outbox |
 const flush = async (h) => { await h.page.evaluate(() => flushOutbox()); await h.page.waitForTimeout(150); };
 const sent = (h, entity) => h.muts.filter((m) => m.entity === entity);
 const wait = (page, ms = 250) => page.waitForTimeout(ms);
+// A milestone pop-up (e.g. "130 kg Milestone!") waits for the user to close
+// it, as it should; flows close it like a person would before tapping on.
+const closePopups = (page) => page.evaluate(() => { if (document.getElementById("milestoneModal")?.classList.contains("show")) closeMilestone(); });
 const text = (page, sel) => page.evaluate((s) => document.querySelector(s)?.textContent || "", sel);
 async function flow(name, fn) {
   try { await fn(); } catch (e) { note(`${name} (threw)`, false, e.message.split("\n")[0]); }
@@ -156,12 +159,13 @@ async function workoutSession(state) {
       JSON.stringify({ active: !!active, survived, sheet, stillOn, summary, stopped, resumeBtn, resumed, meta: sent(h, "session_meta").length }));
   });
   await flow("mark complete + undo", async () => {
-    await p.evaluate(() => { stopSess(true); closeSummary(); }); await wait(p);
-    // Mark Complete shows only on a live unfinished day; use the function the button calls.
-    await p.evaluate(() => toggleDayComplete()); await wait(p);
-    const done = await p.evaluate(() => /Session complete/.test(document.body.innerText));
-    await p.evaluate(() => toggleDayComplete()); await wait(p);
-    const undone = await p.evaluate(() => !/Session complete/.test(document.body.innerText));
+    // Mark Complete is offered on a live, unfinished, not-stopped day.
+    const h2 = await boot({ state }); const q = h2.page;
+    await q.click(".markdone-bar .btn-start"); await wait(q);
+    const done = await q.evaluate(() => /Session complete/.test(document.body.innerText));
+    await q.click(".sess-undo"); await wait(q);
+    const undone = await q.evaluate(() => !/Session complete/.test(document.body.innerText) && !!document.querySelector(".markdone-bar"));
+    await h2.ctx.close();
     note("mark day complete, then undo", done && undone, JSON.stringify({ done, undone }));
   });
   noErrors(h, "workout session");
@@ -178,7 +182,7 @@ async function workoutSets(state) {
     const w = unit === "lbs" ? "100" : "45";
     h.answer = false; // keep the typed unit if asked
     await p.fill(`#wi-${id}-0`, w); await p.fill(`#ri-${id}-0`, "11");
-    await p.click(`#ex-${id} .sdone`); await wait(p, 400);
+    await p.click(`#ex-${id} .sdone`); await wait(p, 400); await closePopups(p);
     const st = await S(p), ed = st.sessions[key]?.[id];
     const name = await p.evaluate((id) => document.querySelector(`#ex-${id} .ex-name`).textContent, id);
     const prs = Object.values(st.prs).flat().filter((e) => e.date === TODAY);
@@ -190,6 +194,7 @@ async function workoutSets(state) {
     note("the Best line shows the new PR", /Best (45|45\.4) kg × 11/.test(badge), badge);
   });
   await flow("untick, add set, delete set", async () => {
+    await closePopups(p);
     await p.click(`#ex-${id} .sdone`); await wait(p);
     const undone = (await S(p)).sessions[key][id].sets[0].done === false;
     const rows0 = await p.evaluate((id) => document.querySelectorAll(`#ex-${id} .set-row`).length, id);
@@ -202,7 +207,8 @@ async function workoutSets(state) {
   });
   await flow("delete the PR set", async () => {
     // re-tick set 1 (the PR), then delete it: PR must drop (or recover to the old best)
-    await p.click(`#ex-${id} .sdone`); await wait(p, 300);
+    await p.click(`#ex-${id} .sdone`); await wait(p, 300); await closePopups(p);
+    h.answer = true; // confirm "Delete set 1?"
     await p.evaluate(([k, id]) => delSet(k, id, 0), [key, id]); await wait(p, 300);
     const st = await S(p), todays = Object.values(st.prs).flat().filter((e) => e.date === TODAY);
     note("deleting the set that set a PR removes that PR", todays.length === 0, JSON.stringify(todays));
@@ -217,7 +223,7 @@ async function workoutSets(state) {
     const kgNow = await p.evaluate((id) => document.querySelector(`#ex-${id} .wt-wrap`).dataset.unit, id);
     if (kgNow !== "kg") { await p.click(`#ex-${id} .unit-chip`); await wait(p); }
     await p.fill(`#wi-${id}-1`, "120"); await p.fill(`#ri-${id}-1`, "10");
-    await p.click(`#ex-${id} .set-row:nth-of-type(2) .sdone`).catch(async () => p.evaluate(([k, id]) => toggleSet(k, id, 1), [key, id]));
+    await p.click(`#sr-${id}-1 .sdone`);
     await wait(p, 300);
     const set = (await S(p)).sessions[key][id].sets[1];
     note("kg/lbs toggles; a weight ~3x usual asks first and OK logs it converted", u1 !== u0 && h.dialogs.some((d) => /Did you mean 120 lbs/.test(d)) && Number(set?.weight) === 54.4, JSON.stringify({ u0, u1, dialogs: h.dialogs, set }));
@@ -248,7 +254,7 @@ async function calfNotes(state) {
     await p.evaluate(() => stopSess()); await wait(p);
     const stillRunning = await p.evaluate(() => document.getElementById("bStop")?.classList.contains("show") && !document.querySelector(".swap-modal.show .stop-sheet"));
     await p.focus("#sessNotes"); await p.keyboard.type("Left calf tight on the walk");
-    await wait(p, 300);
+    await wait(p, 1500); // saveNotes is debounced
     const focusKept = await p.evaluate(() => document.activeElement?.id === "sessNotes");
     const met = await p.evaluate(() => document.querySelector(".notes-req")?.classList.contains("met"));
     await p.evaluate(() => undoCalfTwinge()); await wait(p);
@@ -270,11 +276,11 @@ async function exercisesFlow(state) {
     await p.fill("#cfSearch", "crossover"); await wait(p, 400);
     const hits = await p.evaluate(() => document.querySelectorAll("#cfDD .dd-item").length);
     h.answer = true;
-    await p.evaluate(() => { const b = document.querySelector("#cfDD .dd-item [onclick*='addFromDB'], #cfDD [onclick*='addFromDB']"); b?.click(); }); await wait(p, 400);
+    await p.click("#cfDD [data-action='fromdb']"); await wait(p, 400);
     const st = await S(p), customs = (st.custom.Wednesday || []);
     const swapOpen = await p.evaluate(() => !!document.querySelector(".swap-modal.show"));
     // drop the first program exercise offered
-    await p.evaluate(() => document.querySelector(".swap-modal.show .swap-item")?.click()); await wait(p, 400);
+    await p.click(".swap-modal.show [data-action='swapdrop']"); await wait(p, 400);
     const st2 = await S(p), dropped = st2.dropped?.Wednesday || [];
     await flush(h);
     note("search the library, add an exercise, offered a swap, drop one",
@@ -287,10 +293,10 @@ async function exercisesFlow(state) {
   });
   await flow("free-form add, demo or no-demo line, remove", async () => {
     await p.evaluate(() => { const f = document.getElementById("cf"); if (!f.classList.contains("open") && !f.classList.contains("show")) toggleCF(); }); await wait(p);
-    await p.fill("#cfSearch", "Zxq Custom Move"); await wait(p, 400);
-    await p.evaluate(() => document.querySelector("#cfDD [onclick*='addFreeform']")?.click()); await wait(p, 400);
+    await p.fill("#cfSearch", "Zxqv Wobble"); await wait(p, 400);
+    await p.click("#cfDD [data-action='freeform']"); await wait(p, 400);
     await p.evaluate(() => closeSwap?.()); await wait(p);
-    const st = await S(p), c = (st.custom.Wednesday || []).find((x) => /Zxq/.test(x.name));
+    const st = await S(p), c = (st.custom.Wednesday || []).find((x) => /Zxqv/.test(x.name));
     await p.click(`#ex-${c.id} .ex-top`); await wait(p, 900);
     const none = await p.evaluate((id) => document.querySelector(`#ex-${id} .demo-none`)?.textContent || "", c.id);
     await p.evaluate(([d, id]) => removeCustomEx(d, id), ["Wednesday", c.id]); await wait(p, 300);
@@ -307,11 +313,12 @@ async function exercisesFlow(state) {
   });
   await flow("AI alternative", async () => {
     await p.evaluate(() => { const f = document.getElementById("cf"); if (!f.classList.contains("open") && !f.classList.contains("show")) toggleCF(); }); await wait(p);
-    await p.fill("#cfSearch", "decline barbell bench"); await wait(p, 400);
-    const altBtn = await p.evaluate(() => { const b = document.querySelector("#cfDD [onclick*='askAlt'], #cfDD [onclick*='suggestAlt'], #cfDD [onclick*='findAlt']"); b?.click(); return b?.getAttribute("onclick") || null; });
+    await p.fill("#cfSearch", "Zxqv deadlift"); await wait(p, 400); // banned, no library match
+    const altBtn = await p.$("#cfDD [data-action='suggestalt']");
+    if (altBtn) await altBtn.click();
     await wait(p, 600);
     const ready = await p.evaluate(() => /Low Cable Chest Fly/.test(document.getElementById("cfDD")?.innerText || ""));
-    await p.evaluate(() => addFromAlt("Wednesday")); await wait(p, 400);
+    await p.click("#cfDD [data-action='fromalt']"); await wait(p, 400);
     await p.evaluate(() => closeSwap?.()); await wait(p);
     const added = ((await S(p)).custom.Wednesday || []).some((x) => x.name === "Low Cable Chest Fly");
     note("a banned search offers a safe AI alternative, which can be added", !!altBtn && ready && added, JSON.stringify({ altBtn, ready, added }));
@@ -325,9 +332,11 @@ async function planFlow(state) {
   await flow("weekly plan generate + apply + reset", async () => {
     const thu = programFor(new Date(dayIso(8) + "T12:00:00")).Thursday.exercises.find((e) => e.cat === "gym");
     h.planWeek = { Thursday: [{ id: thu.id, sets: 4, hint: "50-55 kg", reason: "Mock reason" }] };
-    await p.evaluate(() => genWeeklyPlan()); await wait(p, 900);
+    await p.click("#nav-settings"); await wait(p, 500);
+    await p.evaluate(() => { const d = [...document.querySelectorAll("details")].find((x) => x.querySelector(".gen-plan-btn")); if (d) d.open = true; });
+    await p.click(".gen-plan-btn"); await wait(p, 900);
     const modal = await p.evaluate(() => !!document.querySelector("#planModal.show"));
-    await p.evaluate(() => applyPendingPlan()); await wait(p, 400);
+    await p.click("#planModal [onclick='applyPendingPlan()']"); await wait(p, 400);
     const st = await S(p), wkKey = await p.evaluate(() => planWk());
     const upd = st.weekPlans?.[wkKey]?.Thursday?.find((u) => u.id === thu.id);
     await flush(h);
@@ -386,15 +395,15 @@ async function foodFlow(state) {
     await p.evaluate((d) => toggleShock(d), TODAY); await wait(p, 300);
     await flush(h);
     const metas = sent(h, "nutrition_day_meta");
-    note("resting override, active calories and shock day save and sync", day.restingOverride === 2900 && Number(day.active) === 950 && day.shock === true && metas.length >= 1, JSON.stringify({ day: { r: day.restingOverride, a: day.active, s: day.shock }, metas: metas.length }));
+    note("resting override, active calories and shock day save and sync", day.restingOverride === 2900 && Number(day.active) === 950 && day.shockProtocol === true && metas.length >= 1, JSON.stringify({ day: { r: day.restingOverride, a: day.active, s: day.shockProtocol }, metas: metas.length }));
   });
   await flow("date shift + past-day lock", async () => {
     await p.evaluate(() => nutShift(-1)); await wait(p, 300);
     const lbl = await p.evaluate(() => document.body.innerText.match(/TUE[^\n]*|Tue[^\n]*/)?.[0] || "");
     const ro = await p.evaluate(() => !!document.getElementById("bvRest")?.disabled);
-    await p.evaluate(() => unlockNut?.()); await wait(p, 300);
+    await p.evaluate(() => unlockNut(_nutDate)); await wait(p, 300);
     const rw = await p.evaluate(() => !document.getElementById("bvRest")?.disabled);
-    await p.evaluate(() => lockNut?.()); await wait(p, 300);
+    await p.evaluate(() => lockNut(_nutDate)); await wait(p, 300);
     await p.evaluate(() => nutShift(1)); await wait(p, 300);
     note("food tab: go back a day (read-only), unlock to edit, lock again, return to today", ro && rw, JSON.stringify({ lbl, ro, rw }));
   });
@@ -436,10 +445,11 @@ async function settingsFlow(state) {
     await p.evaluate(() => closeDrawer()); await wait(p);
     const th0 = await p.evaluate(() => document.documentElement.getAttribute("data-theme"));
     await p.click("#nav-settings"); await wait(p, 500);
-    await p.evaluate(() => toggleTheme()); await wait(p, 300);
-    const th1 = await p.evaluate(() => document.documentElement.getAttribute("data-theme") || "auto");
+    const seen = new Set();
+    for (let i = 0; i < 3; i++) { await p.evaluate(() => toggleTheme()); await wait(p, 300); seen.add(await p.evaluate(() => document.documentElement.getAttribute("data-theme") || "auto")); }
+    const th1 = [...seen].join(",");
     for (const t of ["workout", "nutrition", "settings"]) { await p.click("#nav-" + t); await wait(p, 400); }
-    note("drawer opens and closes; the theme cycles and every tab re-renders", open && th1 !== th0, JSON.stringify({ open, th0, th1 }));
+    note("drawer opens and closes; the theme cycles light/dark and every tab re-renders", open && seen.has("light") && seen.has("dark"), JSON.stringify({ open, th0, th1 }));
   });
   await flow("export + backup round-trip", async () => {
     await p.click("#nav-settings"); await wait(p, 400);
@@ -468,9 +478,15 @@ async function settingsFlow(state) {
     if (pop) await pop.close();
   });
   await flow("unit review + PR delete", async () => {
+    // Plant a mix-up: last week's first set typed as 120 "kg" on a ~40 kg lift.
+    const where = await p.evaluate(() => { const S = JSON.parse(localStorage.f5); const k = Object.keys(S.sessions).find((k) => k.startsWith("Wednesday_") && k !== "Wednesday_" + wk()); const id = Object.keys(S.sessions[k]).find((x) => S.sessions[k][x]?.unit === "kg"); S.sessions[k][id].sets[0].weight = "120"; localStorage.f5 = JSON.stringify(S); return [k, id]; });
+    await p.reload({ waitUntil: "networkidle" }); await wait(p, 600); await p.evaluate(() => { closeUnitReview?.(); });
     await p.evaluate(() => openUnitReview()); await wait(p, 300);
-    const shown = await p.evaluate(() => !!document.querySelector("#planModal.show, .swap-modal.show"));
+    const shown = await p.evaluate(() => !!document.querySelector("#planModal.show") && /120/.test(document.getElementById("planModal").innerText));
+    await p.click("#planModal [onclick='unitFix(0,true)']"); await wait(p, 400);
+    const fixed = await p.evaluate(([k, id]) => JSON.parse(localStorage.f5).sessions[k][id].sets[0].weight, where);
     await p.evaluate(() => closeUnitReview()); await wait(p);
+    note("unit review lists a planted kg/lbs mix-up and Convert fixes it (120 -> 54.4)", shown && Number(fixed) === 54.4, JSON.stringify({ shown, fixed }));
     const st = await S(p), slug = Object.keys(st.prs)[0];
     h.answer = true;
     await p.evaluate((s) => dropPR(s), slug); await wait(p, 300);
@@ -481,17 +497,22 @@ async function settingsFlow(state) {
     await p.evaluate(() => { pushSnapshot(JSON.parse(localStorage.f5)); }); await wait(p);
     const snaps = await p.evaluate(() => listSnapshots().map((s) => s.ts));
     h.answer = false; h.dialogs.length = 0;
-    await p.evaluate((ts) => restoreSnapshot(ts), snaps[0]); await wait(p, 300);
+    await flush(h); const before = sent(h, "restore_all").length;
+    await p.evaluate((ts) => restoreSnapshot(ts), snaps[0]); await wait(p, 300); await flush(h);
     const asked = h.dialogs.length > 0 && /every device|all devices|REPLACES/i.test(h.dialogs[0]);
-    const nothing = sent(h, "restore_all").length === 0 && !(await outbox(p)).some((m) => m.entity === "restore_all");
+    const nothing = sent(h, "restore_all").length === before && !(await outbox(p)).some((m) => m.entity === "restore_all");
     note("restore asks first (shows it reaches every device) and Cancel changes nothing", asked && nothing, JSON.stringify(h.dialogs.slice(0, 1)));
   });
   await flow("lock + unlock", async () => {
-    await p.evaluate(() => lockApp()); await wait(p, 300);
-    const locked = await p.evaluate(() => getComputedStyle(document.getElementById("lockScreen")).display !== "none");
-    await p.fill("#lockInput", "x"); await p.evaluate(() => submitLock()); await wait(p, 600);
-    const open = await p.evaluate(() => getComputedStyle(document.getElementById("lockScreen")).display === "none");
-    note("lock the app, unlock with the token", locked && open, JSON.stringify({ locked, open }));
+    const h3 = await boot({ state, noCfg: true }); const q = h3.page;
+    const locked = await q.evaluate(() => getComputedStyle(document.getElementById("lockScreen")).display !== "none");
+    await q.fill("#lockInput", "x"); await q.click(".lock-btn"); await wait(q, 900);
+    const open = await q.evaluate(() => getComputedStyle(document.getElementById("lockScreen")).display === "none" && !!document.querySelector(".ex-card"));
+    await q.evaluate(() => lockApp()); await wait(q, 900);
+    const relocked = await q.evaluate(() => getComputedStyle(document.getElementById("lockScreen")).display !== "none");
+    noErrors(h3, "lock screen");
+    await h3.ctx.close();
+    note("no token shows the lock screen; the token unlocks; Lock App locks again", locked && open && relocked, JSON.stringify({ locked, open, relocked }));
   });
   await flow("clear data: cancel keeps everything", async () => {
     const before = await S(p);
@@ -570,13 +591,16 @@ async function themesAndHint(state) {
 // Service worker update: install v1, then serve a "newer" sw.js; the page must
 // take the new worker, reload once, and drop the old cache.
 async function swUpdate() {
+  let swBody = readFileSync("dist/sw.js", "utf8");
+  const app2 = express();
+  app2.get("/sw.js", (req, res) => res.type("application/javascript").set("Cache-Control", "no-store").send(swBody));
+  app2.use(express.static("dist"));
+  const srv2 = await new Promise((res) => { const s = app2.listen(8794, () => res(s)); });
   const ctx = await browser.newContext({ serviceWorkers: "allow" });
   const page = await ctx.newPage(); const errs = []; page.on("pageerror", (e) => errs.push(e.message));
   await page.route("**/api/**", (r) => r.fulfill({ status: 501, body: "{}" }));
   await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
-  let swBody = readFileSync("dist/sw.js", "utf8");
-  await page.route("**/sw.js", (r) => r.fulfill({ status: 200, contentType: "application/javascript", body: swBody }));
-  await page.goto(BASE, { waitUntil: "networkidle" });
+  await page.goto("http://127.0.0.1:8794/", { waitUntil: "networkidle" });
   const v1 = await page.evaluate(async () => { await navigator.serviceWorker.ready; for (let i = 0; i < 80 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 100)); return caches.keys(); });
   swBody = swBody.replace(/const V = "([^"]+)"/, 'const V = "$1-next"');
   let reloads = 0; page.on("load", () => reloads++);
@@ -585,7 +609,7 @@ async function swUpdate() {
   const v2 = await page.evaluate(() => caches.keys());
   note("service worker update: the new version takes over, reloads once, old cache deleted",
     v1.length === 1 && v2.length === 1 && v2[0].endsWith("-next") && reloads === 1 && errs.length === 0, JSON.stringify({ v1, v2, reloads, errs }));
-  await ctx.close();
+  await ctx.close(); srv2.close();
 }
 
 // ── Run ────────────────────────────────────────────────────────────────────

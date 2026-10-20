@@ -1334,6 +1334,19 @@ ok("deleting a set with logged data asks first",
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
 
+// Buttons wired through the shared click listener (data-action) are not inline
+// handlers, so the browser's dead-button check cannot see them. Every action
+// used in markup must have a branch in that listener.
+{
+  const JS = readdirSync("src").filter((f) => f.endsWith(".js")).map((f) => readFileSync("src/" + f, "utf8")).join("\n");
+  const used = [...new Set([...JS.matchAll(/data-action="([a-z]+)"/g)].map((m) => m[1]))];
+  const MAIN_SRC = readFileSync("src/main.js", "utf8");
+  const unhandled = used.filter((a) => !new RegExp(`action===["']${a}["']`).test(MAIN_SRC));
+  ok(`every data-action button has a handler (${used.length})${unhandled.length ? " · missing: " + unhandled.join(", ") : ""}`, used.length > 0 && unhandled.length === 0);
+}
+ok("production build drops the local-only config.local.js tag (it 404'd on every launch)",
+  !readFileSync("dist/index.html", "utf8").includes("config.local.js"));
+
 // Every element the code looks up by a literal id must exist in the markup
 // (index.html or a render template). A redesign that renames or drops one
 // makes that piece of UI silently stop updating, with no error.

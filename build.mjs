@@ -33,7 +33,10 @@ const inlineJs = [
   sourceForInline("src/chat.js"),
   sourceForInline("src/main.js"),
 ].join("\n\n");
-const builtHtml = html.replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);
+// config.local.js is a git-ignored local-dev override; production has none, so
+// the tag only produced a 404 + "refused to execute script" error on every launch.
+const builtHtml = html.replace('<script src="config.local.js"></script>\n', "")
+  .replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);
 
 writeFileSync("dist/index.html", builtHtml);
 
