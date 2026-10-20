@@ -190,6 +190,7 @@ HERO TOKENS (theme-independent — hero cards stay dark in BOTH themes):
 - The manifest link is cache-busted (`manifest.json?v=2`) — bump the query
   param when changing manifest colours/icons
 - Bump `sw.js` `V` ("forge-vN") on any asset/design change so clients update
+  (activate deletes every other cache, so a bump also frees the old ~6 MB)
 
 ### PDF export (print report)
 Uses fixed light-paper hexes (volt doesn't survive white paper): brand accents
@@ -540,6 +541,47 @@ covers COMPLETE days only (the week containing yesterday), so a half-logged
 day never skews the averages. Every number comes from `src/phase.js`, the same
 engine as the app; the builder is pure and `_`-prefixed (not a function, see
 the 12-function limit) and is tested with a seeded week in `test.js`.
+
+## Vercel serves ONLY `dist/` (vercel.json `outputDirectory`)
+
+Anything the page loads must be copied into `dist/` by `build.mjs`, or it 404s
+in production while working locally (`server.js` serves the repo root). This
+bit three times at once: the bundled demos, the manifest/icons and `sw.js` had
+never shipped, so production had no demos from `demos/`, no install icons and
+**no offline mode at all**. `build.mjs` now copies `demos/` (minus index.json),
+the manifest, icons, and `sw.js` with its demo list filled in. Tested.
+
+## Form demos are ALL bundled (`demos/`, `scripts/build-demos.mjs`)
+
+Every demo is a start/end photo pair (WebP, ~480px) from the public-domain
+free-exercise-db, stored in `demos/` and listed in `demos/map.json`. **Nothing
+is fetched from another site**: the MuscleWiki probing, the remote GitHub
+fuzzy match and the Settings "scan demos" row are gone. A free-typed custom
+exercise gets the closest bundled pair (`localFuzzyDemo`), else a plain
+"No demo for this one. Works …" line. Coverage: 37/37 program exercises
+(Bird Dog and Nerve Floss have no free source) and 195/235 of the library.
+Run `node scripts/build-demos.mjs` when exercises change; it matches with
+equipment/angle/posture penalties plus a hand-checked `ALIASES` table, writes
+`scripts/demo-report.txt` (review LOW CONFIDENCE before committing) and keeps
+`demos/` under the 12 MB budget `test.js` enforces. Gym Visual / ExerciseDB GIFs
+were rejected: their media needs a paid licence ("cloning this repo is not a
+license"). Synced `S.demoCache` held remote URLs from the old probing; the
+`demoCacheV` 4 reset in `src/main.js` clears it locally and on the server.
+
+## Offline mode (`sw.js`)
+
+`dist/sw.js` precaches the app shell (CRITICAL) and every demo image (DEMOS,
+filled in by build.mjs). Install **fails** if a critical file is missing or
+over 5% of demos fail, so a half-filled cache never passes for offline-ready
+(the browser retries on next launch). Demo images are cache-first (immutable
+within a version); the app, map.json and manifest are network-first with the
+cache as fallback, navigations matching with `ignoreSearch`. `/api/` and other
+origins are never touched. Bump `V` on any asset change: activate deletes every
+cache that isn't `V`. iPhone Safari (not the Home Screen app) can evict storage
+after 7 days, so Workout shows a dismissible "Add Forge to your Home Screen"
+line there only. `verify-runtime.mjs` serves `dist/` as root, waits for the
+worker, goes offline, reloads, and requires a demo to load from cache with no
+foreign request.
 
 ## The weekly plan is built in ONE place (`src/plan.js`)
 

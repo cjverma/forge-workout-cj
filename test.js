@@ -28,7 +28,7 @@
  *      addition, and an unwrapped text-stored timestamp fails Date parsing.
  */
 
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { isGymRestDay as REAL_IS_GYM_REST_DAY, programFor as REAL_PROGRAM_FOR, programKeyFor as REAL_PROGRAM_KEY_FOR, EX_DB as REAL_EX_DB,
   prSlug as REAL_PR_SLUG, PR_ALIAS as REAL_PR_ALIAS, kg1 as REAL_KG1,
   PROG_V1 as REAL_V1, PROG_V2 as REAL_V2, PROG_V3 as REAL_V3, PROG_V4 as REAL_V4, PROG_V5 as REAL_V5, PROG_V6 as REAL_V6, PROG_V7 as REAL_V7, v4IdToV7 as REAL_V4_TO_V7, weekKeyOf as REAL_WEEK_KEY_OF } from "./src/constants.js";
@@ -1067,7 +1067,7 @@ ok("_localDemosReady declared before first assignment (TDZ guard)",
   HTML.indexOf("let _localDemosReady") < HTML.indexOf("_localDemosReady=fetch"));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Typography — self-hosted Barlow superfamily, no CDN, no Inter, no em dashes
+// Typography: system fonts (SF Pro), no CDN, no Inter, no em dashes
 // ─────────────────────────────────────────────────────────────────────────────
 const SW = readFileSync("sw.js", "utf8");
 
@@ -1077,36 +1077,25 @@ ok("no Google Fonts CDN link (offline-first: fonts must be self-hosted)",
 ok("no 'Inter' font-family left anywhere",
   !HTML.includes("'Inter'") && !HTML.includes('"Inter"'));
 
-ok("--font-body token defined as Barlow and used, not hardcoded",
-  /--font-body:\s*'Barlow'/.test(HTML) && HTML.includes("var(--font-body)"));
+// Oct 2026 redesign ("like Apple's own apps"): the iPhone's system fonts.
+// SF Pro for text and display, SF Pro Rounded for figures, nothing downloaded.
+// A web font (Barlow before, any trendy face after) is what read as generated.
+ok("fonts are the iPhone's own: SF Pro text/display, SF Pro Rounded for numbers",
+  /--font-body:-apple-system,BlinkMacSystemFont,"SF Pro Text"/.test(HTML) &&
+  /--font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display"/.test(HTML) &&
+  /--font-num:ui-rounded,"SF Pro Rounded"/.test(HTML) && HTML.includes("var(--font-body)"));
 
-ok("all four Barlow body weights have an @font-face",
-  ["400", "500", "600", "700"].every(w =>
-    new RegExp(`font-family:'Barlow';[^}]*font-weight:${w};[^}]*barlow-${w}\\.woff2`).test(HTML)));
+ok("no web fonts: no @font-face, no font preload, nothing font-related pre-cached",
+  !/@font-face/.test(HTML.slice(0, HTML.indexOf("</style>"))) && !/rel="preload"[^>]*as="font"/.test(HTML) && !/\/fonts\//.test(SW));
 
 // Scoped to the app's own <style> block. The PDF print report (buildReportHtml)
-// legitimately uses font-weight:800 — it renders in system fonts on white paper,
-// not Barlow, so it isn't affected by the 400-700 subset.
+// legitimately uses font-weight:800; it renders on white paper.
 const APP_CSS = HTML.slice(HTML.indexOf("<style>"), HTML.indexOf("</style>"));
-ok("no font-weight:800 in app CSS (Barlow subset stops at 700 — 800 would synthesize)",
+ok("no font-weight:800 in app CSS",
   !APP_CSS.includes("font-weight:800"));
-
-ok("all Barlow faces pre-cached in sw.js for offline",
-  ["400", "500", "600", "700"].every(w => SW.includes(`/fonts/barlow-${w}.woff2`)) &&
-  SW.includes("/fonts/barlow-condensed-600.woff2") &&
-  SW.includes("/fonts/barlow-condensed-700.woff2"));
 
 ok("sw.js cache version bumped past v15 so clients pick up the new fonts",
   /const V = "forge-v(1[6-9]|[2-9]\d|[1-9]\d{2,})"/.test(SW));
-
-// Preload: only the two first-paint faces, and crossorigin is mandatory even
-// same-origin — without it the browser fetches each font file twice.
-ok("both first-paint fonts preloaded with crossorigin",
-  ["barlow-400.woff2", "barlow-condensed-600.woff2"].every(f =>
-    new RegExp(`<link rel="preload" href="/fonts/${f.replace(".", "\\.")}"[^>]*as="font"[^>]*crossorigin>`).test(HTML)));
-
-ok("preload is limited to the 2 critical faces (not all 6)",
-  (HTML.match(/rel="preload"[^>]*as="font"/g) || []).length === 2);
 
 ok("tabular-nums rule present and NOT applied to body/prose",
   HTML.includes("font-variant-numeric: tabular-nums") &&
@@ -1345,6 +1334,50 @@ ok("deleting a set with logged data asks first",
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
 
+// The iOS redesign ships ONE TAB AT A TIME (user, Oct 2026). Its tokens and
+// chrome are keyed on body[data-tab="workout"]; the default :root stays main's
+// old look so Food, Settings, the drawer and pop-ups are unchanged for now.
+{
+  const IDX = readFileSync("index.html", "utf8"), MAIN_SRC = readFileSync("src/main.js", "utf8");
+  const ROOT = IDX.slice(IDX.indexOf(":root{"), IDX.indexOf("html[data-theme=\"light\"]"));
+  ok("the default tokens are the old look (warm ramp, volt accent), not iOS",
+    ROOT.includes("--black:light-dark(#EDECEA,#08080A);") && ROOT.includes("--accent:light-dark(#B9E425,#C8F135);") && !ROOT.includes("#007AFF"));
+  ok("the iOS tokens apply only to the Workout tab's own regions",
+    IDX.includes('body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){') && /:is\(\.hdr,#dayNav,#mainScroll,\.bot-nav,\.toast\)\{[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX));
+  ok("go() marks the current tab on <body>, and the page starts on Workout",
+    /cTab=tab;[\s\S]{0,120}document\.body\.dataset\.tab=tab;/.test(MAIN_SRC) && IDX.includes('<body data-tab="workout">'));
+  ok("Workout toasts are quiet: no routine confirmations, no emoji",
+    !/showToast\("(Set logged|Workout started|Workout resumed|Exercise skipped|Set removed|Done ✓|Calf twinge logged|Twinge removed)/.test(readFileSync("src/workout.js", "utf8")) &&
+    !/showToast(Big)?\([^)]*[\u{1F300}-\u{1FAFF}\u26A1\u2705\u25B6]/u.test(readFileSync("src/workout.js", "utf8")));
+}
+
+// Buttons wired through the shared click listener (data-action) are not inline
+// handlers, so the browser's dead-button check cannot see them. Every action
+// used in markup must have a branch in that listener.
+{
+  const JS = readdirSync("src").filter((f) => f.endsWith(".js")).map((f) => readFileSync("src/" + f, "utf8")).join("\n");
+  const used = [...new Set([...JS.matchAll(/data-action="([a-z]+)"/g)].map((m) => m[1]))];
+  const MAIN_SRC = readFileSync("src/main.js", "utf8");
+  const unhandled = used.filter((a) => !new RegExp(`action===["']${a}["']`).test(MAIN_SRC));
+  ok(`every data-action button has a handler (${used.length})${unhandled.length ? " · missing: " + unhandled.join(", ") : ""}`, used.length > 0 && unhandled.length === 0);
+}
+ok("production build drops the local-only config.local.js tag (it 404'd on every launch)",
+  !readFileSync("dist/index.html", "utf8").includes("config.local.js"));
+
+// Every element the code looks up by a literal id must exist in the markup
+// (index.html or a render template). A redesign that renames or drops one
+// makes that piece of UI silently stop updating, with no error.
+{
+  const SRC_FILES = readdirSync("src").filter((f) => f.endsWith(".js")).map((f) => "src/" + f);
+  const JS_ALL = SRC_FILES.map((f) => readFileSync(f, "utf8")).join("\n");
+  const MARKUP = readFileSync("index.html", "utf8") + "\n" + JS_ALL;
+  // aiRun()'s conv/overload/warmup branches: no button calls them any more.
+  const DEAD = new Set(["ci", "oi", "wuEx", "wuWt"]);
+  const ids = [...new Set([...JS_ALL.matchAll(/getElementById\(\s*["']([\w-]+)["']\s*\)/g)].map((m) => m[1]))];
+  const missing = ids.filter((id) => !DEAD.has(id) && !new RegExp(`id=\\\\?["']${id}\\\\?["']`).test(MARKUP));
+  ok(`every id the code looks up exists in the markup (${ids.length} ids)${missing.length ? " · missing: " + missing.join(", ") : ""}`, missing.length === 0);
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Streak: rest days must not break it
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1364,8 +1397,10 @@ ok("the week in progress never breaks the streak",
 // Scheduled rest days are not missed workouts: they don't count toward "plan".
 ok("rest days are excluded from what a week needs",
   /if\(!isProgramRestDay\(iso\)\)plan\+\+;if\(ctx\.trainedOn\(iso\)\)n\+\+;/.test(WORKOUT));
-ok("the badge reads in weeks, with this week's progress",
-  /\$\{weeks\} week streak/.test(WORKOUT) && /\$\{thisWeek\}\/\$\{need\} this week/.test(WORKOUT) && !/ day streak/.test(WORKOUT));
+// iOS redesign: a summary cell (label above value) instead of a dotted badge.
+ok("the streak reads in weeks, beside this week's progress (label above value)",
+  /<small>Streak<\/small><b>\$\{weeks\}<em> \$\{weeks===1\?"week":"weeks"\}<\/em><\/b>/.test(WORKOUT) &&
+  /<small>This week<\/small><b>\$\{thisWeek\}<em> of \$\{need\}<\/em><\/b>/.test(WORKOUT) && !/ day streak/.test(WORKOUT));
 // longestStreak used to be stored in days; it is recomputed in weeks from the
 // log so the old figure can't read as "best 23 weeks".
 // The ?demo=streak preview must never write: fake weeks reaching the
@@ -1600,7 +1635,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
       /lift-val">\$\{best\.weight\}<span class="lift-unit">kg × \$\{best\.reps\}/.test(NUT) &&
       /sort\(\(a,b\)=>b\.best\.est-a\.best\.est\)/.test(NUT));
     ok("the PR toast and delete confirm name the set, not the estimate",
-      /New PR! "\+weight\+"kg × "\+reps/.test(WORKOUT) &&
+      /New best: "\+weight\+" kg × "\+reps/.test(WORKOUT) &&
       /\$\{gone\.weight\}kg × \$\{gone\.reps\} \(est\. 1RM \$\{gone\.est\}kg\)/.test(NUT));
   }
 
@@ -1866,6 +1901,47 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           ["Tuesday", "Friday", "Sunday"].every((d) => JSON.stringify(REAL_V7[d].exercises.map((e) => e.id)) === JSON.stringify(REAL_V4[d].exercises.map((e) => e.id))));
         const P7 = { Monday: "m7", Wednesday: "w7", Thursday: "th7", Saturday: "sa7" };
         ok("moved days carry their new day's prefix", Object.entries(P7).every(([d, p]) => REAL_V7[d].exercises.every((e) => e.id.startsWith(p + "_"))));
+        // Cues are instructions, written plainly (Oct 2026: the user flagged
+        // "Groove the pattern, do not fatigue" as AI-sounding). No rationale,
+        // no marketing, no jargon where a plain word works.
+        {
+          const BAD = /Groove|Joints before|mass builder|for this look|differentiator|Added for volume|Placed here|Kept light here|supination|eccentric|Lat width\.|Volume day|Brachialis|in the tank|most important exercise/i;
+          const bad = [];
+          for (const P of [REAL_V4, REAL_V7]) for (const d of Object.values(P)) for (const e of d.exercises) if (BAD.test(e.cue || "")) bad.push(e.name);
+          ok(`exercise cues are plain instructions, no rationale or jargon${bad.length ? " · " + [...new Set(bad)].join(", ") : ""}`, bad.length === 0);
+        }
+        // Form demos: every exercise in the live program ships a bundled demo
+        // (offline), except the two with no free source yet.
+        {
+          const MAP = JSON.parse(readFileSync("demos/map.json", "utf8"));
+          const NO_SOURCE = new Set(["Bird Dog", "Nerve Floss Left Leg"]);
+          const names = [...new Set(Object.values(REAL_V7).flatMap((d) => d.exercises.map((e) => e.name)))];
+          const missing = names.filter((n) => !NO_SOURCE.has(n) && !MAP[n]);
+          const brokenFiles = Object.values(MAP).flat().filter((f) => typeof f === "string" && f.startsWith("demos/")).filter((f) => { try { readFileSync(f); return false; } catch { return true; } });
+          ok(`every program exercise has a bundled form demo (${names.length - missing.length - NO_SOURCE.size}/${names.length - NO_SOURCE.size})${missing.length ? " · missing: " + missing.join(", ") : ""}`, missing.length === 0);
+          ok(`every demo file in map.json exists${brokenFiles.length ? " · " + brokenFiles.slice(0, 3).join(", ") : ""}`, brokenFiles.length === 0);
+          // All demos are bundled; nothing is fetched from another site.
+          const remote = Object.values(MAP).flat().filter((f) => /^https?:/.test(f));
+          const W = readFileSync("src/workout.js", "utf8"), ST = readFileSync("src/settings.js", "utf8");
+          ok("no demo is fetched online: no remote URL in map.json, no MuscleWiki/GitHub demo code, no scan",
+            remote.length === 0 && !/musclewiki|raw\.githubusercontent|DEMO_CDN|probeBatches|demoCandidates|scanDemos/.test(W + ST));
+          const libNames = REAL_EX_DB.map((e) => e.name), libHave = libNames.filter((n) => MAP[n]).length;
+          ok(`the add-exercise library has bundled demos (${libHave}/${libNames.length}, floor 80%)`, libHave / libNames.length >= 0.8);
+          const demoBytes = readdirSync("demos").reduce((t, f) => t + readFileSync("demos/" + f).length, 0);
+          ok(`demos/ stays inside its 12 MB budget (${(demoBytes / 1048576).toFixed(1)} MB)`, demoBytes <= 12 * 1048576);
+        }
+        // Offline mode: build.mjs ships sw.js into dist/ with every demo listed.
+        {
+          const DSW = readFileSync("dist/sw.js", "utf8"), MAP2 = JSON.parse(readFileSync("demos/map.json", "utf8"));
+          const want = [...new Set(Object.values(MAP2).flat())].map((f) => "/" + f);
+          ok(`dist/sw.js precaches every bundled demo (${want.length})`, want.every((f) => DSW.includes(JSON.stringify(f))));
+          ok("the service worker fails a partial install, serves demos cache-first and drops old caches",
+            /failed \/ DEMOS\.length > 0\.05\) throw/.test(DSW) && /if \(crit\.some\(r => r\.status === "rejected"\)\) throw/.test(DSW) &&
+            /\/\\\/demos\\\/\[\^\/\]\+\\\.\(webp\|jpe\?g\|png\)\$\/i\.test\(url\.pathname\)\) \{\s*e\.respondWith\(caches\.match\(req\)/.test(DSW) &&
+            /keys\.filter\(k => k !== V\)/.test(DSW) && /ignoreSearch: req\.mode === "navigate"/.test(DSW));
+          ok("build ships sw.js, the manifest and icons into dist/ (the only folder Vercel serves)",
+            ["sw.js", "manifest.json", "icon-192.png", "icon-512.png", "apple-touch-icon.png", "demos/map.json"].every((f) => { try { readFileSync("dist/" + f); return true; } catch { return false; } }));
+        }
         ok("no V7 cue names a weekday that is no longer true", !Object.values(REAL_V7).some((d) => d.exercises.some((e) => /(Mon|Tues|Wednes|Thurs|Fri|Satur)day/.test(e.cue || ""))));
         ok("a Southpaw id maps to the day that now holds it (w4_lp -> Monday m7_lp, m4_cp -> Wednesday w7_cp)",
           JSON.stringify(REAL_V4_TO_V7("w4_lp")) === JSON.stringify({ day: "Monday", id: "m7_lp" }) && JSON.stringify(REAL_V4_TO_V7("m4_cp")) === JSON.stringify({ day: "Wednesday", id: "w7_cp" }) && REAL_V4_TO_V7("t4_csr").id === "t4_csr");
@@ -2296,10 +2372,12 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   ok("rest day points at the next session from inside the hero",
     /function nextSession\(\)/.test(WORKOUT) && /hero-next/.test(WORKOUT) &&
     APP_CSS.includes(".hero-next{"));
-  // Hero scope rule: hero internals must use --hero-* tokens only.
-  ok("hero-next uses hero tokens, not themed surface tokens",
-    /\.hero-next\{[^}]*var\(--hero-line\)/.test(APP_CSS) &&
-    !/\.hero-next[^{]*\{[^}]*var\(--s[0-9]\)/.test(APP_CSS));
+  // iOS redesign: the Workout "hero" is a large title on the page, not a dark
+  // card, so inside .wv it and its next-session block take themed tokens (a
+  // grouped cell), and its text is re-pointed from --hero-fg to --white.
+  ok("Workout hero is themed in .wv (next-session block is a cell, text uses --white)",
+    /\.wv \.hero-next\{[^}]*background:var\(--s1\)/.test(APP_CSS) &&
+    APP_CSS.includes(".wv .hero,.wv .hero *{color:var(--white);}"));
 
   // Removed at the user's request (never used): no timer, no overlay.
   ok("the rest timer is gone: no startRest, no overlay",
@@ -2605,6 +2683,19 @@ section("Runtime (rendered DOM)");
       const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
       out.split("\n").filter(Boolean).forEach((l) => console.log(l));
       ok("runtime checks", false, "see output above");
+    }
+    // End-to-end user flows (e2e-flows.mjs): every user action driven in the
+    // built app with a mocked server. Needs dist/ built (node build.mjs).
+    section("End-to-end user flows");
+    try {
+      const out = execSync("node e2e-flows.mjs", { stdio: "pipe" }).toString();
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      const n = (out.match(/✓/g) || []).length;
+      for (let i = 0; i < n; i++) passed++;
+    } catch (e) {
+      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      ok("end-to-end flows", false, "see output above");
     }
   }
 }

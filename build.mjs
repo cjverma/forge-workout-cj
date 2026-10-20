@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, cpSync, existsSync } from "node:fs";
 import { build } from "esbuild";
 
 mkdirSync("dist", { recursive: true });
@@ -33,6 +33,27 @@ const inlineJs = [
   sourceForInline("src/chat.js"),
   sourceForInline("src/main.js"),
 ].join("\n\n");
-const builtHtml = html.replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);
+// config.local.js is a git-ignored local-dev override; production has none, so
+// the tag only produced a 404 + "refused to execute script" error on every launch.
+const builtHtml = html.replace('<script src="config.local.js"></script>\n', "")
+  .replace('<script src="/dist/app.js"></script>', `<script>\n${inlineJs}\n</script>`);
 
 writeFileSync("dist/index.html", builtHtml);
+
+// Vercel serves ONLY dist/ (vercel.json outputDirectory). Static files the page
+// asks for must be copied in, or they 404 in production: the bundled form
+// demos (demos/map.json + images) never loaded for this reason, and the
+// manifest/icons were missing too, and so was sw.js: the app never had an
+// offline mode in production until this copy.
+// index.json is the build script's source list, not needed at runtime.
+cpSync("demos", "dist/demos", { recursive: true, filter: (src) => !src.endsWith("index.json") });
+// The service worker, with every bundled demo listed for precaching so the
+// app works offline.
+{
+  const map = JSON.parse(readFileSync("demos/map.json", "utf8"));
+  const demos = [...new Set(Object.values(map).flat())].map((f) => "/" + f);
+  writeFileSync("dist/sw.js", readFileSync("sw.js", "utf8").replace("/*__DEMOS__*/", demos.map((d) => JSON.stringify(d)).join(",")));
+}
+for (const f of ["manifest.json", "apple-touch-icon.png", "icon-192.png", "icon-512.png"]) {
+  if (existsSync(f)) cpSync(f, "dist/" + f);
+}

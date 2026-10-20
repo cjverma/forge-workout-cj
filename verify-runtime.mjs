@@ -126,6 +126,33 @@ try {
       leaks.push(`drawer: ${m}`);
     }
     note(`${theme}: no template placeholders in rendered text`, leaks.length === 0, [...new Set(leaks)].join(", "));
+    // Every inline handler on every tab (and the drawer and the static
+    // sheets/modals in index.html) must call functions that exist. A redesign
+    // that renames or drops one leaves a button that looks fine and does nothing.
+    const deadHandlers = []; let handlersSeen = 0;
+    for (const [tab, id] of [["workout", "#nav-workout"], ["nutrition", "#nav-nutrition"], ["settings", "#nav-settings"], ["drawer", null]]) {
+      await page.evaluate(() => window.closeDrawer && window.closeDrawer()); await page.waitForTimeout(250);
+      if (id) { await page.locator(id).click(); await page.waitForTimeout(700); }
+      else { await page.evaluate(() => window.openDrawer && window.openDrawer()); await page.waitForTimeout(500); }
+      await page.evaluate(() => document.querySelectorAll("details").forEach((d) => (d.open = true)));
+      const r = await page.evaluate((tab) => {
+        const KW = new Set(["if", "for", "while", "switch", "return", "function", "typeof", "catch", "new"]);
+        const out = []; let seen = 0;
+        for (const el of document.querySelectorAll("*")) for (const at of el.getAttributeNames()) {
+          if (!/^on[a-z]+$/.test(at)) continue;
+          const code = el.getAttribute(at);
+          try { new Function("event", code); } catch (e) { out.push(`${tab}: ${at}="${code.slice(0, 40)}" does not parse`); continue; }
+          seen++;
+          for (const m of code.matchAll(/(?<![.\w$])([A-Za-z_$][\w$]*)\s*\(/g)) {
+            if (!KW.has(m[1]) && typeof window[m[1]] !== "function") out.push(`${tab}: ${at} calls ${m[1]}()`);
+          }
+        }
+        return { out, seen };
+      }, tab);
+      deadHandlers.push(...r.out); handlersSeen += r.seen;
+    }
+    await page.evaluate(() => window.closeDrawer && window.closeDrawer()); await page.waitForTimeout(250);
+    note(`${theme}: every button and input calls a function that exists (${handlersSeen} handlers across tabs, drawer, sheets)`, deadHandlers.length === 0 && handlersSeen > 80, [...new Set(deadHandlers)].slice(0, 6).join(" | "));
 
     // Est. 1RM is a formula output, least accurate at the 10-12 reps this
     // program lives at, and there will never be a measured single to check it
@@ -390,7 +417,8 @@ try {
     await page.waitForTimeout(800);
     const r = await page.evaluate(() => {
       const b = document.getElementById("bStart"); if (!b) return null;
-      const i = b.querySelector(".icon").getBoundingClientRect();
+      const ic = b.querySelector(".icon"); if (!ic) return null; // iOS redesign: Start has no icon
+      const i = ic.getBoundingClientRect();
       const rg = document.createRange(); rg.selectNodeContents(b.lastChild); const t = rg.getBoundingClientRect();
       return Math.abs((i.top + i.bottom) / 2 - (t.top + t.bottom) / 2);
     });
@@ -491,8 +519,9 @@ try {
     }, exId);
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(800);
-    const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-meta`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
-    note("the suggested weight is last session's best set (Beat 45 kg × 10), pre-filled", /Beat 45 kg × 10/.test(t.meta) && t.pre === "45", JSON.stringify(t));
+    // iOS redesign: the target is the row's trailing value, like a Settings value.
+    const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-hint`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
+    note("the suggested weight is last session's best set (45 kg × 10 as the row's target), pre-filled", /^45 kg × 10$/.test(t.meta) && t.pre === "45", JSON.stringify(t));
     await page.evaluate(() => window.startSess());
     await page.waitForTimeout(300);
     await page.reload({ waitUntil: "networkidle" });
@@ -773,11 +802,17 @@ try {
       c.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
       const textW = c.measureText(i.value).width, ir = i.getBoundingClientRect();
       const avail = ir.width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+      // iOS redesign: the unit sits inside the pill at its right edge, and the
+      // input's right padding reserves that space. The centred number's right
+      // edge must stay left of the unit's left edge.
       const lab = getComputedStyle(i.parentElement, "::after"), wr = i.parentElement.getBoundingClientRect();
-      const labTop = wr.bottom - parseFloat(lab.bottom || 0) - parseFloat(lab.fontSize);
-      return { fits: textW <= avail, textW: Math.round(textW), avail: Math.round(avail), below: labTop >= ir.top + ir.height * 0.6 };
+      c.font = `${lab.fontWeight} ${lab.fontSize} ${lab.fontFamily}`;
+      const unitW = c.measureText(i.parentElement.dataset.unit || "").width;
+      const unitLeft = wr.right - parseFloat(lab.right || 0) - unitW;
+      const contentL = ir.left + parseFloat(cs.paddingLeft), textRight = contentL + avail / 2 + textW / 2;
+      return { fits: textW <= avail, textW: Math.round(textW), avail: Math.round(avail), gap: Math.round(unitLeft - textRight), clear: textRight <= unitLeft };
     });
-    note("weight and unit never overlap, and a wide number (147.5) is not clipped", !!ov && ov.fits && ov.below, JSON.stringify(ov));
+    note("weight and unit never overlap, and a wide number (147.5) is not clipped", !!ov && ov.fits && ov.clear, JSON.stringify(ov));
     await page.close();
   }
 
@@ -860,6 +895,68 @@ try {
       note("toggleSet race check found an editable set input to test", false, "no enabled .si input on default tab");
     }
     await page.close();
+  }
+
+  // One tab at a time: Workout wears the iOS look, every other tab and the
+  // drawer keep main's look (warm background, volt accent) until their pass.
+  {
+    const page = await browser.newPage({ viewport: { width: 412, height: 900 }, colorScheme: "light", timezoneId: "America/Toronto" });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const look = () => page.evaluate(() => { const sc = getComputedStyle(document.getElementById("mainScroll")); return { bg: getComputedStyle(document.body).backgroundColor, accent: sc.getPropertyValue("--accent").trim(), nav: getComputedStyle(document.querySelector(".nav-item.active")).color }; });
+    const w = await look();
+    await page.locator("#nav-nutrition").click(); await page.waitForTimeout(600); const n = await look();
+    await page.locator("#nav-settings").click(); await page.waitForTimeout(600); const st = await look();
+    await page.evaluate(() => openDrawer()); await page.waitForTimeout(300);
+    const dr = await page.evaluate(() => getComputedStyle(document.getElementById("drawer")).getPropertyValue("--accent").trim());
+    await page.evaluate(() => closeDrawer());
+    await page.locator("#nav-workout").click(); await page.waitForTimeout(600); const w2 = await look();
+    const ios = (l) => /242, 242, 247/.test(l.bg) && /#007AFF/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
+    note("Workout wears the iOS look; Food, Settings and the drawer keep main's look; switching back restores iOS",
+      ios(w) && old(n) && old(st) && /#B9E425/i.test(dr) && ios(w2), JSON.stringify({ w, n, st, dr, w2 }));
+    await page.close();
+  }
+
+  // Offline mode, served the way Vercel serves it: dist/ as the site root.
+  // The service worker must precache the app and every demo, and with the
+  // network cut the app must still open and show a form demo.
+  {
+    const express = (await import("express")).default;
+    const app = express(); app.use(express.static("dist"));
+    const srv = await new Promise((res) => { const s2 = app.listen(8792, () => res(s2)); });
+    const ctx2 = await browser.newContext({ viewport: { width: 412, height: 900 }, timezoneId: "America/Toronto", serviceWorkers: "allow" });
+    const page = await ctx2.newPage();
+    const errs = [], foreign = [];
+    page.on("pageerror", (e) => errs.push(e.message));
+    page.on("request", (r) => { const u = r.url(); if (!u.startsWith("http://127.0.0.1:8792") && !u.startsWith("data:")) foreign.push(u); });
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+    await page.goto("http://127.0.0.1:8792/", { waitUntil: "networkidle" });
+    const sw = await page.evaluate(async () => {
+      const reg = await navigator.serviceWorker.ready;
+      for (let i = 0; i < 100 && !navigator.serviceWorker.controller; i++) await new Promise((r) => setTimeout(r, 100));
+      const keys = await caches.keys(), c = keys.length ? await caches.open(keys[0]) : null;
+      const n = c ? (await c.keys()).length : 0;
+      const map = await (await fetch("demos/map.json")).json();
+      const want = new Set(Object.values(map).flat()).size;
+      return { active: !!reg.active, controlled: !!navigator.serviceWorker.controller, cached: n, want };
+    });
+    note(`the service worker installs and precaches the app and every demo (${sw.cached} files, ${sw.want} demos)`,
+      sw.active && sw.controlled && sw.cached >= sw.want + 6, JSON.stringify(sw));
+    await ctx2.setOffline(true);
+    await page.reload({ waitUntil: "load" });
+    await page.waitForTimeout(1200);
+    const off = await page.evaluate(async () => {
+      const card = [...document.querySelectorAll(".ex-card")].find((c) => c.querySelector(".ex-icon.gym"));
+      card?.querySelector(".ex-top")?.click();
+      await new Promise((r) => setTimeout(r, 900));
+      const img = card?.querySelector(".demo-wrap img");
+      if (img && !img.complete) await new Promise((r) => { img.onload = img.onerror = r; setTimeout(r, 2000); });
+      return { cards: document.querySelectorAll(".ex-card").length, demo: !!img && img.naturalWidth > 0, src: img?.getAttribute("src") || "" };
+    });
+    note("offline: the app opens and an exercise shows its form demo from the cache", off.cards > 0 && off.demo, JSON.stringify(off));
+    note("no request leaves the app's own origin (demos are all bundled)", foreign.length === 0, foreign.slice(0, 3).join(" | "));
+    note("no JS errors offline", errs.length === 0, errs.slice(0, 3).join(" | "));
+    await ctx2.close(); srv.close();
   }
 
   note("no JS errors on any tab", jsErrors.length === 0, jsErrors.slice(0, 3).join(" | "));

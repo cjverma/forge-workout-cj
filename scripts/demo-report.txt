@@ -1,0 +1,256 @@
+names 245 · mapped 204 · demos/ 5.3 MB
+
+LOW CONFIDENCE (check these photos)
+
+
+MISSED
+Bird Dog  (no free source)
+Nerve Floss Left Leg  (no free source)
+Nerve Floss  (no free source)
+McKenzie Press Up  (no free source)
+Clamshell  (no free source)
+Prone Cobra  (no free source)
+Clamshell with Band  (no free source)
+Heel Slides  (no free source)
+Cable Wrist Extension  (no free source)
+Wall Slide  (no free source)
+Thoracic Extension  (no free source)
+Prone Hip Extension  (no free source)
+Side-Lying Hip Abduction  (no free source)
+Prone Hip Extension Machine  (no free source)
+Hollow Body Hold  (no free source)
+Supine Heel Tap  (no free source)
+Supine Leg Lowering (90/90)  (no free source)
+Stir the Pot (Ball)  (no free source)
+Seated Cross-Trainer  (no free source)
+Arm Ergometer  (no free source)
+Pool Walking  (no free source)
+Swimming (Easy Freestyle)  (no free source)
+Sciatic Nerve Glide (Seated)  (no free source)
+Femoral Nerve Glide  (no free source)
+Open Book Rotation  (no free source)
+90/90 Hip Stretch  (no free source)
+Hamstring Nerve Floss  (no free source)
+Quadruped Rock Back  (no free source)
+Transverse Abdominis Activation  (no free source)
+Diaphragmatic Breathing  (no free source)
+Prone Scapular Retraction  (no free source)
+Progressive Prone Press-Up  (no free source)
+Seated Butterfly Stretch  (no free source)
+Arch Doming (Toe Curls)  (no free source)
+Chin Tuck  (no free source)
+Levator Scapulae Stretch  (no free source)
+Wall Angel  (no free source)
+Thread the Needle  (no free source)
+Precor Stretch Trainer  (no free source)
+Hoist Mi1 Functional Trainer  (no free source)
+Hoist Dual Pulley Cable Column  (no free source)
+
+MATCHED
+
+
+KEPT (hand-picked)
+Stationary Bike
+Warm-Up · Leg Press
+Leg Press Machine
+Seated Leg Curl
+Leg Extension Machine
+Weighted Glute Bridge
+Outer Thigh Machine
+Inner Thigh Machine
+Seated Lateral Raise
+Cable Glute Kickback
+Seated Calf Raise
+Pallof Press
+Incline Treadmill Walk
+Warm-Up · Chest Supported Row
+Chest Supported Row
+Seated Pulldown (Neutral Grip)
+Straight Arm Pulldown
+Seated Cable Row
+Rear Delt Fly Machine
+Seated Dumbbell Curl
+Hammer Curl
+Cable Bicep Curl
+Warm-Up · Chest Press
+Chest Press Machine
+Incline Chest Press Machine
+Pec Fly Machine
+Tricep Extension Machine
+Cable Tricep Pushdown
+Seated DB Wrist Curl
+Warm-Up · Straight Arm Pulldown
+Seated Cable Rope Pullover
+Warm-Up · Lateral Raise
+Knee-to-Chest Stretch
+Glute Bridge (Modified)
+Dead Bug
+Hip Flexor Stretch
+Cat-Cow
+Preacher Curl Machine
+Glute Kickback Machine
+Cable Face Pull
+Neutral Grip Lat Pulldown
+Low Cable Row
+Cable Tricep Pushdown (Rope)
+Seated Cable Lateral Raise
+Dumbbell Row
+Concentration Curl
+Reverse Curl
+Incline Dumbbell Fly
+Seated External Rotation
+Seated Wrist Curl
+Recumbent Bike
+Treadmill Walk
+Elliptical Machine
+Glute Bridge
+Pelvic Tilt
+Supine Spinal Twist
+Child's Pose
+Piriformis Stretch
+Calf Stretch (Seated)
+Ankle Pumps
+Cable Pallof Press
+Wide-Grip Seated Row Machine
+Close-Grip Underhand Pulldown
+V-Bar Seated Row
+Chest Decline Machine
+Hip Extension Machine
+Assisted Dip Machine
+Low Row Machine
+Seated Cable Fly
+Low Cable Chest Fly
+Seated Unilateral Cable Row
+Cable Hammer Curl
+Cable Reverse Fly
+Seated Cable Shrug
+Cable Kickback
+Cable Wrist Curl
+Seated Single-Arm Face Pull
+Seated DB Shrug
+Seated DB Front Raise
+Seated Incline DB Curl
+Lying DB Chest Press
+Lying DB Fly
+DB Zottman Curl
+Lying DB Skull Crusher
+Seated DB Tricep Kickback
+Chest Supported Lateral Raise
+DB Wrist Extension
+DB Pullover
+Band Pull-Apart
+Seated Hamstring Stretch
+Decline Chest Press Machine
+Converging Chest Press Machine
+Cable Crossover (High to Low)
+Cable Crossover (Low to High)
+Incline Cable Fly
+Incline Machine Fly
+Lying DB Incline Press
+Lying DB Decline Press
+Push-Up (Hands Elevated)
+Machine Chest Fly (Single Arm)
+Close-Grip Neutral Pulldown
+Single-Arm Neutral Pulldown
+Machine Pullover
+Chest Supported T-Bar Row
+Seated Row Machine (Neutral Grip)
+Single-Arm Seated Cable Row
+Seated Rope Face Pull
+Assisted Pull-Up Machine (Neutral Grip)
+Reverse Pec Deck
+Prone Incline DB Row
+Chest Supported Reverse Fly
+Machine Lateral Raise
+Single-Arm Cable Lateral Raise
+Seated Rear Delt Raise (Chest Supported)
+Machine Rear Delt Fly
+Seated DB Scaption
+Seated Y-Raise (Incline Bench)
+Cable Rear Delt Row (Seated)
+Seated External Rotation (Cable)
+Seated Rope Tricep Extension
+Single-Arm Cable Pushdown
+Machine Tricep Dip
+Lying Cable Tricep Extension
+Close-Grip Machine Press
+Bench Dip (Feet Supported)
+Seated Two-Hand DB Extension
+DB Skull Crusher (Incline)
+Machine Bicep Curl
+Seated Rope Hammer Curl
+Incline Bench DB Curl
+Spider Curl (Incline Bench)
+Cable Preacher Curl
+Seated DB Reverse Curl
+Seated Reverse Wrist Curl
+Cable Reverse Wrist Curl
+Plate Pinch Hold
+Wrist Roller
+Horizontal Leg Press Machine
+Single-Leg Press
+Lying Leg Curl
+Single-Leg Leg Curl
+Single-Leg Extension
+Calf Press on Leg Press
+Single-Leg Calf Raise (Seated)
+Assisted Nordic Curl
+Hip Thrust Machine
+Glute Drive Machine
+Frog Pump
+Cable Crunch (Kneeling)
+Machine Ab Crunch
+Cable Anti-Rotation Hold
+Side Plank
+Front Plank
+Modified Curl-Up (McGill)
+Stationary Bike Intervals
+Figure-4 Stretch (Supine)
+Single-Leg Glute Bridge
+Ankle Dorsiflexion Stretch
+Supine Hamstring Stretch (Strap)
+Prone Quad Stretch
+Precor Converging Chest Press
+Precor Incline Press
+Precor Diverging Pulldown (Neutral Grip)
+Precor Fixed Pulldown (Neutral Grip)
+Precor Diverging Seated Row
+Precor Low Row
+Precor Pec Fly
+Precor Rear Delt Fly
+Precor Lateral Raise
+Precor Biceps Curl
+Precor Triceps Extension
+Precor Leg Press
+Precor Leg Extension
+Precor Seated Leg Curl
+Precor Prone Leg Curl
+Precor Glute Extension
+Precor Outer Thigh
+Precor Inner Thigh
+Precor Abdominal Crunch
+Precor Calf Extension
+Precor Chin/Dip Assist
+Precor EFX Elliptical
+Precor AMT
+Precor TRM Treadmill
+Precor RBK Recumbent Bike
+Precor UBK Upright Bike
+Hoist ROC-IT Chest Press
+Hoist ROC-IT Incline Press
+Hoist ROC-IT Pulldown (Neutral Grip)
+Hoist ROC-IT Seated Row
+Hoist Dual Action Row
+Hoist ROC-IT Leg Press
+Hoist ROC-IT Leg Extension
+Hoist ROC-IT Leg Curl
+Hoist ROC-IT Abdominal Crunch
+Hoist ROC-IT Biceps Curl
+Hoist ROC-IT Triceps Extension
+Hoist Pec Fly / Rear Delt
+Hoist Lateral Raise
+Hoist Glute Master
+Hoist Outer Thigh
+Hoist Inner Thigh
+Hoist Seated Calf Raise
+Hoist Chin/Dip Assist

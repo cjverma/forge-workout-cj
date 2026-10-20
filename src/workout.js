@@ -178,10 +178,10 @@ function logCalfTwinge(){
     if(cnt>=3){btn.classList.add("calf-warn");}
   }
   if(cnt===3){
-    showToast("⚠️ 3 twinges · consider stopping the session");
+    showToast("Three calf twinges today. Consider stopping.");
     if(navigator.vibrate)navigator.vibrate([100,50,100,50,100]);
   } else {
-    showToast("Calf twinge logged");
+    
   }
   refreshNotesRequirement();
 }
@@ -192,7 +192,7 @@ function undoCalfTwinge(){
   if(!arr||!arr.length){showToast("Nothing to undo");return;}
   arr.pop();
   save();queueSessionMeta(key);
-  showToast("Twinge removed");
+  
   renderW();
   refreshNotesRequirement();
 }
@@ -297,12 +297,12 @@ export function renderW(){
   const wkLbl=past?`Week of ${fmtDate(_vm.toISOString().slice(0,10))}`:future?'Next Week':'This Week';
   const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
-    <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
+    <button class="wk-nav-btn" onclick="shiftWeek(-1)" aria-label="Previous week">‹</button>
     <div class="wk-nav-lbl">${esc(wkLbl)}${(past||future)
-      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">↩ Back to this week</span>`
+      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">Back to this week</span>`
       :`<span class="wk-nav-cur">${esc(_curMonLbl)}</span>`}
     </div>
-    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
+    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)" aria-label="Next week">›</button>
   </div>`;
 
   const key=_key0;
@@ -316,27 +316,36 @@ export function renderW(){
   const physioExs=dispExs.filter(e=>e.cat==="physio");
 
   let h=wkNav;
+  // Safari (not the Home Screen app) may evict stored data after 7 days of
+  // no use, offline demos included. One quiet line, dismissed for good.
+  if(showInstallHint())h=`<div class="install-hint" id="installHint">Add Forge to your Home Screen to keep demos offline.<button onclick="dismissInstallHint()">Dismiss</button></div>`+h;
   if(ctx.isPastDay()){
     h+=lockedPast
-      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
+      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day, read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
       :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">${icon("pencil",18)} Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">${icon("unlock",18)}</button></div>`;
   }
   if(future){
     // Plans are stored under nextWk(); read the same key (vwk() can differ near the Sunday boundary)
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
-    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">${icon("calendar",20)} Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
+    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">Next week preview. ${hasPlan?'Plan queued.':'Default program.'}</div>`;
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
-    <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
-    <div class="hero-title">${esc(prog.label)}${prog.tag?`<span class="hero-tag">${esc(prog.tag)}</span>`:""}</div>
+    <div class="hero-kicker">${esc((()=>{const d=new Date(_vm);d.setDate(d.getDate()+DAYS.indexOf(cDay));return d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});})())}</div>
+    <div class="hero-title">${esc(prog.label)}</div>${prog.tag?`<div class="hero-tag">${esc(prog.tag)} session</div>`:""}
     ${!total?(()=>{const nx=nextSession();return nx?`<div class="hero-next">
       <span class="hero-next-lbl">Next</span>
       <span class="hero-next-day">${esc(nx.when)}</span>
       <span class="hero-next-ex">${esc(nx.label)}</span>
     </div>`:"";})():""}
-    ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
-    <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;const bits=[];if(weeks>=1)bits.push(`${weeks} week streak`);if(thisWeek<need&&(weeks>=1||thisWeek>0))bits.push(`${thisWeek}/${need} this week`);if(weeks>=1&&longest>weeks)bits.push(`best ${longest}`);return bits.length?`<div class="hero-streak">${icon("flame",18)} ${bits.join(" · ")}</div>`:"";})()} `}
+    ${future||!total?"":(()=>{
+      // Summary as an iOS grouped cell: label above value, no separators.
+      const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;
+      return `<div class="hero-sum">
+        <div><small>Exercises</small><b class="hero-count">${done}<em> of ${total}</em></b></div>
+        <div><small>This week</small><b>${thisWeek}<em> of ${need}</em></b></div>
+        <div class="hero-streak"><small>Streak</small><b>${weeks}<em> ${weeks===1?"week":"weeks"}</em></b></div>
+        <div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
+      </div>${weeks>=1&&longest>weeks?`<div class="hero-best">Best streak ${longest} weeks.</div>`:""}`;})()}
   </div>`;
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
@@ -353,37 +362,37 @@ export function renderW(){
     const allDone=manualDone||(nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done));
     if(allDone||stopped)showMarkDone=false;
     if(allDone&&!stopped){
-      h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
+      h+=`<div class="session-bar"><div class="sess-complete">Session complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
-      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
+      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">Resume Workout</button></div>`;
     } else {
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
       const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">${icon("bolt",18)} Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
-        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
-        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
+        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">Start Workout</button>
+        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">Stop Workout</button>
         ${calfBtnHtml}
       </div>`;
     }
   }
 
   if(cDay==="Sunday"){
-    h+=`<div class="physio-banner">Rest day · physio only. Recovery is where adaptation happens.</div>`;
+    h+=`<div class="physio-banner">Rest day. Physio only.</div>`;
   }
 
   // Late-week planning nudge: Sat/Sun, current week, no plan queued yet
   const _dowNow=new Date().getDay();
   if(!ctx.isPastDay()&&!ctx.isFuture()&&_dowNow===0&&!(S.weekPlans||{})[ctx.nextWk()]){
     h+=`<div class="plan-nudge">
-      <div><div class="plan-nudge-ttl">${icon("calendar",20)} Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
+      <div><div class="plan-nudge-ttl">Plan next week</div><div class="plan-nudge-sub">Built from this week's sessions</div></div>
       <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
-  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?`${icon("gym",20)} Gym`:"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
-  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${icon("physio",20)} Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">Physio on the mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
 
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
@@ -392,7 +401,7 @@ export function renderW(){
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Also logged this day</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">Also logged this day</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
@@ -404,7 +413,7 @@ export function renderW(){
         h+=`<div class="ex-card ex-card--prev" style="opacity:0.75">
           <div class="ex-top" style="cursor:default">
             <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program · read-only</div></div>
+            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program, read-only</div></div>
           </div>
           <div style="padding:0 15px 14px">${setRows}</div>
         </div>`;
@@ -430,27 +439,39 @@ export function renderW(){
     const needNote=twinges>0&&!savedNotes.trim();
     h+=`<div class="notes-wrap">
       <span class="notes-label">Session Notes${twinges?`<span class="notes-req${needNote?"":" met"}">${needNote?"required":"noted"}</span>`:""}</span>
-      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Session notes..."}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
+      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Notes"}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
       ${needNote?`<div class="notes-hint">${icon("alert",15)}You logged ${twinges} calf twinge${twinges===1?"":"s"}. Describe it before stopping the workout.</div>`:""}
     </div>`;
   }
 
   if(!readOnly)h+=`<div class="custom-wrap">
-    <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
+    <button class="custom-trigger" onclick="toggleCF()">Add Exercise</button>
     <div class="custom-form" id="cf">
       <label class="cf-label">Search exercise library</label>
       <div class="search-wrap">
         <input class="cf-inp" id="cfSearch" placeholder="Type exercise name to search..." oninput="searchEx(this.value,'${cDay}')" autocomplete="off">
         <div class="search-dd" id="cfDD"></div>
       </div>
-      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + on any result to add directly to today's session</div>
+      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + to add it to today.</div>
     </div>
   </div>`;
   h+=`<div style="height:12px"></div>`;
-  el.innerHTML=h;
+  // .wv scopes the iOS Workout styles (index.html) to this tab only.
+  el.innerHTML='<div class="wv">'+h+'</div>';
 }
 ctx.renderW=renderW;
 
+function showInstallHint(){
+  try{if(localStorage.getItem("f5_installHint")==="dismissed")return false;}catch(_){}
+  const ios=/iPhone|iPad|iPod/.test(navigator.userAgent||"");
+  const standalone=navigator.standalone===true||(window.matchMedia&&matchMedia("(display-mode: standalone)").matches);
+  return ios&&!standalone;
+}
+function dismissInstallHint(){
+  try{localStorage.setItem("f5_installHint","dismissed");}catch(_){}
+  document.getElementById("installHint")?.remove();
+}
+window.dismissInstallHint=dismissInstallHint;
 function heroCls(label){
   const l=(label||"").toLowerCase();
   if(/recovery|rest|mobility/.test(l))return"hero-rest";
@@ -463,181 +484,60 @@ function heroCls(label){
 // Photos removed: they fought the volt identity and added a network dependency.
 function heroStyleAttr(){return"";}
 
-// Exercise demo clips · candidates probed FROM THE BROWSER (MuscleWiki's CDN
-// blocks datacenter IPs; the phone loads it fine). Hits cached permanently in
-// S.demoCache (synced). Misses cached for this session only · retried next launch.
-const _demoMiss={}; // session-only misses
-const DEMO_CDN="https://media.musclewiki.com/media/uploads/videos/branded/";
-// MuscleWiki uses its own exercise names · curated alias slugs per FORGE exercise
-const DEMO_ALIASES={
-  "Seated Cable Row":["machine|seated-cable-row"],
-  "Chest Press Machine":["machine|chest-press","machine|seated-chest-press"],
-  "Incline Chest Press Machine":["machine|incline-chest-press"],
-  "Pec Fly Machine":["machine|pec-fly","machine|seated-pec-fly","machine|butterfly","machine|chest-fly"],
-  "Rear Delt Fly Machine":["machine|reverse-fly","machine|rear-delt-fly","machine|seated-reverse-fly"],
-  "Chest Supported Row":["machine|chest-supported-row","machine|seal-row","dumbbells|chest-supported-row"],
-  "Tricep Extension Machine":["machine|tricep-extension","machine|seated-dip","machine|tricep-dip"],
-  "Preacher Curl Machine":["machine|preacher-curl","barbell|preacher-curl","dumbbells|preacher-curl"],
-  "Leg Press Machine":["machine|sled-45-leg-press","machine|leg-press","machine|horizontal-leg-press","machine|sled-leg-press"],
-  "Seated Leg Curl":["machine|seated-leg-curl","machine|hamstring-curl","machine|lying-leg-curl","machine|leg-curl"],
-  "Leg Extension Machine":["machine|leg-extension","machine|seated-leg-extension"],
-  "Seated Calf Raise":["machine|seated-calf-raise","machine|calf-raise","barbell|seated-calf-raise"],
-  "Hip Abduction Machine":["machine|hip-abduction","machine|seated-hip-abduction"],
-  "Hip Adduction Machine":["machine|hip-adduction","machine|seated-hip-adduction"],
-  "Glute Kickback Machine":["machine|glute-kickback","cables|glute-kickback","machine|kickback"],
-  "Neutral Grip Lat Pulldown":["cables|lat-pulldown","machine|lat-pulldown","cables|close-grip-lat-pulldown","cables|neutral-grip-lat-pulldown"],
-  "Straight Arm Pulldown":["cables|straight-arm-pulldown","cables|straight-arm-pushdown"],
-  "Low Cable Row":["cables|seated-row","cables|low-row","machine|seated-cable-row"],
-  "Cable Tricep Pushdown":["cables|tricep-pushdown","cables|push-down","cables|pushdown","cables|tricep-extension"],
-  "Cable Tricep Pushdown (Rope)":["cables|rope-pushdown","cables|tricep-rope-pushdown","cables|tricep-pushdown"],
-  "Cable Bicep Curl":["cables|bicep-curl","cables|curl","cables|cable-curl"],
-  "Dumbbell Row":["dumbbells|bent-over-row","dumbbells|row","dumbbells|single-arm-row","dumbbells|row-unilateral"],
-  "Seated Dumbbell Curl":["dumbbells|seated-bicep-curl","dumbbells|bicep-curl","dumbbells|seated-curl","dumbbells|curl"],
-  "Hammer Curl":["dumbbells|hammer-curl","dumbbells|seated-hammer-curl"],
-  "Concentration Curl":["dumbbells|concentration-curl"],
-  "Reverse Curl":["dumbbells|reverse-curl","barbell|reverse-curl"],
-  "Incline Dumbbell Fly":["dumbbells|incline-fly","dumbbells|incline-chest-fly","dumbbells|fly"],
-  "Seated External Rotation":["dumbbells|external-rotation","dumbbells|seated-external-rotation","cables|external-rotation"],
-  "Seated Wrist Curl":["dumbbells|wrist-curl","dumbbells|seated-wrist-curl","barbell|wrist-curl"],
-  "Seated Lateral Raise":["dumbbells|lateral-raise","dumbbells|seated-lateral-raise"]
-};
-function demoCandidates(name){
-  const out=[];
-  const push=(eq,sl)=>{out.push(DEMO_CDN+"male-"+eq+"-"+sl+"-front.mp4");out.push(DEMO_CDN+"male-"+eq+"-"+sl+"-side.mp4");};
-  for(const a of(DEMO_ALIASES[name]||[])){const[eq,sl]=a.split("|");push(eq,sl);}
-  // generic fallbacks from the name itself
-  const n=name.toLowerCase().replace(/[()]/g,"").trim();
-  const base=n.replace(/\b(machine|cable|dumbbell)\b/g,"").replace(/\s+/g," ").trim().replace(/ /g,"-");
-  const eqs=n.includes("cable")?["cables"]:n.includes("dumbbell")?["dumbbells"]:["machine"];
-  for(const eq of eqs){push(eq,base);if(base.startsWith("seated-"))push(eq,base.slice(7));}
-  return[...new Set(out)];
-}
-function probeOne(url,ms){
-  return new Promise(res=>{
-    const v=document.createElement("video");
-    let done=false;
-    const fin=ok=>{if(done)return;done=true;v.onerror=null;v.onloadedmetadata=null;v.src="";res(ok);};
-    v.muted=true;v.preload="metadata";
-    v.onloadedmetadata=()=>fin(true);
-    v.onerror=()=>fin(false);
-    setTimeout(()=>fin(false),ms);
-    v.src=url;
-  });
-}
-async function probeBatches(cands){
-  for(let i=0;i<cands.length;i+=3){
-    const batch=cands.slice(i,i+3);
-    const results=await Promise.all(batch.map(u=>probeOne(u,4000)));
-    const hit=batch[results.indexOf(true)];
-    if(hit)return hit;
-  }
-  return null;
-}
-let _localDemos=null; // demos/map.json · clips shipped with the app
-let _localDemosReady=null; // Promise that resolves when map.json is loaded
-_localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
+// Form demos · ALL bundled with the app: demos/map.json + WebP start/end pairs,
+// built by scripts/build-demos.mjs from the public-domain free-exercise-db.
+// Nothing is fetched from another site, so demos also load offline (sw.js
+// caches them). Older builds stored remote MuscleWiki/GitHub URLs in synced
+// S.demoCache: never read here, and cleared by the demoCacheV 4 reset in main.js.
+let _localDemos=null; // name -> [frame0, frame1]
+const _localDemosReady=fetch("demos/map.json").then(r=>r.ok?r.json():null).then(m=>{
   _localDemos=m;
-  if(!m)return;
-  // Populate ALL placeholder wraps in DOM now — open or closed — so images are
-  // ready when the user taps to expand, with no further network request needed.
-  document.querySelectorAll(".demo-wrap[data-demo-name]").forEach(wrap=>{
-    const name=wrap.getAttribute("data-demo-name");
-    const loc=m[name];
-    if(!loc)return;
-    wrap.removeAttribute("data-demo-name");
-    if(Array.isArray(loc)){
-      wrap.innerHTML=`<div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div>`;
-    } else {
-      wrap.innerHTML=`<video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video>`;
-    }
-    wrap.style.display="";
-  });
+  // Fill any placeholders rendered before the map arrived.
+  document.querySelectorAll(".demo-wrap[data-demo-name]").forEach(w=>resolveDemo(w));
 }).catch(()=>{});
-let _demoIndex=null;   // demos/index.json · 870-exercise name index for fuzzy-matching custom exercises
-fetch("demos/index.json").then(r=>r.ok?r.json():null).then(m=>{_demoIndex=m;}).catch(()=>{});
-const DEMO_GH="https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/";
-function fuzzyDemo(name){
-  if(!_demoIndex)return null;
-  const toks=s=>s.toLowerCase().replace(/[^a-z0-9 ]/g," ").split(/\s+/).filter(t=>t&&!["the","a","machine","with"].includes(t));
-  const q=toks(name);if(!q.length)return null;
+// A free-typed custom exercise gets the closest BUNDLED demo (same scoring as
+// the build script, minus its hand aliases), never a remote one.
+const _DEMO_ABBR={db:"dumbbell",bb:"barbell",kb:"kettlebell",sa:"single"};
+const _demoToks=s=>String(s).toLowerCase().replace(/warm-up ·/g," ").replace(/[^a-z0-9 ]/g," ").split(/\s+/)
+  .map(t=>_DEMO_ABBR[t]||t).filter(t=>t&&!["the","a","with","machine","seated","standing","lying","precor","hoist"].includes(t));
+function localFuzzyDemo(name){
+  if(!_localDemos)return null;
+  const q=_demoToks(name);if(!q.length)return null;
   let best=null,bestScore=0;
-  for(const[n,dir]of _demoIndex){
-    const c=toks(n);
-    const overlap=q.filter(t=>c.includes(t)).length;
+  for(const k of Object.keys(_localDemos)){
+    const c=_demoToks(k),overlap=q.filter(t=>c.includes(t)).length;
     const score=overlap/Math.max(q.length,c.length)+(overlap===q.length?0.3:0);
-    if(score>bestScore){bestScore=score;best=dir;}
+    if(score>bestScore){bestScore=score;best=k;}
   }
-  if(bestScore<0.65)return null;
-  return[DEMO_GH+encodeURIComponent(best)+"/0.jpg",DEMO_GH+encodeURIComponent(best)+"/1.jpg"];
+  return bestScore>=0.75?_localDemos[best]:null;
 }
-function demoHtml(name){
-  const S=ctx.getS();
-  const loc=_localDemos&&_localDemos[name];
-  if(Array.isArray(loc))return`<div class="demo-wrap"><div class="demo-flip"><img src="${loc[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${loc[1]}" loading="lazy"></div></div>`;
-  if(loc)return`<div class="demo-wrap"><video src="${loc}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
-  const cached=S.demoCache[name];
-  if(Array.isArray(cached))return`<div class="demo-wrap"><div class="demo-flip"><img src="${cached[0]}" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${cached[1]}" loading="lazy"></div></div>`;
-  if(cached)return`<div class="demo-wrap"><video src="${cached}" muted loop playsinline preload="none" onerror="this.parentNode.style.display='none'"></video></div>`;
-  if(_demoMiss[name])return"";
-  return`<div class="demo-wrap" data-demo-name="${esc(name)}" style="display:none"></div>`; // unresolved · probed on expand
+// undefined = map not loaded yet, null = no demo, array = the two frames.
+function demoFor(name){
+  if(!_localDemos)return undefined;
+  const d=_localDemos[name]||localFuzzyDemo(name);
+  return Array.isArray(d)?d:null;
+}
+const _demoFlip=pair=>`<div class="demo-flip"><img src="${pair[0]}" alt="" loading="lazy" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${pair[1]}" alt="" loading="lazy"></div>`;
+// "No demo for this one. Works chest and triceps." beats an empty gap.
+function noDemoLine(muscles){
+  const m=(muscles||[]).filter(Boolean);
+  const list=m.length>1?m.slice(0,-1).join(", ")+" and "+m[m.length-1]:m[0];
+  return`<div class="demo-none">No demo for this one.${list?" Works "+esc(list)+".":""}</div>`;
+}
+function demoHtml(name,muscles){
+  const d=demoFor(name);
+  if(d===undefined)return`<div class="demo-wrap" data-demo-name="${esc(name)}" data-muscles="${esc((muscles||[]).join("|"))}" style="display:none"></div>`;
+  return d?`<div class="demo-wrap">${_demoFlip(d)}</div>`:noDemoLine(muscles);
 }
 async function resolveDemo(wrap){
-  const S=ctx.getS();
   const name=wrap.getAttribute("data-demo-name");
   if(!name)return;
+  if(!_localDemos)await _localDemosReady;
+  if(!_localDemos)return; // map failed to load: leave the card as it is
   wrap.removeAttribute("data-demo-name");
-  // Wait for local map if still loading, then check exact match (no external request needed)
-  if(!_localDemos&&_localDemosReady)await _localDemosReady;
-  const local=_localDemos&&_localDemos[name];
-  if(Array.isArray(local)){
-    wrap.innerHTML=`<div class="demo-flip"><img src="${local[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${local[1]}"></div>`;
-    wrap.style.display="";
-    return;
-  }
-  if(local){
-    wrap.innerHTML=`<video src="${local}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
-    wrap.style.display="";
-    return;
-  }
-  const pair=fuzzyDemo(name);
-  if(pair){
-    S.demoCache[name]=pair;save();
-    wrap.innerHTML=`<div class="demo-flip"><img src="${pair[0]}" onerror="this.closest('.demo-wrap').style.display='none'"><img src="${pair[1]}"></div>`;
-    wrap.style.display="";
-    return;
-  }
-  const url=await probeBatches(demoCandidates(name));
-  if(url){
-    S.demoCache[name]=url;save();
-    wrap.innerHTML=`<video src="${url}" muted loop playsinline autoplay onerror="this.parentNode.style.display='none'"></video>`;
-    wrap.style.display="";
-  }else{
-    _demoMiss[name]=1; // retry next session, not never
-  }
-}
-
-async function scanDemos(){
-  const S=ctx.getS();
-  const sub=document.getElementById("demoScanSub");
-  const names=[...new Set(Object.values(PROG).flatMap(d=>(d.exercises||[]).filter(e=>(e.cat||"gym").toLowerCase()==="gym").map(e=>e.name)).concat(Object.keys(DEMO_ALIASES)))]
-    .filter(n=>!S.demoCache[n]);
-  if(!names.length){showToast("All exercises already scanned ✓");return;}
-  showToast("Scanning "+names.length+" exercises…");
-  let found=0,missed=[];
-  for(let i=0;i<names.length;i++){
-    if(sub)sub.textContent="Scanning "+(i+1)+"/"+names.length+": "+names[i];
-    const url=await probeBatches(demoCandidates(names[i]));
-    if(url){S.demoCache[names[i]]=url;found++;save();}
-    else missed.push(names[i]);
-  }
-  if(sub)sub.textContent=found+" found · "+missed.length+" missing";
-  showToast("Done · "+found+" clips found");
-  if(missed.length){
-    const txt="Missing demo clips:\n"+missed.join("\n");
-    if(navigator.clipboard)navigator.clipboard.writeText(txt).then(()=>showToast("Missing list copied · paste it to Claude")).catch(()=>{});
-    console.log(txt);
-  }
-  ctx.renderST();
+  const d=demoFor(name);
+  if(d){wrap.innerHTML=_demoFlip(d);wrap.style.display="";}
+  else wrap.outerHTML=noDemoLine((wrap.getAttribute("data-muscles")||"").split("|"));
 }
 
 function card(ex,sess,key,rdOnly=false){
@@ -645,20 +545,21 @@ function card(ex,sess,key,rdOnly=false){
   const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
   const isDone=ed.done,isSkip=ed.skipped;
     const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
-  const sLbl=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
+  const sLbl=ex.cat==="cardio"?`${ex.reps}`:`${ex.sets} × ${ex.reps}`;
+  // Display only: "Warm-Up · Leg Press" stays the stored name (PR history is
+  // keyed by a slug of it); the card shows "Leg Press" with a Warm-up label.
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
   // Always use a search link · stored video URLs rot, search never 404s
-  const name=esc(ex.name),cue=esc(ex.cue),reps=esc(ex.reps);
+  const name=esc(ex.name.replace(/^Warm-Up · /,"")),cue=esc(ex.cue),reps=esc(ex.reps);
   // You train for a PR every session, so the suggested weight IS last
   // session's best set; the program's range is only a fallback for an exercise
   // with no history yet.
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
   const target=_last?.top?{w:inUnit(_last.top.kg,_tUnit),r:_last.top.reps}:null;
-  const hint=target?esc(`Beat ${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint);
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
-  const demo=demoHtml(ex.name);
+  const demo=demoHtml(ex.name,ex.muscles);
 
   // Last session ghost
   const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
@@ -672,7 +573,7 @@ function card(ex,sess,key,rdOnly=false){
   if(ex.cat==="cardio"){
     const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
     body=`${demo}<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
     <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}"${rdOnly?' style="cursor:default"':""}${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=setCount(ex,ed);
@@ -699,15 +600,15 @@ function card(ex,sess,key,rdOnly=false){
       </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button>`:""}</div>`;
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">Add Set</button>`:""}</div>`;
   }
 
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}${ex.ss?' · <span class="ss-chip">'+icon("bolt",11)+"superset</span>":""}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
-      <div class="ex-right">${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}<div class="ex-chev" id="chev-${ex.id}">▾</div></div>
+      <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
+      <div class="ex-right"><span class="ex-hint">${target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;
@@ -807,8 +708,8 @@ function toggleSet(key,exId,i){
   sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done){showToast("Set logged ✓");checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
-  if(ed.done)showToast("Exercise complete 🔥");
+  if(sd.done){checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
+  
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   // Deferred one tick: an immediate blur here can reflow the viewport
   // mid-render on iOS Safari/standalone PWA (keyboard dismissing) in the
@@ -824,7 +725,7 @@ function toggleCardio(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].done=!S.sessions[key][exId].done;
-  if(S.sessions[key][exId].done)showToast("Done ✓");
+  if(S.sessions[key][exId].done)
   if(navigator.vibrate)navigator.vibrate([25]);
   save();queueSession(key,exId);renderW();
 }
@@ -835,7 +736,7 @@ function skipEx(key,exId){
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].skipped=true;
-  save();queueSession(key,exId);showToast("Exercise skipped");renderW();
+  save();queueSession(key,exId);renderW();
   setTimeout(()=>{const b=document.getElementById("sb-"+exId);if(b)b.classList.add("open");const c=document.getElementById("chev-"+exId);if(c)c.classList.add("open");},20);
 }
 
@@ -859,7 +760,7 @@ function toggleDayComplete(){
   const now=!S.sessions[key]._complete;
   if(now)S.sessions[key]._complete=true;else delete S.sessions[key]._complete;
   save();queueSessionMeta(key);renderW();
-  showToast(now?"Day marked complete":"Completion removed");
+  
 }
 
 function addSet(key,exId){
@@ -962,7 +863,7 @@ function dropPRForSet(exId,weight,reps,unit){
   if(!list.length)delete S.prs[cid];
   queueMutation("pr_delete",{exerciseId:cid,date:gone.date,est:gone.est});
   const next=recoverPRFromLog(cid)||(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
-  showToast(next?`PR removed · now ${next.est}kg`:"PR removed with the set");
+  showToast(next?`PR removed. Best is now ${next.weight} kg × ${next.reps}.`:"PR removed with the set.");
 }
 
 function delSet(key,exId,i){
@@ -974,7 +875,7 @@ function delSet(key,exId,i){
   const n=setCount(ex,ed);
   // An exercise with no sets has no way back to a set UI, so keep the floor at
   // one. Use Skip if you're not doing the exercise at all.
-  if(n<=1){showToast("Keep at least one set · use Skip instead");return;}
+  if(n<=1){showToast("Keep at least one set. Use Skip instead.");return;}
   const sd=ed.sets[i];
   // Silent on empty rows; confirm only when there's logged data to lose. The
   // app has no undo, so a destructive action on real data needs a beat.
@@ -992,7 +893,7 @@ function delSet(key,exId,i){
   updateExerciseDone(key,exId);
   save();queueSession(key,exId);renderW();
   reopenEx(exId);
-  showToast("Set removed");
+  
 }
 
 function olBadgeHtml(exId,sess){
@@ -1236,12 +1137,12 @@ function restoreDropped(day,id){
   S.dropped[day]=S.dropped[day].filter(x=>x!==id);
   queueMutation("dropped_exercise_restore",{id});
   save();
-  showToast("Restored · reload to see it");
+  showToast("Restored. Reload to see it.");
   renderW();
 }
 
 function afterCustomAdd(day,ex,label){
-  save();showToast(label+" added ✓");
+  save();
   const si=document.getElementById("cfSearch");if(si)si.value="";
   document.getElementById("cfDD")?.classList.remove("show");
   renderW();
@@ -1258,7 +1159,7 @@ function saveActive(){try{localStorage.setItem("f5_active",JSON.stringify({key:c
 function clearActive(){try{localStorage.removeItem("f5_active");}catch(_){}}
 function startSess(){
   ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
-  showToast("Workout started ⚡");
+  
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
 }
@@ -1320,7 +1221,7 @@ function resumeSess(){
   const key=ctx.cDay+"_"+ctx.wk();
   if(S.sessions[key]?._stopped){delete S.sessions[key]._stopped;save();queueSessionMeta(key);}
   ctx.workoutOn=true;ctx.sessStart=Date.now();saveActive();
-  showToast("Workout resumed ▶");
+  
   if(navigator.vibrate)navigator.vibrate([40,20,40]);
   renderW();
 }
@@ -1439,7 +1340,7 @@ function checkAndStorePR(exId,weight,reps,unit){
     if(!S.prs[cid])S.prs[cid]=[];
     S.prs[cid].push({date:isoToday(),weight,reps,est});
     save();queueMutation("pr",{exerciseId:cid,date:isoToday(),weight,reps,est});
-    showToastBig("🏆 New PR! "+weight+"kg × "+reps);
+    showToastBig("New best: "+weight+" kg × "+reps);
   }
 }
 // A day the active program schedules nothing for. Right now that's Wednesday
@@ -1504,7 +1405,7 @@ function checkMilestones(){
   if(!ctx.demoStreak&&longest!==(S.milestones.longestStreak||0)){S.milestones.longestStreak=longest;save();queueMilestones();}
   // Once per week, the moment this week starts counting toward the streak.
   if(!ctx.demoStreak&&thisWeek===need){let seen=null;try{seen=localStorage.getItem("f5_streak_toast");}catch(_){}
-    if(seen!==wkKey){try{localStorage.setItem("f5_streak_toast",wkKey);}catch(_){}showToastBig(`🔥 ${need} workouts this week. ${weeks} week streak!`);}}
+    if(seen!==wkKey){try{localStorage.setItem("f5_streak_toast",wkKey);}catch(_){}showToastBig(`${need} workouts this week. ${weeks}-week streak.`);}}
   // ── 6 workouts this week (modal) ──
   if(!S.milestones.shownWeek6.includes(wkKey)){
     const mon=mondayOf(today);
@@ -1565,7 +1466,6 @@ window.stopSess=stopSess;
 window.resumeSess=resumeSess;
 window.closeSummary=closeSummary;
 window.aiRun=aiRun;
-window.scanDemos=scanDemos;
 window.prHint=prHint;
 window.toggleExUnit=toggleExUnit;
 window.onWtKey=onWtKey;
@@ -1665,13 +1565,13 @@ function rebuildPRsFor(cid){
 let _unitQueue=[];
 function openUnitReview(auto){
   _unitQueue=findUnitSuspects();
-  if(!_unitQueue.length){if(!auto)showToast("No kg/lbs mix-ups found ✓");return;}
+  if(!_unitQueue.length){if(!auto)showToast("No kg/lbs mix-ups found.");return;}
   renderUnitReview();
 }
 function renderUnitReview(){
   const m=document.getElementById("planModal");
   if(!m)return;
-  if(!_unitQueue.length){m.classList.remove("show");showToast("Units checked ✓ · PRs rebuilt");ctx.renderW?.();return;}
+  if(!_unitQueue.length){m.classList.remove("show");showToast("Units checked. PRs rebuilt.");ctx.renderW?.();return;}
   const rows=_unitQueue.map((s,idx)=>{
     const conv=s.to==="lbs"?`${r1(s.weight*LB_TO_KG)} kg`:`${r1(s.weight/LB_TO_KG)} lbs`;
     const typed=`${s.weight} ${s.unit}`;

@@ -488,7 +488,9 @@ applyTheme();
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>applyTheme());
 let _appReady=false;
 ctx.save=save;
-if(!S.demoCache||(S.demoCacheV||0)<3){S.demoCache={};S.demoCacheV=3;}
+// v4: demos are all bundled now; the cache held remote MuscleWiki/GitHub URLs.
+// Cleared here AND on the server (queueSettings), so no device fetches them.
+if(!S.demoCache||(S.demoCacheV||0)<4){const had=Object.keys(S.demoCache||{}).length>0;S.demoCache={};S.demoCacheV=4;if(had)queueSettings();}
 function restoreDailyBackup(dateStr){
   const raw=localStorage.getItem("f5_daily_"+dateStr);
   if(!raw){showToast("Backup not found");return;}
@@ -738,6 +740,8 @@ window.addEventListener("DOMContentLoaded",()=>{
 function go(tab){
   closeForgeChat();
   cTab=tab;
+  // The iOS redesign ships one tab at a time; the stylesheet keys it on this.
+  document.body.dataset.tab=tab;
   try{sessionStorage.setItem("forge_tab",tab);}catch(_){}
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   const navEl=document.getElementById("nav-"+tab);
