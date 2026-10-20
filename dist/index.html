@@ -13,34 +13,8 @@
 <!-- Preload only the two faces that paint on first frame (body 400 + display 600).
      crossorigin is REQUIRED even same-origin — fonts always fetch in CORS mode,
      and omitting it makes the browser fetch the file twice. -->
-<link rel="preload" href="/fonts/barlow-400.woff2" as="font" type="font/woff2" crossorigin>
-<link rel="preload" href="/fonts/barlow-condensed-600.woff2" as="font" type="font/woff2" crossorigin>
 <style>
-/* Self-hosted fonts — pre-cached by sw.js, render fully offline. No CDN. */
-@font-face{
-  font-family:'Barlow Condensed';font-style:normal;font-weight:600;font-display:swap;
-  src:url('/fonts/barlow-condensed-600.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Barlow Condensed';font-style:normal;font-weight:700;font-display:swap;
-  src:url('/fonts/barlow-condensed-700.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Barlow';font-style:normal;font-weight:400;font-display:swap;
-  src:url('/fonts/barlow-400.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Barlow';font-style:normal;font-weight:500;font-display:swap;
-  src:url('/fonts/barlow-500.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Barlow';font-style:normal;font-weight:600;font-display:swap;
-  src:url('/fonts/barlow-600.woff2') format('woff2');
-}
-@font-face{
-  font-family:'Barlow';font-style:normal;font-weight:700;font-display:swap;
-  src:url('/fonts/barlow-700.woff2') format('woff2');
-}
+/* No web fonts: the app uses the iPhone's system fonts (see --font-*). */
 :root{
   color-scheme: light dark; /* auto — light-dark() resolves against this */
   /* ── themed tokens · light = warm off-white paper · dark = deep near-black ──
@@ -51,83 +25,74 @@
      invisible. The light ramp is warm-neutral on purpose — a hair of warmth is
      what reads as paper rather than as an unstyled default. test.js asserts no
      two steps collapse. */
-  --black:light-dark(#EDECEA,#08080A);
-  --s0:light-dark(#FFFFFF,#101014);
-  --s1:light-dark(#FAF9F7,#15151A);
-  --s2:light-dark(#F1F0EC,#1E1E24);
-  --s3:light-dark(#E6E4DF,#26262E);
-  --b1:light-dark(#E3E0DA,#2A2A33);
-  --b2:light-dark(#CFCBC3,#3A3A45);
-  --dim:light-dark(#6A6A73,#73737E);
-  --mid:light-dark(#55555E,#9EA0A8);
-  --lt:light-dark(#34343C,#C9CAD1);
-  --white:light-dark(#131316,#F4F4F1);
-  /* volt accent system: --accent = fills · --accent-ink = text ON fills ·
-     --accent-text = accent-coloured text/strokes on surfaces (moss in light —
-     raw volt on white is 1.5:1, illegible) · --accent-lo = tint bg */
-  --accent:light-dark(#B9E425,#C8F135);
-  --accent-ink:#121403;
-  --accent-text:light-dark(#55700B,#C8F135);
-  /* Gradient fill for primary CTAs — flat --accent was reading as flat/cheap
-     next to reference apps that gradient-fill everything. Subtle diagonal
-     shift toward a deeper volt tone, not a hue change, so it still reads
-     as "the accent color" not a different color. */
-  --accent-grad:linear-gradient(135deg,light-dark(#C3EA30,#D4F55A),light-dark(#9FC71A,#A8D62C));
-  --accent-lo:light-dark(#EDF4D3,#222B0E);
+  /* ── iOS system palette (Oct 2026 redesign: "like Apple's own apps") ──
+     Values follow Apple's system colours: grouped background, cell, fills,
+     separators, labels. Every step stays DISTINCT (test.js asserts it). */
+  --black:light-dark(#F2F2F7,#000000);   /* systemGroupedBackground */
+  --s0:light-dark(#F9F9FB,#121214);      /* tab bar / chrome */
+  --s1:light-dark(#FFFFFF,#1C1C1E);      /* cell */
+  --s2:light-dark(#EEEEF3,#2C2C2E);      /* fill inside a cell */
+  --s3:light-dark(#E5E5EA,#3A3A3C);
+  --b1:light-dark(#DCDCE1,#38383A);      /* separator */
+  --b2:light-dark(#C6C6C8,#48484A);
+  --dim:light-dark(#86868B,#8E8E93);     /* tertiary label */
+  --mid:light-dark(#6C6C70,#AEAEB2);     /* secondary label */
+  --lt:light-dark(#1C1C1E,#E5E5EA);
+  --white:light-dark(#000000,#FFFFFF);   /* label */
+  /* One tint, used for actions only: iOS system blue. White text on it. */
+  --accent:light-dark(#007AFF,#0A84FF);
+  --accent-ink:#FFFFFF;
+  --accent-text:light-dark(#007AFF,#0A84FF);
+  --accent-grad:linear-gradient(var(--accent),var(--accent));
+  --accent-lo:light-dark(#E5F1FF,#0B2A4A);
   --orange:var(--accent-text);
   --orange-lo:var(--accent-lo);
-  --orange-mid:light-dark(#5F6E36,#B7C784);
+  --orange-mid:light-dark(#3A6FB0,#9CC3F5);
   --on-accent:var(--accent-ink);
-  --green:light-dark(#147B3B,#3ECF77);
-  --green-lo:light-dark(#E3F3E8,#0D2415);
-  --red:light-dark(#BF3D33,#F26257);
-  --red-lo:light-dark(#FBEAE8,#2A1210);
-  --amber:light-dark(#985E0B,#E8A33C);
-  --amber-lo:light-dark(#FAF2DE,#262009);
-  --blue:light-dark(#2E6FD8,#6FA2F2);
-  --shadow:0 1px 2px light-dark(rgba(16,16,20,.05),rgba(0,0,0,.45)),0 6px 20px light-dark(rgba(16,16,20,.07),rgba(0,0,0,.4));
-  --shadow-lift:0 2px 6px light-dark(rgba(16,16,20,.08),rgba(0,0,0,.55)),0 14px 36px light-dark(rgba(16,16,20,.12),rgba(0,0,0,.5));
-  /* ── card material ──
-     The reason .hero reads as a physical lit object and ordinary cards read as
-     flat rectangles is the light-source cue: heroes have a gradient plus a
-     BRIGHTER top edge, cards had a uniform 1px box. --card-grad is a near-
-     invisible vertical ramp and --card-edge is the lit top hairline. Together
-     they're the difference between a filled shape and a lit one. Apply via the
-     .surface class, never by re-declaring background on individual cards. */
-  --card-grad:linear-gradient(180deg,light-dark(#FFFFFF,#1A1A21) 0%,light-dark(#FAF9F7,#15151A) 100%);
-  --card-edge:light-dark(rgba(255,255,255,.9),rgba(255,255,255,.06));
-  /* Scrim behind modals/sheets/drawer. Was four different flat black rgba()
-     values with no blur anywhere in the app; one token + backdrop blur so
-     overlaid content dissolves instead of being covered by a grey slab.
-     @supports fallback below raises alpha where backdrop-filter is missing. */
-  --scrim:light-dark(rgba(237,236,234,.72),rgba(8,8,10,.72));
+  --green:light-dark(#248A3D,#30D158);
+  --green-lo:light-dark(#E8F5EC,#0F2A17);
+  --red:light-dark(#D70015,#FF453A);
+  --red-lo:light-dark(#FDECEB,#3A1412);
+  --amber:light-dark(#C93400,#FF9F0A);
+  --amber-lo:light-dark(#FFF1E0,#33230A);
+  --blue:var(--accent-text);
+  /* Elevation is rare on iOS: grouped cells sit flat on the background. */
+  --shadow:0 1px 2px light-dark(rgba(0,0,0,.06),rgba(0,0,0,.4));
+  --shadow-lift:0 10px 30px light-dark(rgba(0,0,0,.14),rgba(0,0,0,.55));
+  /* Card material is flat now: cells are plain --s1, no lit edge. */
+  --card-grad:linear-gradient(var(--s1),var(--s1));
+  --card-edge:transparent;
+  --scrim:light-dark(rgba(0,0,0,.32),rgba(0,0,0,.55));
   --scrim-blur:blur(20px) saturate(140%);
   /* ── theme-independent tokens · heroes stay dark in BOTH themes ── */
-  --font-display:'Barlow Condensed','Barlow',sans-serif;
-  --font-body:'Barlow',system-ui,sans-serif;
+  /* The iPhone's own fonts: SF Pro (text/display) and SF Pro Rounded for
+     numbers, as Apple Fitness uses. Nothing downloaded. */
+  --font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display","Helvetica Neue",system-ui,sans-serif;
+  --font-body:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",system-ui,sans-serif;
+  --font-num:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
   /* Canonical "eyebrow label" style — the small uppercase section/field
      labels used throughout Settings, cards, and section headers. Was
      previously ~20 near-duplicate one-off values (9-12px, weight
      600/700/800, letter-spacing 1-3px); consolidated to one scale so
      labels read as one consistent system instead of ad hoc per component. */
-  --fs-label:11px;
-  --fw-label:700;
-  --ls-label:1.5px;
+  --fs-label:13px;
+  --fw-label:400;
+  --ls-label:0;
   /* Caption labels: the in-card variant of an eyebrow. There were ~26 eyebrow
      treatments and ~55-60 rendered instances, so every section shouted equally
      and nothing read as emphasis. Landmarks (.sec/.hero-kicker/.nut-kicker/
      .st-sec) keep the uppercase --*-label treatment above; captions inside a
      card demote to sentence case with these. */
-  --fs-cap:12px;
-  --fw-cap:500;
+  --fs-cap:13px;
+  --fw-cap:400;
   /* ── SHAPE SCALE ──
      Was 27 distinct border-radius values, including two competing pill idioms
      (99px and 999px). Rounding at arbitrary values is what reads as
      unconsidered. 50% is kept separately for genuinely circular elements. */
-  --r-sm:10px;   /* inputs, chips, small buttons */
-  --r-md:14px;   /* set rows, sub-cards, list items */
-  --r-lg:20px;   /* cards, accordions */
-  --r-xl:26px;   /* heroes, bottom sheets */
+  --r-sm:8px;    /* inputs, chips, small buttons */
+  --r-md:10px;   /* set rows, sub-cards, list items */
+  --r-lg:12px;   /* inset grouped sections, cards */
+  --r-xl:16px;   /* bottom sheets */
   --r-pill:999px;
   /* ── SPACING SCALE ──
      Was essentially every integer from 5px to 20px used as a padding value,
@@ -161,17 +126,14 @@ html[data-theme="dark"]{color-scheme:dark;}
 /* Universal tactile press feedback — native buttons squish slightly on tap
    instead of only changing color/opacity. Composes with any more-specific
    :active rule below since it's a different property (transform). */
-button{transition:transform .12s ease;}
-button:active:not(:disabled){transform:scale(.96);}
-.nav-item,.st-row,.dd-item{transition:transform .12s ease;}
-.nav-item:active,.st-row:active,.dd-item:active{transform:scale(.97);}
+/* iOS press feedback: an instant highlight, no squish or bounce. */
+button:active:not(:disabled){opacity:.55;}
+.nav-item:active,.st-row:active,.dd-item:active{opacity:.55;}
 html,body{height:100%;overflow:hidden;background:var(--black);}
-/* Barlow has a smaller x-height than Inter at the same px size, so body copy
-   reads slightly small on a straight swap. 16.5px restores the optical size.
-   Tune here only — never per-component. */
-body{font-family:var(--font-body);font-size:16.5px;color:var(--white);max-width:430px;margin:0 auto;display:flex;flex-direction:column;height:100dvh;}
+/* 17px is iOS body text. Tune here only, never per-component. */
+body{font-family:var(--font-body);font-size:17px;-webkit-font-smoothing:antialiased;color:var(--white);max-width:430px;margin:0 auto;display:flex;flex-direction:column;height:100dvh;}
 
-/* Barlow defaults to PROPORTIONAL figures, so any number that updates in place
+/* Text figures are PROPORTIONAL by default, so any number that updates in place
    (weights, reps, timers, macro counters) jitters horizontally as digits change
    — "1" is far narrower than "8". Lock tabular figures on every changing number.
    Deliberately NOT on body/prose: tabular digits in running text read wide and
@@ -183,9 +145,10 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 }
 
 /* ── HEADER ── */
-.hdr{padding:calc(var(--sp-4) + env(safe-area-inset-top,0px)) var(--sp-4) 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--black);}
-.logo{font-family:var(--font-body);font-size:19px;font-weight:700;letter-spacing:4px;color:var(--white);text-transform:uppercase;}
-.target-pill{background:var(--s1);border:1px solid var(--b1);border-radius:var(--r-pill);padding:6px 14px;font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);color:var(--mid);text-transform:uppercase;box-shadow:var(--shadow);}
+.hdr{padding:calc(var(--sp-3) + env(safe-area-inset-top,0px)) var(--sp-4) 4px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:var(--black);}
+.logo{font-family:var(--font-body);font-size:17px;font-weight:600;letter-spacing:-.2px;color:var(--white);}
+/* The PERSONAL pill was decoration; iOS headers carry no badges. */
+.target-pill{display:none;}
 
 /* ── IMMERSIVE DARK CARD TEXT ISOLATION ── */
 /* Hero/quote/nut-hero gradients stay dark in BOTH themes — text inside must
@@ -205,20 +168,22 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .quote-author{display:block;font-size:var(--fs-label);font-weight:var(--fw-label);letter-spacing:var(--ls-label);text-transform:uppercase;color:var(--hero-fg-dim);margin-top:5px;}
 
 /* ── DAY NAV (date strip) ── */
-.days{display:flex;gap:4px;padding:10px 16px 14px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--black);}
+.days{display:flex;gap:0;padding:6px 8px 12px;overflow-x:auto;scrollbar-width:none;flex-shrink:0;background:var(--black);}
 .days::-webkit-scrollbar{display:none;}
-.day-btn{flex:1 0 auto;min-width:46px;padding:8px 6px 9px;border-radius:14px;font-size:11px;font-weight:500;letter-spacing:0.2px;border:1px solid transparent;color:var(--dim);background:transparent;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;align-items:center;gap:2px;}
-.day-btn.today{color:var(--mid);}
-.day-btn.today::after{content:"";width:4px;height:4px;border-radius:50%;background:var(--orange);margin-top:1px;}
-.day-btn.active{background:var(--white);border-color:var(--white);color:var(--black);font-weight:700;box-shadow:var(--shadow);}
-.day-date{font-size:15px;font-weight:700;letter-spacing:0;text-transform:none;opacity:1;}
-.wk-nav{display:flex;align-items:center;padding:8px 18px 6px;gap:8px;}
-.wk-nav-btn{background:var(--s2);border:1px solid var(--b2);border-radius:20px;padding:5px 14px;font-size:12px;color:var(--mid);cursor:pointer;font-family:var(--font-body);transition:opacity .15s;}
+/* Calendar-style week row: weekday above, date in a circle; the selected day
+   is a filled tint circle, today is tint-coloured text. */
+.day-btn{flex:1 0 auto;min-width:44px;padding:4px 0;border:0;background:transparent;color:var(--mid);cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-size:13px;font-weight:400;}
+.day-btn.today .day-date{color:var(--accent-text);}
+
+.day-btn.active .day-date{background:var(--accent);color:var(--accent-ink);}
+.day-date{display:grid;place-items:center;width:34px;height:34px;border-radius:50%;font-family:var(--font-num);font-size:18px;font-weight:600;color:var(--white);font-variant-numeric:tabular-nums;}
+.wk-nav{display:flex;align-items:center;padding:4px var(--sp-4) 2px;gap:8px;}
+.wk-nav-btn{background:transparent;border:0;padding:6px 0;font-size:15px;color:var(--accent-text);cursor:pointer;font-family:var(--font-body);}
 .wk-nav-btn:disabled{opacity:0.25;cursor:default;}
-.wk-nav-lbl{flex:1;font-size:12px;color:var(--mid);text-align:center;line-height:1.5;}
-.wk-nav-cur{font-size:10px;color:var(--green);display:block;}
-.wk-nav-back{font-size:10px;color:var(--orange);display:block;cursor:pointer;text-decoration:underline;}
-.past-banner{margin:0 18px 10px;background:rgba(255,255,255,0.03);border:1px solid var(--b2);border-radius:8px;padding:7px 12px;font-size:11px;color:var(--dim);text-align:center;}
+.wk-nav-lbl{flex:1;font-size:15px;font-weight:600;color:var(--white);text-align:center;line-height:1.3;}
+.wk-nav-cur{font-size:13px;font-weight:400;color:var(--mid);display:block;}
+.wk-nav-back{font-size:13px;font-weight:400;color:var(--accent-text);display:block;cursor:pointer;}
+.past-banner{margin:6px var(--sp-4) 10px;background:var(--s1);border-radius:var(--r-md);padding:10px 14px;font-size:15px;color:var(--mid);text-align:center;}
 
 /* ── SCROLL ── */
 .scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:104px;overscroll-behavior-y:contain;}
@@ -568,10 +533,12 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .st-sub{font-size:12px;color:var(--mid);margin-top:2px;}
 
 /* ── BOTTOM NAV ── */
-.bot-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:var(--s0);border-top:1px solid var(--b1);display:flex;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:100;}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 0 4px;gap:4px;cursor:pointer;color:var(--dim);font-size:10px;font-weight:600;letter-spacing:0.3px;transition:color .15s;position:relative;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
-.nav-item.active{color:var(--white);}
-.nav-item.active::before{content:"";position:absolute;top:0;width:32px;height:3px;border-radius:0 0 3px 3px;background:var(--accent-text);}
+/* iOS tab bar: translucent, grounded to the bottom edge, tint for the
+   selected tab, no indicator bar. */
+.bot-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:light-dark(rgba(249,249,251,.86),rgba(18,18,20,.86));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--b2);display:flex;padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);z-index:100;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:7px 0 2px;gap:3px;cursor:pointer;color:var(--dim);font-size:10px;font-weight:500;letter-spacing:.1px;position:relative;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;}
+.nav-item.active{color:var(--accent-text);}
+
 .nav-icon{height:22px;display:flex;align-items:center;}
 .nav-icon svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
 .nav-icon .icon-fill{display:none;stroke:none;}
@@ -579,7 +546,7 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 .nav-item.active .nav-icon .icon-fill{display:block;fill:currentColor;}
 
 /* ── TOAST ── */
-.toast{position:fixed;top:16px;left:50%;transform:translateX(-50%);background:var(--s1);border:1.5px solid var(--orange);border-radius:8px;color:var(--white);font-weight:600;font-size:13px;letter-spacing:0.2px;padding:10px 20px;z-index:500;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast{position:fixed;top:calc(env(safe-area-inset-top,0px) + 10px);left:50%;transform:translateX(-50%);background:var(--s1);border:0;border-radius:var(--r-pill);color:var(--white);font-weight:600;font-size:15px;padding:11px 20px;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none;white-space:nowrap;box-shadow:var(--shadow-lift);}
 .toast.show{opacity:1;}
 .toast.toast-big{font-size:15px;padding:14px 24px;border-radius:12px;top:24px;white-space:normal;text-align:center;max-width:280px;}
 .toast.toast-big.show{animation:toastPop .4s cubic-bezier(.34,1.56,.64,1) forwards;}
@@ -915,9 +882,9 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
 /* Bottom nav joins the same material story: translucent + blurred so content
    dissolves under it while scrolling instead of hitting an opaque slab. */
 .bot-nav{
-  background:light-dark(rgba(255,255,255,.82),rgba(16,16,20,.8));
-  backdrop-filter:var(--scrim-blur);
-  -webkit-backdrop-filter:var(--scrim-blur);
+  background:light-dark(rgba(249,249,251,.86),rgba(18,18,20,.86));
+  backdrop-filter:saturate(180%) blur(20px);
+  -webkit-backdrop-filter:saturate(180%) blur(20px);
 }
 
 /* Without backdrop-filter a translucent scrim just looks washed out and the
@@ -929,6 +896,112 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
   }
   .bot-nav{background:var(--s0);}
 }
+
+/* ══ WORKOUT TAB · iOS (Oct 2026 redesign) ══════════════════════════════════
+   Everything here is scoped to .wv (renderW's root), so other tabs keep their
+   styles until their own pass. Look, not behaviour: no id, handler or data
+   path changes. Apple's grammar: large title, inset grouped lists (rows on a
+   12px cell, hairline separators inset 16px), tint for actions only, SF Pro
+   Rounded for figures, no icon tiles, no gradients, no glow. */
+.wv .hero{margin:4px var(--sp-4) 0;padding:0;background:none;border:0;border-radius:0;box-shadow:none;overflow:visible;}
+.wv .hero::after{display:none;}
+.wv .hero,.wv .hero *{color:var(--white);}
+.wv .hero-kicker{font-size:13px;font-weight:600;letter-spacing:0;text-transform:uppercase;color:var(--mid);margin:6px 0 2px;}
+.wv .hero-title{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:.3px;text-transform:none;line-height:1.15;text-wrap:balance;}
+.wv .hero-tag{font-family:var(--font-body);font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mid);border:0;background:var(--s2);border-radius:6px;padding:2px 7px;margin-left:8px;transform:translateY(-.35em);}
+.wv .hero-sum{display:grid;grid-template-columns:repeat(3,1fr);gap:0 12px;margin-top:14px;background:var(--s1);border-radius:var(--r-lg);padding:13px 16px 14px;}
+.wv .hero-sum small{display:block;font-size:13px;font-weight:600;color:var(--mid);}
+.wv .hero-sum b{display:block;font-family:var(--font-num);font-size:26px;font-weight:700;margin-top:1px;font-variant-numeric:tabular-nums;}
+.wv .hero-sum b em{font-style:normal;font-size:15px;font-weight:600;color:var(--mid);}
+.wv .hero-prog{grid-column:1/-1;margin-top:12px;height:4px;background:var(--s2);border-radius:2px;overflow:hidden;}
+.wv .hero-prog-fill{background:var(--accent);border-radius:2px;}
+.wv .hero-streak{margin:0;font-size:inherit;font-weight:inherit;}
+.wv .ex-warm{color:var(--white);font-weight:600;}
+.wv .hero-best{font-size:13px;color:var(--mid);margin:7px 16px 0;}
+.wv .hero-next{margin-top:14px;padding:13px 16px;border:0;background:var(--s1);border-radius:var(--r-lg);display:block;}
+.wv .hero-next-lbl{display:block;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mid);}
+.wv .hero-next-day{display:block;font-family:var(--font-body);font-size:20px;font-weight:600;text-transform:none;letter-spacing:0;color:var(--white);margin-top:2px;}
+.wv .hero-next-ex{display:block;font-size:15px;color:var(--mid);margin-top:2px;}
+.wv .session-bar{margin:14px var(--sp-4) 4px;gap:10px;}
+.wv .btn-start{padding:15px;border-radius:var(--r-lg);background:var(--accent);color:var(--accent-ink);font-size:17px;font-weight:600;letter-spacing:0;text-transform:none;box-shadow:none;}
+.wv .btn-stop{padding:15px;border:0;border-radius:var(--r-lg);background:var(--red-lo);color:var(--red);font-size:17px;font-weight:600;letter-spacing:0;text-transform:none;}
+.wv .sess-complete{padding:15px;border-radius:var(--r-lg);background:var(--s1);color:var(--green);font-size:17px;font-weight:600;letter-spacing:0;text-transform:none;}
+.wv .sess-undo{color:var(--accent-text);font-size:15px;font-weight:400;text-decoration:none;}
+.wv .calf-btn{border:0;border-radius:var(--r-lg);background:var(--s1);color:var(--amber);font-size:15px;font-weight:600;padding:0 14px;}
+.wv .calf-btn.calf-warn{color:var(--red);}
+.wv .calf-badge{background:var(--amber);color:#fff;}
+.wv .physio-banner{margin:12px var(--sp-4) 0;background:var(--s1);border:0;border-radius:var(--r-lg);padding:12px 16px;font-size:15px;color:var(--mid);}
+.wv .plan-nudge{margin:12px var(--sp-4) 0;border:0;border-radius:var(--r-lg);background:var(--s1);}
+.wv .plan-nudge-ttl{font-size:17px;font-weight:600;}
+.wv .plan-nudge-sub{font-size:13px;color:var(--mid);}
+/* Sections: the <details> becomes an inset grouped list with a large header. */
+.wv details.st-acc{background:none;border:0;border-radius:0;margin:0 0 6px;overflow:visible;}
+.wv details.st-acc>summary.sec{padding:22px var(--sp-4) 8px!important;font-size:22px;font-weight:700;letter-spacing:.35px;text-transform:none;color:var(--white)!important;}
+.wv details.st-acc>summary::after{font-size:22px;color:var(--dim);}
+/* Exercise rows */
+.wv .ex-card{margin:0 var(--sp-4);background:var(--s1);border:0;border-radius:0;box-shadow:none;position:relative;}
+.wv .ex-card+.ex-card::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--b1);z-index:1;}
+.wv summary+.ex-card{border-top-left-radius:var(--r-lg);border-top-right-radius:var(--r-lg);}
+.wv .ex-card:last-child{border-bottom-left-radius:var(--r-lg);border-bottom-right-radius:var(--r-lg);}
+.wv .ex-card.active-card{box-shadow:none;border:0;}
+.wv .ex-card.done{background:var(--s1);}
+.wv .ex-card.skipped{opacity:.5;}
+.wv .ex-top{padding:12px 16px;gap:10px;}
+.wv .ex-icon{display:none;}
+.wv .ex-name{font-size:17px;font-weight:400;letter-spacing:-.2px;white-space:normal;}
+.wv .ex-card.done .ex-name{color:var(--mid);}
+.wv .ex-meta{font-size:15px;color:var(--mid);margin-top:2px;}
+.wv .ex-hint{display:block;font-size:15px;color:var(--mid);}
+.wv .ss-chip,.wv .ex-skipped{color:var(--accent-text);font-weight:400;margin-left:6px;}
+.wv .last-ghost{font-size:13px;color:var(--dim);margin-top:2px;letter-spacing:0;}
+/* "Last best" repeats the Beat target exactly, so it's kept for the DOM
+   (tests read it) but not shown; the all-time best shows only when open. */
+.wv .last-ghost{display:none;}
+.wv .ex-card:not(.active-card) .pr-badge{display:none;}
+.wv .pr-badge{font-size:13px;font-weight:400;color:var(--dim);margin-top:1px;}
+.wv .ex-done{width:22px;height:22px;border-radius:50%;background:var(--green) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.5 6.2 5 8.5l4.5-5'/%3E%3C/svg%3E") center/12px no-repeat;flex:none;}
+.wv .ex-chev{color:var(--b2);display:flex;transition:transform .18s cubic-bezier(.16,1,.3,1);}
+.wv .ex-chev.open{transform:rotate(90deg);}
+.wv .ol-up,.wv .ol-down,.wv .ol-eq{border:0;border-radius:5px;font-size:12px;font-weight:600;padding:1px 5px;}
+/* Expanded body */
+.wv .sets-body{border-top:.5px solid var(--b1);margin-left:16px;}
+.wv .cue-box{margin:12px 16px 8px 0;padding:0;border:0;background:none;border-radius:0;font-size:15px;color:var(--mid);line-height:1.45;}
+.wv .action-row{padding:0 16px 10px 0;gap:18px;}
+.wv .watch-chip,.wv .skip-btn{background:none;border:0;padding:4px 0;font-size:15px;font-weight:400;letter-spacing:0;color:var(--accent-text);border-radius:0;}
+.wv .demo-wrap{margin:12px 16px 0 0;border-radius:var(--r-md);}
+.wv .sets-wrap{padding:0 16px 6px 0;}
+.wv .set-hdr{font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--mid);}
+.wv .unit-chip{border:0;background:none;font-size:13px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mid);padding:0;}
+.wv .unit-chip.tappable{color:var(--accent-text);}
+.wv .set-row{background:var(--s2);border-radius:var(--r-md);min-height:50px;margin-bottom:6px;border:1px solid transparent;}
+.wv .set-row.done{background:var(--s2);}
+.wv .set-row.needs-input{border-color:var(--amber);}
+.wv .sn{font-family:var(--font-num);font-size:15px;font-weight:600;color:var(--mid);}
+.wv .set-row.done .sn{color:var(--mid);}
+.wv .si{font-family:var(--font-num);font-size:20px;font-weight:600;color:var(--white);}
+.wv .set-row.done .si{color:var(--mid);}
+.wv .si::placeholder{color:var(--dim);font-size:17px;font-weight:400;}
+.wv .wt-wrap::after{font-size:10px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--dim);}
+.wv .sx{color:var(--dim);}
+.wv .sdone{width:30px;height:30px;border:2px solid var(--b2);color:transparent;font-size:15px;font-weight:700;}
+.wv .sdone.done{background:var(--green);border-color:var(--green);color:#fff;}
+.wv .sdone.locked{opacity:.35;}
+.wv .cardio-row{background:var(--s2);border:0;border-radius:var(--r-md);}
+.wv .cardio-row.done{background:var(--s2);border:0;}
+.wv .cardio-dur{font-family:var(--font-num);font-weight:600;}
+.wv .cardio-chk{width:30px;height:30px;border-radius:50%;border:2px solid var(--b2);color:transparent;}
+.wv .cardio-row.done .cardio-chk{background:var(--green);border-color:var(--green);color:#fff;}
+.wv .add-set-btn{border:0;background:none;color:var(--accent-text);font-size:17px;font-weight:400;text-align:left;padding:8px 0 10px;margin:0;}
+/* Notes + add exercise: grouped cells */
+.wv .notes-wrap{margin:24px var(--sp-4) 12px;}
+.wv .notes-label{font-size:13px;font-weight:400;letter-spacing:0;text-transform:uppercase;color:var(--mid);margin:0 16px 7px;}
+.wv .notes-area{background:var(--s1);border:1px solid transparent;border-radius:var(--r-lg);padding:12px 16px;font-size:17px;color:var(--white);min-height:96px;}
+.wv .notes-area:focus{border-color:var(--accent);}
+.wv .notes-area.needed{border-color:var(--amber);}
+.wv .notes-req{font-size:12px;letter-spacing:0;text-transform:none;}
+.wv .notes-hint{font-size:13px;margin:-4px 16px 12px;}
+.wv .custom-trigger{border:0;background:var(--s1);border-radius:var(--r-lg);color:var(--accent-text);font-size:17px;font-weight:400;letter-spacing:0;text-transform:none;text-align:left;padding:13px 16px;}
+.wv .markdone-bar .btn-start{background:var(--s1);color:var(--accent-text);}
 
 </style>
 </head>
@@ -3349,12 +3422,12 @@ function renderW(){
   const wkLbl=past?`Week of ${fmtDate(_vm.toISOString().slice(0,10))}`:future?'Next Week':'This Week';
   const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
-    <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
+    <button class="wk-nav-btn" onclick="shiftWeek(-1)">‹ Prev</button>
     <div class="wk-nav-lbl">${esc(wkLbl)}${(past||future)
-      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">↩ Back to this week</span>`
+      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">Back to this week</span>`
       :`<span class="wk-nav-cur">${esc(_curMonLbl)}</span>`}
     </div>
-    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
+    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next ›</button>
   </div>`;
 
   const key=_key0;
@@ -3370,25 +3443,31 @@ function renderW(){
   let h=wkNav;
   if(ctx.isPastDay()){
     h+=lockedPast
-      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
+      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day, read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
       :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">${icon("pencil",18)} Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">${icon("unlock",18)}</button></div>`;
   }
   if(future){
     // Plans are stored under nextWk(); read the same key (vwk() can differ near the Sunday boundary)
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
-    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">${icon("calendar",20)} Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
+    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">Next week preview. ${hasPlan?'Plan queued.':'Default program.'}</div>`;
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
-    <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
+    <div class="hero-kicker">${esc(cDay)}</div>
     <div class="hero-title">${esc(prog.label)}${prog.tag?`<span class="hero-tag">${esc(prog.tag)}</span>`:""}</div>
     ${!total?(()=>{const nx=nextSession();return nx?`<div class="hero-next">
       <span class="hero-next-lbl">Next</span>
       <span class="hero-next-day">${esc(nx.when)}</span>
       <span class="hero-next-ex">${esc(nx.label)}</span>
     </div>`:"";})():""}
-    ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
-    <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;const bits=[];if(weeks>=1)bits.push(`${weeks} week streak`);if(thisWeek<need&&(weeks>=1||thisWeek>0))bits.push(`${thisWeek}/${need} this week`);if(weeks>=1&&longest>weeks)bits.push(`best ${longest}`);return bits.length?`<div class="hero-streak">${icon("flame",18)} ${bits.join(" · ")}</div>`:"";})()} `}
+    ${future||!total?"":(()=>{
+      // Summary as an iOS grouped cell: label above value, no separators.
+      const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;
+      return `<div class="hero-sum">
+        <div><small>Exercises</small><b class="hero-count">${done}<em> of ${total}</em></b></div>
+        <div><small>This week</small><b>${thisWeek}<em> of ${need}</em></b></div>
+        <div class="hero-streak"><small>Streak</small><b>${weeks}<em> ${weeks===1?"week":"weeks"}</em></b></div>
+        <div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
+      </div>${weeks>=1&&longest>weeks?`<div class="hero-best">Best streak ${longest} weeks.</div>`:""}`;})()}
   </div>`;
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
@@ -3405,37 +3484,37 @@ function renderW(){
     const allDone=manualDone||(nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done));
     if(allDone||stopped)showMarkDone=false;
     if(allDone&&!stopped){
-      h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
+      h+=`<div class="session-bar"><div class="sess-complete">Session complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
-      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
+      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">Resume Workout</button></div>`;
     } else {
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
       const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">${icon("bolt",18)} Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
-        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
-        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
+        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">Start Workout</button>
+        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">Stop Workout</button>
         ${calfBtnHtml}
       </div>`;
     }
   }
 
   if(cDay==="Sunday"){
-    h+=`<div class="physio-banner">Rest day · physio only. Recovery is where adaptation happens.</div>`;
+    h+=`<div class="physio-banner">Rest day. Physio only.</div>`;
   }
 
   // Late-week planning nudge: Sat/Sun, current week, no plan queued yet
   const _dowNow=new Date().getDay();
   if(!ctx.isPastDay()&&!ctx.isFuture()&&_dowNow===0&&!(S.weekPlans||{})[ctx.nextWk()]){
     h+=`<div class="plan-nudge">
-      <div><div class="plan-nudge-ttl">${icon("calendar",20)} Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
+      <div><div class="plan-nudge-ttl">Plan next week</div><div class="plan-nudge-sub">Built from this week's sessions</div></div>
       <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
-  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?`${icon("gym",20)} Gym`:"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
-  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${icon("physio",20)} Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">Physio on the mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
 
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
@@ -3444,7 +3523,7 @@ function renderW(){
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Also logged this day</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">Also logged this day</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
@@ -3456,7 +3535,7 @@ function renderW(){
         h+=`<div class="ex-card ex-card--prev" style="opacity:0.75">
           <div class="ex-top" style="cursor:default">
             <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program · read-only</div></div>
+            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program, read-only</div></div>
           </div>
           <div style="padding:0 15px 14px">${setRows}</div>
         </div>`;
@@ -3482,24 +3561,25 @@ function renderW(){
     const needNote=twinges>0&&!savedNotes.trim();
     h+=`<div class="notes-wrap">
       <span class="notes-label">Session Notes${twinges?`<span class="notes-req${needNote?"":" met"}">${needNote?"required":"noted"}</span>`:""}</span>
-      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Session notes..."}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
+      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Notes"}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
       ${needNote?`<div class="notes-hint">${icon("alert",15)}You logged ${twinges} calf twinge${twinges===1?"":"s"}. Describe it before stopping the workout.</div>`:""}
     </div>`;
   }
 
   if(!readOnly)h+=`<div class="custom-wrap">
-    <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
+    <button class="custom-trigger" onclick="toggleCF()">Add Exercise</button>
     <div class="custom-form" id="cf">
       <label class="cf-label">Search exercise library</label>
       <div class="search-wrap">
         <input class="cf-inp" id="cfSearch" placeholder="Type exercise name to search..." oninput="searchEx(this.value,'${cDay}')" autocomplete="off">
         <div class="search-dd" id="cfDD"></div>
       </div>
-      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + on any result to add directly to today's session</div>
+      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + to add it to today.</div>
     </div>
   </div>`;
   h+=`<div style="height:12px"></div>`;
-  el.innerHTML=h;
+  // .wv scopes the iOS Workout styles (index.html) to this tab only.
+  el.innerHTML='<div class="wv">'+h+'</div>';
 }
 ctx.renderW=renderW;
 
@@ -3697,11 +3777,13 @@ function card(ex,sess,key,rdOnly=false){
   const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
   const isDone=ed.done,isSkip=ed.skipped;
     const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
-  const sLbl=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
+  const sLbl=ex.cat==="cardio"?`${ex.reps}`:`${ex.sets} × ${ex.reps}`;
+  // Display only: "Warm-Up · Leg Press" stays the stored name (PR history is
+  // keyed by a slug of it); the card shows "Leg Press" with a Warm-up label.
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
   // Always use a search link · stored video URLs rot, search never 404s
-  const name=esc(ex.name),cue=esc(ex.cue),reps=esc(ex.reps);
+  const name=esc(ex.name.replace(/^Warm-Up · /,"")),cue=esc(ex.cue),reps=esc(ex.reps);
   // You train for a PR every session, so the suggested weight IS last
   // session's best set; the program's range is only a fallback for an exercise
   // with no history yet.
@@ -3724,7 +3806,7 @@ function card(ex,sess,key,rdOnly=false){
   if(ex.cat==="cardio"){
     const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
     body=`${demo}<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
     <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}"${rdOnly?' style="cursor:default"':""}${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=setCount(ex,ed);
@@ -3751,15 +3833,15 @@ function card(ex,sess,key,rdOnly=false){
       </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button>`:""}</div>`;
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">Add Set</button>`:""}</div>`;
   }
 
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}${ex.ss?' · <span class="ss-chip">'+icon("bolt",11)+"superset</span>":""}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
-      <div class="ex-right">${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}<div class="ex-chev" id="chev-${ex.id}">▾</div></div>
+      <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${/^Warm-Up · /.test(ex.name)?'<span class="ex-warm">Warm-up</span> ':""}<span class="ex-sets">${esc(sLbl)}</span>${ex.ss?' <span class="ss-chip">Superset</span>':""}${isSkip?' <span class="ex-skipped">Skipped</span>':""}<span class="ex-hint">${hint}</span></div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
+      <div class="ex-right">${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;

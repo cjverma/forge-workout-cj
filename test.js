@@ -1067,7 +1067,7 @@ ok("_localDemosReady declared before first assignment (TDZ guard)",
   HTML.indexOf("let _localDemosReady") < HTML.indexOf("_localDemosReady=fetch"));
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Typography — self-hosted Barlow superfamily, no CDN, no Inter, no em dashes
+// Typography: system fonts (SF Pro), no CDN, no Inter, no em dashes
 // ─────────────────────────────────────────────────────────────────────────────
 const SW = readFileSync("sw.js", "utf8");
 
@@ -1077,36 +1077,25 @@ ok("no Google Fonts CDN link (offline-first: fonts must be self-hosted)",
 ok("no 'Inter' font-family left anywhere",
   !HTML.includes("'Inter'") && !HTML.includes('"Inter"'));
 
-ok("--font-body token defined as Barlow and used, not hardcoded",
-  /--font-body:\s*'Barlow'/.test(HTML) && HTML.includes("var(--font-body)"));
+// Oct 2026 redesign ("like Apple's own apps"): the iPhone's system fonts.
+// SF Pro for text and display, SF Pro Rounded for figures, nothing downloaded.
+// A web font (Barlow before, any trendy face after) is what read as generated.
+ok("fonts are the iPhone's own: SF Pro text/display, SF Pro Rounded for numbers",
+  /--font-body:-apple-system,BlinkMacSystemFont,"SF Pro Text"/.test(HTML) &&
+  /--font-display:-apple-system,BlinkMacSystemFont,"SF Pro Display"/.test(HTML) &&
+  /--font-num:ui-rounded,"SF Pro Rounded"/.test(HTML) && HTML.includes("var(--font-body)"));
 
-ok("all four Barlow body weights have an @font-face",
-  ["400", "500", "600", "700"].every(w =>
-    new RegExp(`font-family:'Barlow';[^}]*font-weight:${w};[^}]*barlow-${w}\\.woff2`).test(HTML)));
+ok("no web fonts: no @font-face, no font preload, nothing font-related pre-cached",
+  !/@font-face/.test(HTML.slice(0, HTML.indexOf("</style>"))) && !/rel="preload"[^>]*as="font"/.test(HTML) && !/\/fonts\//.test(SW));
 
 // Scoped to the app's own <style> block. The PDF print report (buildReportHtml)
-// legitimately uses font-weight:800 — it renders in system fonts on white paper,
-// not Barlow, so it isn't affected by the 400-700 subset.
+// legitimately uses font-weight:800; it renders on white paper.
 const APP_CSS = HTML.slice(HTML.indexOf("<style>"), HTML.indexOf("</style>"));
-ok("no font-weight:800 in app CSS (Barlow subset stops at 700 — 800 would synthesize)",
+ok("no font-weight:800 in app CSS",
   !APP_CSS.includes("font-weight:800"));
-
-ok("all Barlow faces pre-cached in sw.js for offline",
-  ["400", "500", "600", "700"].every(w => SW.includes(`/fonts/barlow-${w}.woff2`)) &&
-  SW.includes("/fonts/barlow-condensed-600.woff2") &&
-  SW.includes("/fonts/barlow-condensed-700.woff2"));
 
 ok("sw.js cache version bumped past v15 so clients pick up the new fonts",
   /const V = "forge-v(1[6-9]|[2-9]\d|[1-9]\d{2,})"/.test(SW));
-
-// Preload: only the two first-paint faces, and crossorigin is mandatory even
-// same-origin — without it the browser fetches each font file twice.
-ok("both first-paint fonts preloaded with crossorigin",
-  ["barlow-400.woff2", "barlow-condensed-600.woff2"].every(f =>
-    new RegExp(`<link rel="preload" href="/fonts/${f.replace(".", "\\.")}"[^>]*as="font"[^>]*crossorigin>`).test(HTML)));
-
-ok("preload is limited to the 2 critical faces (not all 6)",
-  (HTML.match(/rel="preload"[^>]*as="font"/g) || []).length === 2);
 
 ok("tabular-nums rule present and NOT applied to body/prose",
   HTML.includes("font-variant-numeric: tabular-nums") &&
@@ -1378,8 +1367,10 @@ ok("the week in progress never breaks the streak",
 // Scheduled rest days are not missed workouts: they don't count toward "plan".
 ok("rest days are excluded from what a week needs",
   /if\(!isProgramRestDay\(iso\)\)plan\+\+;if\(ctx\.trainedOn\(iso\)\)n\+\+;/.test(WORKOUT));
-ok("the badge reads in weeks, with this week's progress",
-  /\$\{weeks\} week streak/.test(WORKOUT) && /\$\{thisWeek\}\/\$\{need\} this week/.test(WORKOUT) && !/ day streak/.test(WORKOUT));
+// iOS redesign: a summary cell (label above value) instead of a dotted badge.
+ok("the streak reads in weeks, beside this week's progress (label above value)",
+  /<small>Streak<\/small><b>\$\{weeks\}<em> \$\{weeks===1\?"week":"weeks"\}<\/em><\/b>/.test(WORKOUT) &&
+  /<small>This week<\/small><b>\$\{thisWeek\}<em> of \$\{need\}<\/em><\/b>/.test(WORKOUT) && !/ day streak/.test(WORKOUT));
 // longestStreak used to be stored in days; it is recomputed in weeks from the
 // log so the old figure can't read as "best 23 weeks".
 // The ?demo=streak preview must never write: fake weeks reaching the
@@ -2310,10 +2301,12 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   ok("rest day points at the next session from inside the hero",
     /function nextSession\(\)/.test(WORKOUT) && /hero-next/.test(WORKOUT) &&
     APP_CSS.includes(".hero-next{"));
-  // Hero scope rule: hero internals must use --hero-* tokens only.
-  ok("hero-next uses hero tokens, not themed surface tokens",
-    /\.hero-next\{[^}]*var\(--hero-line\)/.test(APP_CSS) &&
-    !/\.hero-next[^{]*\{[^}]*var\(--s[0-9]\)/.test(APP_CSS));
+  // iOS redesign: the Workout "hero" is a large title on the page, not a dark
+  // card, so inside .wv it and its next-session block take themed tokens (a
+  // grouped cell), and its text is re-pointed from --hero-fg to --white.
+  ok("Workout hero is themed in .wv (next-session block is a cell, text uses --white)",
+    /\.wv \.hero-next\{[^}]*background:var\(--s1\)/.test(APP_CSS) &&
+    APP_CSS.includes(".wv .hero,.wv .hero *{color:var(--white);}"));
 
   // Removed at the user's request (never used): no timer, no overlay.
   ok("the rest timer is gone: no startRest, no overlay",

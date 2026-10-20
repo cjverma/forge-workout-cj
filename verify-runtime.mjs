@@ -417,7 +417,8 @@ try {
     await page.waitForTimeout(800);
     const r = await page.evaluate(() => {
       const b = document.getElementById("bStart"); if (!b) return null;
-      const i = b.querySelector(".icon").getBoundingClientRect();
+      const ic = b.querySelector(".icon"); if (!ic) return null; // iOS redesign: Start has no icon
+      const i = ic.getBoundingClientRect();
       const rg = document.createRange(); rg.selectNodeContents(b.lastChild); const t = rg.getBoundingClientRect();
       return Math.abs((i.top + i.bottom) / 2 - (t.top + t.bottom) / 2);
     });

@@ -297,12 +297,12 @@ export function renderW(){
   const wkLbl=past?`Week of ${fmtDate(_vm.toISOString().slice(0,10))}`:future?'Next Week':'This Week';
   const canGoForward=_vm<(()=>{const nm=new Date(_todayMonday());nm.setDate(nm.getDate()+7);return nm;})();
   const wkNav=`<div class="wk-nav">
-    <button class="wk-nav-btn" onclick="shiftWeek(-1)">← Prev</button>
+    <button class="wk-nav-btn" onclick="shiftWeek(-1)">‹ Prev</button>
     <div class="wk-nav-lbl">${esc(wkLbl)}${(past||future)
-      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">↩ Back to this week</span>`
+      ?`<span class="wk-nav-back" onclick="goCurrentWeek()">Back to this week</span>`
       :`<span class="wk-nav-cur">${esc(_curMonLbl)}</span>`}
     </div>
-    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next →</button>
+    <button class="wk-nav-btn" ${canGoForward?'':'disabled'} onclick="shiftWeek(1)">Next ›</button>
   </div>`;
 
   const key=_key0;
@@ -318,25 +318,31 @@ export function renderW(){
   let h=wkNav;
   if(ctx.isPastDay()){
     h+=lockedPast
-      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day · read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
+      ?`<div class="past-banner lock-banner">${icon("lock",18)} Past day, read-only<button class="edit-pill" onclick="unlockDay()" title="Unlock editing">${icon("pencil",18)}</button></div>`
       :`<div class="past-banner lock-banner" style="color:var(--amber);border-color:var(--amber)">${icon("pencil",18)} Editing past day<button class="edit-pill" onclick="lockDay()" title="Lock editing">${icon("unlock",18)}</button></div>`;
   }
   if(future){
     // Plans are stored under nextWk(); read the same key (vwk() can differ near the Sunday boundary)
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
-    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">${icon("calendar",20)} Next week · Preview${hasPlan?' · Plan queued ✓':' · Default program'}</div>`;
+    h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">Next week preview. ${hasPlan?'Plan queued.':'Default program.'}</div>`;
   }
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
-    <div class="hero-kicker">${esc(cDay)} · ${esc(prog.sub)}</div>
+    <div class="hero-kicker">${esc(cDay)}</div>
     <div class="hero-title">${esc(prog.label)}${prog.tag?`<span class="hero-tag">${esc(prog.tag)}</span>`:""}</div>
     ${!total?(()=>{const nx=nextSession();return nx?`<div class="hero-next">
       <span class="hero-next-lbl">Next</span>
       <span class="hero-next-day">${esc(nx.when)}</span>
       <span class="hero-next-ex">${esc(nx.label)}</span>
     </div>`:"";})():""}
-    ${future||!total?"":`<div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
-    <div class="hero-count">${done} of ${total} complete</div>
-    ${(()=>{const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;const bits=[];if(weeks>=1)bits.push(`${weeks} week streak`);if(thisWeek<need&&(weeks>=1||thisWeek>0))bits.push(`${thisWeek}/${need} this week`);if(weeks>=1&&longest>weeks)bits.push(`best ${longest}`);return bits.length?`<div class="hero-streak">${icon("flame",18)} ${bits.join(" · ")}</div>`:"";})()} `}
+    ${future||!total?"":(()=>{
+      // Summary as an iOS grouped cell: label above value, no separators.
+      const {weeks,thisWeek,need}=currentStreak();const longest=S.milestones.longestStreak||0;
+      return `<div class="hero-sum">
+        <div><small>Exercises</small><b class="hero-count">${done}<em> of ${total}</em></b></div>
+        <div><small>This week</small><b>${thisWeek}<em> of ${need}</em></b></div>
+        <div class="hero-streak"><small>Streak</small><b>${weeks}<em> ${weeks===1?"week":"weeks"}</em></b></div>
+        <div class="hero-prog"><div class="hero-prog-fill" style="width:${pct}%"></div></div>
+      </div>${weeks>=1&&longest>weeks?`<div class="hero-best">Best streak ${longest} weeks.</div>`:""}`;})()}
   </div>`;
   // A day the program schedules nothing for. "Start Workout" and a 0 of 0
   // progress bar both read as broken here, so show the rest-day state instead.
@@ -353,37 +359,37 @@ export function renderW(){
     const allDone=manualDone||(nonPhysio.length>0&&nonPhysio.every(e=>sess[e.id]?.done));
     if(allDone||stopped)showMarkDone=false;
     if(allDone&&!stopped){
-      h+=`<div class="session-bar"><div class="sess-complete">✓ Session Complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
+      h+=`<div class="session-bar"><div class="sess-complete">Session complete${manualDone?`<button class="sess-undo" onclick="toggleDayComplete()">Undo</button>`:""}</div></div>`;
     } else if(stopped){
-      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">▶ Resume Workout</button></div>`;
+      h+=`<div class="session-bar"><button class="btn-start" onclick="resumeSess()">Resume Workout</button></div>`;
     } else {
       // Build calf twinge button if workout is active
       const twinges=(sess._calfTwinges||[]).filter(ts=>Number.isFinite(ts)).length;
       const calfWarnCls=twinges>=3?" calf-warn":"";
       const calfBtnHtml=ctx.workoutOn?`<button class="calf-btn${calfWarnCls}" id="calfBtn" onclick="logCalfTwinge()">${icon("bolt",18)} Calf twinge<span class="calf-badge">${twinges}</span></button>${twinges>0?`<button class="btn-g" style="padding:8px 12px;font-size:11px" onclick="undoCalfTwinge()">Undo</button>`:""}`:"";
       h+=`<div class="session-bar">
-        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">${icon("bolt",18)} Start Workout</button>
-        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">■ Stop Workout</button>
+        <button class="btn-start${ctx.workoutOn?" hide":""}" id="bStart" onclick="startSess()">Start Workout</button>
+        <button class="btn-stop${ctx.workoutOn?" show":""}" id="bStop" onclick="stopSess()">Stop Workout</button>
         ${calfBtnHtml}
       </div>`;
     }
   }
 
   if(cDay==="Sunday"){
-    h+=`<div class="physio-banner">Rest day · physio only. Recovery is where adaptation happens.</div>`;
+    h+=`<div class="physio-banner">Rest day. Physio only.</div>`;
   }
 
   // Late-week planning nudge: Sat/Sun, current week, no plan queued yet
   const _dowNow=new Date().getDay();
   if(!ctx.isPastDay()&&!ctx.isFuture()&&_dowNow===0&&!(S.weekPlans||{})[ctx.nextWk()]){
     h+=`<div class="plan-nudge">
-      <div><div class="plan-nudge-ttl">${icon("calendar",20)} Plan next week</div><div class="plan-nudge-sub">Apply progressive overload from this week's sessions</div></div>
+      <div><div class="plan-nudge-ttl">Plan next week</div><div class="plan-nudge-sub">Built from this week's sessions</div></div>
       <button class="btn-o gen-plan-btn" onclick="genWeeklyPlan()" style="flex:0 0 auto;width:auto;padding:10px 16px">Generate</button>
     </div>`;
   }
 
-  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?`${icon("gym",20)} Gym`:"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
-  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${icon("physio",20)} Physio · Yoga Mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(gymExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">${prog.sub.includes("Gym")?"Gym":"Exercises"}</summary>`;gymExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
+  if(physioExs.length){h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px">Physio on the mat</summary>`;physioExs.forEach(ex=>{h+=card(ex,sess,key,readOnly);});h+=`</details>`;}
 
   // Show exercises stored under a previous program version (e.g. V2 data visible when V3 is active)
   if(!future){
@@ -392,7 +398,7 @@ export function renderW(){
     const curIds=new Set(dispExs.map(e=>e.id));
     const orphanEntries=Object.entries(sess).filter(([id,ed])=>!id.startsWith('_')&&!curIds.has(id)&&_allExMap[id]&&ed&&(ed.done||(ed.sets||[]).some(s=>s&&s.done)));
     if(orphanEntries.length){
-      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">${icon("folder",20)} Also logged this day</summary>`;
+      h+=`<details class="st-acc" open><summary class="sec" style="padding:12px 16px;color:var(--dim)">Also logged this day</summary>`;
       orphanEntries.forEach(([id,ed])=>{
         const ex=_allExMap[id];
         const doneSets=(ed.sets||[]).filter(s=>s&&s.done);
@@ -404,7 +410,7 @@ export function renderW(){
         h+=`<div class="ex-card ex-card--prev" style="opacity:0.75">
           <div class="ex-top" style="cursor:default">
             <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program · read-only</div></div>
+            <div class="ex-info"><div class="ex-name">${esc(ex.name)}</div><div class="ex-meta">Previous program, read-only</div></div>
           </div>
           <div style="padding:0 15px 14px">${setRows}</div>
         </div>`;
@@ -430,24 +436,25 @@ export function renderW(){
     const needNote=twinges>0&&!savedNotes.trim();
     h+=`<div class="notes-wrap">
       <span class="notes-label">Session Notes${twinges?`<span class="notes-req${needNote?"":" met"}">${needNote?"required":"noted"}</span>`:""}</span>
-      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Session notes..."}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
+      <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Notes"}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
       ${needNote?`<div class="notes-hint">${icon("alert",15)}You logged ${twinges} calf twinge${twinges===1?"":"s"}. Describe it before stopping the workout.</div>`:""}
     </div>`;
   }
 
   if(!readOnly)h+=`<div class="custom-wrap">
-    <button class="custom-trigger" onclick="toggleCF()">+ Add Custom Exercise</button>
+    <button class="custom-trigger" onclick="toggleCF()">Add Exercise</button>
     <div class="custom-form" id="cf">
       <label class="cf-label">Search exercise library</label>
       <div class="search-wrap">
         <input class="cf-inp" id="cfSearch" placeholder="Type exercise name to search..." oninput="searchEx(this.value,'${cDay}')" autocomplete="off">
         <div class="search-dd" id="cfDD"></div>
       </div>
-      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + on any result to add directly to today's session</div>
+      <div style="font-size:11px;color:var(--dim);margin-top:8px;letter-spacing:0.2px">Tap + to add it to today.</div>
     </div>
   </div>`;
   h+=`<div style="height:12px"></div>`;
-  el.innerHTML=h;
+  // .wv scopes the iOS Workout styles (index.html) to this tab only.
+  el.innerHTML='<div class="wv">'+h+'</div>';
 }
 ctx.renderW=renderW;
 
@@ -645,11 +652,13 @@ function card(ex,sess,key,rdOnly=false){
   const ed=sess[ex.id]||{done:false,sets:[],skipped:false};
   const isDone=ed.done,isSkip=ed.skipped;
     const iconCls=ex.cat==="physio"?"physio":ex.cat==="cardio"?"cardio":"gym";
-  const sLbl=ex.sets===1?`1 set · ${ex.reps}`:`${ex.sets} sets × ${ex.reps}`;
+  const sLbl=ex.cat==="cardio"?`${ex.reps}`:`${ex.sets} × ${ex.reps}`;
+  // Display only: "Warm-Up · Leg Press" stays the stored name (PR history is
+  // keyed by a slug of it); the card shows "Leg Press" with a Warm-up label.
   const cls=isSkip?"skipped":isDone?"done":"";
   const isActive=document.getElementById("sb-"+ex.id)?.classList.contains("open");
   // Always use a search link · stored video URLs rot, search never 404s
-  const name=esc(ex.name),cue=esc(ex.cue),reps=esc(ex.reps);
+  const name=esc(ex.name.replace(/^Warm-Up · /,"")),cue=esc(ex.cue),reps=esc(ex.reps);
   // You train for a PR every session, so the suggested weight IS last
   // session's best set; the program's range is only a fallback for an exercise
   // with no history yet.
@@ -672,7 +681,7 @@ function card(ex,sess,key,rdOnly=false){
   if(ex.cat==="cardio"){
     const cardioEvt=rdOnly?'':` onclick="toggleCardio('${key}','${ex.id}')"`;
     body=`${demo}<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
     <div class="sets-wrap"><div class="cardio-row ${isDone?"done":""}"${rdOnly?' style="cursor:default"':""}${cardioEvt}><div class="cardio-dur">${reps}</div><div class="cardio-chk">${isDone?"✓":"○"}</div></div></div>`;
   } else {
     const cnt=setCount(ex,ed);
@@ -699,15 +708,15 @@ function card(ex,sess,key,rdOnly=false){
       </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
-    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">▶ Watch</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
-    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">+ Add Set</button>`:""}</div>`;
+    <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
+    <div class="sets-wrap">${rows}${!rdOnly?`<button class="add-set-btn" onclick="addSet('${key}','${ex.id}')">Add Set</button>`:""}</div>`;
   }
 
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${isSkip?"⊘ ":isDone?"✓ ":""}${name}${olBadge}</div><div class="ex-meta">${esc(sLbl)} · ${hint}${ex.ss?' · <span class="ss-chip">'+icon("bolt",11)+"superset</span>":""}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">PR: ${pr.est}kg est. 1RM (${pr.weight}kg×${pr.reps})</div>`:"";})()}</div>
-      <div class="ex-right">${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}<div class="ex-chev" id="chev-${ex.id}">▾</div></div>
+      <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${/^Warm-Up · /.test(ex.name)?'<span class="ex-warm">Warm-up</span> ':""}<span class="ex-sets">${esc(sLbl)}</span>${ex.ss?' <span class="ss-chip">Superset</span>':""}${isSkip?' <span class="ex-skipped">Skipped</span>':""}<span class="ex-hint">${hint}</span></div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
+      <div class="ex-right">${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;
