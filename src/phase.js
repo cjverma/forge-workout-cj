@@ -3,14 +3,14 @@ import { kg1 } from "./constants.js";
 import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
-export const USER={birthDate:new Date(1995,7,1),weightKg:128.5,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,2,1)};
+export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,20)};
 export const ACTIVE_MULT=0.75;
 
 export function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 export function isoToday(){return isoDate(new Date());}
 
 // Fallback when no phase covers a date: date-driven deficit toward 95kg by
-// Mar 1, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
+// Feb 20, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
 
 // ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
@@ -43,12 +43,19 @@ export const PHASES=[
   {id:"phase_2",version:2,strategy:"fat_loss",curve:"linear",
    start:"2026-09-22",plannedEnd:"2026-10-15",startKg:128,targetKg:120.8,
    eatKcal:1600},
-  // THE goal from Oct 16 2026: 128.5 -> 95 kg by Mar 1 2027, one straight line.
-  // 33.5 kg over 136 days = 1,897 kcal/day required deficit (fixed). Eat 1,500
-  // with ~1.8 g/kg protein; the Watch active target is solved DAILY from the
-  // real resting burn, so it rises (~870 -> ~1,250) as resting falls.
-  {id:"goal",name:"Goal · 95 kg by Mar 1",version:3,strategy:"fat_loss",curve:"linear",
-   start:"2026-10-16",plannedEnd:"2027-03-01",startKg:128.5,targetKg:95,
+  // The first one-goal line (128.5 -> 95 by Mar 1), HISTORY since Oct 20: the
+  // user reset it. Cut at Oct 19 with targetKg 127.52 so these four days keep
+  // their real ~1,883/day deficit (same trick as phase_2).
+  {id:"goal_v1",name:"Goal · 95 kg by Mar 1",version:3,strategy:"fat_loss",curve:"linear",
+   start:"2026-10-16",plannedEnd:"2026-10-19",startKg:128.5,targetKg:127.52,
+   eatKcal:1500},
+  // THE goal from Oct 20 2026 (user reset): 130 -> 95 kg by Feb 20 2027, one
+  // straight line. 35 kg over 124 days = 2,173 kcal/day required deficit
+  // (fixed), ~2 kg/week. Eat 1,500 with ~1.8 g/kg protein; the Watch active
+  // target is solved DAILY from the real resting burn, so it rises as resting
+  // falls. The user chose this pace explicitly.
+  {id:"goal",name:"Goal · 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
+   start:"2026-10-20",plannedEnd:"2027-02-20",startKg:130,targetKg:95,
    eatKcal:1500},
 ];
 function phaseStore(){

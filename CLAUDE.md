@@ -236,23 +236,32 @@ recomputed from the log by `longestWeekStreak()` (it used to hold days).
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
 
-## The weight goal: ONE goal, no phases (from Oct 16 2026)
+## The weight goal: ONE goal, no phases (reset Oct 20 2026)
 
-`PHASES` in `src/phase.js` ends in a single entry `id:"goal"`: **128.5 kg on
-Oct 16 2026 -> 95 kg by Mar 1 2027**, linear, eat **1,500 kcal**, ~1,883
-kcal/day required deficit (~1.7 kg/week). The user asked for this pace
-explicitly ("no matter how aggressive"); it is carried by activity, not by
-eating less: the Watch active target is solved daily from the real resting
-burn (dynamic path, no flat fields), so it rises from ~870 to ~1,250 as weight
-drops. `phase_1` and a cut-short `phase_2` (Sep 22 -> Oct 15) stay as history.
-`USER` is 128.5 / 95 / Mar 1 2027, and `api/cron-diet-review.js` GOALS mirrors
-it. **Resting burn** for a day with nothing logged is `restingDefaultFor()`:
-the average of the last 5 logged resting values on or before that day
-(manual and HealthKit both land in `restingOverride`), else **2,800**. The
-Mifflin formula (~2,300 for this user, ~500 low) is no longer used for it.
-`phase_2` was cut at Oct 15 with targetKg 120.8 so its history keeps its real
-~2,310/day deficit (107 over 24 days made it ~6,700). The incline walk is 35 min from Oct 16 (`before:{until,reps}` keeps past
-weeks at 15). Don't reintroduce phase_3 or a second goal unasked.
+`PHASES` in `src/phase.js` ends in a single live entry `id:"goal"`: **130 kg on
+Oct 20 2026 -> 95 kg by Feb 20 2027**, linear, eat **1,500 kcal**, **2,173
+kcal/day** required deficit (~2 kg/week). The user set this (Oct 20: "current
+weight 130, goal 95 by Feb 20") and asked for the pace explicitly ("no matter
+how aggressive"); it is carried by activity, not by eating less: the Watch
+active target is solved daily from the real resting burn (dynamic path, no flat
+fields), ~1,180 workout / ~510 rest at the start, rising as resting falls.
+History entries stay so past days keep their real deficits: `phase_1`,
+`phase_2` (Sep 22 -> Oct 15, targetKg 120.8, ~2,310/day) and `goal_v1` (the
+first one-goal line, 128.5 -> 95 by Mar 1, cut at Oct 19 with targetKg 127.52,
+~1,883/day). `USER` is 130 / 95 / Feb 20 2027, and `api/cron-diet-review.js`
+GOALS mirrors it. **Resting burn** for a day with nothing logged is
+`restingDefaultFor()`: the average of the last 5 logged resting values on or
+before that day (manual and HealthKit both land in `restingOverride`), else
+**2,800**. The Mifflin formula (~2,300 for this user, ~500 low) is no longer
+used for it. The incline walk is 35 min from Oct 16 (`before:{until,reps}`
+keeps past weeks at 15). Don't reintroduce phase_3 or a second live goal unasked.
+
+**Descending weights in a session mean the first set was too heavy** (the
+user's rule: "drop means I'm not able to work hard and the first set wasn't
+right"). `setFatigue()` in `src/plan.js` flags weights falling set to set as
+`pattern:"descending"`, and the weekly-plan prompt makes that OVERRIDE the PR
+step-up: next week is straight sets at a weight the user can hold, never a
+progression from the top set.
 
 ## Known issue: two different "today" (not yet fixed)
 

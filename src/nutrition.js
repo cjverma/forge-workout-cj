@@ -549,7 +549,7 @@ function phaseVerdict(p,finalAvg){
   const d=finalAvg-p.targetKg;
   if(d<=1)return{band:"green",title:"On Target",action:"No changes. Continue to the next phase exactly as planned."};
   if(d<=2)return{band:"yellow",title:"Slightly Behind",action:"Keep calories the same. Increase average active calories by 100/day. Recalculate the next phase."};
-  if(d<=4)return{band:"orange",title:"Moderately Behind",action:"Decision point. Option A: extend the timeline if Mar 1 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
+  if(d<=4)return{band:"orange",title:"Moderately Behind",action:"Decision point. Option A: extend the timeline if Feb 20 is flexible. Option B: tighten the next phase in a calculated way (more activity, modest calorie reduction). The original numbers no longer apply as-is."};
   return{band:"red",title:"Reassess",action:"Stop and reassess before pushing harder: review calorie adherence, food-logging accuracy, Apple Watch data, training consistency, sleep and recovery, and any injury or illness. Only then adjust calories, activity, or the timeline."};
 }
 // Exactly one rule-based actionable recommendation (deterministic, no AI)

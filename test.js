@@ -228,21 +228,25 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
 // keeping the stale Sep 8 boundary and understating the true remaining rate.
 // Sep 8-21 falls into an accepted gap — see the note on this in phase.js.
 // Oct 16 2026: phases replaced by ONE goal (128.5 -> 95 kg by Mar 1 2027).
-// phase_2 is kept as history only, cut to Sep 22 -> Oct 15.
-ok("phaseFor boundaries: phase_1 Jul 28-Sep 7 · gap · phase_2 Sep 22-Oct 15 · ONE goal Oct 16-Mar 1",
+// Oct 20 2026: the user reset it to 130 -> 95 kg by Feb 20 2027. phase_2 and
+// the first line (goal_v1, Oct 16-19) are kept as history only.
+ok("phaseFor boundaries: phase_1 Jul 28-Sep 7 · gap · phase_2 Sep 22-Oct 15 · goal_v1 Oct 16-19 · ONE goal Oct 20-Feb 20",
   E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
   E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
-  E.phaseFor("2026-10-16")?.id === "goal" && E.phaseFor("2026-12-01")?.id === "goal" &&
-  E.phaseFor("2027-03-01")?.id === "goal" && !E.PHASES.some((p) => p.id === "phase_3"));
+  E.phaseFor("2026-10-16")?.id === "goal_v1" && E.phaseFor("2026-10-19")?.id === "goal_v1" &&
+  E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-12-01")?.id === "goal" &&
+  E.phaseFor("2027-02-20")?.id === "goal" && !E.PHASES.some((p) => p.id === "phase_3"));
+ok("goal_v1 history keeps its real ~1,883/day deficit over Oct 16-19",
+  Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "goal_v1")) - 1883) <= 20);
 ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 days",
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "phase_2")) - 2343) <= 60);
 {
   const G = E.PHASES.find((p) => p.id === "goal");
-  ok("the goal: 128.5 -> 95 kg, Oct 16 2026 -> Mar 1 2027, eat 1,500, ~1,880 kcal/day required deficit",
-    G.startKg === 128.5 && G.targetKg === 95 && G.start === "2026-10-16" && G.plannedEnd === "2027-03-01" &&
-    G.eatKcal === 1500 && Math.abs(E.phaseRequiredDeficit(G) - 1883) <= 20 && G.restingKcal === undefined);
-  ok("the goal's curve lands exactly on 95 kg on Mar 1", Math.abs(E.phaseCurveKg(G, "2027-03-01") - 95) < 0.05);
+  ok("the goal: 130 -> 95 kg, Oct 20 2026 -> Feb 20 2027, eat 1,500, ~2,173 kcal/day required deficit",
+    G.startKg === 130 && G.targetKg === 95 && G.start === "2026-10-20" && G.plannedEnd === "2027-02-20" &&
+    G.eatKcal === 1500 && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 5 && G.restingKcal === undefined);
+  ok("the goal's curve lands exactly on 95 kg on Feb 20", Math.abs(E.phaseCurveKg(G, "2027-02-20") - 95) < 0.05);
 }
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -472,9 +476,9 @@ ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 95 · goalDate Mar 1 2027",
+ok("USER.targetKg 95 · goalDate Feb 20 2027",
   HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:95,heightCm:") &&
-  HTML.includes("goalDate:new Date(2027,2,1)"));
+  HTML.includes("goalDate:new Date(2027,1,20)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -655,8 +659,8 @@ ok(`MAX_PROMPT ≥ 4000 (actual: ${MAX_PROMPT})`, MAX_PROMPT >= 4000);
 section("16 · USER.weightKg fallback");
 
 const userLine = HTML.match(/const USER=\{[^}]+\}/)?.[0] || "";
-ok("USER.weightKg is defined as fallback (128.5, the goal start)",
-  userLine.includes("weightKg:128.5"));
+ok("USER.weightKg is defined as fallback (130, the goal start)",
+  userLine.includes("weightKg:130,"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 15b. Active-calorie compliance target adjusts for actual eaten, not the budget
@@ -787,8 +791,8 @@ ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
 // state server-side) — it's a documented, hand-synced mirror, matching how
 // GOALS.targetKg/goalDate already work in this file. Just check it was
 // actually re-synced, not left stale.
-ok("server diet-review cron mirror re-synced (targetKg 95 by 2027-03-01, one goal, protein snapshot)",
-  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-03-01"/.test(CRON_SRC) && /ONE goal/.test(CRON_SRC) &&
+ok("server diet-review cron mirror re-synced (targetKg 95 by 2027-02-20, one goal, protein snapshot)",
+  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-02-20"/.test(CRON_SRC) && /ONE goal/.test(CRON_SRC) &&
   /proteinTargetG: 230,/.test(CRON_SRC));
 
 // Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()
@@ -1555,6 +1559,18 @@ ok("the longest streak is recomputed in weeks, not accumulated",
       ok("session weights are converted to kg before the AI sees them (120 lbs -> 54.4)", cp?.sets_logged?.[0]?.kg === 54.4, JSON.stringify(cp?.sets_logged));
       ok("the AI sees each exercise's set-to-set fatigue (10 -> 6 reps at one weight = 40% drop)", cp?.fatigue?.repDropPct === 40);
     }
+    // Weight dropped set to set = the first set was too heavy (user's rule),
+    // not a pyramid to progress from.
+    {
+      const f = REAL_PLAN.setFatigue([{ kg: 60, reps: 10 }, { kg: 55, reps: 8 }, { kg: 50, reps: 6 }]);
+      ok("descending weights are flagged as a failed start, with the weights and falling reps",
+        f?.pattern === "descending" && f.topKg === 60 && f.lastKg === 50 && f.repsFellToo === true && f.weightDropPct === 17, JSON.stringify(f));
+      ok("straight sets are still read as rep drop at one weight", REAL_PLAN.setFatigue([{ kg: 50, reps: 12 }, { kg: 50, reps: 9 }]).repDropPct === 25);
+      const WP = readFileSync("api/weekly-plan.js", "utf8");
+      ok("the plan prompt treats descending weights as too heavy, overriding the PR step-up",
+        /DESCENDING WEIGHTS ARE A FAILED START/.test(WP) && /OVERRIDES the PR anchor/.test(WP) && /Do NOT progress from topKg/.test(WP) &&
+        WP.indexOf("DESCENDING WEIGHTS") < WP.indexOf("READ THE SET-BY-SET TREND"));
+    }
     {
       // Session notes are the user's instructions. They used to be sent for
       // the current week only, and only on days with logged exercises.
@@ -1767,8 +1783,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("with no AI coach the email falls back to the rule-based verdict and focus",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
         ok("the report verdict is measured against the one goal plan to 95 kg", /ahead of plan\. On track for 95 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
-        ok("the report scores nutrition against the goal (1,500 kcal, 1,883 deficit)",
-          x.eatTarget === 1500 && x.req === 1883 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report scores nutrition against the goal (1,500 kcal, 2,173 deficit)",
+          x.eatTarget === 1500 && x.req === 2173 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
