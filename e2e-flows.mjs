@@ -98,6 +98,10 @@ const sent = (h, entity) => h.muts.filter((m) => m.entity === entity);
 const wait = (page, ms = 250) => page.waitForTimeout(ms);
 // A milestone pop-up (e.g. "130 kg Milestone!") waits for the user to close
 // it, as it should; flows close it like a person would before tapping on.
+// The clock is frozen for repeatable dates; ids like c_<Date.now()> need it to
+// move between taps, as it does in real use.
+let _tick = 0;
+const advance = (page) => page.clock.setFixedTime(new Date(NOW.getTime() + (++_tick) * 61000));
 const closePopups = (page) => page.evaluate(() => { if (document.getElementById("milestoneModal")?.classList.contains("show")) closeMilestone(); });
 const text = (page, sel) => page.evaluate((s) => document.querySelector(s)?.textContent || "", sel);
 async function flow(name, fn) {
@@ -293,6 +297,7 @@ async function exercisesFlow(state) {
   });
   await flow("free-form add, demo or no-demo line, remove", async () => {
     await p.evaluate(() => { const f = document.getElementById("cf"); if (!f.classList.contains("open") && !f.classList.contains("show")) toggleCF(); }); await wait(p);
+    await advance(p);
     await p.fill("#cfSearch", "Zxqv Wobble"); await wait(p, 400);
     await p.click("#cfDD [data-action='freeform']"); await wait(p, 400);
     await p.evaluate(() => closeSwap?.()); await wait(p);
@@ -313,6 +318,7 @@ async function exercisesFlow(state) {
   });
   await flow("AI alternative", async () => {
     await p.evaluate(() => { const f = document.getElementById("cf"); if (!f.classList.contains("open") && !f.classList.contains("show")) toggleCF(); }); await wait(p);
+    await advance(p);
     await p.fill("#cfSearch", "Zxqv deadlift"); await wait(p, 400); // banned, no library match
     const altBtn = await p.$("#cfDD [data-action='suggestalt']");
     if (altBtn) await altBtn.click();
