@@ -533,12 +533,20 @@ try {
     await page.waitForTimeout(200);
     const sheet = await page.evaluate(() => ({ shown: document.getElementById("stopModal")?.classList.contains("show"), stats: document.getElementById("stopStats")?.innerText || "" }));
     note("Stop Workout opens the styled finish sheet with time, sets and exercises (no native dialog)", sheet.shown && /Time/.test(sheet.stats) && /Sets/.test(sheet.stats) && /Exercises/.test(sheet.stats), JSON.stringify(sheet));
+    // The sheet sits outside #mainScroll: it must still wear the Workout look
+    // (it shipped in the old volt style once). System blue, sentence case.
+    const blue = (c) => /^rgb\((0, 122, 255|10, 132, 255)\)$/.test(c);
+    const sl = await page.evaluate(() => ({ btn: getComputedStyle(document.getElementById("stopConfirm")).backgroundColor, tt: getComputedStyle(document.getElementById("stopTitle")).textTransform }));
+    note("the finish sheet wears the Workout look (blue button, sentence-case title)", blue(sl.btn) && sl.tt === "none", JSON.stringify(sl));
     await page.evaluate(() => window.closeStopSheet());
     const keptGoing = await page.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
     note("'Keep going' closes the sheet and the workout keeps running", keptGoing);
     await page.evaluate(() => window.stopSess());
     await page.locator("#stopConfirm").click();
     await page.waitForTimeout(300);
+    const sm = await page.evaluate(() => ({ shown: document.getElementById("sum").classList.contains("show"), btn: getComputedStyle(document.querySelector("#sum .sum-close")).backgroundColor, tt: getComputedStyle(document.querySelector("#sum .sum-title")).textTransform, txt: document.querySelector("#sum .sum-inner").innerText }));
+    note("the summary wears the Workout look and reads Duration / Sets / Exercises with no emoji",
+      sm.shown && blue(sm.btn) && sm.tt === "none" && /Duration/.test(sm.txt) && /Exercises/.test(sm.txt) && /\d+ of \d+/.test(sm.txt) && !/[\u{1F300}-\u{1FAFF}]/u.test(sm.txt), JSON.stringify(sm));
     await page.evaluate(() => window.closeSummary?.());
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(900);

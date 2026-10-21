@@ -1343,7 +1343,21 @@ ok("delete control is hidden on read-only days",
   ok("the default tokens are the old look (warm ramp, volt accent), not iOS",
     ROOT.includes("--black:light-dark(#EDECEA,#08080A);") && ROOT.includes("--accent:light-dark(#B9E425,#C8F135);") && !ROOT.includes("#007AFF"));
   ok("the iOS tokens apply only to the Workout tab's own regions",
-    IDX.includes('body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){') && /:is\(\.hdr,#dayNav,#mainScroll,\.bot-nav,\.toast\)\{[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX));
+    IDX.includes('body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast,#stopModal,#swapModal,#sum,#milestoneModal,#planModal){') && /:is\(\.hdr,#dayNav,#mainScroll,\.bot-nav,\.toast,[^)]*\)\{[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX));
+  // The finish sheet and summary sit outside #mainScroll, so they shipped in
+  // the old volt look until they were scoped by id (user screenshot, Oct 2026).
+  ok("the Workout pop-ups (finish sheet, summary, swap, milestone) take the Workout look",
+    ["#stopModal","#swapModal","#sum","#milestoneModal"].every(id => IDX.includes(id+",") || IDX.includes(id+"){")) &&
+    /body\[data-tab="workout"\] :is\(#sum,#milestoneModal\) \.sum-title\{[^}]*text-transform:none/.test(IDX));
+  const SUM = IDX.slice(IDX.indexOf('<div class="summary" id="sum">'), IDX.indexOf('id="milestoneModal"'));
+  ok("the workout summary has no emoji and no slogan, and says Done",
+    SUM.length > 0 && !/[\u{1F300}-\u{1FAFF}]/u.test(SUM) && !/showed up/i.test(SUM) && SUM.includes(">Done</button>") && SUM.includes('id="sumEx"'));
+  const W = readFileSync("src/workout.js", "utf8");
+  ok("the summary shows the WHOLE workout (accumulated _duration), not the stretch since a resume",
+    /sumDur"\)\.textContent=fmtWorkoutDur\(S\.sessions\[key\]\._duration\)/.test(W) && /fmtWorkoutDur\(\(sess\._duration\|\|0\)\+el\)/.test(W));
+  const fmt = new Function(W.match(/function fmtWorkoutDur\(sec\)\{[\s\S]*?\n\}/)[0] + "; return fmtWorkoutDur;")();
+  ok("workout durations read like Apple's: Under a minute, 48 min, 1 hr 5 min, 2 hr",
+    fmt(30) === "Under a minute" && fmt(2880) === "48 min" && fmt(3900) === "1 hr 5 min" && fmt(7200) === "2 hr" && fmt(undefined) === "Under a minute");
   ok("go() marks the current tab on <body>, and the page starts on Workout",
     /cTab=tab;[\s\S]{0,120}document\.body\.dataset\.tab=tab;/.test(MAIN_SRC) && IDX.includes('<body data-tab="workout">'));
   ok("Workout toasts are quiet: no routine confirmations, no emoji",

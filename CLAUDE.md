@@ -492,6 +492,12 @@ Four surfaces resolve those keys back to names, and all four must agree:
   restored in `initApp()` when it is today's session and under 6 hours old.
   It used to live only in memory, and iOS unloading the backgrounded PWA made
   the workout look like it "closed on its own".
+- **The finish sheet and summary are Workout pop-ups.** They sit outside
+  `#mainScroll`, so they get the Workout look by id in the scoped token
+  selector (`#stopModal,#swapModal,#sum,#milestoneModal,#planModal`); left out,
+  they shipped in the old volt style. The summary shows the session's total
+  `_duration` via `fmtWorkoutDur()` ("48 min"), never the stretch since the
+  last resume (which read "0m 01s").
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
 - **The target is last session's best set.** The user aims for a PR every

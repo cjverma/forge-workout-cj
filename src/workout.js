@@ -1084,7 +1084,7 @@ function offerSwapOut(day,addedId){
   document.getElementById("swapList").innerHTML=cands.map(e=>
     `<button class="swap-item" data-action="swapdrop" data-drop="${esc(e.id)}">
       <span class="swap-name">${esc(e.name)}</span>
-      <span class="swap-meta">${esc(String(e.sets))} x ${esc(String(e.reps))}${e.hint?" · "+esc(e.hint):""}</span>
+      <span class="swap-meta">${esc(String(e.sets))} × ${esc(String(e.reps))}${e.hint?", "+esc(e.hint):""}</span>
     </button>`).join("");
   m.classList.add("show");
 }
@@ -1164,6 +1164,13 @@ function startSess(){
   renderW();
 }
 
+// Apple's workout duration style: "48 min", "1 hr 5 min", never "0m 01s".
+function fmtWorkoutDur(sec){
+  sec=Math.max(0,Math.floor(Number(sec)||0));
+  if(sec<60)return "Under a minute";
+  const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);
+  return h?(m?`${h} hr ${m} min`:`${h} hr`):`${m} min`;
+}
 function openStopSheet(){
   const S=ctx.getS(),m=document.getElementById("stopModal");
   if(!m)return;
@@ -1172,7 +1179,8 @@ function openStopSheet(){
   const sets=prog.exercises.reduce((a,ex)=>a+((sess[ex.id]?.sets||[]).filter(s=>s&&s.done).length),0);
   const exDone=prog.exercises.filter(ex=>sess[ex.id]?.done).length;
   const stat=(v,l)=>`<div class="stop-stat"><div class="stop-stat-val">${v}</div><div class="stop-stat-lbl">${l}</div></div>`;
-  document.getElementById("stopStats").innerHTML=stat(Math.floor(el/60)+"m","Time")+stat(sets,"Sets")+stat(`${exDone}/${prog.exercises.length}`,"Exercises");
+  // Total so far: earlier stretches (before a resume) plus this one.
+  document.getElementById("stopStats").innerHTML=stat(fmtWorkoutDur((sess._duration||0)+el),"Time")+stat(sets,"Sets")+stat(`${exDone} of ${prog.exercises.length}`,"Exercises");
   m.classList.add("show");
 }
 function closeStopSheet(){document.getElementById("stopModal")?.classList.remove("show");}
@@ -1200,8 +1208,7 @@ function stopSess(confirmed){
   if(confirmed!==true){openStopSheet();return;}
   closeStopSheet();
   ctx.workoutOn=false;clearInterval(ctx.sessTimer);clearActive();
-  const el=Math.floor((Date.now()-ctx.sessStart)/1000);
-  const m=Math.floor(el/60),s=el%60;
+  const el=ctx.sessStart?Math.floor((Date.now()-ctx.sessStart)/1000):0;
   const key=ctx.cDay+"_"+ctx.wk(); // always write to current week
   if(!S.sessions[key])S.sessions[key]={};
   S.sessions[key]._duration=(S.sessions[key]._duration||0)+el; // accumulate across resumes
@@ -1209,8 +1216,13 @@ function stopSess(confirmed){
   save();queueSessionMeta(key);
   const prog=curProg();
   const setsDone=prog.exercises.reduce((a,ex)=>a+((S.sessions[key]||{})[ex.id]?.sets?.filter(s=>s.done)?.length||0),0);
-  document.getElementById("sumDur").textContent=m+"m "+(s<10?"0":"")+s+"s";
+  // The whole workout, not just the stretch since the last resume (which
+  // read "0m 01s" after resuming a finished session).
+  document.getElementById("sumDur").textContent=fmtWorkoutDur(S.sessions[key]._duration);
   document.getElementById("sumSets").textContent=setsDone;
+  const exDone=prog.exercises.filter(ex=>(S.sessions[key]||{})[ex.id]?.done).length;
+  const sumEx=document.getElementById("sumEx");if(sumEx)sumEx.textContent=`${exDone} of ${prog.exercises.length}`;
+  const sumSub=document.getElementById("sumSub");if(sumSub)sumSub.textContent=prog.label||"";
   document.getElementById("sum").classList.add("show");
   if(navigator.vibrate)navigator.vibrate([80,40,160]);
   ctx.sessStart=null;

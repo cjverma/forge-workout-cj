@@ -150,13 +150,25 @@ async function workoutSession(state) {
     await p.evaluate(() => closeStopSheet()); await wait(p);
     const stillOn = await p.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
     await p.click("#bStop"); await wait(p);
+    await p.clock.setFixedTime(new Date(NOW.getTime() + 50 * 60000)); // a 50-minute workout
     await p.evaluate(() => stopSess(true)); await wait(p, 400);
     const summary = await p.evaluate(() => document.getElementById("sum")?.classList.contains("show"));
+    const dur1 = await p.evaluate(() => document.getElementById("sumDur").textContent);
     await p.evaluate(() => closeSummary()); await wait(p);
     const stopped = (await S(p)).sessions["Wednesday_" + await p.evaluate(() => wk())]?._stopped;
     const resumeBtn = await p.evaluate(() => /Resume Workout/.test(document.body.innerText));
     await p.evaluate(() => resumeSess()); await wait(p);
     const resumed = await p.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
+    // Resume, two more minutes, finish again: the summary counts the WHOLE
+    // workout. It used to show only the stretch since the resume ("0m 01s").
+    await p.clock.setFixedTime(new Date(NOW.getTime() + 52 * 60000));
+    await p.evaluate(() => stopSess(true)); await wait(p, 300);
+    const dur2 = await p.evaluate(() => document.getElementById("sumDur").textContent);
+    await p.evaluate(() => closeSummary()); await p.evaluate(() => resumeSess()); await wait(p);
+    await p.clock.setFixedTime(NOW);
+    const n1 = parseInt(dur1, 10), n2 = parseInt(dur2, 10);
+    note("the summary counts the whole workout across a resume (50 min, then 52 min, never Under a minute)",
+      /^\d+ min$|^\d+ hr/.test(dur1) && n1 >= 50 && n2 === n1 + 2, JSON.stringify({ dur1, dur2 }));
     await flush(h);
     note("start, survives reload, stop sheet, keep going, finish, summary, resume",
       !!active && survived && sheet && stillOn && summary && stopped && resumeBtn && resumed && sent(h, "session_meta").length > 0,

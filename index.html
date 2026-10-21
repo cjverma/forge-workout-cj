@@ -918,7 +918,7 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    body[data-tab]). Tokens are set on the Workout tab's own regions, not on
    body, so the drawer, chat and pop-ups keep the old look even when opened
    from Workout; they get their own pass. Every other tab is unchanged. */
-body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){
+body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast,#stopModal,#swapModal,#sum,#milestoneModal,#planModal){
   --black:light-dark(#F2F2F7,#000000);
   --s0:light-dark(#F9F9FB,#121214);
   --s1:light-dark(#FFFFFF,#1C1C1E);
@@ -990,7 +990,7 @@ body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){
 }
 html:has(body[data-tab="workout"]),body[data-tab="workout"]{background:light-dark(#F2F2F7,#000000);}
 body[data-tab="workout"]{font-size:17px;-webkit-font-smoothing:antialiased;}
-body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav) button:active:not(:disabled){transform:none;opacity:.55;}
+body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,#stopModal,#swapModal,#sum,#milestoneModal,#planModal) button:active:not(:disabled){transform:none;opacity:.55;}
 body[data-tab="workout"] .hdr{padding:calc(var(--sp-3) + env(safe-area-inset-top,0px)) var(--sp-4) 4px;}
 /* No wordmark on Workout: Apple's screens never brand their header. The sync dot stays. */
 body[data-tab="workout"] .logo{font-size:0;line-height:0;display:flex;align-items:center;}
@@ -1004,7 +1004,43 @@ body[data-tab="workout"] .bot-nav{background:light-dark(rgba(249,249,251,.86),rg
 body[data-tab="workout"] .nav-item{padding:7px 0 2px;gap:3px;font-size:10px;font-weight:500;letter-spacing:.1px;}
 body[data-tab="workout"] .nav-item.active{color:var(--accent-text);}
 body[data-tab="workout"] .nav-item.active::before{display:none;}
-body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);background:var(--s1);border:0;border-radius:var(--r-pill);font-size:15px;padding:11px 20px;transition:opacity .2s;box-shadow:var(--shadow-lift);}
+body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);white-space:normal;width:max-content;max-width:calc(100vw - 32px);text-align:center;background:var(--s1);border:0;border-radius:var(--r-pill);font-size:15px;padding:11px 20px;transition:opacity .2s;box-shadow:var(--shadow-lift);}
+
+/* Workout pop-ups (finish sheet, summary, swap, milestone). They sit outside
+   #mainScroll, so they get the Workout tokens by id above and their look here.
+   Action sheet: sentence-case title, one inset grouped stat row, a filled
+   tint button and a plain text one. Summary: Apple Fitness's finish page. */
+body[data-tab="workout"] :is(#stopModal,#swapModal) .swap-sheet{background:var(--black);border:0;border-radius:14px 14px 0 0;padding:8px var(--sp-4) calc(env(safe-area-inset-bottom,0px) + var(--sp-4));}
+body[data-tab="workout"] .stop-grab{width:36px;height:5px;background:var(--b2);margin:0 auto 14px;}
+body[data-tab="workout"] :is(#stopModal,#swapModal) .swap-title{font-family:var(--font-body);font-size:20px;font-weight:600;letter-spacing:.38px;text-transform:none;color:var(--white);}
+body[data-tab="workout"] :is(#stopModal,#swapModal) .swap-sub{font-size:15px;font-weight:400;letter-spacing:-.24px;color:var(--mid);margin-top:4px;line-height:1.35;}
+body[data-tab="workout"] .stop-stats{gap:0;background:var(--s1);border-radius:var(--r-lg);margin:18px 0 6px;padding:12px 0;}
+body[data-tab="workout"] .stop-stat{background:none;border:0;border-radius:0;padding:0 6px;}
+body[data-tab="workout"] .stop-stat+.stop-stat{border-left:.5px solid var(--b1);}
+body[data-tab="workout"] .stop-stat-val{font-family:var(--font-num);font-size:20px;font-weight:600;color:var(--white);line-height:1.2;}
+body[data-tab="workout"] .stop-stat-lbl{font-size:13px;font-weight:400;color:var(--mid);margin-top:2px;}
+body[data-tab="workout"] :is(#stopModal,#swapModal) .swap-keep{margin-top:12px;background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);padding:15px;font-size:17px;font-weight:600;letter-spacing:-.4px;}
+body[data-tab="workout"] .stop-cancel{margin-top:4px;background:none;border:0;color:var(--accent-text);padding:13px;font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab="workout"] #swapModal .swap-head{margin-bottom:14px;}
+body[data-tab="workout"] #swapModal .swap-list{gap:0;background:var(--s1);border-radius:var(--r-lg);overflow:hidden;}
+body[data-tab="workout"] #swapModal .swap-item{background:none;border:0;border-radius:0;padding:11px 16px;position:relative;}
+body[data-tab="workout"] #swapModal .swap-item+.swap-item::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--b1);}
+body[data-tab="workout"] #swapModal .swap-item:active{background:var(--s2);}
+body[data-tab="workout"] #swapModal .swap-name{font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab="workout"] #swapModal .swap-meta{font-size:15px;color:var(--mid);}
+body[data-tab="workout"] :is(#sum,#milestoneModal){background:var(--black);padding:24px var(--sp-4);}
+body[data-tab="workout"] :is(#sum,#milestoneModal) .sum-icon{font-size:56px;line-height:1;margin-bottom:18px;}
+body[data-tab="workout"] .sum-check{display:block;}
+body[data-tab="workout"] .sum-check circle{fill:var(--green);}
+body[data-tab="workout"] .sum-check path{fill:none;stroke:#fff;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;}
+body[data-tab="workout"] :is(#sum,#milestoneModal) .sum-title{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:.37px;line-height:41px;text-transform:none;color:var(--white);margin-bottom:4px;}
+body[data-tab="workout"] :is(#sum,#milestoneModal) .sum-sub{font-size:17px;letter-spacing:-.4px;color:var(--mid);margin-bottom:28px;line-height:1.35;}
+body[data-tab="workout"] #sum .sum-stats{display:block;background:var(--s1);border-radius:var(--r-lg);margin-bottom:24px;overflow:hidden;}
+body[data-tab="workout"] #sum .sum-stat{display:flex;align-items:baseline;justify-content:space-between;gap:12px;background:none;border:0;border-radius:0;padding:12px 16px;text-align:left;position:relative;}
+body[data-tab="workout"] #sum .sum-stat+.sum-stat::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--b1);}
+body[data-tab="workout"] #sum .sum-lbl{font-size:17px;font-weight:400;letter-spacing:-.4px;text-transform:none;color:var(--white);margin:0;}
+body[data-tab="workout"] #sum .sum-val{font-family:var(--font-num);font-size:17px;font-weight:600;letter-spacing:0;color:var(--mid);}
+body[data-tab="workout"] :is(#sum,#milestoneModal) .sum-close{background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);padding:15px;font-size:17px;font-weight:600;letter-spacing:-.4px;text-transform:none;}
 
 /* ══ WORKOUT TAB · iOS (Oct 2026 redesign) ══════════════════════════════════
    Everything here is scoped to .wv (renderW's root), so other tabs keep their
@@ -1188,7 +1224,7 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
     <div class="swap-title" id="stopTitle">Finish workout?</div>
     <div class="swap-sub" id="stopSub">Your sets are saved as you go. This ends the session.</div>
     <div class="stop-stats" id="stopStats"></div>
-    <button class="swap-keep" id="stopConfirm" onclick="stopSess(true)">Finish &amp; save</button>
+    <button class="swap-keep" id="stopConfirm" onclick="stopSess(true)">Finish workout</button>
     <button class="stop-cancel" onclick="closeStopSheet()">Keep going</button>
   </div>
 </div>
@@ -1205,14 +1241,15 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
 
 <div class="summary" id="sum">
   <div class="sum-inner">
-    <div class="sum-icon">🔥</div>
-    <div class="sum-title">Session Complete</div>
-    <div class="sum-sub">You showed up. That's everything.</div>
+    <div class="sum-icon"><svg class="sum-check" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle cx="28" cy="28" r="28"/><path d="M17 29.5l7.5 7.5L39.5 21"/></svg></div>
+    <div class="sum-title">Workout complete</div>
+    <div class="sum-sub" id="sumSub"></div>
     <div class="sum-stats">
-      <div class="sum-stat"><div class="sum-val" id="sumDur">-</div><div class="sum-lbl">Duration</div></div>
-      <div class="sum-stat"><div class="sum-val" id="sumSets">-</div><div class="sum-lbl">Sets Done</div></div>
+      <div class="sum-stat"><div class="sum-lbl">Duration</div><div class="sum-val" id="sumDur">-</div></div>
+      <div class="sum-stat"><div class="sum-lbl">Sets</div><div class="sum-val" id="sumSets">-</div></div>
+      <div class="sum-stat"><div class="sum-lbl">Exercises</div><div class="sum-val" id="sumEx">-</div></div>
     </div>
-    <button class="sum-close" onclick="closeSummary()">Back to Forge</button>
+    <button class="sum-close" onclick="closeSummary()">Done</button>
   </div>
 </div>
 <div class="summary" id="milestoneModal">
@@ -1220,7 +1257,7 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
     <div class="sum-icon" id="msIcon"></div>
     <div class="sum-title" id="msTitle"></div>
     <div class="sum-sub" id="msSub"></div>
-    <button class="sum-close" onclick="closeMilestone()">Keep Going →</button>
+    <button class="sum-close" onclick="closeMilestone()">Continue</button>
   </div>
 </div>
 
