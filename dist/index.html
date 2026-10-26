@@ -1073,7 +1073,11 @@ body[data-tab] .nut-hero{background:var(--s1);border:0;box-shadow:none;color:var
 body[data-tab] .nut-hero::after{display:none;}
 body[data-tab] .nut-hero *{color:inherit;}
 body[data-tab] .nut-hero .nut-card-title{color:var(--white);}
-body[data-tab] .nut-ring-big{font-family:var(--font-num);font-size:34px;font-weight:700;color:var(--white);}
+/* Bigger ring (Activity-sized): at 128px its ~102px opening could not hold
+   "1,500" at 34px, which touched the stroke. The viewBox scales the arc. */
+body[data-tab] .nut-ring-wrap{width:172px;height:172px;margin:6px auto 12px;}
+body[data-tab] .nut-ring-wrap svg{width:100%;height:100%;}
+body[data-tab] .nut-ring-big{font-family:var(--font-num);font-size:34px;font-weight:700;color:var(--white);white-space:nowrap;}
 body[data-tab] .nut-ring-small{font-size:13px;color:var(--mid);}
 body[data-tab] .nut-hero .mpie-hole{background:var(--s1);}
 body[data-tab] .nut-hero .mpie-row{color:var(--lt);font-size:15px;}

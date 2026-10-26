@@ -190,6 +190,16 @@ try {
       }
       return out;
     });
+    // The kcal figure must sit inside the ring's opening with room to spare.
+    // Measured at the widest real value ("1,500", nothing eaten yet).
+    const ring = await page.evaluate(() => {
+      const big = document.querySelector(".nut-ring-big"), svg = document.querySelector(".nut-ring-wrap svg");
+      if (!big || !svg) return null;
+      big.textContent = "1,500";
+      const inner = svg.getBoundingClientRect().width * (56 - 5) / 64;
+      return { text: Math.round(big.getBoundingClientRect().width), inner: Math.round(inner) };
+    });
+    note(`${theme}: "1,500" fits inside the intake ring (${ring && ring.text}px in a ${ring && ring.inner}px opening)`, !!ring && ring.text < ring.inner * 0.8, JSON.stringify(ring));
     for (const [sel, v] of Object.entries(heroes)) {
       note(`${theme}: ${sel} text stays legible on its own surface (${v.contrast}:1)`, v.contrast >= 4.5);
     }
