@@ -715,7 +715,7 @@ function initApp(){
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;
-  if(hasData&&staleBackup)setTimeout(()=>showToast("💾 No recent backup · export one from Settings"),3000);
+  if(hasData&&staleBackup)setTimeout(()=>showToast("No recent backup. Export one from Settings."),3000);
   document.addEventListener("click",e=>{
     const btn=e.target.closest("[data-action]");
     if(!btn)return;

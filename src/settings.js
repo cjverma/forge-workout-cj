@@ -16,12 +16,11 @@ function fetchT(url, opts, ms = 15000) {
 // Settings
 export function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
-    <div class="st-pg-title">Set<span>tings</span></div>
-    <div class="st-pg-sub">FORGE · personal · private</div>
+    <div class="st-pg-title">Settings</div>
 
     <!-- Group 1: This Week -->
     <details class="st-acc" open>
-      <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan · volume tracker</div></div></summary>
+      <summary><div><div>${icon("calendar",20)} This Week</div><div class="st-acc-sub">Plan, volume tracker</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly Plan</div>
         <div class="export-card" style="border-left-color:var(--green)">
@@ -52,7 +51,7 @@ export function renderST(){
 
     ${FEATURES.progressCharts?`    <!-- Group 2: Progress -->
     <details class="st-acc" open>
-      <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit · review</div></div></summary>
+      <summary><div><div>${icon("chart",20)} Progress</div><div class="st-acc-sub">Weekly deficit, review</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Weekly Calorie Deficit</div>
     ${(()=>{
@@ -134,7 +133,7 @@ export function renderST(){
             <span style="color:var(--dim)">week ${WEEKLY_TARGET.toLocaleString()} kcal</span>
           </div>
         </div>
-        ${loggedDays<daysElapsed?`<div style="font-size:11px;color:var(--amber);margin-top:8px;text-align:right">⚠ ${loggedDays} of ${daysElapsed} days logged · total may be optimistic</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:right">All ${daysElapsed} day${daysElapsed!==1?"s":""} logged ✓</div>`}
+        ${loggedDays<daysElapsed?`<div style="font-size:11px;color:var(--amber);margin-top:8px;text-align:right">⚠ ${loggedDays} of ${daysElapsed} days logged, total may be optimistic</div>`:`<div style="font-size:11px;color:var(--dim);margin-top:8px;text-align:right">All ${daysElapsed} day${daysElapsed!==1?"s":""} logged ✓</div>`}
       </div>`;
     })()}
 
@@ -144,35 +143,35 @@ export function renderST(){
     </details>`:""}
     <!-- Group 3: App (appearance + data) -->
     <details class="st-acc" open>
-      <summary><div><div>${icon("gear",20)} App</div><div class="st-acc-sub">Theme · sync · backup</div></div></summary>
+      <summary><div><div>${icon("gear",20)} App</div><div class="st-acc-sub">Theme, sync, backup</div></div></summary>
       <div class="st-acc-inner">
         <div class="st-sec">Appearance</div>
         <div class="st-group">
-          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light · tap for dark":S.theme==="dark"?"Dark · tap for auto":"Auto · follows your device · tap for light"}</div></div></div>
+          <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
-          <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""} · tap to view</div></div></summary>
-          <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">${icon("refresh",18)}</div><div class="st-info"><div class="st-ttl">${fmtDate(new Date(s.ts).toISOString().slice(0,10))} · ${new Date(s.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync · ~${s.weight} entries</div></div></div>`).join("")}</div></div>
+          <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""}, tap to view</div></div></summary>
+          <div class="st-subacc-inner"><div class="st-group">${snaps.map(s=>`<div class="st-row" onclick="restoreSnapshot(${s.ts})"><div class="st-icon">${icon("refresh",18)}</div><div class="st-info"><div class="st-ttl">${fmtDate(new Date(s.ts).toISOString().slice(0,10))}, ${new Date(s.ts).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})}</div><div class="st-sub">Restore this device's data from before that sync, ~${s.weight} entries</div></div></div>`).join("")}</div></div>
         </details>`;})()}
 
         <details class="st-subacc">
-          <summary><div><div>${icon("database",20)} Data</div><div class="st-subacc-note">Sync · backup · export · danger zone</div></div></summary>
+          <summary><div><div>${icon("database",20)} Data</div><div class="st-subacc-note">Sync, backup, export, danger zone</div></div></summary>
           <div class="st-subacc-inner">
 
         <div class="st-sec">Sync &amp; Recovery</div>
         <div class="st-group">
-          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued · tap to sync now`:`Synced${ctx.lastSyncAt?" · last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""} · tap to check`;if(ctx.syncAvailable===false)return"Off · add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
-          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device · tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
+          <div class="st-row" onclick="checkSyncNow()"><div class="st-icon">${icon("cloud",18)}</div><div class="st-info"><div class="st-ttl">Database Sync</div><div class="st-sub">${(()=>{const pending=getOutbox().length;if(ctx.syncAvailable===true)return pending?`${pending} change${pending!==1?"s":""} queued, tap to sync now`:`Synced${ctx.lastSyncAt?", last "+new Date(ctx.lastSyncAt).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):""}, tap to check`;if(ctx.syncAvailable===false)return"Off, add DATABASE_URL to the Vercel project, then redeploy";return"Tap to check sync status";})()}</div></div></div>
+          ${(()=>{const days=listDailyBackups();if(!days.length)return"";return `<div class="st-row" onclick="const l=document.getElementById('dailyBackupList');l.style.display=l.style.display==='none'?'block':'none'"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">Local Backups</div><div class="st-sub">${days.length} daily snapshot${days.length!==1?"s":""} on this device, tap to view</div></div></div><div id="dailyBackupList" class="st-group" style="display:none">${days.map(d=>`<div class="st-row" onclick="restoreDailyBackup('${d}')"><div class="st-icon">${icon("calendar",20)}</div><div class="st-info"><div class="st-ttl">${d}</div><div class="st-sub">Tap to restore this day's local snapshot</div></div></div>`).join("")}</div>`;})()}
         </div>
 
         <div class="st-sec">Backup &amp; Export</div>
         <div class="st-group">
-          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No Recent Manual Backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss · download a copy below</div></div></div>`:""}
-          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?` · last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
-          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox · or open beautiful PDF report</div></div></div>
+          ${(!S._lastBackup||Date.now()-S._lastBackup>14*86400000)?`<div class="st-row" style="cursor:default"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--amber)">No Recent Manual Backup</div><div class="st-sub">Local snapshots protect against sync bugs, but not device loss, download a copy below</div></div></div>`:""}
+          <div class="st-row" onclick="exportBackup()"><div class="st-icon">${icon("save",18)}</div><div class="st-info"><div class="st-ttl">Export Backup</div><div class="st-sub">Download sessions, nutrition, weights as JSON${S._lastBackup?`, last ${fmtDate(new Date(S._lastBackup).toISOString().slice(0,10))}`:""}</div></div></div>
+          <div class="st-row" onclick="showExportSheet()"><div class="st-icon">${icon("mail",18)}</div><div class="st-info"><div class="st-ttl"><button id="emailExportBtn" style="background:none;border:none;padding:0;font:inherit;color:inherit;cursor:pointer">Email My Data</button></div><div class="st-sub">CSV to inbox, or open beautiful PDF report</div></div></div>
           <div class="st-row" onclick="document.getElementById('importFile').click()"><div class="st-icon">${icon("upload",18)}</div><div class="st-info"><div class="st-ttl">Import Backup</div><div class="st-sub">Restore from a previously exported file</div></div></div>
           <input type="file" id="importFile" accept=".json,application/json" style="display:none" onchange="importBackup(this)">
-          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard · paste into Claude</div></div></div>
+          <div class="st-row" onclick="copyExp()"><div class="st-icon">${icon("clipboard",18)}</div><div class="st-info"><div class="st-ttl">Copy Last 3 Months</div><div class="st-sub">Session history to clipboard, paste into Claude</div></div></div>
         </div>
 
         ${!window.FORGE_API_CFG?`<div class="st-sec">Session</div>
@@ -183,7 +182,7 @@ export function renderST(){
         <div class="danger-zone">
           <div class="st-sec">Danger Zone</div>
           <div class="st-group">
-            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything · device and database</div></div></div>
+            <div class="st-row" onclick="clearD()"><div class="st-icon">${icon("trash",18)}</div><div class="st-info"><div class="st-ttl" style="color:var(--red)">Clear All Data</div><div class="st-sub">Permanently wipe everything, device and database</div></div></div>
           </div>
         </div>
 
@@ -246,7 +245,7 @@ function buildWeeklyReviewCard(){
     </div>
     <div style="font-size:12px;color:var(--mid);margin-bottom:10px">${arrivalEst()}</div>
     ${verdict?`<div class="weekly-note" style="margin-bottom:10px"><div class="weekly-note-title">Coach's Verdict</div>${mdLite(verdict)}</div>`:""}
-    <button class="btn-o" id="wkRevBtn" onclick="aiWeeklyReview()">${verdict?"Regenerate Verdict":"Get AI verdict · Am I on track?"}</button>
+    <button class="btn-o" id="wkRevBtn" onclick="aiWeeklyReview()">${verdict?"Regenerate Verdict":"Get AI verdict, Am I on track?"}</button>
   </div>`;
 }
 async function aiWeeklyReview(){
@@ -292,7 +291,7 @@ async function aiWeeklyReview(){
     S.nutrition.weeklyVerdict={week:wk(),text:d.text};
     save();queueSettings();renderST();
   }catch(e){
-    showToast("AI unavailable · try again");
+    showToast("AI unavailable, try again");
     if(btn){btn.disabled=false;btn.textContent="Regenerate Verdict";}
   }
 }
@@ -362,8 +361,8 @@ function showExportSheet(){
   sheet.innerHTML=`
     <div class="export-sheet-inner">
       <div class="export-sheet-title">Export My Data</div>
-      <button class="export-opt" onclick="emailCSV()">${icon("file",18)} Email CSV<span class="export-opt-sub">All data as spreadsheet · opens in Google Sheets</span></button>
-      <button class="export-opt" onclick="openPDFReport()">${icon("chart",20)} View PDF Report<span class="export-opt-sub">Beautiful report with charts · print or save as PDF</span></button>
+      <button class="export-opt" onclick="emailCSV()">${icon("file",18)} Email CSV<span class="export-opt-sub">All data as spreadsheet, opens in Google Sheets</span></button>
+      <button class="export-opt" onclick="openPDFReport()">${icon("chart",20)} View PDF Report<span class="export-opt-sub">Beautiful report with charts, print or save as PDF</span></button>
       <button class="export-cancel" onclick="document.getElementById('exportSheet').classList.remove('open')">Cancel</button>
     </div>`;
   document.body.appendChild(sheet);
@@ -616,8 +615,8 @@ function genExp(){
 function copyExp(){
   const text=genExp();
   navigator.clipboard?.writeText(text)
-    .then(()=>showToast("Copied · paste into Claude ✓"))
-    .catch(()=>showToast("Copy failed · try again"));
+    .then(()=>showToast("Copied. Paste it into Claude."))
+    .catch(()=>showToast("Copy failed. Try again."));
 }
 
 function findN(id){
@@ -631,7 +630,7 @@ function clearD(){
   if(!confirm("⚠️ Are you absolutely sure? There is no way to recover this once deleted. Not from backups, not from the cloud, nothing.\n\nYou'll need to type your name on the next screen to confirm."))return;
   const typed=prompt(`Type your full name exactly ("${CLEAR_DATA_CONFIRM_NAME}") to permanently delete everything:`);
   if(typed===null)return;
-  if(typed!==CLEAR_DATA_CONFIRM_NAME){showToast("Name didn't match · nothing was deleted");return;}
+  if(typed!==CLEAR_DATA_CONFIRM_NAME){showToast("Name didn't match, nothing was deleted");return;}
   wipeAllData();
 }
 async function wipeAllData(){
@@ -703,7 +702,7 @@ async function genWeeklyPlan(auto){
     showPlanModal(parsed);
   }catch(e){
     if(auto)return false;
-    showToast(e&&e.name==="AbortError"?"Plan timed out · try again":"Failed to generate plan · try again");
+    showToast(e&&e.name==="AbortError"?"Plan timed out, try again":"Failed to generate plan, try again");
   }finally{
     btns.forEach(b=>{b.disabled=false;b.textContent=b.dataset.lbl||"Generate Next Week";});
   }
@@ -728,7 +727,7 @@ function showPlanModal(parsed){
         changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--red)">${icon("trash",18)} ${esc(cur.name)}</div><div class="pm-change-val" style="color:var(--red)">Removing</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else if(upd.action==="add"){
         changeCount++;
-        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">${icon("plus",18)} ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""} · ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
+        changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex" style="color:var(--green)">${icon("plus",18)} ${esc(upd.name||upd.id)}</div><div class="pm-change-val" style="color:var(--green)">${upd.sets||""}×${upd.reps||""}, ${esc(upd.hint||"")}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       } else {
         const cur=PROG[day].exercises.find(e=>e.id===upd.id);
         if(!cur)continue;
@@ -737,8 +736,8 @@ function showPlanModal(parsed){
         const repsChanged=upd.reps!==undefined&&String(upd.reps)!==String(cur.reps);
         if(!hintChanged&&!setsChanged&&!repsChanged)continue;
         changeCount++;
-        const from=[cur.hint,`${cur.sets}×${cur.reps}`].filter(Boolean).join(" · ");
-        const to=[upd.hint||(hintChanged?"":cur.hint),(setsChanged||repsChanged)?`${upd.sets||cur.sets}×${upd.reps||cur.reps}`:null].filter(Boolean).join(" · ");
+        const from=[cur.hint,`${cur.sets}×${cur.reps}`].filter(Boolean).join(", ");
+        const to=[upd.hint||(hintChanged?"":cur.hint),(setsChanged||repsChanged)?`${upd.sets||cur.sets}×${upd.reps||cur.reps}`:null].filter(Boolean).join(", ");
         changesHtml+=`<div class="pm-change"><div class="pm-change-day">${esc(day)}</div><div class="pm-change-ex">${esc(cur.name)}</div><div class="pm-change-val">${esc(from)} → ${esc(to)}</div>${upd.reason?`<div class="pm-change-reason">${esc(upd.reason)}</div>`:""}</div>`;
       }
     }
@@ -750,7 +749,7 @@ function showPlanModal(parsed){
     ${notes?`<div class="pm-section">Coaching Notes</div><div class="pm-notes">${mdLite(notes)}</div>`:""}
     ${flags.length?`<div class="pm-section">Flags</div>${flags.map(f=>`<div class="pm-flag">${esc(f)}</div>`).join("")}`:""}
     <div class="pm-section">Changes${changeCount?` (${changeCount})`:""}</div>
-    ${changesHtml||`<div class="pm-notes">No changes needed · program looks good for next week.</div>`}
+    ${changesHtml||`<div class="pm-notes">No changes needed, program looks good for next week.</div>`}
     <div class="pm-btns">
       <button class="pm-cancel" onclick="closePlanModal()">Cancel</button>
       <button class="pm-apply" onclick="applyPendingPlan()">Apply Plan</button>

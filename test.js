@@ -1146,8 +1146,8 @@ ok("tabular-nums rule present and NOT applied to body/prose",
   HTML.includes("font-variant-numeric: tabular-nums") &&
   !/^body\{[^}]*font-variant-numeric/m.test(HTML));
 
-ok("mdLite normalises em dash to middot and en dash to hyphen",
-  HTML.includes('replace(/[ \\t]*\u2014[ \\t]*/g, " \u00b7 ")') &&
+ok("mdLite normalises em dash to a colon in headings and a comma elsewhere, en dash to hyphen",
+  HTML.includes('replace(/[ \\t]*\u2014[ \\t]*/g, ", ")') && HTML.includes('"$1: ")') &&
   HTML.includes('replace(/[ \\t]*\u2013[ \\t]*/g, "-")'));
 
 // A middot-for-em-dash swap in mdLite only fixes AI text. Hand-written strings
@@ -1379,21 +1379,21 @@ ok("deleting a set with logged data asks first",
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
 
-// The iOS redesign ships ONE TAB AT A TIME (user, Oct 2026). Its tokens and
-// chrome are keyed on body[data-tab="workout"]; the default :root stays main's
-// old look so Food, Settings, the drawer and pop-ups are unchanged for now.
+// The iOS redesign shipped Workout first, then every other screen (user,
+// Oct 2026: "fix it entirely for all the rest"). The iOS tokens sit on
+// body[data-tab], so everything under <body> (tabs, drawer, chat, sheets,
+// pop-ups) inherits them; :root keeps the old values only as a fallback.
 {
   const IDX = readFileSync("index.html", "utf8"), MAIN_SRC = readFileSync("src/main.js", "utf8");
-  const ROOT = IDX.slice(IDX.indexOf(":root{"), IDX.indexOf("html[data-theme=\"light\"]"));
-  ok("the default tokens are the old look (warm ramp, volt accent), not iOS",
-    ROOT.includes("--black:light-dark(#EDECEA,#08080A);") && ROOT.includes("--accent:light-dark(#B9E425,#C8F135);") && !ROOT.includes("#007AFF"));
-  ok("the iOS tokens apply only to the Workout tab's own regions",
-    IDX.includes('body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast,#stopModal,#swapModal,#sum,#milestoneModal,#planModal){') && /:is\(\.hdr,#dayNav,#mainScroll,\.bot-nav,\.toast,[^)]*\)\{[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX));
-  // The finish sheet and summary sit outside #mainScroll, so they shipped in
-  // the old volt look until they were scoped by id (user screenshot, Oct 2026).
-  ok("the Workout pop-ups (finish sheet, summary, swap, milestone) take the Workout look",
-    ["#stopModal","#swapModal","#sum","#milestoneModal"].every(id => IDX.includes(id+",") || IDX.includes(id+"){")) &&
-    /body\[data-tab="workout"\] :is\(#sum,#milestoneModal\) \.sum-title\{[^}]*text-transform:none/.test(IDX));
+  ok("the iOS tokens apply to every screen (on body[data-tab]), with system blue",
+    /\nbody\[data-tab\]\{\n  --black:light-dark\(#F2F2F7,#000000\);[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX) && !IDX.includes('body[data-tab="workout"]'));
+  ok("Food, Settings, the drawer, chat, the plan review and the lock screen are restyled in the same grammar",
+    IDX.includes("EVERY OTHER SCREEN · iOS") && /body\[data-tab\] \.nut-hero\{background:var\(--s1\)/.test(IDX) &&
+    /body\[data-tab\] \.chat-user\{background:var\(--accent\)/.test(IDX) && /body\[data-tab\] \.drawer\{background:var\(--black\)/.test(IDX));
+  ok("the Workout pop-ups (finish sheet, summary, swap, milestone) take the iOS look",
+    /body\[data-tab\] :is\(#sum,#milestoneModal\) \.sum-title\{[^}]*text-transform:none/.test(IDX));
+  ok("the status bar colour matches the iOS surfaces (#000 dark, #F2F2F7 light) and the manifest was re-busted",
+    readFileSync("src/ui.js", "utf8").includes('dark ? "#000000" : "#F2F2F7"') && IDX.includes("manifest.json?v=3"));
   const SUM = IDX.slice(IDX.indexOf('<div class="summary" id="sum">'), IDX.indexOf('id="milestoneModal"'));
   ok("the workout summary has no emoji and no slogan, and says Done",
     SUM.length > 0 && !/[\u{1F300}-\u{1FAFF}]/u.test(SUM) && !/showed up/i.test(SUM) && SUM.includes(">Done</button>") && SUM.includes('id="sumEx"'));
@@ -1688,7 +1688,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
     // banned so there is never a measured 1RM to correct against. It stays as
     // the rep-normalised RANKING key, but it is not the headline number.
     ok("the PR row leads with the weight actually lifted",
-      /\$\{pr\.weight\}kg × \$\{pr\.reps\} · \$\{fmtDate\(pr\.date\)\} · est\. 1RM \$\{pr\.est\}kg/.test(NUT) &&
+      /\$\{pr\.weight\}kg × \$\{pr\.reps\}, \$\{fmtDate\(pr\.date\)\}, est\. 1RM \$\{pr\.est\}kg/.test(NUT) &&
       !/Est\. 1RM: \$\{pr\.est\}/.test(NUT));
     ok("the leaderboard shows the real lift and only sorts by est. 1RM",
       /lift-val">\$\{best\.weight\}<span class="lift-unit">kg × \$\{best\.reps\}/.test(NUT) &&

@@ -170,8 +170,9 @@ try {
     await page.evaluate(() => window.closeDrawer && window.closeDrawer());
     await page.waitForTimeout(500);
 
-    // Heroes are theme-independent dark surfaces. A same-specificity rule can
-    // win and wash them out with the stylesheet still looking correct.
+    // The intake card was a dark volt hero; in the iOS pass it is an ordinary
+    // card whose hero tokens point at the surface tokens. Whatever it is, its
+    // text must stay legible on its own background in both themes.
     await page.locator("#nav-nutrition").click();
     await page.waitForTimeout(1200);
     const heroes = await page.evaluate(() => {
@@ -182,7 +183,7 @@ try {
         const el = document.querySelector(sel);
         if (!el) continue;
         const cs = getComputedStyle(el);
-        const fg = nums(cs.color), bg = nums(cs.backgroundImage);
+        const fg = nums(cs.color), bg = cs.backgroundImage !== "none" ? nums(cs.backgroundImage) : nums(cs.backgroundColor);
         if (fg.length < 3 || bg.length < 3) { out[sel] = { contrast: 0 }; continue; }
         const [hi, lo] = lum(fg) > lum(bg) ? [lum(fg), lum(bg)] : [lum(bg), lum(fg)];
         out[sel] = { contrast: +(((hi + 0.05) / (lo + 0.05)).toFixed(2)), gradient: cs.backgroundImage.startsWith("linear-gradient") };
@@ -190,7 +191,7 @@ try {
       return out;
     });
     for (const [sel, v] of Object.entries(heroes)) {
-      note(`${theme}: ${sel} keeps its gradient and stays legible (${v.contrast}:1)`, v.gradient && v.contrast >= 4.5);
+      note(`${theme}: ${sel} text stays legible on its own surface (${v.contrast}:1)`, v.contrast >= 4.5);
     }
     await page.close();
   }
@@ -907,8 +908,8 @@ try {
     await page.close();
   }
 
-  // One tab at a time: Workout wears the iOS look, every other tab and the
-  // drawer keep main's look (warm background, volt accent) until their pass.
+  // The iOS look covers EVERY tab and the drawer (second pass, Oct 2026):
+  // no screen may fall back to the old warm/volt look.
   {
     const page = await browser.newPage({ viewport: { width: 412, height: 900 }, colorScheme: "light", timezoneId: "America/Toronto" });
     await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
@@ -922,8 +923,8 @@ try {
     await page.evaluate(() => closeDrawer());
     await page.locator("#nav-workout").click(); await page.waitForTimeout(600); const w2 = await look();
     const ios = (l) => /242, 242, 247/.test(l.bg) && /#007AFF/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
-    note("Workout wears the iOS look; Food, Settings and the drawer keep main's look; switching back restores iOS",
-      ios(w) && old(n) && old(st) && /#B9E425/i.test(dr) && ios(w2), JSON.stringify({ w, n, st, dr, w2 }));
+    note("every tab and the drawer wear the iOS look (system background, system blue), none falls back to volt",
+      ios(w) && ios(n) && ios(st) && /#007AFF/i.test(dr) && ios(w2) && ![w, n, st, w2].some(old), JSON.stringify({ w, n, st, dr, w2 }));
     await page.close();
   }
 

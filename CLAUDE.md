@@ -11,7 +11,36 @@
 - **Never push to `main` without explicit user approval**
 - Always commit to keen-ritchie first, get user sign-off, then merge
 
-## UI / CSS Conventions — "Premium Athletic / Volt" design system
+## UI / CSS Conventions: the iOS look (Oct 2026)
+
+**The whole app now uses Apple's own-app grammar** (user chose "Apple's own
+apps"; Workout shipped first, then every other screen). The live tokens sit
+on `body[data-tab]` in `index.html` ("WORKOUT TAB CHROME + TOKENS"), so every
+tab, the drawer, chat, sheets and pop-ups inherit them: system background
+`#F2F2F7`/`#000`, white/`#1C1C1E` cards, system blue `--accent`, SF Pro via
+`-apple-system`, SF Rounded (`--font-num`) for figures, system colours for the
+macro chart. The `:root` volt tokens below are only a fallback now.
+
+- Grammar: large sentence-case titles (34px bold), inset grouped cards on
+  `--s1` with NO border/shadow/gradient, hairline (.5px) separators, 13px
+  uppercase grey group headers between cards, sentence-case 13px captions in
+  cards, 17px rows, filled blue for the one primary action and grey-tinted
+  (`--s2` + blue text) for the rest, filled inputs with a tint focus ring.
+- Workout content lives under `.wv`; every other screen under the "EVERY
+  OTHER SCREEN · iOS" block, all prefixed `body[data-tab]` so they outrank
+  the single-class card rule. Inline JS styles are normalised there too:
+  9-12px text is lifted to 13px, inline uppercase eyebrows are dropped,
+  hairline-bordered inline buttons become tinted buttons.
+- The intake card (`.nut-hero`) is an ordinary card now: its `--hero-*`
+  tokens are re-pointed at the surface tokens. It must stay >= 4.5:1 in both
+  themes (runtime-tested).
+- No "·" separators in UI copy (an AI tell for the user): use a comma, a
+  colon or two sentences. `mdLite` turns AI em dashes into ", " (": " in a
+  heading). The PDF report is exempt.
+- Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=3`).
+- `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
+
+## Legacy: the "Premium Athletic / Volt" design system (fallback tokens only)
 
 ### Always use CSS variables — never hardcode colours
 All themed tokens live in ONE `:root` block using `light-dark(lightVal, darkVal)`,

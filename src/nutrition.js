@@ -18,12 +18,16 @@ function nutShift(delta){
   if(next>isoToday())return;
   _nutDate=next;_pendingFood=null;_foodChatOpen=false;_foodSearchOpen=false;_foodSearchQ="";renderNutrition();
 }
+// iOS large title: "Today", "Yesterday" or the weekday; the full date rides
+// above it as the kicker, the same way the Workout tab heads a day.
 function nutDateLabel(iso){
   const today=isoToday();
-  const d=new Date(iso+"T12:00:00");
-  const lbl=d.toLocaleDateString("en-US",{weekday:"short",timeZone:"UTC"})+" "+fmtDate(iso);
-  return iso===today?lbl+" (Today)":lbl;
+  if(iso===today)return"Today";
+  if(iso===addDaysIso(today,-1))return"Yesterday";
+  const d=new Date(iso+"T12:00:00Z");
+  return daysBetween(iso,today)<7?d.toLocaleDateString("en-US",{weekday:"long",timeZone:"UTC"}):d.toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
 }
+function nutDateKicker(iso){return new Date(iso+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric",timeZone:"UTC"});}
 function getDayData(date){
   if(!S.nutrition.days[date])S.nutrition.days[date]={items:[]};
   const d=S.nutrition.days[date];
@@ -72,8 +76,8 @@ function tbarChart(title,data,getVal,getCol,legend){
 function weight30Chart(){
   const wts=S.nutrition.weights||{};
   const keys=Object.keys(wts).sort().slice(-30);
-  if(keys.length<2)return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div><div style="font-size:11px;color:var(--dim)">Need at least 2 weigh-ins.</div></div>`;
-  return`<div class="trend-card"><div class="trend-title">Weight · 30 days</div>${buildSparkline(keys,wts,true)}</div>`;
+  if(keys.length<2)return`<div class="trend-card"><div class="trend-title">Weight over 30 days</div><div style="font-size:11px;color:var(--dim)">Need at least 2 weigh-ins.</div></div>`;
+  return`<div class="trend-card"><div class="trend-title">Weight over 30 days</div>${buildSparkline(keys,wts,true)}</div>`;
 }
 function renderDrawer(){
   const t=buildTrendData();
@@ -82,14 +86,14 @@ function renderDrawer(){
     <div class="drawer-head"><div class="drawer-title">Insights</div><button class="drawer-close" onclick="closeDrawer()">✕</button></div>
     <div class="st-sec">7-Day Trends</div>
     ${tbarChart("Protein g/day",t,d=>d.protein,(d,v)=>v>=pTarget?"var(--green)":"var(--b2)",`target ${pTarget}g`)}
-    ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained · <span style="color:var(--b2)">▮</span> rest`)}
+    ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained, <span style="color:var(--b2)">▮</span> rest`)}
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
     ${FEATURES.prList?`    <details class="st-acc">
-      <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Best set · progress over time</div></div></summary>
+      <summary><div><div>${icon("trophy",20)} Personal Records</div><div class="st-acc-sub">Best set, progress over time</div></div></summary>
       <div class="st-acc-inner">
     ${(()=>{
       // EX_NAMES keyed by canonical name-slug (same as _prCanonMap values)
@@ -112,7 +116,7 @@ function renderDrawer(){
           .slice(0,5)
           .map(({id,best},idx)=>`<div class="lift-row"><span class="lift-rank">${idx+1}</span><span class="lift-name">${esc(exName(id))}</span><span class="lift-val">${best.weight}<span class="lift-unit">kg × ${best.reps}</span></span></div>`)
           .join("");
-        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts · best set</div>${rows}</div>`;
+        leaderHtml=`<div class="lift-board"><div class="lift-cap">Strongest Lifts</div>${rows}</div>`;
       }
       // Per-exercise rows: all exercises with PRs first, then key exercises without
       // Canonical slugs only. The retired hip-abduction slug lived here after
@@ -138,7 +142,7 @@ function renderDrawer(){
           <div class="pr-head">
             <div class="pr-open" onclick="closeDrawer();setTimeout(()=>{const el=document.getElementById('ex-${id}');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},200)">
               <div class="rule-ttl">${name}</div>
-              <div class="rule-desc">${pr?`${pr.weight}kg × ${pr.reps} · ${fmtDate(pr.date)} · est. 1RM ${pr.est}kg`:"No PR recorded yet"}</div>
+              <div class="rule-desc">${pr?`${pr.weight}kg × ${pr.reps}, ${fmtDate(pr.date)}, est. 1RM ${pr.est}kg`:"No PR recorded yet"}</div>
             </div>
             ${pr?`<button class="pr-del" onclick="event.stopPropagation();dropPR('${id}')" title="Remove this PR" aria-label="Remove PR for ${esc(name)}">${icon("trash",15)}</button>`:""}
           </div>
@@ -155,7 +159,7 @@ function renderDrawer(){
         <div class="rule-item"><div class="rule-ttl">No overhead movements</div><div class="rule-desc">Standard lat pulldown, overhead press, any reach under load.</div></div>
         <div class="rule-item"><div class="rule-ttl">No axial compression</div><div class="rule-desc">Barbell squat, deadlift, good mornings. Permanently off the table.</div></div>
         <div class="rule-item"><div class="rule-ttl">Bike first, always</div><div class="rule-desc">Hip flexion decompresses the spine before any loading. Never skip.</div></div>
-        <div class="rule-item"><div class="rule-ttl">Nerve symptom · sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
+        <div class="rule-item"><div class="rule-ttl">Nerve symptom: sit down immediately</div><div class="rule-desc">3+ episodes in one session means end or modify the session.</div></div>
         <div class="rule-item"><div class="rule-ttl">Core gently braced throughout</div><div class="rule-desc">Light stomach tightening during all exercises. Protects the lumbar spine.</div></div>
       </div>
     </details>`;
@@ -200,7 +204,7 @@ export function renderNutrition(){
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
-  const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g · C ${it.carbs||0}g · F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
+  const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g, C ${it.carbs||0}g, F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
   const WT_PAGE=5;
@@ -215,7 +219,7 @@ export function renderNutrition(){
   const remaining=Math.max(0,finalTarget-consumed);
   document.getElementById("tc").innerHTML=`<div class="nut-wrap">
     <div class="nut-head">
-      <div><div class="nut-kicker">Nutrition</div><div class="nut-title">${nutDateLabel(date)}</div></div>
+      <div><div class="nut-kicker">${nutDateKicker(date)}</div><div class="nut-title">${nutDateLabel(date)}</div></div>
       <div class="nut-nav-btns">
         ${date<isoToday()?`<button onclick="${ro?`unlockNut('${date}')`:`lockNut('${date}')`}" title="${ro?"Unlock editing":"Lock editing"}">${ro?`${icon("pencil",18)}`:`${icon("unlock",18)}`}</button>`:""}
         <button onclick="nutShift(-1)">‹</button>
@@ -241,7 +245,7 @@ export function renderNutrition(){
           <div class="nut-ring-small">kcal remaining</div>
         </div>
       </div>
-      <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten · ${finalTarget.toLocaleString()} target${shock?" · shock day":""}</div>
+      <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten, ${finalTarget.toLocaleString()} target${shock?", shock day":""}</div>
       <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
       ${phase?(()=>{
         // Active compliance: how much active is ACTUALLY still needed today,
@@ -260,7 +264,7 @@ export function renderNutrition(){
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
         const remain=Math.max(0,aTgt-active);
-        return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">${icon("bolt",18)} Active ${active.toLocaleString()} / ${aTgt.toLocaleString()} · ${aPct}%${remain>0?` · ${remain.toLocaleString()} kcal remaining`:""} · ${lbl}</div>`;
+        return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">${icon("bolt",18)} Active ${active.toLocaleString()} / ${aTgt.toLocaleString()}, ${aPct}%${remain>0?`, ${remain.toLocaleString()} kcal remaining`:""}, ${lbl}</div>`;
       })():""}
       ${macroPie(protein,carbs,fat,fibre)}
       ${(()=>{
@@ -286,17 +290,17 @@ export function renderNutrition(){
           ${cell("Sodium",`${sodium.toLocaleString()}<i>mg</i>`,bar(sodium,SODIUM_LIMIT,true))}
         </div>`;
       })()}
-      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?`${icon("bolt",18)} Shock day active · tap to disable`:`${icon("bolt",18)} Shock day · force 1200 kcal`}</button>`}
+      ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?`${icon("bolt",18)} Shock day active, tap to disable`:`${icon("bolt",18)} Shock day, 1,200 kcal`}</button>`}
     </div>
 
     <!-- Food log card -->
     <div class="nut-card">
-      <div class="nut-card-title">Food Log${items.length?` <span style="font-size:11px;font-weight:400;color:var(--dim)">${items.length} item${items.length!==1?"s":""} · ${consumed.toLocaleString()} kcal</span>`:""}</div>
+      <div class="nut-card-title">Food Log${items.length?` <span style="font-size:11px;font-weight:400;color:var(--dim)">${items.length} item${items.length!==1?"s":""}, ${consumed.toLocaleString()} kcal</span>`:""}</div>
       ${foodListHtml?`<div class="food-list" style="margin-bottom:10px">${foodListHtml}</div>`:""}
       ${_pendingFood?(()=>{
         const arr=Array.isArray(_pendingFood)?_pendingFood:[_pendingFood];
         const tot=arr.reduce((s,p)=>s+p.kcal,0);
-        const rows=arr.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)"><div><div style="font-size:13px;font-weight:600">${esc(p.name)}</div><div style="font-size:11px;color:var(--dim)">${p.kcal} kcal · P ${p.protein}g · C ${p.carbs}g · F ${p.fat}g</div></div>${arr.length>1?`<button class="food-del" onclick="dropPending('${p.id}')">✕</button>`:""}</div>`).join("");
+        const rows=arr.map(p=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--b1)"><div><div style="font-size:13px;font-weight:600">${esc(p.name)}</div><div style="font-size:11px;color:var(--dim)">${p.kcal} kcal, P ${p.protein}g, C ${p.carbs}g, F ${p.fat}g</div></div>${arr.length>1?`<button class="food-del" onclick="dropPending('${p.id}')">✕</button>`:""}</div>`).join("");
         return`<div class="pending-food">${rows}<div class="pending-macros" style="margin-top:8px">Total: ${tot} kcal</div><div class="pending-btns"><button class="pf-add" onclick="confirmFood('${date}')">✓ Add ${arr.length>1?"all "+arr.length:""}</button><button class="pf-redo" onclick="redoFood()">Re-enter</button></div></div>`;
       })():""}
       ${ro?"":_foodSearchOpen?(()=>{
@@ -308,7 +312,7 @@ export function renderNutrition(){
           return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.kcal>0?` · <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?` · ${f.n}×`:""}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
             </div>
             <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
           </div>`;
@@ -326,9 +330,9 @@ export function renderNutrition(){
       })():_foodChatOpen?(()=>{
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:var(--font-body);font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
-        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional · e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
-      })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet · ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
-<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">+ Log a Meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
+        return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional, e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
+      })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet, ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
+<div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">Log a meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
     </div>
 
     <!-- Body card: daily burn inputs + weight logging in one place -->
@@ -348,7 +352,7 @@ export function renderNutrition(){
       </div>
       ${ro?"":_wtOpen
         ? `<div style="display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:12px;border-top:1px solid var(--b1)"><input class="wt-inp" id="wtInp" type="number" step="0.1" placeholder="e.g. 138.5" inputmode="decimal" enterkeyhint="done" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();saveWeight('${date}');}"><button class="wt-save" onclick="saveWeight('${date}')">Save</button><button class="food-cancel" onclick="toggleWtOpen()">✕</button></div>`
-        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--lt);cursor:pointer">${allWtKeys.length?"+ Update weight":"+ Log Weight"}</button>`
+        : `<button onclick="toggleWtOpen()" style="width:100%;margin-top:10px;padding:9px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-family:var(--font-body);font-size:13px;font-weight:600;color:var(--lt);cursor:pointer">${allWtKeys.length?"Update weight":"Log weight"}</button>`
       }
     </div>
 
@@ -359,7 +363,7 @@ export function renderNutrition(){
 
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
-      <summary><div><div>${icon("bowl",20)} Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)} · AI feedback on your goals</div></div></summary>
+      <summary><div><div>${icon("bowl",20)} Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)}, AI feedback on your goals</div></div></summary>
       <div class="st-acc-inner"><div style="font-size:13px;color:var(--lt);line-height:1.7;padding-top:12px">${mdLite(S.dietReview.text)}</div>
       <button id="dietRevBtn" onclick="generateDietReview()" ${_dietRevBusy?"disabled":""} style="margin-top:12px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px 14px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer;width:100%">${_dietRevBusy?"Reviewing your week…":"↻ Regenerate review"}</button></div>
     </details>`:`
@@ -367,7 +371,7 @@ export function renderNutrition(){
 
     <!-- Weight history & trend -->
     <details class="st-acc" ${_wtExpanded?"open":""} ontoggle="_wtExpanded=this.open">
-      <summary><div><div>${icon("scale",20)} Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries · trend, arrival estimate`:"No entries yet"}</div></div></summary>
+      <summary><div><div>${icon("scale",20)} Weight History</div><div class="st-acc-sub">${allWtKeys.length?`${allWtKeys.length} entries, trend, arrival estimate`:"No entries yet"}</div></div></summary>
       <div class="st-acc-inner">
       ${sparkHtml}
       ${wtKeys.length?`<table style="width:100%;border-collapse:collapse;margin:10px 0 6px;font-size:12px">${wtKeys.slice().reverse().map((k,i)=>{const prev=wtKeys[wtKeys.length-2-i];const diff=prev!=null?wts[k]-wts[prev]:null;const col=diff==null?"":diff<0?"var(--green)":diff>0?"var(--red)":"var(--dim)";const diffTxt=diff==null?"":diff===0?"–":(diff>0?"+":"")+diff.toFixed(1)+"kg";return`<tr style="border-bottom:1px solid var(--b1)"><td style="padding:7px 0;color:var(--dim)">${fmtDate(k)}</td><td style="padding:7px 0;font-weight:700;color:var(--white);text-align:right">${Number(wts[k]).toFixed(1)} kg</td><td style="padding:7px 0;text-align:right;color:${col};width:56px">${diffTxt}</td>${ro?"":`<td style="padding:7px 0;text-align:right;width:32px"><button onclick="delWeight('${k}')" style="background:transparent;border:none;color:var(--dim);font-size:13px;cursor:pointer;padding:2px 4px">✕</button></td>`}</tr>`;}).join("")}</table>${wtTotalPages>1?`<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--dim)">${_wtPage>0?`<button onclick="wtPage(${_wtPage-1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">← Newer</button>`:`<span></span>`}<span>Page ${_wtPage+1} of ${wtTotalPages}</span>${_wtPage<wtTotalPages-1?`<button onclick="wtPage(${_wtPage+1})" style="background:var(--b1);border:none;color:var(--white);padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer">Older →</button>`:`<span></span>`}</div>`:""}<div class="wt-arrival" style="margin-top:8px">${arrHtml}</div><div class="wt-bmr">BMR (current): ${liveBMR} kcal</div>`:""}
@@ -426,7 +430,7 @@ function dropPR(cid){
   // stored PR: while the bad entry stood, every real lift under it was skipped.
   const next=ctx.recoverPRFromLog?.(cid)||(S.prs[cid]||[]).reduce((b,e)=>!b||e.est>b.est?e:b,null);
   save();
-  showToast(next?`PR removed · now ${next.est}kg`:"PR removed");
+  showToast(next?`PR removed, now ${next.est}kg`:"PR removed");
   renderNutrition();
   if(typeof openDrawer==="function")setTimeout(()=>openDrawer(),0);
 }
@@ -442,7 +446,7 @@ async function generateDietReview(){
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/cron-diet-review",{method:"POST",headers:{"Authorization":"Bearer "+API_CFG.token}},30000);
     const d=await r.json().catch(()=>({}));
-    if(r.status===401){showToast("❌ Auth failed · app token doesn't match FORGE_API_TOKEN");return;}
+    if(r.status===401){showToast("❌ Auth failed, app token doesn't match FORGE_API_TOKEN");return;}
     if(d.skipped){showToast("No food logged this week yet. Nothing to review.");return;}
     if(!r.ok||!d.ok)throw new Error(d.error||"error");
     await loadServerState(false);
@@ -580,7 +584,7 @@ function pausePhase(id,reason,extend){
   run.pauses.push({start:isoToday(),reason,extend:!!extend,resumed:null});
   _phasePauseOpen=false;
   save();queueSettings();renderNutrition();
-  showToast("⏸ Phase paused · "+reason+(extend?" · phase will extend":""));
+  showToast("⏸ Phase paused, "+reason+(extend?", phase will extend":""));
 }
 function resumePhase(id){
   const open=ensurePhaseRun(id).pauses.find(pa=>!pa.resumed);
@@ -680,7 +684,7 @@ async function aiPhaseReview(id){
     S.phaseReview={phase:p.id,text:d.text,at:Date.now()};
     save();queueSettings();
   }catch(e){
-    showToast("AI unavailable · try again");
+    showToast("AI unavailable, try again");
   }finally{
     _phaseRevBusy=false;renderNutrition();
   }
@@ -735,7 +739,7 @@ function phaseCardHtml(){
     const finalAvg=avg??latestWeightLog()??p.startKg;
     const v=phaseVerdict(p,finalAvg);
     verdictHtml=`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px 14px;margin-top:10px;background:var(--s2)">
-      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title} · final weigh-in ${finalAvg} kg vs target ${p.targetKg} kg</div>
+      <div style="font-weight:700;font-size:14px;margin-bottom:4px"><span class="band-dot band-${v.band}"></span>${v.title}, final weigh-in ${finalAvg} kg vs target ${p.targetKg} kg</div>
       <div style="font-size:12px;color:var(--lt);line-height:1.6">${v.action}</div>
       <button onclick="completePhase('${p.id}',false)" style="margin-top:10px;width:100%;background:var(--accent);color:var(--accent-ink);border:none;border-radius:8px;padding:10px;font-family:var(--font-body);font-weight:700;font-size:13px;cursor:pointer">Record verdict & lock phase</button>
     </div>`;
@@ -777,7 +781,7 @@ function phaseCardHtml(){
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
-        '<span style="font-size:11px;font-weight:600;color:var(--dim);text-transform:uppercase;letter-spacing:0.8px">Latest weight</span>'+
+        '<span style="font-size:15px;color:var(--mid)">Latest weight</span>'+
         '<span style="font-family:var(--font-display);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1">'+Number(latest).toFixed(1)+' <span style="font-size:13px;font-weight:600;color:var(--mid)">kg</span></span>'+
       '</div>'+
       '<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dim)">'+
@@ -815,7 +819,7 @@ function phaseCardHtml(){
   }
 
   let debtHtml='';
-  if(FEATURES.goalBanked&&banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?'Banked':'Behind schedule')+'</span><span style="background:'+(ahead?'var(--green-lo)':'var(--red-lo)')+';color:'+(ahead?'var(--green)':'var(--red)')+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?'▲':'▼')+' '+Math.abs(banked.kg)+' kg · '+Math.abs(banked.days)+'d '+(ahead?'ahead':'behind')+'</span></div>';}
+  if(FEATURES.goalBanked&&banked){const ahead=banked.days>=0;debtHtml='<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px"><span style="color:var(--mid)">'+(ahead?'Banked':'Behind schedule')+'</span><span style="background:'+(ahead?'var(--green-lo)':'var(--red-lo)')+';color:'+(ahead?'var(--green)':'var(--red)')+';border-radius:6px;padding:3px 9px;font-size:12px;font-weight:700">'+(ahead?'▲':'▼')+' '+Math.abs(banked.kg)+' kg, '+Math.abs(banked.days)+'d '+(ahead?'ahead':'behind')+'</span></div>';}
 
   // This week: five habit rows (user, Oct 26). Progress copy, not failure
   // copy: "3 of 5 done" on a Wednesday is on schedule, not 60%.
@@ -868,7 +872,7 @@ function phaseCardHtml(){
           :st!=="completed"?`<button onclick="_phasePauseOpen=!_phasePauseOpen;renderNutrition()" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">${icon("moon",16)} Pause phase</button>`:""}
         ${FEATURES.goalVerdict&&inLastWeek?`<button onclick="completePhase('${p.id}',true)" style="flex:1;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);padding:9px;font-family:var(--font-body);font-size:12px;font-weight:600;color:var(--dim);cursor:pointer">✓ Accept current result</button>`:""}
       </div>
-      ${FEATURES.goalPause&&openPause?`<div style="${nMuted};margin-top:8px">Paused · ${esc(openPause.reason)} · ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?" · extends phase":" · deadline unchanged"}</div>`:""}
+      ${FEATURES.goalPause&&openPause?`<div style="${nMuted};margin-top:8px">Paused, ${esc(openPause.reason)}, ${Math.max(0,daysBetween(openPause.start,t))} day${daysBetween(openPause.start,t)===1?"":"s"}${openPause.extend?", extends phase":", deadline unchanged"}</div>`:""}
       ${FEATURES.goalPause&&_phasePauseOpen&&!openPause?`<div style="border:1px solid var(--b1);border-radius:12px;padding:12px;margin-top:10px;background:var(--s2)">
         <div style="font-size:12px;font-weight:600;margin-bottom:8px">Pause reason</div>
         <div style="display:flex;gap:6px;margin-bottom:10px">${["Medical","Vacation","Other"].map(r=>`<button onclick="_phasePauseReason='${r}';renderNutrition()" style="flex:1;background:${_phasePauseReason===r?"var(--accent)":"var(--s1)"};color:${_phasePauseReason===r?"var(--accent-ink)":"var(--lt)"};border:1px solid var(--b2);border-radius:8px;padding:8px;font-family:var(--font-body);font-size:12px;font-weight:600;cursor:pointer">${r}</button>`).join("")}</div>
@@ -908,7 +912,7 @@ async function askFood(){
     if(out)out.className="ai-out";
     _foodChatOpen=false;_foodDraftText="";_foodDraftMealName="";renderNutrition();
   }catch(e){
-    if(out){out.className="ai-out show";out.textContent="Could not estimate · try again or be more specific.";}
+    if(out){out.className="ai-out show";out.textContent="Could not estimate, try again or be more specific.";}
   }
 }
 function dropPending(id){
@@ -958,7 +962,7 @@ function filterFoodSearch(q,date){
     return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer">
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal · P ${f.protein||0}g · C ${f.carbs||0}g · F ${f.fat||0}g${f.kcal>0?` · <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?` · ${f.n}×`:""}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
       </div>
       <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
     </div>`;
@@ -1051,13 +1055,13 @@ export function buildSparkline(keys,wts,summary){
       const delta=vals[vals.length-1]-vals[0];
       const perMonth=delta/days*30;
       const col=perMonth<0?"var(--green)":"var(--red)";
-      footer=`<div class="wt-recent">Avg: <span style="color:${col};font-weight:700">${perMonth<=0?"":"+"}${perMonth.toFixed(1)} kg/month</span> · ${vals[0]}kg → ${vals[vals.length-1]}kg over ${Math.round(days)} days</div>`;
+      footer=`<div class="wt-recent">Avg: <span style="color:${col};font-weight:700">${perMonth<=0?"":"+"}${perMonth.toFixed(1)} kg/month</span>, ${vals[0]}kg → ${vals[vals.length-1]}kg over ${Math.round(days)} days</div>`;
     }else{
-      footer=`<div class="wt-recent">${vals[0]}kg → ${vals[vals.length-1]}kg · monthly avg unlocks in ${30-Math.round(days)} days</div>`;
+      footer=`<div class="wt-recent">${vals[0]}kg → ${vals[vals.length-1]}kg, monthly avg unlocks in ${30-Math.round(days)} days</div>`;
     }
   }else{
     // Reads wts directly rather than vals, so it needs its own rounding.
-    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${kg1(wts[k])}kg</span>`).join(" · ")}</div>`;
+    footer=`<div class="wt-recent">${keys.slice(-3).map(k=>`${k}: <span>${kg1(wts[k])}kg</span>`).join(", ")}</div>`;
   }
   return`<div class="sparkline-wrap"><svg width="100%" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">${tLine}<polyline points="${pts.join(" ")}" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${vals.map((v,i)=>{const[x,y]=pts[i].split(",");return`<circle cx="${x}" cy="${y}" r="3" fill="var(--orange)"/>`;}).join("")}</svg></div>${footer}`;
 }
@@ -1076,15 +1080,15 @@ function arrivalEst(){
   if(span<5)return`Estimated arrival: <b>need ~1 week of weigh-ins</b>`;
   const mx=xs.reduce((a,b)=>a+b,0)/n,my=ys.reduce((a,b)=>a+b,0)/n;
   const slope=xs.reduce((a,x,i)=>a+(x-mx)*(ys[i]-my),0)/xs.reduce((a,x)=>a+(x-mx)**2,0); // kg per day
-  if(slope>=-0.01)return`Estimated arrival: <b>trend flat or rising · check deficit</b>`;
+  if(slope>=-0.01)return`Estimated arrival: <b>trend flat or rising, check deficit</b>`;
   const smoothed=my+slope*(xs[n-1]-mx); // trend-line weight at latest date
   const daysNeeded=Math.ceil((smoothed-USER.targetKg)/Math.abs(slope));
-  if(daysNeeded>730)return`Estimated arrival: <b>over 2 years at this pace · check deficit</b>`;
+  if(daysNeeded>730)return`Estimated arrival: <b>over 2 years at this pace, check deficit</b>`;
   const arrival=new Date(recent[n-1]+"T12:00:00");arrival.setDate(arrival.getDate()+daysNeeded);
   const diff=Math.round((USER.goalDate-arrival)/86400000);
   const ahead=diff>0?` (${diff}d ahead)`:diff<0?` (${Math.abs(diff)}d behind)`:" (on track)";
   const rate=Math.abs(slope*7).toFixed(1);
-  return`Estimated arrival: <b>${fmtDate(arrival.toISOString().slice(0,10))}</b>${ahead} · losing ~${rate} kg/week`;
+  return`Estimated arrival: <b>${fmtDate(arrival.toISOString().slice(0,10))}</b>${ahead}, losing ~${rate} kg/week`;
 }
 function handleHKSync(){
   const p=new URLSearchParams(location.search);if(!p.get("hksync"))return;
