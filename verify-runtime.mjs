@@ -657,30 +657,31 @@ try {
     await page.close();
   }
 
-  // Weekly summary "Calories compliance" printed "undefined%": the summary read
-  // wc.calories after weekCompliance stopped returning it. Sunday Oct 11 shows
-  // the summary for the week just ending; seed food on some days.
+  // The goal card (Oct 26 reset): five habit rows with real numbers, never
+  // "undefined", "NaN" or "null", on a seeded mid-week day of the Feb goal.
   {
     const page = await browser.newPage({ viewport: { width: 412, height: 2200 }, timezoneId: "America/Toronto" });
-    page.on("pageerror", (e) => jsErrors.push(`calcomp: ${e.message}`));
-    await page.clock.install({ time: new Date("2026-10-11T15:00:00-04:00") });
+    page.on("pageerror", (e) => jsErrors.push(`goalcard: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-11-05T15:00:00-05:00") });
     await page.addInitScript(() => {
       window.FORGE_API_CFG = { baseUrl: "", token: "x" };
       if (!localStorage.f5) {
         const days = {};
-        for (const [d, k] of [["2026-10-05", 1500], ["2026-10-06", 2600], ["2026-10-07", 1400], ["2026-10-08", 1550]]) days[d] = { items: [{ name: "x", kcal: k, protein: 150 }], active: 600 };
-        localStorage.f5 = JSON.stringify({ nutrition: { days, weights: { "2026-10-05": 133, "2026-10-10": 132 } }, _v6MonDone1: true, _planMove41: true, _wkFix1: true });
+        for (const [d, k] of [["2026-11-02", 1450], ["2026-11-03", 2600], ["2026-11-04", 1400]]) days[d] = { items: [{ name: "x", kcal: k, protein: 150 }], active: 1300 };
+        localStorage.f5 = JSON.stringify({ nutrition: { days, weights: { "2026-10-26": 129, "2026-11-03": 128.9 } }, _v6MonDone1: true, _planMove41: true });
       }
     });
     await page.goto(URL, { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.evaluate(() => document.getElementById("nav-nutrition")?.click());
     await page.waitForTimeout(900);
-    // textContent, not innerText: the phase card may sit in a collapsed section.
     const txt = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
-    const m = txt.match(/Calories compliance\s*([^A-Z]+?)(?=Deficit vs required)/);
-    const und = txt.match(/.{60}undefined.{40}/g);
-    note("weekly summary shows a real calories-compliance figure, never 'undefined'", !und && !!m && /^\d+%$|^·$/.test(m[1].trim()), JSON.stringify(m && m[1]) + " " + JSON.stringify(und));
+    const bad = txt.match(/.{40}(undefined|NaN|null kg|null%).{30}/g);
+    note("the goal card shows the new goal and five habit rows with real numbers",
+      /Phase 1 of 7: 125 kg by Nov 15/.test(txt) && /100 kg by Feb 28.{0,40}kg a week needed/.test(txt) && /95 kg by Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
+      /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active target/.test(txt) && /Score so far this week/.test(txt) && !bad,
+      JSON.stringify(bad) + " " + (txt.match(/This week.{0,260}/) || [""])[0]);
+    note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));
     await page.close();
   }
 
@@ -700,7 +701,8 @@ try {
     await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
     const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
     const shown = {
-      quoteCard: quote, complianceGrid: /This week's compliance/i.test(nut),
+      quoteCard: quote, goalPause: /Pause phase/.test(nut), goalVerdict: /Accept current result|Record verdict/.test(nut),
+      goalWeekSummary: /Week \d+ summary/.test(nut), goalBanked: /Banked|Behind schedule/.test(nut), goalDrift: /Mid-phase drift/.test(nut),
       progressCharts: /Volume This Week|Weekly Calorie Deficit/.test(st), prList: /Personal Records/.test(dr),
     };
     const wrong = Object.entries(shown).filter(([k, v]) => v !== FEATURES[k]).map(([k, v]) => `${k}:${v ? "shown" : "hidden"}`);

@@ -1009,7 +1009,13 @@ export function weekKeyOf(date){
 // deleted: data and code stay, and flipping a flag back to true restores it.
 export const FEATURES={
   quoteCard:false,        // rotating quote at the top
-  complianceGrid:false,   // "This week's compliance" grid in the phase card
+  // Goal card, simplified Oct 26 2026 (user: "less complicated"). The
+  // five-habit "This week" score is always shown; these extras are off.
+  goalPause:false,        // pause / resume the goal
+  goalVerdict:false,      // end-of-goal verdict and "Accept current result"
+  goalWeekSummary:false,  // last week's summary box
+  goalBanked:false,       // "Banked / Behind schedule" days row
+  goalDrift:false,        // mid-goal drift warning
   progressCharts:false,   // Settings: Volume This Week + Progress group
   prList:false,           // Personal Records section in the Insights drawer
 };
