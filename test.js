@@ -208,7 +208,7 @@ function mkEngine(Sstub) {
   // rule rather than the old hardcoded Sunday, so the deficit assertions below
   // are checked against what actually ships.
   const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog", "isGymRestDay",
-    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
+    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun,dayDeficitCheck};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
     () => "2026-07-28",
@@ -268,6 +268,27 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
   {
     const t = E.phaseActiveTargets(P5[0], "2026-10-28");
     ok("Watch active targets: ~1,300 Mon-Sat and ~560 on Sunday at 2,700 resting", Math.abs(t.workout - 1301) <= 2 && Math.abs(t.rest - 558) <= 2, JSON.stringify(t));
+  }
+  // Oct 27 (user): a day's deficit only counts with food, the workout
+  // (training days), active and resting all logged.
+  {
+    const day = (o) => ({ items: o.kcal ? [{ kcal: o.kcal }] : [], ...(o.active != null ? { active: o.active } : {}), ...(o.rest != null ? { restingOverride: o.rest } : {}) });
+    const D = mkEngine({ nutrition: { weights: {}, days: {
+      "2026-11-03": day({ kcal: 1450, active: 1200, rest: 2700 }),   // Tue, complete
+      "2026-11-04": day({ kcal: 1450, active: 1200 }),               // Wed, no resting
+      "2026-11-05": day({ active: 1200, rest: 2700 }),               // Thu, no food
+      "2026-11-01": day({ kcal: 1200, active: 600, rest: 2700 }),    // Sun, rest day
+    } } });
+    const ok1 = D.dayDeficitCheck("2026-11-03", true), noWk = D.dayDeficitCheck("2026-11-03", false);
+    ok("a day with food, workout, active and resting counts: 2,700 + 0.75 x 1,200 - 1,450 = 2,150, against the plan's ~2,176",
+      ok1.complete && ok1.deficit === 2150 && Math.abs(ok1.expected - 2176) <= 2, JSON.stringify(ok1));
+    ok("a missing workout, resting or food log keeps the day out and names what is missing",
+      !noWk.complete && noWk.missing.join() === "workout" && noWk.deficit === null &&
+      D.dayDeficitCheck("2026-11-04", true).missing.join() === "resting" &&
+      D.dayDeficitCheck("2026-11-05", true).missing.join() === "food" &&
+      D.dayDeficitCheck("2026-11-06", true).missing.join() === "food,active,resting");
+    ok("the rest day needs no workout to count",
+      D.dayDeficitCheck("2026-11-01", false).complete === true);
   }
   ok("every phase needs ~2,139 kcal/day (5 kg in 18 days)",
     P5.every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2139) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 17));
@@ -1896,6 +1917,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("with no AI coach the email falls back to the rule-based verdict and focus",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
         ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 12)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
+        ok("the email's weekly deficit counts only complete days (Saturday logged food but no workout, so it is out)",
+          x.nut.deficitDaysCounted === 5 && x.nut.daysLogged === 6, JSON.stringify({ c: x.nut.deficitDaysCounted, l: x.nut.daysLogged }));
         ok("the report scores nutrition against the phase (1,500 kcal, 2,139 deficit)",
           x.eatTarget === 1500 && x.req === 2139 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",

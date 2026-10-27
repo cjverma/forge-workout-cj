@@ -318,6 +318,19 @@ now accepts a LIST of dated changes in `before`/`setsBefore` (the walk has
 two: 15 -> 35 on Oct 16, 35 -> 40 on Nov 2); a date takes the earliest entry
 it falls before.
 
+**The weekly deficit tracker** (Food tab, under the goal card; Oct 27,
+"we used to have a weekly tracker that tells us whether we are on track").
+A day's deficit only counts when food, the workout (training days only),
+Watch active AND resting are all logged: `dayDeficitCheck(date, trained)` in
+`src/phase.js` is the one rule, and the weekly email uses it too (its
+average and weekly deficit come from complete days; `deficitDaysCounted`).
+An incomplete day shows "Not counted: no resting" etc.; today shows "Today,
+counted tomorrow". "On track" compares the counted days' deficit with what
+the plan needed from those same days (`phaseDayDeficit`, at the fixed 2,700
+resting and the day's food and active targets): within 5% is on track. The
+card also lists the last 4 weeks. The old Settings card (behind
+`FEATURES.progressCharts`) counted any day with food and stays switched off.
+
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:
 

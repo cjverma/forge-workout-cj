@@ -217,6 +217,27 @@ export function phaseActiveTarget(p,dateIso){
 // ACTIVE_MULT because wearables overstate them, minus what you ate.
 // Returns null when nothing was eaten, i.e. the day is unlogged rather than
 // perfect, so callers can skip it instead of scoring a phantom deficit.
+// A day's deficit only COUNTS when everything that produces it was logged:
+// food, the workout (training days only), Watch active and resting. With any
+// of them missing the number is a guess (no food reads as a huge deficit, no
+// active as a small one), so the day is left out of weekly totals and the
+// missing pieces are named instead (user, Oct 27). `trained` comes from the
+// caller (the app's trainedOn, the email's session check). `expected` is
+// what the plan needs from that day: the phase's daily deficit at the fixed
+// resting figure, the day's food target and its Watch active target.
+export function dayDeficitCheck(dateIso,trained){
+  const nd=phaseStore().nutrition?.days?.[dateIso]||{};
+  const eaten=(nd.items||[]).reduce((a,i)=>a+(Number(i.kcal)||0),0);
+  const p=phaseFor(dateIso);
+  const expected=p?phaseDayDeficit(p,dateIso):null;
+  const missing=[];
+  if(!(eaten>0))missing.push("food");
+  if(!isRestDay(dateIso)&&!trained)missing.push("workout");
+  if(!(Number(nd.active)>0))missing.push("active");
+  if(nd.restingOverride==null||!(Number(nd.restingOverride)>0))missing.push("resting");
+  if(missing.length)return{complete:false,missing,expected,deficit:null};
+  return{complete:true,missing,expected,deficit:Math.round(Number(nd.restingOverride)+ACTIVE_MULT*Number(nd.active)-eaten)};
+}
 export function actualDeficit(dateIso){
   const S=phaseStore();
   const nd=S.nutrition?.days?.[dateIso]||{};

@@ -14,7 +14,7 @@
 // Every number comes from the SAME engine the app uses (src/phase.js,
 // src/constants.js), so the email can never disagree with the screen.
 import { ctx } from "../src/runtime.js";
-import { PHASES, phaseFor, phaseCurveKg, eatKcalFor, phaseRequiredDeficit, phaseActiveTargets, restingFor, actualDeficit,
+import { PHASES, phaseFor, phaseCurveKg, eatKcalFor, dayDeficitCheck, phaseRequiredDeficit, phaseActiveTargets, restingFor, actualDeficit,
   weightVsCurve, projectedFinish, proteinTargetG, isRestDay, isoDate, addDaysIso, daysBetween, ACTIVE_MULT } from "../src/phase.js";
 import { programFor, weekKeyOf, DAYS, PR_ALIAS, prSlug, kg1, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7 } from "../src/constants.js";
 
@@ -123,7 +123,9 @@ function build(S, now) {
     const kcal = items.reduce((a, i) => a + (i.kcal || 0), 0), prot = items.reduce((a, i) => a + (i.protein || 0), 0);
     const tgt = goal ? phaseActiveTargets(goal, d) : null;
     return { d, logged: kcal > 0, kcal: r0(kcal), prot: r0(prot), eatTarget: goal ? eatKcalFor(goal, d) : null, active: nd.active || 0, activeTarget: tgt ? (isRestDay(d) ? tgt.rest : tgt.workout) : null,
-      resting: restingFor(d, nd), deficit: actualDeficit(d) };
+      // Only a COMPLETE day (food, workout on a training day, active, resting)
+      // counts toward the week's deficit; the rest would be a guess.
+      resting: restingFor(d, nd), deficit: dayDeficitCheck(d, sessionStats(S, [d]).trained > 0).deficit };
   });
   const logged = daysN.filter((x) => x.logged);
   const mean = (arr, f) => (arr.length ? r0(arr.reduce((a, x) => a + f(x), 0) / arr.length) : null);
@@ -133,6 +135,7 @@ function build(S, now) {
     avgProt: mean(logged, (x) => x.prot), protHit: logged.filter((x) => x.prot >= protTarget).length,
     avgDeficit: mean(logged.filter((x) => x.deficit != null), (x) => x.deficit),
     weekDeficit: logged.reduce((a, x) => a + (x.deficit || 0), 0),
+    deficitDaysCounted: daysN.filter((x) => x.deficit != null).length,
     avgActive: mean(daysN.filter((x) => x.active), (x) => x.active), activeHit: daysN.filter((x) => x.activeTarget != null && x.active >= x.activeTarget).length,
     avgActiveTarget: mean(daysN.filter((x) => x.activeTarget != null), (x) => x.activeTarget),
     avgResting: mean(daysN, (x) => x.resting),
@@ -216,7 +219,7 @@ export function coachPrompt(x) {
     week: `${x.mon} to ${addDaysIso(x.mon, 6)}`,
     goal: x.goal && { from: `${x.goal.startKg} kg on ${x.goal.start}`, to: `${x.goal.targetKg} kg by ${x.goal.end}`, daysLeft: x.daysLeft, kgPerWeekNeededNow: x.needPerWeek },
     weight: { latest: x.latest, latestDate: x.latestDate, changeThisWeek: x.weekChange, idealOnThatDate: x.vs?.expected ?? x.lineToday, aheadOfPlanKg: x.vs && x.vs.date >= x.mon ? x.vs.diff : null, projectedFinish: x.proj?.status === "ok" ? x.proj.date : null },
-    diet: { eatTargetKcal: x.eatTarget, proteinTargetG: x.protTarget, requiredDeficitPerDay: x.req, daysLogged: n.daysLogged, daysInWeek: n.daysElapsed,
+    diet: { eatTargetKcal: x.eatTarget, proteinTargetG: x.protTarget, requiredDeficitPerDay: x.req, daysLogged: n.daysLogged, deficitDaysCounted: n.deficitDaysCounted, deficitRule: "the average deficit only uses days with food, the workout, active and resting all logged", daysInWeek: n.daysElapsed,
       avgKcal: n.avgKcal, daysAtOrUnderTarget: n.onTarget, avgProteinG: n.avgProt, daysProteinHit: n.protHit, avgCarbsG: n.avgCarbs, avgFatG: n.avgFat,
       avgDeficit: n.avgDeficit, avgActiveKcal: n.avgActive, activeTarget: n.avgActiveTarget, perDay: n.days, mostEaten: n.topFoods },
     training: { streakRule: "5 workouts a Mon-Sun week keeps the streak", sessionsDone: x.thisT.trained, sessionsPlanned: x.plannedSessions, setsDone: x.thisT.sets, setsSameDaysLastWeek: x.lastT.sets, volumeChangePct: x.volChange,

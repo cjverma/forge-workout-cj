@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
@@ -361,6 +361,8 @@ export function renderNutrition(){
 
     ${phaseCardHtml()}
 
+    ${weekDeficitHtml()}
+
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
       <summary><div><div>${icon("bowl",20)} Weekly Diet Review</div><div class="st-acc-sub">Week of ${fmtDate(S.dietReview.weekStart)}, AI feedback on your goals</div></div></summary>
@@ -698,6 +700,61 @@ async function aiPhaseReview(id){
 // phase_1 was never explicitly locked, this card would show a done phase
 // from September instead of the real one. Two passes instead: an active/
 // paused phase always wins over a merely date-elapsed, unlocked one.
+// ── WEEKLY DEFICIT TRACKER ─────────────────────────────────────────────────
+// Brought back (Oct 27, user: "we used to have a weekly tracker that tells us
+// whether we are on track"). Unlike the old Settings card, a day only counts
+// when food, the workout (training days), Watch active and resting are ALL
+// logged (dayDeficitCheck). An incomplete day says what is missing and stays
+// out of the totals; today is still in progress and is counted tomorrow.
+// "On track" compares the counted days' deficit with what the plan needed
+// from those same days, so a week with gaps is judged fairly.
+function weekDeficitSummary(monIso){
+  const t=isoToday();
+  const days=[];let total=0,need=0,counted=0,weekNeed=0;
+  for(let i=0;i<7;i++){
+    const d=addDaysIso(monIso,i);
+    const c=dayDeficitCheck(d,trainedOn(d));
+    weekNeed+=c.expected||0;
+    const state=d>t?"future":d===t?"today":c.complete?"counted":"missing";
+    if(state==="counted"){counted++;total+=c.deficit;need+=c.expected||0;}
+    days.push({d,state,...c});
+  }
+  const finished=days.filter(x=>x.state==="counted"||x.state==="missing").length;
+  return{days,total,need,counted,finished,weekNeed:Math.round(weekNeed),gap:total-need};
+}
+function weekDeficitHtml(){
+  const t=isoToday();
+  const thisMon=mondayOfIso(t);
+  const w=weekDeficitSummary(thisMon);
+  if(!phaseFor(t))return"";
+  const n=x=>Math.round(Math.abs(x)).toLocaleString();
+  const kg=x=>(Math.abs(x)/7700).toFixed(1);
+  const dayLbl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"});
+  const verdict=s=>!s.counted?null:s.gap>=0.05*s.need?{txt:`${n(s.gap)} kcal ahead`,col:"var(--green)"}:s.gap>=-0.05*s.need?{txt:"On track",col:"var(--green)"}:{txt:`${n(s.gap)} kcal behind (about ${kg(s.gap)} kg)`,col:"var(--red)"};
+  const v=verdict(w);
+  const line=(lbl,val,col)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--b1);font-size:15px"><span style="color:var(--lt);white-space:nowrap">${lbl}</span><span style="text-align:right;font-variant-numeric:tabular-nums;color:${col||"var(--white)"}">${val}</span></div>`;
+  const rows=w.days.map(x=>{
+    if(x.state==="future")return"";
+    if(x.state==="today")return line(dayLbl(x.d),"Today, counted tomorrow","var(--mid)");
+    if(x.state==="missing")return line(dayLbl(x.d),"Not counted: no "+x.missing.join(", no "),"var(--amber)");
+    return line(dayLbl(x.d),`${n(x.deficit)} of ${n(x.expected)}`,x.deficit>=x.expected?"var(--green)":"var(--red)");
+  }).join("");
+  const past=[1,2,3,4].map(k=>{const m=addDaysIso(thisMon,-7*k);if(!phaseFor(addDaysIso(m,6))&&!phaseFor(m))return"";const s=weekDeficitSummary(m),pv=verdict(s);
+    return line("Week of "+fmtDate(m),s.counted?`${pv.txt}, ${s.counted} of 7 days counted`:"No complete days",s.counted?pv.col:"var(--mid)");}).join("");
+  const head=!w.counted?(w.finished?"No complete day yet":"Week starting"):`${v.txt}`;
+  return`<details class="st-acc" open>
+    <summary><div><div>${icon("chart",20)} Weekly deficit</div><div class="st-acc-sub">${head}${w.counted?`, ${w.counted} of ${w.finished} days counted`:""}</div></div></summary>
+    <div class="st-acc-inner" style="padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <span style="font-size:15px;color:var(--mid)">This week so far</span>
+        <span style="font-family:var(--font-num);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:${v?v.col:"var(--mid)"}">${w.counted?n(w.total):"0"} <span style="font-size:15px;font-weight:400;color:var(--mid)">of ${n(w.need)} kcal</span></span>
+      </div>
+      <div style="font-size:13px;color:var(--mid);margin:4px 0 6px">${v?`${v.txt}. `:""}The week needs ${n(w.weekNeed)} kcal. A day counts once food, the workout, active and resting are all logged.</div>
+      ${rows}
+      ${past?`<div style="font-size:13px;font-weight:600;color:var(--mid);margin-top:14px">Last 4 weeks</div>${past}`:""}
+    </div>
+  </details>`;
+}
 function phaseCardHtml(){
   const t=isoToday();
   const active=PHASES.find(x=>{const st=phaseState(x,t);return st==="active"||st==="paused";});
