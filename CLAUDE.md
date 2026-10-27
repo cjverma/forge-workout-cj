@@ -324,8 +324,16 @@ A day's deficit only counts when food, the workout (training days only),
 Watch active AND resting are all logged: `dayDeficitCheck(date, trained)` in
 `src/phase.js` is the one rule, and the weekly email uses it too (its
 average and weekly deficit come from complete days; `deficitDaysCounted`).
-An incomplete day shows "Not counted: no resting" etc.; today shows "Today,
-counted tomorrow". "On track" compares the counted days' deficit with what
+Resting is the phase's FIXED 2,700 on both sides (logged Watch resting is
+not needed and never inflates a day). An incomplete day shows "Not counted:
+no workout" etc.; today shows "Today, counted tomorrow". A week with more
+than 2 uncounted finished days (or under 5 of 7 once over) shows "Not
+enough data" instead of a verdict: skipped days tend to be the bad ones.
+The card also shows the week's weight change vs the plan line. **Watch
+calibration** (`activeCalibration`/`activeMult` in `src/phase.js`): from
+Nov 9 + 3 weeks, the weight actually lost over the last 4 weeks sets how much
+of the Watch's active number counts (clamped 50-100%, default 75%); targets
+and the tracker use it. "On track" compares the counted days' deficit with what
 the plan needed from those same days (`phaseDayDeficit`, at the fixed 2,700
 resting and the day's food and active targets): within 5% is on track. The
 card also lists the last 4 weeks. The old Settings card (behind

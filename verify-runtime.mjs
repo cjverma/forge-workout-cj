@@ -709,7 +709,7 @@ try {
     await page.waitForTimeout(900);
     const txt = await page.evaluate(() => [...document.querySelectorAll("details.st-acc")].find((x) => /Weekly deficit/.test(x.textContent))?.textContent || "");
     note("the weekly deficit tracker counts only complete days and names what is missing",
-      /1 of 3 days counted/.test(txt) && /Not counted: no resting/.test(txt) && /Not counted: no workout/.test(txt) && /Today, counted tomorrow/.test(txt) &&
+      /2 of 3 days counted/.test(txt) && !/no resting/.test(txt) && /Not counted: no workout/.test(txt) && /Today, counted tomorrow/.test(txt) && /Watch check: counting 75%/.test(txt) &&
       /The week needs 14,9\d\d kcal/.test(txt) && /Last 4 weeks/.test(txt) && !/undefined|NaN|null/.test(txt), txt.slice(0, 400));
     await page.close();
   }

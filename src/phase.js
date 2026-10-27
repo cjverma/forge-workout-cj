@@ -202,7 +202,7 @@ export function phaseActiveTargets(p,dateIso){
     return{workout:p.activeTargetWorkout,rest:p.activeTargetRest};
   const req=phaseRequiredDeficit(p);
   const resting=restingForPhase(p,dateIso);
-  const blended=Math.max(0,(req-resting+eatKcalAvg(p))/ACTIVE_MULT);
+  const blended=Math.max(0,(req-resting+eatKcalAvg(p))/activeMult(dateIso));
   const workout=Math.round(blended*49/45);
   const rest=Math.round(3*workout/7);
   return{workout,rest};
@@ -230,14 +230,60 @@ export function dayDeficitCheck(dateIso,trained){
   const eaten=(nd.items||[]).reduce((a,i)=>a+(Number(i.kcal)||0),0);
   const p=phaseFor(dateIso);
   const expected=p?phaseDayDeficit(p,dateIso):null;
+  // Resting is the phase's FIXED figure when it has one (2,700, the user's
+  // standard), on both sides of the comparison: counting the Watch's logged
+  // resting here while the plan assumes 2,700 made every day look better by
+  // the Watch's overestimate. Only a phase without a fixed figure needs it logged.
+  const fixed=p&&p.restingKcal!=null?Number(p.restingKcal):null;
   const missing=[];
   if(!(eaten>0))missing.push("food");
   if(!isRestDay(dateIso)&&!trained)missing.push("workout");
   if(!(Number(nd.active)>0))missing.push("active");
-  if(nd.restingOverride==null||!(Number(nd.restingOverride)>0))missing.push("resting");
+  if(fixed==null&&!(Number(nd.restingOverride)>0))missing.push("resting");
   if(missing.length)return{complete:false,missing,expected,deficit:null};
-  return{complete:true,missing,expected,deficit:Math.round(Number(nd.restingOverride)+ACTIVE_MULT*Number(nd.active)-eaten)};
+  const resting=fixed!=null?fixed:Number(nd.restingOverride);
+  return{complete:true,missing,expected,deficit:Math.round(resting+activeMult(dateIso)*Number(nd.active)-eaten)};
 }
+// ── WATCH CALIBRATION (Oct 27) ──────────────────────────────────────────────
+// The 75% applied to Watch active is a guess. The scale is the truth: over
+// the last 4 weeks (never the plan's first 2, which are mostly water), the
+// weight actually lost implies a real daily deficit; with food and resting
+// known, that pins down how much of the Watch's active number was real.
+// Needs 3+ weeks of window, 14+ days with food and active logged, and a
+// weigh-in near each end. Clamped to 50-100% so one odd week can't swing it.
+export const CAL_FROM="2026-11-09",CAL_MIN_SPAN=21,CAL_MIN_DAYS=14;
+const _calMemo=new Map();
+export function activeCalibration(dateIso){
+  const st=phaseStore(),days=st?.nutrition?.days||{},ws=st?.nutrition?.weights||{};
+  const t=dateIso||isoToday();
+  const key=t+"|"+Object.keys(days).length+"|"+Object.keys(ws).length;
+  if(_calMemo.has(key))return _calMemo.get(key);
+  const res=(()=>{
+    const end=addDaysIso(t,-1);
+    let start=addDaysIso(end,-27);if(start<CAL_FROM)start=CAL_FROM;
+    const span=daysBetween(start,end);
+    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:ACTIVE_MULT,readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
+    let n=0,sumR=0,sumA=0,sumF=0;
+    for(let i=0;i<=span;i++){
+      const d=addDaysIso(start,i),nd=days[d]||{};
+      const f=(nd.items||[]).reduce((a,x)=>a+(Number(x.kcal)||0),0),a=Number(nd.active)||0;
+      if(!(f>0&&a>0))continue;
+      const p=phaseFor(d);n++;sumF+=f;sumA+=a;
+      sumR+=p&&p.restingKcal!=null?Number(p.restingKcal):restingFor(d,nd);
+    }
+    const w0=sevenDayAvg(addDaysIso(start,3)),w1=sevenDayAvg(end);
+    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:ACTIVE_MULT,readyOn:null,days:n};
+    const R=sumR/n,A=sumA/n,F=sumF/n;
+    const realDef=(w0-w1)*7700/Math.max(1,span-3);
+    const raw=(realDef-R+F)/A;
+    const mult=Math.round(Math.min(1,Math.max(0.5,raw))*100)/100;
+    return{ready:true,mult,raw:Math.round(raw*100)/100,days:n,lostKg:Math.round((w0-w1)*10)/10,
+      predictedKg:Math.round((R+ACTIVE_MULT*A-F)*Math.max(1,span-3)/7700*10)/10};
+  })();
+  if(_calMemo.size>400)_calMemo.clear();
+  _calMemo.set(key,res);return res;
+}
+export function activeMult(dateIso){return activeCalibration(dateIso).mult;}
 export function actualDeficit(dateIso){
   const S=phaseStore();
   const nd=S.nutrition?.days?.[dateIso]||{};
@@ -263,7 +309,7 @@ export function phaseRequiredDeficit(p){
   return Math.max(0,Math.round((p.startKg-p.targetKg)*7700/days));
 }
 
-export function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-eatKcalFor(p,dateIso));}
+export function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+activeMult(dateIso)*phaseActiveTarget(p,dateIso)-eatKcalFor(p,dateIso));}
 export function restingFor(dateIso,dayData){
   if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;
   const p=phaseFor(dateIso);

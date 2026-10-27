@@ -208,7 +208,7 @@ function mkEngine(Sstub) {
   // rule rather than the old hardcoded Sunday, so the deficit assertions below
   // are checked against what actually ships.
   const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog", "isGymRestDay",
-    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun,dayDeficitCheck};`);
+    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun,dayDeficitCheck,activeCalibration,activeMult};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
     () => "2026-07-28",
@@ -275,18 +275,27 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
     const day = (o) => ({ items: o.kcal ? [{ kcal: o.kcal }] : [], ...(o.active != null ? { active: o.active } : {}), ...(o.rest != null ? { restingOverride: o.rest } : {}) });
     const D = mkEngine({ nutrition: { weights: {}, days: {
       "2026-11-03": day({ kcal: 1450, active: 1200, rest: 2700 }),   // Tue, complete
-      "2026-11-04": day({ kcal: 1450, active: 1200 }),               // Wed, no resting
+      "2026-11-04": day({ kcal: 1450, active: 1200, rest: 3100 }),   // Wed, Watch says 3,100 resting
       "2026-11-05": day({ active: 1200, rest: 2700 }),               // Thu, no food
       "2026-11-01": day({ kcal: 1200, active: 600, rest: 2700 }),    // Sun, rest day
     } } });
     const ok1 = D.dayDeficitCheck("2026-11-03", true), noWk = D.dayDeficitCheck("2026-11-03", false);
     ok("a day with food, workout, active and resting counts: 2,700 + 0.75 x 1,200 - 1,450 = 2,150, against the plan's ~2,176",
       ok1.complete && ok1.deficit === 2150 && Math.abs(ok1.expected - 2176) <= 2, JSON.stringify(ok1));
-    ok("a missing workout, resting or food log keeps the day out and names what is missing",
+    ok("a missing workout, food or active log keeps the day out and names what is missing",
       !noWk.complete && noWk.missing.join() === "workout" && noWk.deficit === null &&
-      D.dayDeficitCheck("2026-11-04", true).missing.join() === "resting" &&
       D.dayDeficitCheck("2026-11-05", true).missing.join() === "food" &&
-      D.dayDeficitCheck("2026-11-06", true).missing.join() === "food,active,resting");
+      D.dayDeficitCheck("2026-11-06", true).missing.join() === "food,active");
+    ok("resting is the fixed 2,700 on both sides: a Watch reading of 3,100 does not inflate the day",
+      D.dayDeficitCheck("2026-11-04", true).deficit === 2150);
+    // Watch calibration from the weight trend (Oct 27): 3 weeks from Nov 9.
+    const cd = {}, cw = {};
+    for (let i = -10; i <= 28; i++) { const d = D.addDaysIso("2026-11-09", i); cd[d] = { items: [{ kcal: 1450 }], active: 1300 }; cw[d] = Math.round((126 - i * 0.22) * 10) / 10; }
+    const C = mkEngine({ nutrition: { days: cd, weights: cw } });
+    const early = C.activeCalibration("2026-11-20"), late = C.activeCalibration("2026-12-07");
+    ok("Watch calibration waits for 3 weeks of data (75% until Nov 30), then the weight trend sets the share",
+      !early.ready && early.mult === 0.75 && early.readyOn === "2026-11-30" && late.ready && late.lostKg < late.predictedKg && late.mult < 0.75 && late.mult >= 0.5,
+      JSON.stringify({ early, late }));
     ok("the rest day needs no workout to count",
       D.dayDeficitCheck("2026-11-01", false).complete === true);
   }
@@ -487,10 +496,10 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
   const src = NUTC.slice(NUTC.indexOf("const COMPLIANCE_WEIGHTS="), NUTC.indexOf("// Live health colour"));
   const addD = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const P = { id: "goal_feb", start: "2026-10-26", eatKcal: 1500 };
-  const mk = (S, { today = "2026-11-07", trained = [], line = 128, phase = null } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg", "eatKcalFor",
+  const mk = (S, { today = "2026-11-07", trained = [], line = 128, phase = null } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg", "eatKcalFor", "activeMult",
     src + "; return weekCompliance;")(S, () => today, addD, (iso) => new Date(iso + "T12:00:00Z"), () => phase || P, () => 800, 0.75,
       (d) => trained.includes(d), (d) => new Date(d + "T12:00:00Z").getUTCDay() === 0, () => line,
-      (p, d) => (p.eatKcalRest != null && new Date(d + "T12:00:00Z").getUTCDay() === 0 ? p.eatKcalRest : p.eatKcal));
+      (p, d) => (p.eatKcalRest != null && new Date(d + "T12:00:00Z").getUTCDay() === 0 ? p.eatKcalRest : p.eatKcal), () => 0.75);
   const wk = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"];
   const day = (kcal, active) => ({ items: kcal ? [{ kcal }] : [], active });
   const allGood = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1400, 900)])), weights: Object.fromEntries(wk.map((d) => [d, 127.5])) } };
@@ -764,7 +773,7 @@ section("15b · Active target reflects real intake, not assumed budget");
   const NUT2 = readFileSync("src/nutrition.js", "utf8");
   ok("Active target is re-solved from actual consumed against the DAY's food target (1,200 on Sunday)",
     /const plannedTgt=phaseActiveTarget\(phase,date\);/.test(NUT2) &&
-    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-eatKcalFor\(phase,date\)\)\/ACTIVE_MULT\)\);/.test(NUT2));
+    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-eatKcalFor\(phase,date\)\)\/activeMult\(date\)\)\);/.test(NUT2));
   ok("aTgt===0 (nothing further needed) reads as fully met, not a failing 0%",
     /const aPct=aTgt\?Math\.round\(active\/aTgt\*100\):100;/.test(NUT2));
 }
