@@ -342,7 +342,8 @@ card also lists the last 4 weeks. The old Settings card (behind
 **Logging reminders (Web Push, Oct 27).** Four a day, each only when its
 thing isn't logged (`nudgeFor(state, now, slot)` in `api/_nudge.js`):
 **9:30 AM** weigh-in, **11 AM** food, **7 PM** workout not started (training
-days), **11:30 PM** Watch active / resting (and food) not entered. They run
+days), **8:30 PM** Watch active short of today's target (with roughly how
+many minutes of walking close it), **11:30 PM** Watch active / resting (and food) not entered. They run
 inside `api/cron-weekly-plan.js` (12/12) via vercel.json crons
 `?job=nudge&slot=...`, TWO per slot (EDT and EST UTC times); only the one
 landing in the slot's Toronto hour sends (`torontoHour`), so daylight saving

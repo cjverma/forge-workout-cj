@@ -44,6 +44,14 @@
     {
       "path": "/api/cron-weekly-plan?job=nudge&slot=calories",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=active",
+      "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=active",
+      "schedule": "30 1 * * *"
     }
   ]
 }

@@ -184,7 +184,7 @@ export function renderST(){
         <div class="st-sec">Appearance</div>
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
-          <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, calories 11:30 PM, each only if it isn't logged. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
+          <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM, each only if it isn't done. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
           ${remindersOn()?`<div class="st-row" onclick="sendTestReminder()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Send Test Reminder</div><div class="st-sub">Temporary. Sends one now to check this phone receives them</div></div></div>`:""}
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
