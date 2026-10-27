@@ -30,7 +30,7 @@ function buildChatContext(){
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
       eatKcal:phase.eatKcal,activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
-      weekCompliance:comp.calculating?null:comp.overall,expectedDeficitToday:dailyDeficitReq};
+      weekCompliance:comp.overall==null?null:{overall:comp.overall,scoring:"food logged and at or under eatKcal 30%, 5 workouts a week 25%, weight at or under the plan line 25%, daily weigh-in 10%, Watch active target 10%",foodOnTargetDays:comp.foodDays,weighInDays:comp.weighDays,activeTargetDays:comp.activeDays,finishedDays:comp.finishedDays,workoutsDone:comp.trained,workoutsNeeded:comp.need,kgBehindLine:comp.behindKg},expectedDeficitToday:dailyDeficitReq};
   })():null;
   const goal={
     type:"weight loss",

@@ -98,12 +98,14 @@ export function mdLite(t) {
   // No em dashes anywhere in the UI. AI replies are full of them, and mdLite is
   // the single choke point for every AI-rendered string (chat, diet review,
   // phase review), so normalise here.
-  //   em dash → " · "  a middot is neutral in prose, list labels AND headings.
-  //     ", " would be wrong in "### Phase 1 — Upper Focus" (comma splice).
-  //   en dash → "-"    these are numeric ranges ("8–12 reps"), where a hyphen
-  //     is correct and a middot would be nonsense.
+  //   em dash in a heading → ": "  ("### Phase 1 — Upper Focus" reads
+  //     "Phase 1: Upper Focus"; a comma there would be a splice).
+  //   em dash elsewhere → ", "  The middot it used to become read as an AI
+  //     tell (user, Oct 2026), so prose gets a plain comma.
+  //   en dash → "-"    these are numeric ranges ("8–12 reps").
   // [ \t]* not \s* on purpose: \s matches \n and would join separate lines.
-  h = h.replace(/[ \t]*—[ \t]*/g, " · ").replace(/[ \t]*–[ \t]*/g, "-");
+  h = h.replace(/^(#{1,3} [^\n]*?)[ \t]*—[ \t]*/gm, "$1: ");
+  h = h.replace(/[ \t]*—[ \t]*/g, ", ").replace(/[ \t]*–[ \t]*/g, "-");
   h = h.replace(/^#{1,3} (.+)$/gm, "<b>$1</b>");
   h = h.replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>");
   h = h.replace(/(^|\s)\*([^*\n]+)\*(?=\s|$|[.,;:!?])/g, "$1<i>$2</i>");
@@ -147,7 +149,7 @@ export function applyTheme() {
   if (t === "light" || t === "dark") document.documentElement.setAttribute("data-theme", t);
   else document.documentElement.removeAttribute("data-theme");
   const dark = t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#0A0A0B" : "#F4F4F5");
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", dark ? "#000000" : "#F2F2F7");
 }
 
 export function toggleTheme() {

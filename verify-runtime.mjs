@@ -170,8 +170,9 @@ try {
     await page.evaluate(() => window.closeDrawer && window.closeDrawer());
     await page.waitForTimeout(500);
 
-    // Heroes are theme-independent dark surfaces. A same-specificity rule can
-    // win and wash them out with the stylesheet still looking correct.
+    // The intake card was a dark volt hero; in the iOS pass it is an ordinary
+    // card whose hero tokens point at the surface tokens. Whatever it is, its
+    // text must stay legible on its own background in both themes.
     await page.locator("#nav-nutrition").click();
     await page.waitForTimeout(1200);
     const heroes = await page.evaluate(() => {
@@ -182,15 +183,16 @@ try {
         const el = document.querySelector(sel);
         if (!el) continue;
         const cs = getComputedStyle(el);
-        const fg = nums(cs.color), bg = nums(cs.backgroundImage);
+        const fg = nums(cs.color), bg = cs.backgroundImage !== "none" ? nums(cs.backgroundImage) : nums(cs.backgroundColor);
         if (fg.length < 3 || bg.length < 3) { out[sel] = { contrast: 0 }; continue; }
         const [hi, lo] = lum(fg) > lum(bg) ? [lum(fg), lum(bg)] : [lum(bg), lum(fg)];
         out[sel] = { contrast: +(((hi + 0.05) / (lo + 0.05)).toFixed(2)), gradient: cs.backgroundImage.startsWith("linear-gradient") };
       }
       return out;
     });
+    // (The kcal-in-ring fit is measured, with everything else, by verify-layout.mjs.)
     for (const [sel, v] of Object.entries(heroes)) {
-      note(`${theme}: ${sel} keeps its gradient and stays legible (${v.contrast}:1)`, v.gradient && v.contrast >= 4.5);
+      note(`${theme}: ${sel} text stays legible on its own surface (${v.contrast}:1)`, v.contrast >= 4.5);
     }
     await page.close();
   }
@@ -533,12 +535,20 @@ try {
     await page.waitForTimeout(200);
     const sheet = await page.evaluate(() => ({ shown: document.getElementById("stopModal")?.classList.contains("show"), stats: document.getElementById("stopStats")?.innerText || "" }));
     note("Stop Workout opens the styled finish sheet with time, sets and exercises (no native dialog)", sheet.shown && /Time/.test(sheet.stats) && /Sets/.test(sheet.stats) && /Exercises/.test(sheet.stats), JSON.stringify(sheet));
+    // The sheet sits outside #mainScroll: it must still wear the Workout look
+    // (it shipped in the old volt style once). System blue, sentence case.
+    const blue = (c) => /^rgb\(0, 98, 196\)$/.test(c);  // #0062C4: Apple's blue, one step deeper for AA
+    const sl = await page.evaluate(() => ({ btn: getComputedStyle(document.getElementById("stopConfirm")).backgroundColor, tt: getComputedStyle(document.getElementById("stopTitle")).textTransform }));
+    note("the finish sheet wears the Workout look (blue button, sentence-case title)", blue(sl.btn) && sl.tt === "none", JSON.stringify(sl));
     await page.evaluate(() => window.closeStopSheet());
     const keptGoing = await page.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
     note("'Keep going' closes the sheet and the workout keeps running", keptGoing);
     await page.evaluate(() => window.stopSess());
     await page.locator("#stopConfirm").click();
     await page.waitForTimeout(300);
+    const sm = await page.evaluate(() => ({ shown: document.getElementById("sum").classList.contains("show"), btn: getComputedStyle(document.querySelector("#sum .sum-close")).backgroundColor, tt: getComputedStyle(document.querySelector("#sum .sum-title")).textTransform, txt: document.querySelector("#sum .sum-inner").innerText }));
+    note("the summary wears the Workout look and reads Duration / Sets / Exercises with no emoji",
+      sm.shown && blue(sm.btn) && sm.tt === "none" && /Duration/.test(sm.txt) && /Exercises/.test(sm.txt) && /\d+ of \d+/.test(sm.txt) && !/[\u{1F300}-\u{1FAFF}]/u.test(sm.txt), JSON.stringify(sm));
     await page.evaluate(() => window.closeSummary?.());
     await page.reload({ waitUntil: "networkidle" });
     await page.waitForTimeout(900);
@@ -649,30 +659,31 @@ try {
     await page.close();
   }
 
-  // Weekly summary "Calories compliance" printed "undefined%": the summary read
-  // wc.calories after weekCompliance stopped returning it. Sunday Oct 11 shows
-  // the summary for the week just ending; seed food on some days.
+  // The goal card (Oct 26 reset): five habit rows with real numbers, never
+  // "undefined", "NaN" or "null", on a seeded mid-week day of the Feb goal.
   {
     const page = await browser.newPage({ viewport: { width: 412, height: 2200 }, timezoneId: "America/Toronto" });
-    page.on("pageerror", (e) => jsErrors.push(`calcomp: ${e.message}`));
-    await page.clock.install({ time: new Date("2026-10-11T15:00:00-04:00") });
+    page.on("pageerror", (e) => jsErrors.push(`goalcard: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-11-05T15:00:00-05:00") });
     await page.addInitScript(() => {
       window.FORGE_API_CFG = { baseUrl: "", token: "x" };
       if (!localStorage.f5) {
         const days = {};
-        for (const [d, k] of [["2026-10-05", 1500], ["2026-10-06", 2600], ["2026-10-07", 1400], ["2026-10-08", 1550]]) days[d] = { items: [{ name: "x", kcal: k, protein: 150 }], active: 600 };
-        localStorage.f5 = JSON.stringify({ nutrition: { days, weights: { "2026-10-05": 133, "2026-10-10": 132 } }, _v6MonDone1: true, _planMove41: true, _wkFix1: true });
+        for (const [d, k] of [["2026-11-02", 1450], ["2026-11-03", 2600], ["2026-11-04", 1400]]) days[d] = { items: [{ name: "x", kcal: k, protein: 150 }], active: 1300 };
+        localStorage.f5 = JSON.stringify({ nutrition: { days, weights: { "2026-10-26": 129, "2026-11-03": 128.9 } }, _v6MonDone1: true, _planMove41: true });
       }
     });
     await page.goto(URL, { waitUntil: "networkidle" });
     await page.waitForTimeout(800);
     await page.evaluate(() => document.getElementById("nav-nutrition")?.click());
     await page.waitForTimeout(900);
-    // textContent, not innerText: the phase card may sit in a collapsed section.
     const txt = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
-    const m = txt.match(/Calories compliance\s*([^A-Z]+?)(?=Deficit vs required)/);
-    const und = txt.match(/.{60}undefined.{40}/g);
-    note("weekly summary shows a real calories-compliance figure, never 'undefined'", !und && !!m && /^\d+%$|^·$/.test(m[1].trim()), JSON.stringify(m && m[1]) + " " + JSON.stringify(und));
+    const bad = txt.match(/.{40}(undefined|NaN|null kg|null%).{30}/g);
+    note("the goal card shows the new goal and five habit rows with real numbers",
+      /Phase 1 of 7: 125 kg by Nov 15/.test(txt) && /100 kg by Feb 28.{0,40}kg a week needed/.test(txt) && /95 kg by Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
+      /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active target/.test(txt) && /Score so far this week/.test(txt) && !bad,
+      JSON.stringify(bad) + " " + (txt.match(/This week.{0,260}/) || [""])[0]);
+    note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));
     await page.close();
   }
 
@@ -692,7 +703,8 @@ try {
     await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
     const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
     const shown = {
-      quoteCard: quote, complianceGrid: /This week's compliance/i.test(nut),
+      quoteCard: quote, goalPause: /Pause phase/.test(nut), goalVerdict: /Accept current result|Record verdict/.test(nut),
+      goalWeekSummary: /Week \d+ summary/.test(nut), goalBanked: /Banked|Behind schedule/.test(nut), goalDrift: /Mid-phase drift/.test(nut),
       progressCharts: /Volume This Week|Weekly Calorie Deficit/.test(st), prList: /Personal Records/.test(dr),
     };
     const wrong = Object.entries(shown).filter(([k, v]) => v !== FEATURES[k]).map(([k, v]) => `${k}:${v ? "shown" : "hidden"}`);
@@ -897,8 +909,8 @@ try {
     await page.close();
   }
 
-  // One tab at a time: Workout wears the iOS look, every other tab and the
-  // drawer keep main's look (warm background, volt accent) until their pass.
+  // The iOS look covers EVERY tab and the drawer (second pass, Oct 2026):
+  // no screen may fall back to the old warm/volt look.
   {
     const page = await browser.newPage({ viewport: { width: 412, height: 900 }, colorScheme: "light", timezoneId: "America/Toronto" });
     await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
@@ -911,9 +923,9 @@ try {
     const dr = await page.evaluate(() => getComputedStyle(document.getElementById("drawer")).getPropertyValue("--accent").trim());
     await page.evaluate(() => closeDrawer());
     await page.locator("#nav-workout").click(); await page.waitForTimeout(600); const w2 = await look();
-    const ios = (l) => /242, 242, 247/.test(l.bg) && /#007AFF/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
-    note("Workout wears the iOS look; Food, Settings and the drawer keep main's look; switching back restores iOS",
-      ios(w) && old(n) && old(st) && /#B9E425/i.test(dr) && ios(w2), JSON.stringify({ w, n, st, dr, w2 }));
+    const ios = (l) => /242, 242, 247/.test(l.bg) && /#0062C4/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
+    note("every tab and the drawer wear the iOS look (system background, system blue), none falls back to volt",
+      ios(w) && ios(n) && ios(st) && /#0062C4/i.test(dr) && ios(w2) && ![w, n, st, w2].some(old), JSON.stringify({ w, n, st, dr, w2 }));
     await page.close();
   }
 

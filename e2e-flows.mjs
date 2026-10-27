@@ -21,8 +21,9 @@ import { programFor, weekKeyOf, DAYS, prSlug, PR_ALIAS } from "./src/constants.j
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 const PORT = 8793, BASE = `http://127.0.0.1:${PORT}/`;
 // Wednesday evening, mid-week: there is a past day (Mon/Tue), today, and future.
-const NOW = new Date("2026-10-21T18:00:00-04:00");
-const TODAY = "2026-10-21", WK = weekKeyOf(new Date("2026-10-21T12:00:00"));
+// The clock, the fixture and its dates live in test-fixture.mjs, shared with
+// the layout audit (verify-layout.mjs) so both run on the same data.
+import { NOW, TODAY, WK, dayIso, fixture } from "./test-fixture.mjs";
 
 const fails = [];
 let passes = 0;
@@ -30,34 +31,6 @@ const note = (label, ok, detail = "") => {
   console.log(`  ${ok ? "✓" : "✗"}  ${label}${!ok && detail ? " — " + String(detail).slice(0, 300) : ""}`);
   if (ok) passes++; else fails.push(label);
 };
-
-// ── Fixture ────────────────────────────────────────────────────────────────
-const dayIso = (n) => { const d = new Date("2026-10-21T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
-function fixture(fresh) {
-  if (process.env.E2E_STATE) { const j = JSON.parse(readFileSync(process.env.E2E_STATE, "utf8")); return j.state || j; }
-  const S = JSON.parse(JSON.stringify(fresh));
-  const prog = (iso) => programFor(new Date(iso + "T12:00:00"));
-  const gym = (iso, day) => (prog(iso)[day]?.exercises || []).filter((e) => e.cat === "gym");
-  S.sessions = S.sessions || {}; S.prs = S.prs || {};
-  const lastWed = dayIso(-7), lastWk = weekKeyOf(new Date(lastWed + "T12:00:00"));
-  // Last Wednesday: today's exercises at 40 kg x 10 (Beat targets), one in lbs.
-  const lw = {};
-  gym(lastWed, "Wednesday").forEach((e, i) => {
-    const lbs = i === 2;
-    lw[e.id] = { done: true, skipped: false, unit: lbs ? "lbs" : "kg", sets: [1, 2, 3].map(() => ({ weight: lbs ? "90" : "40", reps: "10", done: true })) };
-    const slug = PR_ALIAS[prSlug(e.name)] || prSlug(e.name);
-    S.prs[slug] = [{ date: lastWed, weight: lbs ? 40.8 : 40, reps: 10, est: lbs ? 54 : 53 }];
-  });
-  S.sessions["Wednesday_" + lastWk] = lw;
-  // Monday this week: trained (two exercises logged, a note).
-  const mon = {}; gym(dayIso(-2), "Monday").slice(0, 2).forEach((e) => { mon[e.id] = { done: true, skipped: false, unit: "kg", sets: [{ weight: "60", reps: "12", done: true }] }; });
-  mon._notes = "Felt fine.";
-  S.sessions["Monday_" + WK] = mon;
-  S.nutrition = S.nutrition || {}; S.nutrition.days = S.nutrition.days || {}; S.nutrition.weights = S.nutrition.weights || {};
-  for (let i = -3; i <= 0; i++) S.nutrition.days[dayIso(i)] = { items: i === 0 ? [] : [{ id: "n_" + (1000 + i), name: "Chicken rice bowl", kcal: 650, protein: 55, carbs: 70, fat: 14, fibre: 6, sugar: 4, sodium: 900, time: 1 }], restingOverride: 2800, active: 700 };
-  for (let i = -12; i <= -1; i++) S.nutrition.weights[dayIso(i)] = Math.round((131 - (i + 12) * 0.15) * 10) / 10;
-  return S;
-}
 
 // ── Harness ────────────────────────────────────────────────────────────────
 let browser, server, FRESH = null;
@@ -150,13 +123,25 @@ async function workoutSession(state) {
     await p.evaluate(() => closeStopSheet()); await wait(p);
     const stillOn = await p.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
     await p.click("#bStop"); await wait(p);
+    await p.clock.setFixedTime(new Date(NOW.getTime() + 50 * 60000)); // a 50-minute workout
     await p.evaluate(() => stopSess(true)); await wait(p, 400);
     const summary = await p.evaluate(() => document.getElementById("sum")?.classList.contains("show"));
+    const dur1 = await p.evaluate(() => document.getElementById("sumDur").textContent);
     await p.evaluate(() => closeSummary()); await wait(p);
     const stopped = (await S(p)).sessions["Wednesday_" + await p.evaluate(() => wk())]?._stopped;
     const resumeBtn = await p.evaluate(() => /Resume Workout/.test(document.body.innerText));
     await p.evaluate(() => resumeSess()); await wait(p);
     const resumed = await p.evaluate(() => document.getElementById("bStop")?.classList.contains("show"));
+    // Resume, two more minutes, finish again: the summary counts the WHOLE
+    // workout. It used to show only the stretch since the resume ("0m 01s").
+    await p.clock.setFixedTime(new Date(NOW.getTime() + 52 * 60000));
+    await p.evaluate(() => stopSess(true)); await wait(p, 300);
+    const dur2 = await p.evaluate(() => document.getElementById("sumDur").textContent);
+    await p.evaluate(() => closeSummary()); await p.evaluate(() => resumeSess()); await wait(p);
+    await p.clock.setFixedTime(NOW);
+    const n1 = parseInt(dur1, 10), n2 = parseInt(dur2, 10);
+    note("the summary counts the whole workout across a resume (50 min, then 52 min, never Under a minute)",
+      /^\d+ min$|^\d+ hr/.test(dur1) && n1 >= 50 && n2 === n1 + 2, JSON.stringify({ dur1, dur2 }));
     await flush(h);
     note("start, survives reload, stop sheet, keep going, finish, summary, resume",
       !!active && survived && sheet && stillOn && summary && stopped && resumeBtn && resumed && sent(h, "session_meta").length > 0,

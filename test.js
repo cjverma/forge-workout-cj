@@ -230,23 +230,35 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
 // Oct 16 2026: phases replaced by ONE goal (128.5 -> 95 kg by Mar 1 2027).
 // Oct 20 2026: the user reset it to 130 -> 95 kg by Feb 20 2027. phase_2 and
 // the first line (goal_v1, Oct 16-19) are kept as history only.
-ok("phaseFor boundaries: phase_1 Jul 28-Sep 7 · gap · phase_2 Sep 22-Oct 15 · goal_v1 Oct 16-19 · ONE goal Oct 20-Feb 20",
+// Oct 26 2026: reset at 130 kg into 5 kg phases that still hit the hard
+// goals (100 kg by Feb 28, 95 kg by Mar 31). The Oct 20 line is history.
+ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal Oct 20-25 · seven 5 kg phases Oct 26-Mar 31",
   E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
   E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
   E.phaseFor("2026-10-16")?.id === "goal_v1" && E.phaseFor("2026-10-19")?.id === "goal_v1" &&
-  E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-12-01")?.id === "goal" &&
-  E.phaseFor("2027-02-20")?.id === "goal" && !E.PHASES.some((p) => p.id === "phase_3"));
+  E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-10-25")?.id === "goal" &&
+  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-15")?.id === "p5_1" && E.phaseFor("2026-11-16")?.id === "p5_2" &&
+  E.phaseFor("2027-02-28")?.id === "p5_6" && E.phaseFor("2027-03-01")?.id === "p5_7" && E.phaseFor("2027-03-31")?.id === "p5_7" &&
+  E.phaseFor("2027-04-01") === null && !E.PHASES.some((p) => p.id === "phase_3"));
 ok("goal_v1 history keeps its real ~1,883/day deficit over Oct 16-19",
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "goal_v1")) - 1883) <= 20);
 ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 days",
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "phase_2")) - 2343) <= 60);
 {
   const G = E.PHASES.find((p) => p.id === "goal");
-  ok("the goal: 130 -> 95 kg, Oct 20 2026 -> Feb 20 2027, eat 1,500, ~2,173 kcal/day required deficit",
-    G.startKg === 130 && G.targetKg === 95 && G.start === "2026-10-20" && G.plannedEnd === "2027-02-20" &&
-    G.eatKcal === 1500 && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 5 && G.restingKcal === undefined);
-  ok("the goal's curve lands exactly on 95 kg on Feb 20", Math.abs(E.phaseCurveKg(G, "2027-02-20") - 95) < 0.05);
+  ok("the Oct 20 line is history: cut at Oct 25 keeping its real ~2,173 kcal/day",
+    G.start === "2026-10-20" && G.plannedEnd === "2026-10-25" && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 10);
+  const P5 = E.PHASES.filter((p) => /^p5_/.test(p.id));
+  ok("seven 5 kg phases from 130 kg on Oct 26, each starting where the last ended, no gaps, eat 1,500, no '·' in names",
+    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 15" &&
+    P5.every((p, i) => p.startKg - p.targetKg === 5 && p.eatKcal === 1500 && !/·/.test(p.name) && p.restingKcal === undefined &&
+      (i === 0 || (p.startKg === P5[i - 1].targetKg && E.daysBetween(P5[i - 1].plannedEnd, p.start) === 1))));
+  ok("the phases still hit the hard goals: 100 kg on Feb 28 and 95 kg on Mar 31 2027",
+    P5[5].plannedEnd === "2027-02-28" && Math.abs(E.phaseCurveKg(P5[5], "2027-02-28") - 100) < 0.05 &&
+    P5[6].plannedEnd === "2027-03-31" && Math.abs(E.phaseCurveKg(P5[6], "2027-03-31") - 95) < 0.05);
+  ok("the Feb phases need ~1,833 kcal/day (5 kg in 21 days), March ~1,242/day",
+    P5.slice(0, 6).every((p) => Math.abs(E.phaseRequiredDeficit(p) - 1833) <= 1) && Math.abs(E.phaseRequiredDeficit(P5[6]) - 1242) <= 1);
 }
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -430,14 +442,47 @@ ok("verdict bands: 127.5 green · 129.3 yellow · 131 orange · 133 red",
 // constants; they collapse into one metric measuring the deficit actually
 // produced against what the phase still needs. Their combined 0.55 carries over.
 // Medication tracking removed (Oct 2026): its 5% moved to the deficit.
-ok("compliance weights are 55/20/15/5/5 (no medication) and sum to 1",
-  HTML.includes("COMPLIANCE_WEIGHTS={deficit:0.55,protein:0.20,workouts:0.15,weighins:0.05,streak:0.05}") &&
-  Math.abs(0.55 + 0.20 + 0.15 + 0.05 + 0.05 - 1) < 1e-12);
-// Streak rewards not breaking the chain, which "workouts" alone does not: you
-// can train 4 of 6 days every week and never build one.
-ok("streak is scored from the workout streak, a full week reading 100",
-  /streak:\(\(\)=>\{const st=ctx\.currentStreak\?\.\(\);return st\?\(st\.weeks>=1\?100:/.test(HTML) &&
-  HTML.includes("ctx.currentStreak=currentStreak"));
+// Oct 26 2026: five habits the user controls (food on target, workouts,
+// weight vs line, weigh-ins, Watch active), weighted by the evidence.
+ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / active 10 and sum to 1",
+  HTML.includes("COMPLIANCE_WEIGHTS={food:0.30,workouts:0.25,weight:0.25,weighins:0.10,active:0.10}") &&
+  Math.abs(0.30 + 0.25 + 0.25 + 0.10 + 0.10 - 1) < 1e-12 && !/COMPLIANCE_WEIGHTS=\{deficit/.test(HTML));
+{
+  // The REAL weekCompliance, run against seeded weeks with its dependencies
+  // stubbed: Mon Nov 2 2026 week, Sunday rest, "today" Sat Nov 7 (Mon-Fri done).
+  const NUTC = readFileSync("src/nutrition.js", "utf8");
+  const src = NUTC.slice(NUTC.indexOf("const COMPLIANCE_WEIGHTS="), NUTC.indexOf("// Live health colour"));
+  const addD = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+  const P = { id: "goal_feb", start: "2026-10-26", eatKcal: 1500 };
+  const mk = (S, { today = "2026-11-07", trained = [], line = 128 } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg",
+    src + "; return weekCompliance;")(S, () => today, addD, (iso) => new Date(iso + "T12:00:00Z"), () => P, () => 800, 0.75,
+      (d) => trained.includes(d), (d) => new Date(d + "T12:00:00Z").getUTCDay() === 0, () => line);
+  const wk = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"];
+  const day = (kcal, active) => ({ items: kcal ? [{ kcal }] : [], active });
+  const allGood = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1400, 900)])), weights: Object.fromEntries(wk.map((d) => [d, 127.5])) } };
+  const g = mk(allGood, { trained: wk })(P, "2026-11-02", "2026-11-07");
+  ok("a perfect week scores 100 on every habit", g.food === 100 && g.workouts === 100 && g.weight === 100 && g.weighins === 100 && g.active === 100 && g.overall === 100, JSON.stringify(g));
+  const big = JSON.parse(JSON.stringify(allGood)); big.nutrition.days["2026-11-02"] = day(3000, 900);
+  ok("a 3,000 kcal day is logged but NOT on target", mk(big, { trained: wk })(P, "2026-11-02", "2026-11-07").foodDays === 4);
+  ok("6 workouts is still 100 (never over), and an extra session on the rest day is not penalised",
+    mk(allGood, { trained: [...wk, "2026-11-07"] })(P, "2026-11-02", "2026-11-07").workouts === 100);
+  const wed = mk(allGood, { today: "2026-11-04", trained: ["2026-11-02", "2026-11-03"] })(P, "2026-11-02", "2026-11-04");
+  ok("Wednesday with Mon+Tue trained is on schedule (100), shown as 2 of 5", wed.workouts === 100 && wed.trained === 2 && wed.need === 5, JSON.stringify(wed));
+  const behind = (kg) => mk({ nutrition: { days: {}, weights: { "2026-11-03": kg } } }, { trained: wk })(P, "2026-11-02", "2026-11-07").weight;
+  ok("weight vs line: 0.5 kg deadband, 1.0 behind = 88, 1.5 behind = 75, ahead caps at 100, 4.5 behind floors at 0",
+    behind(128.5) === 100 && behind(129) === 88 && behind(129.5) === 75 && behind(126) === 100 && behind(132.5) === 0);
+  const carried = mk({ nutrition: { days: {}, weights: { "2026-10-30": 131 } } }, { trained: wk })(P, "2026-11-02", "2026-11-07");
+  ok("skipping the scale doesn't help: the last weigh-in is carried forward against today's line", carried.weight === 38 && carried.carried === true && carried.weighins === 0, JSON.stringify(carried));
+  const fasted = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(0, 0)])), weights: {} } };
+  ok("a day with no food and no active logged fails food and active (never a free pass)",
+    (() => { const c = mk(fasted)(P, "2026-11-02", "2026-11-07"); return c.food === 0 && c.active === 0; })());
+  const under = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1000, 700)])), weights: {} } };
+  ok("eating under target never lowers the active bar (700 < 800 still fails)", mk(under)(P, "2026-11-02", "2026-11-07").active === 0);
+  const mon = mk({ nutrition: { days: {}, weights: {} } }, { today: "2026-11-02" })(P, "2026-11-02", "2026-11-02");
+  ok("Monday morning with nothing yet: overall is null (not 0, not NaN)", mon.overall === null && mon.workouts === null);
+  const noScale = mk({ nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1400, 900)])), weights: {} } }, { trained: wk })(P, "2026-11-02", "2026-11-07");
+  ok("with no weigh-in ever, weight drops out and the rest reweight", noScale.weight === null && noScale.overall === Math.round((30 * 100 + 25 * 100 + 10 * 0 + 10 * 100) / 75), JSON.stringify(noScale));
+}
 // Renamed on the FRONTEND only. Storage keys keep the real name so dose history
 // is not orphaned, and the AI context keeps it so the GLP-1 class still informs
 // nutrition advice. Only what renders on screen is generic.
@@ -450,9 +495,8 @@ ok("streak is scored from the workout streak, a full week reading 100",
   const hits = files.filter((f) => /zepbound|tirzepatide|med_dose|S\.meds|medicationCard|>Medication</i.test(readFileSync(f, "utf8").replace(/\/\/[^\n]*/g, "")));
   ok(`no Zepbound / medication tracking anywhere (UI, sync, server, AI prompts)${hits.length ? " — " + hits.join(", ") : ""}`, hits.length === 0);
 }
-ok("compliance is NaN-safe (Calculating placeholder) and caps protein/deficit at 100",
-  HTML.includes("calculating:true") && HTML.includes("Calculating…") &&
-  /protein:Math\.min\(100/.test(HTML) && /deficit:Math\.min\(100/.test(HTML));
+ok("compliance is null-safe: no score shows 'Starts after today', never NaN",
+  /m\.overall=wSum>0\?/.test(HTML) && HTML.includes("Starts after today"));
 
 // Dashboard psychology: behaviours, not deficits
 const rnBody = fnBody("renderNutrition");
@@ -461,24 +505,26 @@ ok("required deficit is NOT rendered on the Nutrition dashboard",
 ok("intakeFloor/moveGap fully removed", !HTML.includes("intakeFloor") && !HTML.includes("moveGap"));
 ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
-ok("phase card present: exact plan-vs-weigh-in row (no range), pause, review-now, accept override, banked progress",
-  !HTML.includes("Range today") && HTML.includes("Your weigh-in: ") && HTML.includes("Exactly on plan") && HTML.includes("Pause phase") && HTML.includes("Review now") &&
-  HTML.includes("Accept current result") && (HTML.includes("Banked") || HTML.includes("Behind schedule")) && HTML.includes("Extend the phase"));
+ok("goal card: plan-vs-weigh-in row, This week habits, Review my progress; pause/verdict/banked/drift behind FEATURES flags",
+  !HTML.includes("Range today") && HTML.includes("Your weigh-in: ") && HTML.includes("Exactly on plan") && HTML.includes("Review my progress") &&
+  HTML.includes("Food on target") && HTML.includes("Watch active target") &&
+  /FEATURES\.goalPause&&/.test(HTML) && /FEATURES\.goalVerdict&&/.test(HTML) && /FEATURES\.goalBanked&&banked/.test(HTML) && /FEATURES\.goalDrift&&/.test(HTML));
 ok("immutable snapshot on completion (S.phaseHistory) + quiet analytics incl. recoveryDays",
   HTML.includes("S.phaseHistory[id]=") && HTML.includes("recoveryDays") && HTML.includes("pauseDays"));
 ok("Sunday summary with one deterministic recommendation",
   HTML.includes("coachRecommendation") && HTML.includes("Stay the course.") &&
   HTML.includes("Avoid the temptation to cut calories further"));
-ok("AI review sends completion %, health colour and compliance history",
-  HTML.includes("Phase completion:") && HTML.includes("Phase health:") && HTML.includes("Compliance history"));
+ok("AI review judges progress so far and how to get back on track; pre-reset weeks send only their overall",
+  HTML.includes("Goal progress review.") && HTML.includes("back on track") && HTML.includes("kgPerWeekNeededNow") &&
+  /w\.v===2&&w\.perMetric/.test(HTML) && HTML.includes("scored under the old method"));
 
 ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 95 · goalDate Feb 20 2027",
+ok("USER.targetKg 95 · goalDate Mar 31 2027",
   HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:95,heightCm:") &&
-  HTML.includes("goalDate:new Date(2027,1,20)"));
+  HTML.includes("goalDate:new Date(2027,2,31)"));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -750,7 +796,7 @@ ok("read-only cardio row's cursor style is a real attribute, not text leaked int
 {
   const NUT_SRC2 = readFileSync("src/nutrition.js", "utf8");
   ok("the goal card's summary chip uses the exact weigh-in comparison, never the old 'In range' band",
-    !/In range/.test(NUT_SRC2) && /else if\(health\)chipBits\.push\(health\.label\);/.test(NUT_SRC2));
+    !/In range/.test(NUT_SRC2) && /const chipW=!wvc\?"No weigh-in yet"/.test(NUT_SRC2) && /week starting/.test(NUT_SRC2));
   ok("the medication card and its dose schedule are gone", !/zepCardHtml|zepSchedule|logZepDose/.test(NUT_SRC2) && /function dropPR\(cid\)/.test(NUT_SRC2));
 }
 ok("toggleSet reads the live weight/reps inputs by id before checking completeness",
@@ -780,7 +826,6 @@ const CRON_SRC = readFileSync("api/cron-diet-review.js", "utf8");
 ok("every former hardcoded protein number now calls proteinTargetG()",
   /const pTarget=proteinTargetG\(\);/.test(NUT_SRC) &&
   /const pTarget=Math\.round\(proteinTargetG\(\)\*\(trained\?1\.1:1\)\);/.test(NUT_SRC) &&
-  /protein:Math\.min\(100,Math\.round\(protDays\?\(protSum\/protDays\)\/proteinTargetG\(\)\*100:0\)\)/.test(NUT_SRC) &&
   /const pTarget=proteinTargetG\(\);/.test(SET_SRC) &&
   /const pt=proteinTargetG\(\);/.test(WK_SRC) && />=pt;/.test(WK_SRC));
 ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
@@ -791,8 +836,8 @@ ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
 // state server-side) — it's a documented, hand-synced mirror, matching how
 // GOALS.targetKg/goalDate already work in this file. Just check it was
 // actually re-synced, not left stale.
-ok("server diet-review cron mirror re-synced (targetKg 95 by 2027-02-20, one goal, protein snapshot)",
-  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-02-20"/.test(CRON_SRC) && /ONE goal/.test(CRON_SRC) &&
+ok("server diet-review cron mirror re-synced (95 by 2027-03-31, 100 by Feb 28 checkpoint, five habits, protein snapshot)",
+  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-03-31"/.test(CRON_SRC) && /100 kg by Feb 28 2027/.test(CRON_SRC) && /five habits/.test(CRON_SRC) &&
   /proteinTargetG: 230,/.test(CRON_SRC));
 
 // Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()
@@ -1056,8 +1101,8 @@ ok("Diet review and weight history render collapsed; phase card collapsed unless
   HTML.includes(`<details class="st-acc"\${st==="completed"?" open":""}>`) ||
   (!/st-acc" open>\s*<summary><div><div>🥗/.test(HTML) && HTML.includes(`st==="completed"?" open":""`)));
 
-ok("Phase summary carries the live status chip (%, range/paused state, compliance)",
-  HTML.includes("chipBits") && HTML.includes("chipBits.push(health.label)") && HTML.includes("compliance ${comp.overall}%"));
+ok("Goal summary carries the live chip: kg ahead/behind (or no weigh-in), this week's score (or week starting)",
+  HTML.includes("const chipText=") && HTML.includes('% this week"') && HTML.includes("kg behind") && HTML.includes("kg ahead"));
 
 ok("client has manual generate/regenerate button wired with auth + busy guard",
   HTML.includes("generateDietReview") && HTML.includes("dietRevBtn") &&
@@ -1101,8 +1146,8 @@ ok("tabular-nums rule present and NOT applied to body/prose",
   HTML.includes("font-variant-numeric: tabular-nums") &&
   !/^body\{[^}]*font-variant-numeric/m.test(HTML));
 
-ok("mdLite normalises em dash to middot and en dash to hyphen",
-  HTML.includes('replace(/[ \\t]*\u2014[ \\t]*/g, " \u00b7 ")') &&
+ok("mdLite normalises em dash to a colon in headings and a comma elsewhere, en dash to hyphen",
+  HTML.includes('replace(/[ \\t]*\u2014[ \\t]*/g, ", ")') && HTML.includes('"$1: ")') &&
   HTML.includes('replace(/[ \\t]*\u2013[ \\t]*/g, "-")'));
 
 // A middot-for-em-dash swap in mdLite only fixes AI text. Hand-written strings
@@ -1334,16 +1379,30 @@ ok("deleting a set with logged data asks first",
 ok("delete control is hidden on read-only days",
   /rdOnly\?'<div><\/div>':`<button class="sdel"/.test(WORKOUT));
 
-// The iOS redesign ships ONE TAB AT A TIME (user, Oct 2026). Its tokens and
-// chrome are keyed on body[data-tab="workout"]; the default :root stays main's
-// old look so Food, Settings, the drawer and pop-ups are unchanged for now.
+// The iOS redesign shipped Workout first, then every other screen (user,
+// Oct 2026: "fix it entirely for all the rest"). The iOS tokens sit on
+// body[data-tab], so everything under <body> (tabs, drawer, chat, sheets,
+// pop-ups) inherits them; :root keeps the old values only as a fallback.
 {
   const IDX = readFileSync("index.html", "utf8"), MAIN_SRC = readFileSync("src/main.js", "utf8");
-  const ROOT = IDX.slice(IDX.indexOf(":root{"), IDX.indexOf("html[data-theme=\"light\"]"));
-  ok("the default tokens are the old look (warm ramp, volt accent), not iOS",
-    ROOT.includes("--black:light-dark(#EDECEA,#08080A);") && ROOT.includes("--accent:light-dark(#B9E425,#C8F135);") && !ROOT.includes("#007AFF"));
-  ok("the iOS tokens apply only to the Workout tab's own regions",
-    IDX.includes('body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){') && /:is\(\.hdr,#dayNav,#mainScroll,\.bot-nav,\.toast\)\{[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX));
+  ok("the iOS tokens apply to every screen (on body[data-tab]), with an AA-contrast system blue",
+    /\nbody\[data-tab\]\{\n  --black:light-dark\(#F2F2F7,#000000\);[^}]*--accent:#0062C4;[^}]*--accent-text:light-dark\(#0062C4,#409CFF\)/.test(IDX) && !IDX.includes('body[data-tab="workout"]'));
+  ok("Food, Settings, the drawer, chat, the plan review and the lock screen are restyled in the same grammar",
+    IDX.includes("EVERY OTHER SCREEN · iOS") && /body\[data-tab\] \.nut-hero\{background:var\(--s1\)/.test(IDX) &&
+    /body\[data-tab\] \.chat-user\{background:var\(--accent\)/.test(IDX) && /body\[data-tab\] \.drawer\{background:var\(--black\)/.test(IDX));
+  ok("the Workout pop-ups (finish sheet, summary, swap, milestone) take the iOS look",
+    /body\[data-tab\] :is\(#sum,#milestoneModal\) \.sum-title\{[^}]*text-transform:none/.test(IDX));
+  ok("the status bar colour matches the iOS surfaces (#000 dark, #F2F2F7 light) and the manifest was re-busted",
+    readFileSync("src/ui.js", "utf8").includes('dark ? "#000000" : "#F2F2F7"') && IDX.includes("manifest.json?v=3"));
+  const SUM = IDX.slice(IDX.indexOf('<div class="summary" id="sum">'), IDX.indexOf('id="milestoneModal"'));
+  ok("the workout summary has no emoji and no slogan, and says Done",
+    SUM.length > 0 && !/[\u{1F300}-\u{1FAFF}]/u.test(SUM) && !/showed up/i.test(SUM) && SUM.includes(">Done</button>") && SUM.includes('id="sumEx"'));
+  const W = readFileSync("src/workout.js", "utf8");
+  ok("the summary shows the WHOLE workout (accumulated _duration), not the stretch since a resume",
+    /sumDur"\)\.textContent=fmtWorkoutDur\(S\.sessions\[key\]\._duration\)/.test(W) && /fmtWorkoutDur\(\(sess\._duration\|\|0\)\+el\)/.test(W));
+  const fmt = new Function(W.match(/function fmtWorkoutDur\(sec\)\{[\s\S]*?\n\}/)[0] + "; return fmtWorkoutDur;")();
+  ok("workout durations read like Apple's: Under a minute, 48 min, 1 hr 5 min, 2 hr",
+    fmt(30) === "Under a minute" && fmt(2880) === "48 min" && fmt(3900) === "1 hr 5 min" && fmt(7200) === "2 hr" && fmt(undefined) === "Under a minute");
   ok("go() marks the current tab on <body>, and the page starts on Workout",
     /cTab=tab;[\s\S]{0,120}document\.body\.dataset\.tab=tab;/.test(MAIN_SRC) && IDX.includes('<body data-tab="workout">'));
   ok("Workout toasts are quiet: no routine confirmations, no emoji",
@@ -1629,7 +1688,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
     // banned so there is never a measured 1RM to correct against. It stays as
     // the rep-normalised RANKING key, but it is not the headline number.
     ok("the PR row leads with the weight actually lifted",
-      /\$\{pr\.weight\}kg × \$\{pr\.reps\} · \$\{fmtDate\(pr\.date\)\} · est\. 1RM \$\{pr\.est\}kg/.test(NUT) &&
+      /\$\{pr\.weight\}kg × \$\{pr\.reps\}, \$\{fmtDate\(pr\.date\)\}, est\. 1RM \$\{pr\.est\}kg/.test(NUT) &&
       !/Est\. 1RM: \$\{pr\.est\}/.test(NUT));
     ok("the leaderboard shows the real lift and only sorts by est. 1RM",
       /lift-val">\$\{best\.weight\}<span class="lift-unit">kg × \$\{best\.reps\}/.test(NUT) &&
@@ -1788,17 +1847,17 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         // The weekly email is a REPORT now, not "your CSV is attached": verdict
         // vs the goal line, weight trend, intake/protein/deficit vs target,
         // sessions + volume + PRs vs last week, and a focus list for next week.
-        // Seeded with one full goal-phase week (Oct 19-25) and sent Mon Oct 26.
+        // Seeded with one full week of the Feb goal (Oct 26-Nov 1), sent Mon Nov 2.
         const { buildWeeklyReport } = await import("./api/_weeklyReport.js");
         const { weekKeyOf, DAYS: RD } = await import("./src/constants.js");
         const RT = await import("./src/runtime.js");
         const iso = (d) => d.toISOString().slice(0, 10);
         const S = { sessions: {}, prs: {}, custom: {}, nutrition: { days: {}, weights: {} } };
-        for (let i = 0; i < 18; i++) { const d = new Date(Date.UTC(2026, 9, 8 + i)); S.nutrition.weights[iso(d)] = 128.6 - i * 0.25 + 0.00000001; }
-        for (let i = 0; i < 6; i++) S.nutrition.days[iso(new Date(Date.UTC(2026, 9, 19 + i)))] = { items: [{ name: "x", kcal: 1450, protein: 200 }], active: 900, restingOverride: 2800 };
+        for (let i = 0; i < 18; i++) { const d = new Date(Date.UTC(2026, 9, 15 + i)); S.nutrition.weights[iso(d)] = 128.6 - i * 0.25 + 0.00000001; }
+        for (let i = 0; i < 6; i++) S.nutrition.days[iso(new Date(Date.UTC(2026, 9, 26 + i)))] = { items: [{ name: "x", kcal: 1450, protein: 200 }], active: 900, restingOverride: 2800 };
         let firstName = null;
         for (let i = 0; i < 5; i++) {   // Mon-Fri trained, Sat skipped
-          const d = new Date(Date.UTC(2026, 9, 19 + i, 12)), day = RD[i];
+          const d = new Date(Date.UTC(2026, 9, 26 + i, 12)), day = RD[i];
           const ex = REAL_PROGRAM_FOR(d)[day].exercises.filter((e) => e.cat === "gym");
           const sess = {};
           for (const e of ex) sess[e.id] = { sets: [{ weight: 40, reps: 10, done: true }, { weight: 40, reps: 9, done: true }] };
@@ -1806,20 +1865,20 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           S.sessions[day + "_" + weekKeyOf(new Date(iso(d) + "T12:00:00"))] = sess;
           if (i === 0) firstName = ex[0].name;
         }
-        S.prs.seated_leg_curl = [{ date: "2026-10-01", weight: 60, reps: 12, est: 84 }, { date: "2026-10-21", weight: 65, reps: 12, est: 91 }];
+        S.prs.seated_leg_curl = [{ date: "2026-10-01", weight: 60, reps: 12, est: 84 }, { date: "2026-10-28", weight: 65, reps: 12, est: 91 }];
         const before = RT.ctx.getS;
-        const rep = buildWeeklyReport({ state: S, now: new Date("2026-10-26T12:00:00Z") });
+        const rep = buildWeeklyReport({ state: S, now: new Date("2026-11-02T12:00:00Z") });
         const x = rep.data, all = rep.subject + rep.html + rep.text;
-        ok("the weekly report covers last Mon-Sun when sent on Monday", x.mon === "2026-10-19" && x.today === "2026-10-25", x.mon + " " + x.today);
+        ok("the weekly report covers last Mon-Sun when sent on Monday", x.mon === "2026-10-26" && x.today === "2026-11-01", x.mon + " " + x.today);
         ok("the report subject is plain: no weight or stats in it",
-          rep.subject === "Your FORGE week · Oct 19 to Oct 25" && !/kg|\d\/\d/.test(rep.subject), rep.subject);
+          rep.subject === "Your FORGE week · Oct 26 to Nov 1" && !/kg|\d\/\d/.test(rep.subject), rep.subject);
         // Without a coach (the model call failed) the email still says something:
         // the rule-based verdict and at most three next-week items.
         ok("with no AI coach the email falls back to the rule-based verdict and focus",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
-        ok("the report verdict is measured against the one goal plan to 95 kg", /ahead of plan\. On track for 95 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-10-25", x.verdict);
-        ok("the report scores nutrition against the goal (1,500 kcal, 2,173 deficit)",
-          x.eatTarget === 1500 && x.req === 2173 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 15)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
+        ok("the report scores nutrition against the phase (1,500 kcal, 1,833 deficit)",
+          x.eatTarget === 1500 && x.req === 1833 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
@@ -1828,7 +1887,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the report has no em dash, raw float noise, undefined, NaN or medication",
           !all.includes("—") && !/00000/.test(all) && !/undefined|NaN|zepbound|tirzepatide/i.test(all));
         ok("the report shows ideal (plan) weight next to actual weight",
-          /Ideal weight on Oct 25/.test(rep.html) && rep.html.includes(`${x.vs.expected} kg`) && rep.html.includes(`${x.vs.kg} kg`) && /Ideal weight .* · actual /.test(rep.text));
+          /Ideal weight on Nov 1/.test(rep.html) && rep.html.includes(`${x.vs.expected} kg`) && rep.html.includes(`${x.vs.kg} kg`) && /Ideal weight .* · actual /.test(rep.text));
         // The Gmail app drops backgrounds: anything that needs one to be
         // readable or visible (white text, a background-filled bar) fails there.
         ok("the email needs no background to be readable: no white text, the bar is drawn with borders",
@@ -1846,10 +1905,10 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the coach reply is parsed through code fences, dashes normalised, capped at 3 items",
           coach && coach.headline === "Strong week · keep it going" && coach.nextWeek.length === 3);
         ok("junk from the model gives no coach (so the fallback is used)", parseCoach("sorry, I can't") === null && parseCoach('{"headline":"x"}') === null);
-        const cr = buildWeeklyReport({ state: S, now: new Date("2026-10-26T12:00:00Z"), coach });
+        const cr = buildWeeklyReport({ state: S, now: new Date("2026-11-02T12:00:00Z"), coach });
         ok("with a coach, the email is the coach's words plus ideal vs actual weight",
           cr.html.includes("Strong week · keep it going") && />Diet</.test(cr.html) && />Training</.test(cr.html) && cr.html.includes("Five of six done.") &&
-          /Ideal weight on Oct 25/.test(cr.html) && (cr.html.match(/<li /g) || []).length === 3 && !cr.html.includes("—") && /TRAINING\nFive of six done\./.test(cr.text));
+          /Ideal weight on Nov 1/.test(cr.html) && (cr.html.match(/<li /g) || []).length === 3 && !cr.html.includes("—") && /TRAINING\nFive of six done\./.test(cr.text));
         const EM = readFileSync("api/cron-weekly-email.js", "utf8");
         ok("the weekly email sends the report as html + text, with no attachment (user: useless)",
           /buildWeeklyReport\(\{ state: S, coach \}\)/.test(EM) && /html: rep\.html/.test(EM) && /text: rep\.text/.test(EM) && /subject: rep\.subject/.test(EM) && !/attachments|buildCSV/.test(EM) && !/CSV/.test(rep.html + rep.text));
@@ -2490,7 +2549,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
     // "undefined%" for weeks.
     const fn = NUT3.slice(NUT3.indexOf("function weekCompliance("));
     const block = fn.slice(fn.indexOf("const m={"), fn.indexOf("};", fn.indexOf("const m={")));
-    const produced = new Set([...block.matchAll(/^\s*([a-zA-Z]+):/gm)].map((x) => x[1]).concat(["overall", "calculating"]));
+    const produced = new Set([...block.matchAll(/(?:^|[{,])\s*([a-zA-Z]+)\s*(?=[:,\n])/gm)].map((x) => x[1]).concat(["overall"]));
     const read = [...new Set([...NUT3.matchAll(/\b(?:wc|comp)\.([a-zA-Z]+)/g)].map((x) => x[1]))];
     const missing = read.filter((k) => !produced.has(k));
     ok(`every compliance field the UI reads is produced by weekCompliance${missing.length ? " — missing: " + missing.join(", ") : ""}`, missing.length === 0);
@@ -2502,12 +2561,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
     const fns = (await import("fs")).readdirSync("api").filter((f) => f.endsWith(".js") && !f.startsWith("_"));
     ok(`api/ has at most 12 serverless functions (Vercel Hobby limit) · ${fns.length}`, fns.length <= 12);
   }
-  ok("today is excluded from the deficit/weigh-in denominators",
-    /const inProgress=d===isoToday\(\)&&days\.length>1;/.test(NUT3) &&
-    /if\(!inProgress\)\{[\s\S]{0,700}defReq\+=phaseRequiredDeficit/.test(NUT3));
-  ok("weigh-in rate divides by scored days, not raw range length",
-    /weighins:Math\.round\(weighinDays\?weighins\/weighinDays/.test(NUT3) &&
-    !/weighins\/days\.length/.test(NUT3));
+  ok("today is never charged until it ends (Toronto day)",
+    /const finished=days\.filter\(d=>d<t\);/.test(NUT3) && /const t=isoToday\(\);/.test(NUT3));
   // Guards the distinction that caused the confusion: these are different
   // metrics with different weights. Training does not feed "active".
   // The deficit metric is MEASURED from logged resting/active/eaten, not
@@ -2528,7 +2583,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   ok("phase 1 requires 2,200 kcal/day (12 kg over 42 days)",
     Math.round(12 * 7700 / 42) === 2200);
   ok("workouts stays its own metric",
-    /workouts:0\.15/.test(NUT3) && /if\(trainedOn\(d\)\)workoutDays\+\+/.test(NUT3));
+    /workouts:0\.25/.test(NUT3) && /days\.filter\(d=>trainedOn\(d\)\)/.test(NUT3));
 }
 
 // Settings tab card pass.
@@ -2594,18 +2649,6 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   }
   ok(`UI labels are Title Case${offenders.length ? " — " + [...new Set(offenders)].slice(0, 5).join(", ") : ""}`,
     offenders.length === 0);
-}
-
-// Folding calories+active into one deficit score is right for SCORING but hid
-// which lever is moving, and removed the active figure from view entirely.
-// The breakdown shows the working without scoring anything twice.
-{
-  const NUT4 = readFileSync("src/nutrition.js", "utf8");
-  ok("compliance shows the inputs that produce the deficit",
-    /avgEat:/.test(NUT4) && /avgResting:/.test(NUT4) && /avgActive:/.test(NUT4) &&
-    /class="comp-inputs"/.test(NUT4) && APP_CSS.includes(".comp-inputs{"));
-  ok("the breakdown states the result against the requirement",
-    /deficit vs '\+comp\.reqDeficit/.test(NUT4) && /avgDeficit:/.test(NUT4));
 }
 
 // PRs were an append-only log: nothing ever removed an entry, so deleting the
@@ -2696,6 +2739,22 @@ section("Runtime (rendered DOM)");
       const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
       out.split("\n").filter(Boolean).forEach((l) => console.log(l));
       ok("end-to-end flows", false, "see output above");
+    }
+    // Layout audit (verify-layout.mjs): every screen and sheet at 375/390/430
+    // in both themes, MEASURED for off-screen, clipped, overlapping and
+    // low-contrast text, text escaping its card or ring, tiny text, small tap
+    // targets and old-look leftovers. Screenshots missed "1,500" touching its
+    // ring; this would not.
+    section("Layout audit (every screen, 3 widths, both themes)");
+    try {
+      const out = execSync("node verify-layout.mjs", { stdio: "pipe", maxBuffer: 32 * 1024 * 1024 }).toString();
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      const n = (out.match(/✓/g) || []).length;
+      for (let i = 0; i < n; i++) passed++;
+    } catch (e) {
+      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      ok("layout audit", false, "see output above");
     }
   }
 }

@@ -11,7 +11,36 @@
 - **Never push to `main` without explicit user approval**
 - Always commit to keen-ritchie first, get user sign-off, then merge
 
-## UI / CSS Conventions — "Premium Athletic / Volt" design system
+## UI / CSS Conventions: the iOS look (Oct 2026)
+
+**The whole app now uses Apple's own-app grammar** (user chose "Apple's own
+apps"; Workout shipped first, then every other screen). The live tokens sit
+on `body[data-tab]` in `index.html` ("WORKOUT TAB CHROME + TOKENS"), so every
+tab, the drawer, chat, sheets and pop-ups inherit them: system background
+`#F2F2F7`/`#000`, white/`#1C1C1E` cards, system blue `--accent`, SF Pro via
+`-apple-system`, SF Rounded (`--font-num`) for figures, system colours for the
+macro chart. The `:root` volt tokens below are only a fallback now.
+
+- Grammar: large sentence-case titles (34px bold), inset grouped cards on
+  `--s1` with NO border/shadow/gradient, hairline (.5px) separators, 13px
+  uppercase grey group headers between cards, sentence-case 13px captions in
+  cards, 17px rows, filled blue for the one primary action and grey-tinted
+  (`--s2` + blue text) for the rest, filled inputs with a tint focus ring.
+- Workout content lives under `.wv`; every other screen under the "EVERY
+  OTHER SCREEN · iOS" block, all prefixed `body[data-tab]` so they outrank
+  the single-class card rule. Inline JS styles are normalised there too:
+  9-12px text is lifted to 13px, inline uppercase eyebrows are dropped,
+  hairline-bordered inline buttons become tinted buttons.
+- The intake card (`.nut-hero`) is an ordinary card now: its `--hero-*`
+  tokens are re-pointed at the surface tokens. It must stay >= 4.5:1 in both
+  themes (runtime-tested).
+- No "·" separators in UI copy (an AI tell for the user): use a comma, a
+  colon or two sentences. `mdLite` turns AI em dashes into ", " (": " in a
+  heading). The PDF report is exempt.
+- Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=3`).
+- `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
+
+## Legacy: the "Premium Athletic / Volt" design system (fallback tokens only)
 
 ### Always use CSS variables — never hardcode colours
 All themed tokens live in ONE `:root` block using `light-dark(lightVal, darkVal)`,
@@ -237,25 +266,57 @@ recomputed from the log by `longestWeekStreak()` (it used to hold days).
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
 
-## The weight goal: ONE goal, no phases (reset Oct 20 2026)
+## The weight goal: 5 kg phases to two hard goals (reset Oct 26 2026)
 
-`PHASES` in `src/phase.js` ends in a single live entry `id:"goal"`: **130 kg on
-Oct 20 2026 -> 95 kg by Feb 20 2027**, linear, eat **1,500 kcal**, **2,173
-kcal/day** required deficit (~2 kg/week). The user set this (Oct 20: "current
-weight 130, goal 95 by Feb 20") and asked for the pace explicitly ("no matter
-how aggressive"); it is carried by activity, not by eating less: the Watch
-active target is solved daily from the real resting burn (dynamic path, no flat
-fields), ~1,180 workout / ~510 rest at the start, rising as resting falls.
-History entries stay so past days keep their real deficits: `phase_1`,
-`phase_2` (Sep 22 -> Oct 15, targetKg 120.8, ~2,310/day) and `goal_v1` (the
-first one-goal line, 128.5 -> 95 by Mar 1, cut at Oct 19 with targetKg 127.52,
-~1,883/day). `USER` is 130 / 95 / Feb 20 2027, and `api/cron-diet-review.js`
-GOALS mirrors it. **Resting burn** for a day with nothing logged is
-`restingDefaultFor()`: the average of the last 5 logged resting values on or
-before that day (manual and HealthKit both land in `restingOverride`), else
-**2,800**. The Mifflin formula (~2,300 for this user, ~500 low) is no longer
-used for it. The incline walk is 35 min from Oct 16 (`before:{until,reps}`
-keeps past weeks at 15). Don't reintroduce phase_3 or a second live goal unasked.
+The user (Oct 26): "5 kg phases starting today, 130 kg starting weight, and
+the original goals still need to hit". The HARD goals are
+`GOAL_CHECKPOINTS` in `src/phase.js`: **100 kg by Feb 28 2027, 95 kg by Mar 31
+2027**. `PHASES` ends in seven 5 kg steps (`p5_1`..`p5_7`, built from one
+table):
+
+| phase | dates | kg | required deficit |
+|---|---|---|---|
+| 1-6 | Oct 26 -> Feb 28, 21 days each (Nov 15, Dec 6, Dec 27, Jan 17, Feb 7, Feb 28) | 130 -> 100 | 1,833 kcal/day (~1.67 kg/week) |
+| 7 | Mar 1 -> Mar 31 | 100 -> 95 | 1,242 kcal/day |
+
+Oct 26 -> Feb 28 is exactly 126 days, so six equal phases land on 100 kg
+on Feb 28. Each phase starts at the previous target, the day after it ends:
+the line is continuous and hits both goals exactly (tested). Every phase
+eats **1,500**; the Watch active target is solved daily from the real
+resting burn (~700 active on a 2,800 resting day). The goal card shows the
+current phase, plus a row per remaining hard goal with the kg a week it
+needs from the latest weigh-in; the AI review gets the same `hardGoals`.
+History stays so past days keep their real deficits: `phase_1`,
+`phase_2`, `goal_v1` (Oct 16-19) and `goal` (the 130 -> 95 by Feb 20 line,
+cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Mar 31 2027
+and `api/cron-diet-review.js` GOALS mirrors the phases. Resting burn for an
+unlogged day is `restingDefaultFor()` (last 5 logged, else 2,800). Phase
+names never use "·". Don't change the phases or add a goal unasked.
+
+**Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
+deficit maths:
+
+| part | weight | scores |
+|---|---|---|
+| Food on target | 30% | finished days with food logged AND at or under `eatKcal` |
+| Workouts | 25% | `min(trained,5)` vs planned days possible so far; never over 100 |
+| Weight vs line | 25% | 0.5 kg deadband, then -25/kg; capped at 100 when ahead |
+| Weigh-ins | 10% | finished days with a weigh-in |
+| Watch active | 10% | finished days at or over the target, clamped `+max(0,eaten-eatKcal)/ACTIVE_MULT` |
+
+- Today is never charged until it ends (`isoToday`, Toronto).
+- A weigh-in this week is judged against the line on its date. With none, the
+  last one is CARRIED FORWARD against today's line, so skipping the scale
+  decays the score instead of excusing 25% of it.
+- A part with nothing to score drops out and the rest reweight; with nothing
+  at all `overall` is null ("Starts after today"), never 0 or NaN.
+- Weekly history is stored with `v:2`; older weeks only carry `overall`, and
+  the AI review describes them that way.
+
+The goal card shows only: weight vs the plan line, the "This week" habit rows
+(progress copy: "3 of 5 done, 2 to go"), and "Review my progress" (an AI
+review of progress so far and how to get back on track). Pause, verdict,
+week summary, banked days and drift are behind `FEATURES.goal*` flags.
 
 **Descending weights in a session mean the first set was too heavy** (the
 user's rule: "drop means I'm not able to work hard and the first set wasn't
@@ -492,6 +553,12 @@ Four surfaces resolve those keys back to names, and all four must agree:
   restored in `initApp()` when it is today's session and under 6 hours old.
   It used to live only in memory, and iOS unloading the backgrounded PWA made
   the workout look like it "closed on its own".
+- **The finish sheet and summary are Workout pop-ups.** They sit outside
+  `#mainScroll`, so they get the Workout look by id in the scoped token
+  selector (`#stopModal,#swapModal,#sum,#milestoneModal,#planModal`); left out,
+  they shipped in the old volt style. The summary shows the session's total
+  `_duration` via `fmtWorkoutDur()` ("48 min"), never the stretch since the
+  last resume (which read "0m 01s").
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
 - **The target is last session's best set.** The user aims for a PR every
@@ -615,7 +682,7 @@ rendered UI matches every flag. Don't re-add hidden features unasked.
 
 **Medication (Zepbound) tracking is REMOVED, not switched off** (Oct 2026, the
 user's request: "no Zepbound tracking, remove all mentions"). Gone from the UI,
-the compliance score (its 5% went to the deficit: 55/20/15/5/5), sync
+the compliance score (since replaced by the five-habit score), sync
 (`api/state.js` no longer returns `meds`), the mutations, the schema, the AI
 chat context and every AI prompt. The `med_doses` table and its rows are left
 in the database untouched; nothing reads or writes them. `node test.js` fails
@@ -731,6 +798,22 @@ sessions — with the set still present it recovered the very PR it had just
 deleted, and the badge never changed.
 
 ## Testing Before Merging
+- **`verify-layout.mjs` measures every screen** (run by `node test.js`):
+  Workout (day, past, exercise open, running), Food (top, cards open, meal
+  entry, AI estimate, search, past day), Settings (all open), the drawer,
+  chat, and every sheet/pop-up, as four iPhones (mini 375x812, 15 390x844,
+  17 Pro 402x874, 17 Pro Max 440x956; 3x, touch, Safari user agent) in both
+  themes, on the shared fixture (`test-fixture.mjs`) plus an empty state.
+  It is Chromium emulating the phones (WebKit is not installed here), so SF
+  fonts and safe-area insets are approximations; the Safari user agent is
+  what makes Safari-only UI (the Home Screen hint) render at all. It fails on text off
+  screen, clipped, overlapping, outside its card or ring, under 4.5:1 (3:1
+  large), under 11px (tab bar exempt), controls under 44x44, and old-look
+  leftovers. It found what screenshots missed ("1,500" touching its ring,
+  Apple's stock blue/grey/green failing contrast, 23 small tap targets).
+  **Add any new screen or sheet to its `SCREENS` list.** Exceptions go in
+  `ALLOW` with a reason. `E2E_STATE=backup.json` runs it on real data
+  (local only); `LAYOUT_OUT=dir` crops every finding.
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,
   and fails on: template placeholders reaching the DOM, a hero losing its

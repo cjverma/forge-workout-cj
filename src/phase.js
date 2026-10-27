@@ -3,14 +3,14 @@ import { kg1 } from "./constants.js";
 import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
-export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,20)};
+export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,2,31)};
 export const ACTIVE_MULT=0.75;
 
 export function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 export function isoToday(){return isoDate(new Date());}
 
 // Fallback when no phase covers a date: date-driven deficit toward 95kg by
-// Feb 20, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
+// Mar 31, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
 
 // ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
@@ -31,6 +31,9 @@ export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-US
 // locked) keeps its original flat fields untouched — recomputing history
 // live would make it drift with calcAge() as real time passes, see the note
 // on phaseActiveTarget below.
+// The user's hard goals. The phases above are the steps; these are what the
+// card and the AI review hold every phase to.
+export const GOAL_CHECKPOINTS=[{kg:100,by:"2027-02-28"},{kg:95,by:"2027-03-31"}];
 export const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
@@ -49,14 +52,32 @@ export const PHASES=[
   {id:"goal_v1",name:"Goal · 95 kg by Mar 1",version:3,strategy:"fat_loss",curve:"linear",
    start:"2026-10-16",plannedEnd:"2026-10-19",startKg:128.5,targetKg:127.52,
    eatKcal:1500},
-  // THE goal from Oct 20 2026 (user reset): 130 -> 95 kg by Feb 20 2027, one
-  // straight line. 35 kg over 124 days = 2,173 kcal/day required deficit
-  // (fixed), ~2 kg/week. Eat 1,500 with ~1.8 g/kg protein; the Watch active
-  // target is solved DAILY from the real resting burn, so it rises as resting
-  // falls. The user chose this pace explicitly.
-  {id:"goal",name:"Goal · 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
-   start:"2026-10-20",plannedEnd:"2027-02-20",startKg:130,targetKg:95,
+  // The 130 -> 95 by Feb 20 line, HISTORY since Oct 26 (user reset it to two
+  // hard checkpoints). Cut at Oct 25 with targetKg 128.31 so these six days
+  // keep their real ~2,173/day deficit (same trick as goal_v1 and phase_2).
+  {id:"goal",name:"Goal: 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
+   start:"2026-10-20",plannedEnd:"2026-10-25",startKg:130,targetKg:128.31,
    eatKcal:1500},
+  // THE plan from Oct 26 2026 (user: "5 kg phases starting today, 130 kg
+  // starting weight, original goals still need to hit"). The hard goals are
+  // the CHECKPOINTS below: 100 kg by Feb 28, 95 kg by Mar 31 2027. Oct 26 ->
+  // Feb 28 is exactly 126 days = six 21-day phases of 5 kg, each 5x7700/21 =
+  // 1,833 kcal/day required deficit (~1.67 kg/week). March is the 7th phase,
+  // 5 kg over 31 days = 1,242/day. Every phase eats 1,500; the Watch active
+  // target is solved daily from the real resting burn. Phase k starts at the
+  // previous phase's target, so the line is continuous and lands on both
+  // checkpoints exactly. Names carry no "·".
+  ...[
+    ["2026-10-26","2026-11-15",130,125],
+    ["2026-11-16","2026-12-06",125,120],
+    ["2026-12-07","2026-12-27",120,115],
+    ["2026-12-28","2027-01-17",115,110],
+    ["2027-01-18","2027-02-07",110,105],
+    ["2027-02-08","2027-02-28",105,100],
+    ["2027-03-01","2027-03-31",100,95],
+  ].map(([start,plannedEnd,startKg,targetKg],i)=>({id:"p5_"+(i+1),
+    name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
+    version:6,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500})),
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;

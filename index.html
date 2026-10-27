@@ -6,8 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="FORGE">
-<meta name="theme-color" content="#0A0A0B">
-<link rel="manifest" href="/manifest.json?v=2">
+<meta name="theme-color" content="#000000">
+<link rel="manifest" href="/manifest.json?v=3">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <title>FORGE</title>
 <!-- Preload only the two faces that paint on first frame (body 400 + display 600).
@@ -918,7 +918,7 @@ input[type="number"],input[inputmode="decimal"],input[inputmode="numeric"],
    body[data-tab]). Tokens are set on the Workout tab's own regions, not on
    body, so the drawer, chat and pop-ups keep the old look even when opened
    from Workout; they get their own pass. Every other tab is unchanged. */
-body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){
+body[data-tab]{
   --black:light-dark(#F2F2F7,#000000);
   --s0:light-dark(#F9F9FB,#121214);
   --s1:light-dark(#FFFFFF,#1C1C1E);
@@ -926,22 +926,25 @@ body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){
   --s3:light-dark(#E5E5EA,#3A3A3C);
   --b1:light-dark(#DCDCE1,#38383A);
   --b2:light-dark(#C6C6C8,#48484A);
-  --dim:light-dark(#86868B,#8E8E93);
-  --mid:light-dark(#6C6C70,#AEAEB2);
+  --dim:light-dark(#6C6C70,#A1A1A6);
+  --mid:light-dark(#636366,#AEAEB2);
   --lt:light-dark(#1C1C1E,#E5E5EA);
   --white:light-dark(#000000,#FFFFFF);
-  --accent:light-dark(#007AFF,#0A84FF);
+  /* Apple's stock #007AFF is 4.0:1 on white and white-on-#0A84FF is 3.6:1, so
+     small text and labels on fills failed WCAG AA (layout audit). Same hue,
+     one step deeper for fills and light text, one lighter for dark text. */
+  --accent:#0062C4;
   --accent-ink:#FFFFFF;
-  --accent-text:light-dark(#007AFF,#0A84FF);
+  --accent-text:light-dark(#0062C4,#409CFF);
   --accent-grad:linear-gradient(var(--accent),var(--accent));
   --accent-lo:light-dark(#E5F1FF,#0B2A4A);
   --orange:var(--accent-text);
   --orange-lo:var(--accent-lo);
   --orange-mid:light-dark(#3A6FB0,#9CC3F5);
   --on-accent:var(--accent-ink);
-  --green:light-dark(#248A3D,#30D158);
+  --green:light-dark(#1E7234,#30D158);
   --green-lo:light-dark(#E8F5EC,#0F2A17);
-  --red:light-dark(#D70015,#FF453A);
+  --red:light-dark(#D70015,#FF6961);
   --red-lo:light-dark(#FDECEB,#3A1412);
   --amber:light-dark(#C93400,#FF9F0A);
   --amber-lo:light-dark(#FFF1E0,#33230A);
@@ -982,29 +985,241 @@ body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav,.toast){
   --hero-fg-faint:rgba(255,255,255,.4);
   --hero-chip:rgba(255,255,255,.12);
   --hero-line:rgba(255,255,255,.22);
-  --hero-accent:#C8F135;
+  --hero-accent:var(--accent);
   --hero-pos:#BDF7CB;
   --hero-neg:#FFC9C2;
-  --chart-p:#C8F135;--chart-c:#5EA0F2;--chart-f:#3EC97E;--chart-fi:#B08CF9;
+  --chart-p:light-dark(#007AFF,#0A84FF);--chart-c:light-dark(#FF9500,#FF9F0A);--chart-f:light-dark(#AF52DE,#BF5AF2);--chart-fi:light-dark(#34C759,#30D158);
   font-family:var(--font-body);
 }
-html:has(body[data-tab="workout"]),body[data-tab="workout"]{background:light-dark(#F2F2F7,#000000);}
-body[data-tab="workout"]{font-size:17px;-webkit-font-smoothing:antialiased;}
-body[data-tab="workout"] :is(.hdr,#dayNav,#mainScroll,.bot-nav) button:active:not(:disabled){transform:none;opacity:.55;}
-body[data-tab="workout"] .hdr{padding:calc(var(--sp-3) + env(safe-area-inset-top,0px)) var(--sp-4) 4px;}
+html,body[data-tab]{background:light-dark(#F2F2F7,#000000);}
+body[data-tab]{font-size:17px;-webkit-font-smoothing:antialiased;}
+body[data-tab] :is(.hdr,#dayNav,#mainScroll,.bot-nav,#stopModal,#swapModal,#sum,#milestoneModal,#planModal) button:active:not(:disabled){transform:none;opacity:.55;}
+body[data-tab] .hdr{padding:calc(var(--sp-3) + env(safe-area-inset-top,0px)) var(--sp-4) 4px;}
 /* No wordmark on Workout: Apple's screens never brand their header. The sync dot stays. */
-body[data-tab="workout"] .logo{font-size:0;line-height:0;display:flex;align-items:center;}
-body[data-tab="workout"] .target-pill{display:none;}
+body[data-tab] .logo{font-size:0;line-height:0;display:flex;align-items:center;}
+body[data-tab] .target-pill{display:none;}
 .hdr-burger .burger-ios{display:none;}
-body[data-tab="workout"] .hdr-burger{padding:0;line-height:0;display:flex;}
-body[data-tab="workout"] .hdr-burger .burger-old{display:none;}
-body[data-tab="workout"] .hdr-burger .burger-ios{display:block;}
+body[data-tab] .hdr-burger{padding:0;line-height:0;display:flex;}
+body[data-tab] .hdr-burger .burger-old{display:none;}
+body[data-tab] .hdr-burger .burger-ios{display:block;}
 /* iOS tab bar: translucent, grounded, tint for the selected tab, no indicator bar. */
-body[data-tab="workout"] .bot-nav{background:light-dark(rgba(249,249,251,.86),rgba(18,18,20,.86));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--b2);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);}
-body[data-tab="workout"] .nav-item{padding:7px 0 2px;gap:3px;font-size:10px;font-weight:500;letter-spacing:.1px;}
-body[data-tab="workout"] .nav-item.active{color:var(--accent-text);}
-body[data-tab="workout"] .nav-item.active::before{display:none;}
-body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);background:var(--s1);border:0;border-radius:var(--r-pill);font-size:15px;padding:11px 20px;transition:opacity .2s;box-shadow:var(--shadow-lift);}
+body[data-tab] .bot-nav{background:light-dark(rgba(249,249,251,.86),rgba(18,18,20,.86));-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);border-top:.5px solid var(--b2);padding-bottom:calc(env(safe-area-inset-bottom,0px) + 18px);}
+body[data-tab] .nav-item{padding:7px 0 2px;gap:3px;font-size:10px;font-weight:500;letter-spacing:.1px;}
+body[data-tab] .nav-item.active{color:var(--accent-text);}
+body[data-tab] .nav-item.active::before{display:none;}
+body[data-tab] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);white-space:normal;width:max-content;max-width:calc(100vw - 32px);text-align:center;background:var(--s1);border:0;border-radius:var(--r-pill);font-size:15px;padding:11px 20px;transition:opacity .2s;box-shadow:var(--shadow-lift);}
+
+/* Workout pop-ups (finish sheet, summary, swap, milestone). They sit outside
+   #mainScroll, so they get the Workout tokens by id above and their look here.
+   Action sheet: sentence-case title, one inset grouped stat row, a filled
+   tint button and a plain text one. Summary: Apple Fitness's finish page. */
+body[data-tab] :is(#stopModal,#swapModal) .swap-sheet{background:var(--black);border:0;border-radius:14px 14px 0 0;padding:8px var(--sp-4) calc(env(safe-area-inset-bottom,0px) + var(--sp-4));}
+body[data-tab] .stop-grab{width:36px;height:5px;background:var(--b2);margin:0 auto 14px;}
+body[data-tab] :is(#stopModal,#swapModal) .swap-title{font-family:var(--font-body);font-size:20px;font-weight:600;letter-spacing:.38px;text-transform:none;color:var(--white);}
+body[data-tab] :is(#stopModal,#swapModal) .swap-sub{font-size:15px;font-weight:400;letter-spacing:-.24px;color:var(--mid);margin-top:4px;line-height:1.35;}
+body[data-tab] .stop-stats{gap:0;background:var(--s1);border-radius:var(--r-lg);margin:18px 0 6px;padding:12px 0;}
+body[data-tab] .stop-stat{background:none;border:0;border-radius:0;padding:0 6px;}
+body[data-tab] .stop-stat+.stop-stat{border-left:.5px solid var(--b1);}
+body[data-tab] .stop-stat-val{font-family:var(--font-num);font-size:20px;font-weight:600;color:var(--white);line-height:1.2;}
+body[data-tab] .stop-stat-lbl{font-size:13px;font-weight:400;color:var(--mid);margin-top:2px;}
+body[data-tab] :is(#stopModal,#swapModal) .swap-keep{margin-top:12px;background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);padding:15px;font-size:17px;font-weight:600;letter-spacing:-.4px;}
+body[data-tab] .stop-cancel{margin-top:4px;background:none;border:0;color:var(--accent-text);padding:13px;font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab] #swapModal .swap-head{margin-bottom:14px;}
+body[data-tab] #swapModal .swap-list{gap:0;background:var(--s1);border-radius:var(--r-lg);overflow:hidden;}
+body[data-tab] #swapModal .swap-item{background:none;border:0;border-radius:0;padding:11px 16px;position:relative;}
+body[data-tab] #swapModal .swap-item+.swap-item::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--b1);}
+body[data-tab] #swapModal .swap-item:active{background:var(--s2);}
+body[data-tab] #swapModal .swap-name{font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab] #swapModal .swap-meta{font-size:15px;color:var(--mid);}
+body[data-tab] :is(#sum,#milestoneModal){background:var(--black);padding:24px var(--sp-4);}
+body[data-tab] :is(#sum,#milestoneModal) .sum-icon{font-size:56px;line-height:1;margin-bottom:18px;}
+body[data-tab] .sum-check{display:block;}
+body[data-tab] .sum-check circle{fill:var(--green);}
+body[data-tab] .sum-check path{fill:none;stroke:#fff;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round;}
+body[data-tab] :is(#sum,#milestoneModal) .sum-title{font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:.37px;line-height:41px;text-transform:none;color:var(--white);margin-bottom:4px;}
+body[data-tab] :is(#sum,#milestoneModal) .sum-sub{font-size:17px;letter-spacing:-.4px;color:var(--mid);margin-bottom:28px;line-height:1.35;}
+body[data-tab] #sum .sum-stats{display:block;background:var(--s1);border-radius:var(--r-lg);margin-bottom:24px;overflow:hidden;}
+body[data-tab] #sum .sum-stat{display:flex;align-items:baseline;justify-content:space-between;gap:12px;background:none;border:0;border-radius:0;padding:12px 16px;text-align:left;position:relative;}
+body[data-tab] #sum .sum-stat+.sum-stat::before{content:"";position:absolute;top:0;left:16px;right:0;border-top:.5px solid var(--b1);}
+body[data-tab] #sum .sum-lbl{font-size:17px;font-weight:400;letter-spacing:-.4px;text-transform:none;color:var(--white);margin:0;}
+body[data-tab] #sum .sum-val{font-family:var(--font-num);font-size:17px;font-weight:600;letter-spacing:0;color:var(--mid);}
+body[data-tab] :is(#sum,#milestoneModal) .sum-close{background:var(--accent);color:var(--accent-ink);border-radius:var(--r-lg);padding:15px;font-size:17px;font-weight:600;letter-spacing:-.4px;text-transform:none;}
+
+/* ══ EVERY OTHER SCREEN · iOS (Oct 2026, second pass) ════════════════════════
+   Food, Settings, the Insights drawer, Coach chat, the plan review, the lock
+   screen. Same grammar as the Workout tab: large sentence-case titles, inset
+   grouped cards on --s1 with no border, hairline separators, system-blue tint
+   for actions only, SF Rounded for figures, no uppercase letterspaced labels
+   inside cards, no gradients or glow. Prefixed body[data-tab] so it outranks
+   the single-class card-material rule. Look only: no ids or handlers change. */
+body[data-tab] :is(.nut-title,.st-pg-title,.ai-pg-title,.pm-title){font-family:var(--font-display);font-size:34px;font-weight:700;letter-spacing:.37px;line-height:41px;text-transform:none;color:var(--white);}
+body[data-tab] :is(.st-pg-title,.ai-pg-title) span{color:inherit;}
+body[data-tab] :is(.nut-kicker,.st-pg-sub,.ai-pg-sub){font-size:13px;font-weight:600;letter-spacing:-.08px;color:var(--mid);}
+body[data-tab] .nut-kicker{text-transform:uppercase;margin-bottom:0;}
+body[data-tab] :is(.st-pg-sub,.ai-pg-sub){font-weight:400;font-size:15px;margin-bottom:18px;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.ai-wrap){padding:var(--sp-2) var(--sp-4) var(--sp-6);}
+body[data-tab] .nut-head{margin:6px 0 16px;align-items:flex-end;}
+body[data-tab] .nut-nav-btns button{width:36px;height:36px;background:var(--s1);border:0;color:var(--accent-text);font-size:20px;display:inline-flex;align-items:center;justify-content:center;}
+/* Landmarks between groups: iOS group headers. */
+body[data-tab] :is(.st-sec,.sec){font-size:13px;font-weight:400;letter-spacing:-.08px;text-transform:uppercase;color:var(--mid);margin:24px 16px 7px;}
+body[data-tab] .st-acc-inner .st-sec{text-transform:none;font-size:13px;color:var(--mid);margin:18px 0 6px;}
+
+/* Cards: one inset grouped surface, no border, no shadow, no gradient. */
+body[data-tab] :is(.nut-card,.st-acc,.trend-card,.ai-card,.pm-change,.pm-notes,.pm-flag,.plan-nudge){background:var(--s1);border:0;border-radius:var(--r-lg);box-shadow:none;}
+body[data-tab] .nut-card{padding:16px;margin-bottom:16px;}
+body[data-tab] .nut-card-title{font-size:17px;font-weight:600;letter-spacing:-.4px;color:var(--white);margin-bottom:10px;}
+/* The intake card was a dark volt hero. Now an ordinary card: the hero
+   tokens it reads (inline too) are pointed at the normal surface tokens. */
+body[data-tab] .nut-hero{background:var(--s1);border:0;box-shadow:none;color:var(--white);
+  --hero-fg:var(--white);--hero-fg-dim:var(--mid);--hero-fg-faint:var(--dim);--hero-chip:var(--s2);--hero-line:var(--s2);
+  --hero-accent:var(--accent);--hero-pos:var(--green);--hero-neg:var(--red);}
+body[data-tab] .nut-hero::after{display:none;}
+body[data-tab] .nut-hero *{color:inherit;}
+body[data-tab] .nut-hero .nut-card-title{color:var(--white);}
+/* Bigger ring (Activity-sized): at 128px its ~102px opening could not hold
+   "1,500" at 34px, which touched the stroke. The viewBox scales the arc. */
+body[data-tab] .nut-ring-wrap{width:172px;height:172px;margin:6px auto 12px;}
+body[data-tab] .nut-ring-wrap svg{width:100%;height:100%;}
+body[data-tab] .nut-ring-big{font-family:var(--font-num);font-size:34px;font-weight:700;color:var(--white);white-space:nowrap;}
+body[data-tab] .nut-ring-small{font-size:13px;color:var(--mid);}
+body[data-tab] .nut-hero .mpie-hole{background:var(--s1);}
+body[data-tab] .nut-hero .mpie-row{color:var(--lt);font-size:15px;}
+body[data-tab] .nut-hero .mpie-val{color:var(--mid);font-size:15px;font-weight:400;}
+body[data-tab] .macro-k{font-size:13px;color:var(--mid);}
+body[data-tab] .macro-v{font-family:var(--font-num);font-size:22px;font-weight:600;color:var(--white);}
+body[data-tab] .macro-v i{font-size:13px;color:var(--mid);}
+body[data-tab] .macro-tr{height:4px;background:var(--s2);}
+body[data-tab] .target-pill-g{border-radius:var(--r-pill);padding:3px 10px;font-size:13px;font-weight:600;}
+body[data-tab] .nut-hero .tpill-green{background:var(--green-lo)!important;color:var(--green)!important;}
+body[data-tab] .nut-hero .tpill-amber{background:var(--amber-lo)!important;color:var(--amber)!important;}
+body[data-tab] .nut-hero .tpill-red{background:var(--red-lo)!important;color:var(--red)!important;}
+body[data-tab] .net-line{font-size:15px;font-weight:600;}
+body[data-tab] .nut-hero .net-line.net-green{color:var(--green);}
+body[data-tab] .nut-hero .net-line.net-red{color:var(--red);}
+body[data-tab] .burn-val,body[data-tab] .burn-inp{font-family:var(--font-num);font-size:24px;font-weight:600;letter-spacing:0;color:var(--white);}
+body[data-tab] .burn-lbl{font-size:13px;color:var(--mid);margin-top:2px;}
+body[data-tab] .burn-inp:focus{border-bottom-color:var(--accent);}
+body[data-tab] .prog-bar-wrap{height:6px;background:var(--s2);}
+body[data-tab] .prog-bar-fill{background:var(--accent);}
+body[data-tab] .prog-thumb{display:none;}
+
+/* Rows inside cards: food log, search results, settings rows, rules. */
+body[data-tab] .food-item{border-color:var(--b1);padding:11px 0;}
+body[data-tab] .food-name{font-size:17px;font-weight:400;letter-spacing:-.4px;color:var(--white);}
+body[data-tab] .food-macros{font-size:13px;color:var(--mid);}
+body[data-tab] .food-kcal{font-family:var(--font-num);font-size:17px;font-weight:600;color:var(--white);}
+body[data-tab] .food-del{color:var(--red);border:0;background:none;}
+body[data-tab] .st-acc>summary{padding:13px 16px;font-size:17px;font-weight:600;letter-spacing:-.4px;}
+body[data-tab] .st-acc>summary .st-acc-sub{font-size:13px;color:var(--mid);margin-top:2px;}
+body[data-tab] .st-acc>summary::after{content:"";width:8px;height:8px;border-right:2px solid var(--b2);border-bottom:2px solid var(--b2);transform:rotate(-45deg);margin-right:4px;}
+body[data-tab] .st-acc[open]>summary::after{transform:rotate(45deg);}
+body[data-tab] .st-acc-inner{border-top:.5px solid var(--b1);}
+body[data-tab] .st-subacc{background:none;border:0;border-radius:0;border-top:.5px solid var(--b1);margin:0;}
+body[data-tab] .st-subacc>summary{padding:13px 0;font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab] .st-subacc>summary .st-subacc-note{font-size:13px;color:var(--mid);}
+body[data-tab] .st-subacc>summary::after{content:"";width:7px;height:7px;border-right:2px solid var(--b2);border-bottom:2px solid var(--b2);transform:rotate(-45deg);}
+body[data-tab] .st-subacc[open]>summary::after{transform:rotate(45deg);}
+body[data-tab] .st-subacc-inner{border-top:0;}
+body[data-tab] .st-group,body[data-tab] .st-subacc .st-group{background:none;border:0;border-radius:0;margin:0;box-shadow:none;}
+body[data-tab] .st-row{padding:11px 0;border-bottom:.5px solid var(--b1);gap:12px;}
+body[data-tab] .st-ttl{font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab] .st-sub{font-size:13px;color:var(--mid);}
+body[data-tab] .st-icon{width:24px;color:var(--accent-text);}
+body[data-tab] .danger-zone{margin:18px 0 0;border:0;border-radius:0;}
+body[data-tab] .danger-zone .st-sec{background:none;border:0;padding:0;margin:0 0 4px;color:var(--red);text-transform:none;}
+body[data-tab] .rule-item{background:none;border:0;border-bottom:.5px solid var(--b1);border-radius:0;padding:11px 0;margin:0;}
+body[data-tab] .rule-ttl{font-size:17px;font-weight:400;letter-spacing:-.4px;}
+body[data-tab] .rule-desc{font-size:13px;color:var(--mid);}
+body[data-tab] .export-card{border-left:0;padding:0;}
+body[data-tab] .export-title{font-size:17px;font-weight:600;letter-spacing:-.4px;}
+body[data-tab] .export-sub{font-size:15px;color:var(--mid);}
+
+/* Buttons: filled tint for the one primary action, gray-tinted otherwise. */
+body[data-tab] :is(.ai-btn,.btn-o,.food-submit,.wt-save,.pm-apply,.lock-btn,.cf-add,.dd-add-btn,.modal-copy,.pf-add){background:var(--accent);color:var(--accent-ink);border:0;border-radius:var(--r-lg);padding:14px;font-family:var(--font-body);font-size:17px;font-weight:600;letter-spacing:-.4px;text-transform:none;}
+body[data-tab] :is(.btn-g,.pm-cancel,.food-cancel,.pf-redo,.add-food-btn,.shock-btn,.ai-chat-clear,.export-opt){background:var(--s2);color:var(--accent-text);border:0;border-radius:var(--r-lg);font-family:var(--font-body);font-size:17px;font-weight:400;letter-spacing:-.4px;text-transform:none;}
+body[data-tab] :is(.btn-g,.pm-cancel,.food-cancel,.pf-redo,.add-food-btn,.shock-btn){padding:13px;}
+body[data-tab] .nut-hero .shock-btn{color:var(--accent-text);border:0;}
+body[data-tab] .nut-hero .shock-btn.active{background:var(--amber-lo);color:var(--amber);}
+body[data-tab] .ai-chat-clear{font-size:15px;padding:6px 12px;border-radius:var(--r-pill);}
+
+/* Inputs: filled, no outline box; focus is a soft tint ring. */
+body[data-tab] :is(.ai-inp,.food-ta,.wt-inp,.lock-input,.ai-sm,.export-area){background:var(--s2);border:1px solid transparent;border-radius:10px;font-size:17px;color:var(--white);}
+body[data-tab] :is(.ai-inp,.food-ta,.wt-inp,.lock-input,.ai-chat-inp):focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-lo);}
+body[data-tab] .pending-food{background:var(--s2);border:0;border-radius:var(--r-lg);}
+
+/* Insights drawer. */
+body[data-tab] .drawer{background:var(--black);}
+body[data-tab] .drawer-title{font-size:28px;font-weight:700;letter-spacing:.36px;}
+body[data-tab] .drawer-close{background:var(--s2);border:0;color:var(--mid);}
+body[data-tab] .trend-card{padding:13px 16px;margin-bottom:12px;}
+body[data-tab] .trend-title{font-size:15px;font-weight:600;color:var(--white);}
+body[data-tab] .trend-legend{font-size:12px;color:var(--mid);}
+body[data-tab] .tbar{background:var(--s3);}
+body[data-tab] :is(.tbar-lbl,.tbar-val){font-size:11px;color:var(--mid);letter-spacing:0;}
+body[data-tab] .tbar-lbl.today{color:var(--accent-text);}
+
+/* Coach chat: iMessage. */
+body[data-tab] .forge-chat-modal{background:var(--black);border-radius:14px 14px 0 0;}
+body[data-tab] .forge-chat-drag{width:36px;height:5px;}
+body[data-tab] .ai-chat-header{border-bottom:.5px solid var(--b1);}
+body[data-tab] .ai-chat-title{font-family:var(--font-body);font-size:17px;font-weight:600;letter-spacing:-.4px;text-transform:none;}
+body[data-tab] .ai-chat-title-icon{color:var(--accent-text);}
+body[data-tab] .chat-bubble{font-size:17px;line-height:1.35;padding:8px 13px;border-radius:18px;}
+body[data-tab] .chat-user{background:var(--accent);color:var(--accent-ink);font-weight:400;border-radius:18px 18px 4px 18px;}
+body[data-tab] .chat-ai{background:var(--s2);color:var(--white);border:0;border-radius:18px 18px 18px 4px;}
+body[data-tab] .chat-ai-avatar{display:none;}
+body[data-tab] .chat-thinking{background:var(--s2);border:0;border-radius:18px;font-size:15px;color:var(--mid);}
+body[data-tab] .ai-chat-bar{border-top:.5px solid var(--b1);}
+body[data-tab] .ai-chat-inp{background:var(--s1);border:1px solid var(--b1);border-radius:18px;padding:8px 14px;font-size:17px;}
+body[data-tab] .ai-chat-send{background:var(--accent);color:var(--accent-ink);border-radius:18px;font-size:17px;font-weight:600;padding:8px 16px;}
+
+/* Weekly plan review. */
+body[data-tab] .pm-sub{font-size:15px;color:var(--mid);}
+body[data-tab] .pm-section{font-size:13px;font-weight:400;text-transform:uppercase;color:var(--mid);margin:24px 16px 7px;}
+body[data-tab] :is(.pm-notes,.pm-flag){border-left:0;border-radius:var(--r-lg);padding:12px 16px;font-size:15px;color:var(--white);}
+body[data-tab] .pm-change{padding:12px 16px;border-radius:var(--r-lg);}
+body[data-tab] .pm-change-day{font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--mid);}
+body[data-tab] .pm-change-ex{font-size:17px;font-weight:600;letter-spacing:-.4px;}
+body[data-tab] .pm-change-val{font-size:15px;font-weight:400;color:var(--lt);}
+
+/* Lock screen. */
+body[data-tab] .lock-logo{font-size:34px;font-weight:700;letter-spacing:.37px;text-transform:none;color:var(--white);}
+body[data-tab] .lock-sub{font-size:15px;color:var(--mid);letter-spacing:0;}
+
+/* Much of Food/Settings/Insights is built with inline styles (10-12px
+   captions, uppercase letterspaced labels, hairline-bordered buttons). iOS
+   never sets text under 13px, so those are lifted to the footnote size and
+   the uppercase eyebrows dropped, in one place instead of 70 call sites.
+   (.pdf-* is the print report, which keeps its own sizes.) */
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal,.forge-chat-modal) :is([style*="font-size:9px"],[style*="font-size:10px"],[style*="font-size:11px"],[style*="font-size:12px"]):not(.pdf-chart *){font-size:13px!important;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) [style*="text-transform:uppercase"]{text-transform:none!important;letter-spacing:0!important;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) button[style*="border:1px solid var(--b1)"]{background:var(--s2)!important;border:0!important;color:var(--accent-text)!important;border-radius:var(--r-lg)!important;font-size:15px!important;font-weight:400!important;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) [style*="border:1px solid var(--b1);border-radius:12px"]:not(button){border:0!important;}
+
+/* Export sheet: an iOS action sheet (small grey title, grouped rows). */
+body[data-tab] .export-sheet-inner{background:var(--black);border-radius:14px 14px 0 0;padding:16px 16px calc(env(safe-area-inset-bottom,0px) + 16px);}
+body[data-tab] .export-sheet-title{font-size:13px;font-weight:600;color:var(--mid);text-transform:none;letter-spacing:0;margin-bottom:12px;}
+body[data-tab] .export-opt{flex-direction:row;flex-wrap:wrap;align-items:center;gap:0 10px;background:var(--s1);color:var(--white);font-size:17px;font-weight:400;letter-spacing:-.4px;padding:12px 16px;margin-bottom:8px;}
+body[data-tab] .export-opt svg{color:var(--accent-text);}
+body[data-tab] .export-opt-sub{flex-basis:100%;padding-left:30px;font-size:13px;color:var(--mid);margin-top:1px;}
+body[data-tab] .export-cancel{width:100%;background:var(--s1);border:0;border-radius:var(--r-lg);padding:14px;color:var(--accent-text);font-family:var(--font-body);font-size:17px;font-weight:600;}
+
+/* Tap targets: Apple's minimum is 44x44 pt (layout audit "tap"). Small
+   circular buttons keep their look and gain the box through transparent
+   padding (background-clip:content-box); text buttons gain min-height. */
+body[data-tab] .hdr-burger{min-width:44px;min-height:44px;justify-content:center;align-items:center;margin:-8px -8px -8px 0;}
+body[data-tab] .wk-nav-btn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
+body[data-tab] :is(.edit-pill,.drawer-close,.nut-nav-btns button){width:44px;height:44px;padding:4px;background-clip:content-box;}
+body[data-tab] :is(.watch-chip,.skip-btn,.food-del,.ai-chat-clear,.ai-chat-send,.add-food-btn,.add-food-btn+button,.ai-sm,.pf-add,.pf-redo,.food-cancel,.food-submit){min-height:44px;}
+body[data-tab] :is(.watch-chip,.skip-btn){display:inline-flex;align-items:center;}
+body[data-tab] .food-del{padding:0 10px;}
+body[data-tab] .ai-chat-clear{min-width:44px;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) button{min-height:44px;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) button{min-width:44px;}
+body[data-tab] .skip-btn{min-width:44px;justify-content:center;}
+/* Count on the amber calf badge: white is 2:1 on dark-mode amber, so dark ink there. */
+body[data-tab] .wv .calf-badge{color:light-dark(#FFFFFF,#000000);}
+body[data-tab] .wv .calf-badge,body[data-tab] .calf-badge{font-size:11px;min-width:18px;height:18px;line-height:18px;}
 
 /* ══ WORKOUT TAB · iOS (Oct 2026 redesign) ══════════════════════════════════
    Everything here is scoped to .wv (renderW's root), so other tabs keep their
@@ -1080,8 +1295,9 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
 .wv .action-row{padding:0 16px 10px 0;gap:18px;}
 .wv .watch-chip,.wv .skip-btn{background:none;border:0;padding:4px 0;font-size:15px;font-weight:400;letter-spacing:0;color:var(--accent-text);border-radius:0;}
 .wv .demo-wrap{margin:12px 16px 0 0;border-radius:var(--r-md);}
-.wv .install-hint{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px var(--sp-4) 10px;padding:10px 14px;background:var(--s1);border-radius:var(--r-lg);font-size:15px;color:var(--mid);}
-.wv .install-hint button{background:none;border:0;color:var(--accent-text);font-size:15px;cursor:pointer;flex:none;}
+.wv .install-hint{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px var(--sp-4) 10px;padding:0 6px 0 14px;background:var(--s1);border-radius:var(--r-lg);font-size:15px;color:var(--mid);}
+/* 44pt tap target (Safari-only line, so only the iPhone audit run sees it). */
+.wv .install-hint button{background:none;border:0;color:var(--accent-text);font-size:15px;cursor:pointer;flex:none;min-height:44px;min-width:44px;padding:0 8px;}
 .wv .demo-none{margin:12px 16px 4px 0;font-size:15px;color:var(--dim);}
 .wv .sets-wrap{padding:0 16px 6px 0;}
 .wv .set-hdr{font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--mid);padding:4px 0 4px;}
@@ -1153,7 +1369,7 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
   </div>
   <div class="ai-chat-messages" id="aiChatMessages"></div>
   <div class="ai-chat-bar">
-    <textarea class="ai-chat-inp" id="aiChatInp" placeholder="Ask anything  -  nutrition, exercises, progress, calf pain..." rows="2" maxlength="500" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiChat();}"></textarea>
+    <textarea class="ai-chat-inp" id="aiChatInp" placeholder="Ask anything" rows="1" maxlength="500" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendAiChat();}"></textarea>
     <button class="ai-chat-send" id="aiChatSend" onclick="sendAiChat()">Send</button>
   </div>
 </div>
@@ -1188,7 +1404,7 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
     <div class="swap-title" id="stopTitle">Finish workout?</div>
     <div class="swap-sub" id="stopSub">Your sets are saved as you go. This ends the session.</div>
     <div class="stop-stats" id="stopStats"></div>
-    <button class="swap-keep" id="stopConfirm" onclick="stopSess(true)">Finish &amp; save</button>
+    <button class="swap-keep" id="stopConfirm" onclick="stopSess(true)">Finish workout</button>
     <button class="stop-cancel" onclick="closeStopSheet()">Keep going</button>
   </div>
 </div>
@@ -1205,14 +1421,15 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
 
 <div class="summary" id="sum">
   <div class="sum-inner">
-    <div class="sum-icon">🔥</div>
-    <div class="sum-title">Session Complete</div>
-    <div class="sum-sub">You showed up. That's everything.</div>
+    <div class="sum-icon"><svg class="sum-check" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle cx="28" cy="28" r="28"/><path d="M17 29.5l7.5 7.5L39.5 21"/></svg></div>
+    <div class="sum-title">Workout complete</div>
+    <div class="sum-sub" id="sumSub"></div>
     <div class="sum-stats">
-      <div class="sum-stat"><div class="sum-val" id="sumDur">-</div><div class="sum-lbl">Duration</div></div>
-      <div class="sum-stat"><div class="sum-val" id="sumSets">-</div><div class="sum-lbl">Sets Done</div></div>
+      <div class="sum-stat"><div class="sum-lbl">Duration</div><div class="sum-val" id="sumDur">-</div></div>
+      <div class="sum-stat"><div class="sum-lbl">Sets</div><div class="sum-val" id="sumSets">-</div></div>
+      <div class="sum-stat"><div class="sum-lbl">Exercises</div><div class="sum-val" id="sumEx">-</div></div>
     </div>
-    <button class="sum-close" onclick="closeSummary()">Back to Forge</button>
+    <button class="sum-close" onclick="closeSummary()">Done</button>
   </div>
 </div>
 <div class="summary" id="milestoneModal">
@@ -1220,7 +1437,7 @@ body[data-tab="workout"] .toast{top:calc(env(safe-area-inset-top,0px) + 10px);ba
     <div class="sum-icon" id="msIcon"></div>
     <div class="sum-title" id="msTitle"></div>
     <div class="sum-sub" id="msSub"></div>
-    <button class="sum-close" onclick="closeMilestone()">Keep Going →</button>
+    <button class="sum-close" onclick="closeMilestone()">Continue</button>
   </div>
 </div>
 
