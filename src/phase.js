@@ -3,14 +3,14 @@ import { kg1 } from "./constants.js";
 import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
-export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,2,31)};
+export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,28)};
 export const ACTIVE_MULT=0.75;
 
 export function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 export function isoToday(){return isoDate(new Date());}
 
 // Fallback when no phase covers a date: date-driven deficit toward 95kg by
-// Mar 31, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
+// Feb 28, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
 
 // ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-US
 // on phaseActiveTarget below.
 // The user's hard goals. The phases above are the steps; these are what the
 // card and the AI review hold every phase to.
-export const GOAL_CHECKPOINTS=[{kg:100,by:"2027-02-28"},{kg:95,by:"2027-03-31"}];
+export const GOAL_CHECKPOINTS=[{kg:95,by:"2027-02-28"}];
 export const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
@@ -58,26 +58,31 @@ export const PHASES=[
   {id:"goal",name:"Goal: 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
    start:"2026-10-20",plannedEnd:"2026-10-25",startKg:130,targetKg:128.31,
    eatKcal:1500},
-  // THE plan from Oct 26 2026 (user: "5 kg phases starting today, 130 kg
-  // starting weight, original goals still need to hit"). The hard goals are
-  // the CHECKPOINTS below: 100 kg by Feb 28, 95 kg by Mar 31 2027. Oct 26 ->
-  // Feb 28 is exactly 126 days = six 21-day phases of 5 kg, each 5x7700/21 =
-  // 1,833 kcal/day required deficit (~1.67 kg/week). March is the 7th phase,
-  // 5 kg over 31 days = 1,242/day. Every phase eats 1,500; the Watch active
-  // target is solved daily from the real resting burn. Phase k starts at the
-  // previous phase's target, so the line is continuous and lands on both
-  // checkpoints exactly. Names carry no "·".
+  // THE plan from Oct 26 2026: 5 kg phases from 130 kg (user, Oct 26) to
+  // the hard goal of 95 kg by Feb 28 2027 (user, Oct 27: "95 by February end
+  // is still required"). Oct 26 -> Feb 28 is 126 days = seven 18-day phases,
+  // each 5 x 7,700 / 18 = 2,139 kcal/day (~1.94 kg/week). Every phase eats
+  // 1,500; the Watch active target is solved daily from the real resting
+  // burn (~1,120 active on a 2,800 resting day). Phase k starts at the
+  // previous phase's target the day after it ends, so the line is continuous
+  // and lands on 95 kg exactly on Feb 28. Names carry no "·".
+  // Oct 27 (user): eat 1,200 on Sunday (the rest day), 1,500 Mon-Sat
+  // (eatKcalRest), and plan with resting burn FIXED at 2,700 (restingKcal):
+  // the Watch's resting figure is an estimate, not a measurement. With the
+  // week averaging 1,457 eaten, the Watch active target is ~1,300 Mon-Sat and
+  // ~560 on Sunday; the deficit stays a flat 2,139 a day on average. (Oct 26-27 it
+  // was 21-day then 19-day phases; replaced before any phase closed.)
   ...[
-    ["2026-10-26","2026-11-15",130,125],
-    ["2026-11-16","2026-12-06",125,120],
-    ["2026-12-07","2026-12-27",120,115],
-    ["2026-12-28","2027-01-17",115,110],
-    ["2027-01-18","2027-02-07",110,105],
-    ["2027-02-08","2027-02-28",105,100],
-    ["2027-03-01","2027-03-31",100,95],
+    ["2026-10-26","2026-11-12",130,125],
+    ["2026-11-13","2026-11-30",125,120],
+    ["2026-12-01","2026-12-18",120,115],
+    ["2026-12-19","2027-01-05",115,110],
+    ["2027-01-06","2027-01-23",110,105],
+    ["2027-01-24","2027-02-10",105,100],
+    ["2027-02-11","2027-02-28",100,95],
   ].map(([start,plannedEnd,startKg,targetKg],i)=>({id:"p5_"+(i+1),
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
-    version:6,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500})),
+    version:7,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500,eatKcalRest:1200,restingKcal:2700})),
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;
@@ -143,6 +148,11 @@ export function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{
 // 850 kcal error in both directions every week, plus skewed adherence counts.
 // Now derived from whatever the program actually schedules.
 export function isRestDay(dateIso){return isGymRestDay(dateIso);}
+// The day's food target: a phase may eat less on the rest day (eatKcalRest).
+export function eatKcalFor(p,dateIso){return p.eatKcalRest!=null&&isRestDay(dateIso)?p.eatKcalRest:p.eatKcal;}
+// The week's average food target (one rest day a week), which is what the
+// fixed daily deficit is solved against.
+export function eatKcalAvg(p){return p.eatKcalRest!=null?(6*p.eatKcal+p.eatKcalRest)/7:p.eatKcal;}
 // BMR for a specific phase+date. A COMPLETED phase (e.g. phase_1) keeps its
 // authored restingKcal untouched rather than recomputing live — calcBMR()
 // depends on calcAge(), which reads real "now", so live-recomputing a
@@ -170,7 +180,7 @@ export function restingForPhase(p,dateIso){
 // on or before that day, else 2,800 (their measured figure). The formula
 // (Mifflin-St Jeor, ~2,300 for them) understated it by ~500 kcal, which
 // inflated every solved active target. Oct 2026, the user's choice.
-export const RESTING_FALLBACK=2800;
+export const RESTING_FALLBACK=2700;  // the user's standard figure (Oct 27; was 2,800)
 export function restingDefaultFor(dateIso){
   const days=phaseStore().nutrition?.days||{};
   const vals=Object.keys(days).filter(d=>d<=dateIso&&days[d]?.restingOverride!=null).sort().slice(-5).map(d=>Number(days[d].restingOverride)).filter(Number.isFinite);
@@ -192,7 +202,7 @@ export function phaseActiveTargets(p,dateIso){
     return{workout:p.activeTargetWorkout,rest:p.activeTargetRest};
   const req=phaseRequiredDeficit(p);
   const resting=restingForPhase(p,dateIso);
-  const blended=Math.max(0,(req-resting+p.eatKcal)/ACTIVE_MULT);
+  const blended=Math.max(0,(req-resting+eatKcalAvg(p))/activeMult(dateIso));
   const workout=Math.round(blended*49/45);
   const rest=Math.round(3*workout/7);
   return{workout,rest};
@@ -207,6 +217,73 @@ export function phaseActiveTarget(p,dateIso){
 // ACTIVE_MULT because wearables overstate them, minus what you ate.
 // Returns null when nothing was eaten, i.e. the day is unlogged rather than
 // perfect, so callers can skip it instead of scoring a phantom deficit.
+// A day's deficit only COUNTS when everything that produces it was logged:
+// food, the workout (training days only), Watch active and resting. With any
+// of them missing the number is a guess (no food reads as a huge deficit, no
+// active as a small one), so the day is left out of weekly totals and the
+// missing pieces are named instead (user, Oct 27). `trained` comes from the
+// caller (the app's trainedOn, the email's session check). `expected` is
+// what the plan needs from that day: the phase's daily deficit at the fixed
+// resting figure, the day's food target and its Watch active target.
+export function dayDeficitCheck(dateIso,trained){
+  const nd=phaseStore().nutrition?.days?.[dateIso]||{};
+  const eaten=(nd.items||[]).reduce((a,i)=>a+(Number(i.kcal)||0),0);
+  const p=phaseFor(dateIso);
+  const expected=p?phaseDayDeficit(p,dateIso):null;
+  // Resting is the phase's FIXED figure when it has one (2,700, the user's
+  // standard), on both sides of the comparison: counting the Watch's logged
+  // resting here while the plan assumes 2,700 made every day look better by
+  // the Watch's overestimate. Only a phase without a fixed figure needs it logged.
+  const fixed=p&&p.restingKcal!=null?Number(p.restingKcal):null;
+  const missing=[];
+  if(!(eaten>0))missing.push("food");
+  if(!isRestDay(dateIso)&&!trained)missing.push("workout");
+  if(!(Number(nd.active)>0))missing.push("active");
+  if(fixed==null&&!(Number(nd.restingOverride)>0))missing.push("resting");
+  if(missing.length)return{complete:false,missing,expected,deficit:null};
+  const resting=fixed!=null?fixed:Number(nd.restingOverride);
+  return{complete:true,missing,expected,deficit:Math.round(resting+activeMult(dateIso)*Number(nd.active)-eaten)};
+}
+// ── WATCH CALIBRATION (Oct 27) ──────────────────────────────────────────────
+// The 75% applied to Watch active is a guess. The scale is the truth: over
+// the last 4 weeks (never the plan's first 2, which are mostly water), the
+// weight actually lost implies a real daily deficit; with food and resting
+// known, that pins down how much of the Watch's active number was real.
+// Needs 3+ weeks of window, 14+ days with food and active logged, and a
+// weigh-in near each end. Clamped to 50-100% so one odd week can't swing it.
+export const CAL_FROM="2026-11-09",CAL_MIN_SPAN=21,CAL_MIN_DAYS=14;
+const _calMemo=new Map();
+export function activeCalibration(dateIso){
+  const st=phaseStore(),days=st?.nutrition?.days||{},ws=st?.nutrition?.weights||{};
+  const t=dateIso||isoToday();
+  const key=t+"|"+Object.keys(days).length+"|"+Object.keys(ws).length;
+  if(_calMemo.has(key))return _calMemo.get(key);
+  const res=(()=>{
+    const end=addDaysIso(t,-1);
+    let start=addDaysIso(end,-27);if(start<CAL_FROM)start=CAL_FROM;
+    const span=daysBetween(start,end);
+    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:ACTIVE_MULT,readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
+    let n=0,sumR=0,sumA=0,sumF=0;
+    for(let i=0;i<=span;i++){
+      const d=addDaysIso(start,i),nd=days[d]||{};
+      const f=(nd.items||[]).reduce((a,x)=>a+(Number(x.kcal)||0),0),a=Number(nd.active)||0;
+      if(!(f>0&&a>0))continue;
+      const p=phaseFor(d);n++;sumF+=f;sumA+=a;
+      sumR+=p&&p.restingKcal!=null?Number(p.restingKcal):restingFor(d,nd);
+    }
+    const w0=sevenDayAvg(addDaysIso(start,3)),w1=sevenDayAvg(end);
+    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:ACTIVE_MULT,readyOn:null,days:n};
+    const R=sumR/n,A=sumA/n,F=sumF/n;
+    const realDef=(w0-w1)*7700/Math.max(1,span-3);
+    const raw=(realDef-R+F)/A;
+    const mult=Math.round(Math.min(1,Math.max(0.5,raw))*100)/100;
+    return{ready:true,mult,raw:Math.round(raw*100)/100,days:n,lostKg:Math.round((w0-w1)*10)/10,
+      predictedKg:Math.round((R+ACTIVE_MULT*A-F)*Math.max(1,span-3)/7700*10)/10};
+  })();
+  if(_calMemo.size>400)_calMemo.clear();
+  _calMemo.set(key,res);return res;
+}
+export function activeMult(dateIso){return activeCalibration(dateIso).mult;}
 export function actualDeficit(dateIso){
   const S=phaseStore();
   const nd=S.nutrition?.days?.[dateIso]||{};
@@ -232,7 +309,7 @@ export function phaseRequiredDeficit(p){
   return Math.max(0,Math.round((p.startKg-p.targetKg)*7700/days));
 }
 
-export function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
+export function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+activeMult(dateIso)*phaseActiveTarget(p,dateIso)-eatKcalFor(p,dateIso));}
 export function restingFor(dateIso,dayData){
   if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;
   const p=phaseFor(dateIso);
@@ -305,7 +382,7 @@ export function calcTarget(bmr,active,dateIso){
   const t=dateIso||isoToday();
   const lw=latestWeightLog()||USER.weightKg;
   const p=phaseFor(t);
-  if(p)return{bmr,req:phaseDayDeficit(p,t),target:p.eatKcal,daysLeft:daysBetween(t,effectiveEnd(p,t)),lw,phase:p};
+  if(p)return{bmr,req:phaseDayDeficit(p,t),target:eatKcalFor(p,t),daysLeft:daysBetween(t,effectiveEnd(p,t)),lw,phase:p};
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const req=requiredDeficit(lw,daysLeft);
   return{bmr,req,target:bmr+active-req,daysLeft,lw,phase:null};

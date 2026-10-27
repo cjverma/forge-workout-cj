@@ -680,10 +680,37 @@ try {
     const txt = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
     const bad = txt.match(/.{40}(undefined|NaN|null kg|null%).{30}/g);
     note("the goal card shows the new goal and five habit rows with real numbers",
-      /Phase 1 of 7: 125 kg by Nov 15/.test(txt) && /100 kg by Feb 28.{0,40}kg a week needed/.test(txt) && /95 kg by Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
+      /Phase 1 of 7: 125 kg by Nov 12/.test(txt) && /95 kg by Feb 28.{0,40}kg a week needed/.test(txt) && !/Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
       /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active target/.test(txt) && /Score so far this week/.test(txt) && !bad,
       JSON.stringify(bad) + " " + (txt.match(/This week.{0,260}/) || [""])[0]);
     note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));
+    await page.close();
+  }
+
+  // Weekly deficit tracker (Oct 27): a day only counts with food, workout,
+  // active and resting logged; missing pieces are named; today waits.
+  {
+    const { programFor: PF, weekKeyOf: WKO } = await import("./src/constants.js");
+    const DAYN = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    const S = { nutrition: { days: {}, weights: { "2026-11-02": 128.4 } }, sessions: {}, _v6MonDone1: true, _planMove41: true };
+    const fill = (d, kcal, active, rest) => { S.nutrition.days[d] = { items: [{ name: "x", kcal, protein: 150 }], active, ...(rest ? { restingOverride: rest } : {}) }; };
+    const train = (d) => { const dt = new Date(d + "T12:00:00"); const day = DAYN[(dt.getDay() + 6) % 7]; const ex = PF(dt)[day].exercises.find((e) => e.cat === "gym"); S.sessions[day + "_" + WKO(dt)] = { [ex.id]: { done: true, sets: [{ weight: 40, reps: 10, done: true }] } }; };
+    fill("2026-11-02", 1480, 1350, 2700); train("2026-11-02");
+    fill("2026-11-03", 1450, 1200, null); train("2026-11-03");
+    fill("2026-11-04", 1500, 1100, 2700);
+    fill("2026-11-05", 900, 300, 2700);
+    const page = await browser.newPage({ viewport: { width: 402, height: 2200 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`wkdef: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-11-05T18:00:00-05:00") });
+    await page.addInitScript((st) => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; if (!localStorage.f5) localStorage.f5 = JSON.stringify(st); }, S);
+    await page.goto(URL, { waitUntil: "networkidle" });
+    await page.waitForTimeout(800);
+    await page.evaluate(() => document.getElementById("nav-nutrition")?.click());
+    await page.waitForTimeout(900);
+    const txt = await page.evaluate(() => [...document.querySelectorAll("details.st-acc")].find((x) => /Weekly deficit/.test(x.textContent))?.textContent || "");
+    note("the weekly deficit tracker counts only complete days and names what is missing",
+      /2 of 3 days counted/.test(txt) && !/no resting/.test(txt) && /Not counted: no workout/.test(txt) && /Today, counted tomorrow/.test(txt) && /Watch check: counting 75%/.test(txt) &&
+      /The week needs 14,9\d\d kcal/.test(txt) && /Last 4 weeks/.test(txt) && !/undefined|NaN|null/.test(txt), txt.slice(0, 400));
     await page.close();
   }
 

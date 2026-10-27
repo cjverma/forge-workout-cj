@@ -266,32 +266,92 @@ recomputed from the log by `longestWeekStreak()` (it used to hold days).
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
 
-## The weight goal: 5 kg phases to two hard goals (reset Oct 26 2026)
+## The weight goal: 95 kg by Feb 28 2027, in 5 kg phases (Oct 26-27 2026)
 
-The user (Oct 26): "5 kg phases starting today, 130 kg starting weight, and
-the original goals still need to hit". The HARD goals are
-`GOAL_CHECKPOINTS` in `src/phase.js`: **100 kg by Feb 28 2027, 95 kg by Mar 31
-2027**. `PHASES` ends in seven 5 kg steps (`p5_1`..`p5_7`, built from one
-table):
+The user (Oct 26): "5 kg phases starting today, 130 kg starting weight"; then
+(Oct 27) "up the ante: 2000 kcal deficit and harder training" and "95 by
+February end is still required". The ONE hard goal is `GOAL_CHECKPOINTS` in
+`src/phase.js`: **95 kg by Feb 28 2027**. `PHASES` ends in seven 5 kg steps
+(`p5_1`..`p5_7`, built from one table), **18 days each**, Oct 26 -> Feb 28
+(126 days), every one **2,139 kcal/day** (5 x 7,700 / 18, ~1.94 kg/week):
 
-| phase | dates | kg | required deficit |
-|---|---|---|---|
-| 1-6 | Oct 26 -> Feb 28, 21 days each (Nov 15, Dec 6, Dec 27, Jan 17, Feb 7, Feb 28) | 130 -> 100 | 1,833 kcal/day (~1.67 kg/week) |
-| 7 | Mar 1 -> Mar 31 | 100 -> 95 | 1,242 kcal/day |
+| phase | ends | kg |
+|---|---|---|
+| 1 | Nov 12 | 130 -> 125 |
+| 2 | Nov 30 | -> 120 |
+| 3 | Dec 18 | -> 115 |
+| 4 | Jan 5 | -> 110 |
+| 5 | Jan 23 | -> 105 |
+| 6 | Feb 10 | -> 100 |
+| 7 | Feb 28 | -> 95 |
 
-Oct 26 -> Feb 28 is exactly 126 days, so six equal phases land on 100 kg
-on Feb 28. Each phase starts at the previous target, the day after it ends:
-the line is continuous and hits both goals exactly (tested). Every phase
-eats **1,500**; the Watch active target is solved daily from the real
-resting burn (~700 active on a 2,800 resting day). The goal card shows the
-current phase, plus a row per remaining hard goal with the kg a week it
-needs from the latest weigh-in; the AI review gets the same `hardGoals`.
-History stays so past days keep their real deficits: `phase_1`,
-`phase_2`, `goal_v1` (Oct 16-19) and `goal` (the 130 -> 95 by Feb 20 line,
-cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Mar 31 2027
-and `api/cron-diet-review.js` GOALS mirrors the phases. Resting burn for an
-unlogged day is `restingDefaultFor()` (last 5 logged, else 2,800). Phase
-names never use "·". Don't change the phases or add a goal unasked.
+Each phase starts at the previous target the day after it ends: the line is
+continuous and lands on 95 exactly on Feb 28 (tested). **Food: 1,500
+Mon-Sat, 1,200 on Sunday** (the rest day; `eatKcalRest`, read through
+`eatKcalFor(p,date)` everywhere a food target is used, and `eatKcalAvg(p)`
+for solving). **Resting is planned at a fixed 2,700** (`restingKcal` on the
+phases, the user's call: the Watch's resting figure is an estimate); a
+logged resting value still feeds the "what the day actually produced"
+deficit, but never the targets. The flat 2,139 average then needs **~1,300
+Watch active Mon-Sat and ~560 on Sunday** (7:3 split). A taper (higher
+deficit first) was considered and declined: it starts near 1,700 active,
+and the ~300 kcal fall in resting burn over 35 kg already makes a flat
+deficit slightly harder over time. Check after two weeks: on the line means
+the targets are right. A custom 120-by-Nov-22 milestone
+was asked about and declined (2,750/day for four weeks). Earlier versions
+(Oct 26: 21-day phases at 1,833; Oct 27: 19-day at 2,026) were replaced
+before any phase closed. History stays so past days keep their real
+deficits: `phase_1`, `phase_2`, `goal_v1` (Oct 16-19) and `goal` (130 -> 95
+by Feb 20, cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Feb
+28 2027 and `api/cron-diet-review.js` GOALS mirrors the phases. Resting burn
+for an unlogged day outside these phases is `restingDefaultFor()` (last 5 logged, else 2,700).
+Phase names never use "·". Don't change the phases or add a goal unasked.
+
+**Harder training from Mon Nov 2 2026** (dated, so earlier weeks show what
+they had): +1 working set on a main lift each day (Leg Press, Chest
+Supported Row, Seated Pulldown, Incline Chest Press, Saturday Leg Press,
+Friday Chest Supported Row, Saturday Incline Chest Press: +7 sets a week),
+bike 15 -> 20 min, incline walk 35 -> 40 min, and a "last set: stop one rep
+before you cannot do another" cue on the four heavy compounds. No new
+movement (the one-new-pattern-a-week and recovery rules hold). `_stage()`
+now accepts a LIST of dated changes in `before`/`setsBefore` (the walk has
+two: 15 -> 35 on Oct 16, 35 -> 40 on Nov 2); a date takes the earliest entry
+it falls before.
+
+**The weekly deficit tracker** (Food tab, under the goal card; Oct 27,
+"we used to have a weekly tracker that tells us whether we are on track").
+A day's deficit only counts when food, the workout (training days only),
+Watch active AND resting are all logged: `dayDeficitCheck(date, trained)` in
+`src/phase.js` is the one rule, and the weekly email uses it too (its
+average and weekly deficit come from complete days; `deficitDaysCounted`).
+Resting is the phase's FIXED 2,700 on both sides (logged Watch resting is
+not needed and never inflates a day). An incomplete day shows "Not counted:
+no workout" etc.; today shows "Today, counted tomorrow". A week with more
+than 2 uncounted finished days (or under 5 of 7 once over) shows "Not
+enough data" instead of a verdict: skipped days tend to be the bad ones.
+The card also shows the week's weight change vs the plan line. **Watch
+calibration** (`activeCalibration`/`activeMult` in `src/phase.js`): from
+Nov 9 + 3 weeks, the weight actually lost over the last 4 weeks sets how much
+of the Watch's active number counts (clamped 50-100%, default 75%); targets
+and the tracker use it. "On track" compares the counted days' deficit with what
+the plan needed from those same days (`phaseDayDeficit`, at the fixed 2,700
+resting and the day's food and active targets): within 5% is on track. The
+card also lists the last 4 weeks. The old Settings card (behind
+`FEATURES.progressCharts`) counted any day with food and stays switched off.
+
+**Logging reminders (Web Push, Oct 27).** Twice a day (vercel.json crons
+`/api/cron-weekly-plan?job=nudge` at 18:00 and 01:00 UTC, ~1 PM and ~8 PM
+Toronto, folded into that function: 12/12) `api/_nudge.js` sends "Still to
+log today: ..." only for what is missing today (food, the workout on a
+training day, Watch active). Subscriptions live in `push_subscriptions`
+(per device, not synced state, untouched by restore/wipe), written by the
+`push_subscription` / `push_unsubscribe` mutations from Settings ->
+Reminders (`toggleReminders`). Needs `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`
+in Vercel's env (skips quietly without them); the public key reaches the
+app via `/api/state`'s `vapidPublicKey`. **Never commit the private key**,
+not even in a test (tests generate throwaway keys). iPhone gets web push
+only in the Home Screen app (iOS 16.4+). `sw.js` handles `push` and
+`notificationclick`.
 
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:

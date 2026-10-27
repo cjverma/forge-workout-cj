@@ -139,6 +139,13 @@ export async function ensureSchema() {
     demo_cache_v text,
     last_backup timestamptz
   )`;
+  // Web Push subscriptions for the logging reminder (api/_nudge.js). Per
+  // device, never part of the synced state, untouched by restore/wipe.
+  await q`CREATE TABLE IF NOT EXISTS push_subscriptions(
+    endpoint text PRIMARY KEY,
+    sub jsonb NOT NULL,
+    created_at timestamptz DEFAULT now()
+  )`;
   await q`INSERT INTO milestones(id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
   await q`INSERT INTO app_settings(id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
 }

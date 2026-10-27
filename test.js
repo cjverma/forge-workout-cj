@@ -208,7 +208,7 @@ function mkEngine(Sstub) {
   // rule rather than the old hardcoded Sunday, so the deficit assertions below
   // are checked against what actually ships.
   const fn = new Function("S", "USER", "ACTIVE_MULT", "isoDate", "isoToday", "calcBMR", "latestWeightLog", "isGymRestDay",
-    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun};`);
+    engineMatch[1] + `;return {PHASES,phaseFor,phaseState,effectiveEnd,curveWeights,phaseCurveKg,phaseCorridor,phaseDayDeficit,phaseActiveTarget,phaseActiveTargets,phaseRequiredDeficit,restingFor,restingForPhase,bankedDays,weightVsCurve,sevenDayAvg,projectedFinish,addDaysIso,daysBetween,getPhaseRun,dayDeficitCheck,activeCalibration,activeMult};`);
   return fn(Sstub, USERstub, 0.75,
     d => d.toLocaleDateString("en-CA", { timeZone: "America/Toronto" }),
     () => "2026-07-28",
@@ -231,16 +231,16 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
 // Oct 20 2026: the user reset it to 130 -> 95 kg by Feb 20 2027. phase_2 and
 // the first line (goal_v1, Oct 16-19) are kept as history only.
 // Oct 26 2026: reset at 130 kg into 5 kg phases that still hit the hard
-// goals (100 kg by Feb 28, 95 kg by Mar 31). The Oct 20 line is history.
-ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal Oct 20-25 · seven 5 kg phases Oct 26-Mar 31",
+// goal: 95 kg by Feb 28 (Oct 27). The Oct 20 line is history.
+ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal Oct 20-25 · seven 5 kg phases Oct 26-Feb 28",
   E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
   E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
   E.phaseFor("2026-10-16")?.id === "goal_v1" && E.phaseFor("2026-10-19")?.id === "goal_v1" &&
   E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-10-25")?.id === "goal" &&
-  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-15")?.id === "p5_1" && E.phaseFor("2026-11-16")?.id === "p5_2" &&
-  E.phaseFor("2027-02-28")?.id === "p5_6" && E.phaseFor("2027-03-01")?.id === "p5_7" && E.phaseFor("2027-03-31")?.id === "p5_7" &&
-  E.phaseFor("2027-04-01") === null && !E.PHASES.some((p) => p.id === "phase_3"));
+  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-12")?.id === "p5_1" && E.phaseFor("2026-11-13")?.id === "p5_2" &&
+  E.phaseFor("2027-02-10")?.id === "p5_6" && E.phaseFor("2027-02-11")?.id === "p5_7" && E.phaseFor("2027-02-28")?.id === "p5_7" &&
+  E.phaseFor("2027-03-01") === null && !E.PHASES.some((p) => p.id === "phase_3"));
 ok("goal_v1 history keeps its real ~1,883/day deficit over Oct 16-19",
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "goal_v1")) - 1883) <= 20);
 ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 days",
@@ -251,14 +251,56 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
     G.start === "2026-10-20" && G.plannedEnd === "2026-10-25" && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 10);
   const P5 = E.PHASES.filter((p) => /^p5_/.test(p.id));
   ok("seven 5 kg phases from 130 kg on Oct 26, each starting where the last ended, no gaps, eat 1,500, no '·' in names",
-    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 15" &&
-    P5.every((p, i) => p.startKg - p.targetKg === 5 && p.eatKcal === 1500 && !/·/.test(p.name) && p.restingKcal === undefined &&
+    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 12" &&
+    P5.every((p, i) => p.startKg - p.targetKg === 5 && p.eatKcal === 1500 && p.eatKcalRest === 1200 && p.restingKcal === 2700 && !/·/.test(p.name) &&
       (i === 0 || (p.startKg === P5[i - 1].targetKg && E.daysBetween(P5[i - 1].plannedEnd, p.start) === 1))));
-  ok("the phases still hit the hard goals: 100 kg on Feb 28 and 95 kg on Mar 31 2027",
-    P5[5].plannedEnd === "2027-02-28" && Math.abs(E.phaseCurveKg(P5[5], "2027-02-28") - 100) < 0.05 &&
-    P5[6].plannedEnd === "2027-03-31" && Math.abs(E.phaseCurveKg(P5[6], "2027-03-31") - 95) < 0.05);
-  ok("the Feb phases need ~1,833 kcal/day (5 kg in 21 days), March ~1,242/day",
-    P5.slice(0, 6).every((p) => Math.abs(E.phaseRequiredDeficit(p) - 1833) <= 1) && Math.abs(E.phaseRequiredDeficit(P5[6]) - 1242) <= 1);
+  // Oct 27: "up the ante, 2000 kcal deficit". 19-day phases land early; the
+  // hard goals stay the deadlines.
+  // Oct 27: "95 by February end is still required". Seven 18-day phases from
+  // Oct 26 land exactly on 95 kg on Feb 28; that is the one hard goal.
+  ok("the last phase lands exactly on the hard goal: 95 kg on Feb 28 2027",
+    P5[6].plannedEnd === "2027-02-28" && Math.abs(E.phaseCurveKg(P5[6], "2027-02-28") - 95) < 0.05 &&
+    E.PHASES.length && P5[5].plannedEnd === "2027-02-10");
+  // Oct 27 (user): 1,200 on Sunday, 1,500 Mon-Sat, resting fixed at 2,700.
+  // Average eaten 1,457 -> blended 1,195 -> Watch ~1,300 Mon-Sat, ~560 Sunday.
+  ok("Sunday eats 1,200 and Mon-Sat 1,500; planning resting is a fixed 2,700, whatever the Watch logs",
+    E.PHASES.find((p) => p.id === "p5_1") && mkEngine({ nutrition: { weights: {}, days: { "2026-10-27": { restingOverride: 3100 } } } }).restingForPhase(P5[0], "2026-10-28") === 2700);
+  {
+    const t = E.phaseActiveTargets(P5[0], "2026-10-28");
+    ok("Watch active targets: ~1,300 Mon-Sat and ~560 on Sunday at 2,700 resting", Math.abs(t.workout - 1301) <= 2 && Math.abs(t.rest - 558) <= 2, JSON.stringify(t));
+  }
+  // Oct 27 (user): a day's deficit only counts with food, the workout
+  // (training days), active and resting all logged.
+  {
+    const day = (o) => ({ items: o.kcal ? [{ kcal: o.kcal }] : [], ...(o.active != null ? { active: o.active } : {}), ...(o.rest != null ? { restingOverride: o.rest } : {}) });
+    const D = mkEngine({ nutrition: { weights: {}, days: {
+      "2026-11-03": day({ kcal: 1450, active: 1200, rest: 2700 }),   // Tue, complete
+      "2026-11-04": day({ kcal: 1450, active: 1200, rest: 3100 }),   // Wed, Watch says 3,100 resting
+      "2026-11-05": day({ active: 1200, rest: 2700 }),               // Thu, no food
+      "2026-11-01": day({ kcal: 1200, active: 600, rest: 2700 }),    // Sun, rest day
+    } } });
+    const ok1 = D.dayDeficitCheck("2026-11-03", true), noWk = D.dayDeficitCheck("2026-11-03", false);
+    ok("a day with food, workout, active and resting counts: 2,700 + 0.75 x 1,200 - 1,450 = 2,150, against the plan's ~2,176",
+      ok1.complete && ok1.deficit === 2150 && Math.abs(ok1.expected - 2176) <= 2, JSON.stringify(ok1));
+    ok("a missing workout, food or active log keeps the day out and names what is missing",
+      !noWk.complete && noWk.missing.join() === "workout" && noWk.deficit === null &&
+      D.dayDeficitCheck("2026-11-05", true).missing.join() === "food" &&
+      D.dayDeficitCheck("2026-11-06", true).missing.join() === "food,active");
+    ok("resting is the fixed 2,700 on both sides: a Watch reading of 3,100 does not inflate the day",
+      D.dayDeficitCheck("2026-11-04", true).deficit === 2150);
+    // Watch calibration from the weight trend (Oct 27): 3 weeks from Nov 9.
+    const cd = {}, cw = {};
+    for (let i = -10; i <= 28; i++) { const d = D.addDaysIso("2026-11-09", i); cd[d] = { items: [{ kcal: 1450 }], active: 1300 }; cw[d] = Math.round((126 - i * 0.22) * 10) / 10; }
+    const C = mkEngine({ nutrition: { days: cd, weights: cw } });
+    const early = C.activeCalibration("2026-11-20"), late = C.activeCalibration("2026-12-07");
+    ok("Watch calibration waits for 3 weeks of data (75% until Nov 30), then the weight trend sets the share",
+      !early.ready && early.mult === 0.75 && early.readyOn === "2026-11-30" && late.ready && late.lostKg < late.predictedKg && late.mult < 0.75 && late.mult >= 0.5,
+      JSON.stringify({ early, late }));
+    ok("the rest day needs no workout to count",
+      D.dayDeficitCheck("2026-11-01", false).complete === true);
+  }
+  ok("every phase needs ~2,139 kcal/day (5 kg in 18 days)",
+    P5.every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2139) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 17));
 }
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -331,8 +373,8 @@ ok("phase_2 and the goal omit the flat resting/active fields (dynamic path)",
 const loggedMid = mkEngine({ nutrition: { weights: { "2026-10-15": 120 }, days: {} } });
 // Oct 2026: an unlogged day no longer uses the formula (~2,300, ~500 too low
 // for this user). It averages the last 5 logged resting values; none -> 2,800.
-ok("restingForPhase: an unlogged day with no resting history uses the 2,800 fallback, not the formula",
-  loggedMid.restingForPhase(phase2, "2026-10-15") === 2800);
+ok("restingForPhase: an unlogged day with no resting history uses the 2,700 standard, not the formula",
+  loggedMid.restingForPhase(phase2, "2026-10-15") === 2700);
 {
   const days = {};
   [["2026-10-01", 2700], ["2026-10-02", 2900], ["2026-10-03", 2600], ["2026-10-04", 3000], ["2026-10-05", 2800], ["2026-10-06", 2500], ["2026-10-20", 9999]]
@@ -344,8 +386,8 @@ ok("restingForPhase: an unlogged day with no resting history uses the 2,800 fall
 }
 
 const noLog = mkEngine({ nutrition: { weights: {}, days: {} } });
-ok("restingForPhase: no weigh-in and no resting logged falls back to 2,800",
-  noLog.restingForPhase(phase2, "2026-09-25") === 2800);
+ok("restingForPhase: no weigh-in and no resting logged falls back to 2,700",
+  noLog.restingForPhase(phase2, "2026-09-25") === 2700);
 
 // The whole point: phaseDayDeficit should stay anchored near
 // phaseRequiredDeficit regardless of which weight is fed in, because
@@ -454,9 +496,10 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
   const src = NUTC.slice(NUTC.indexOf("const COMPLIANCE_WEIGHTS="), NUTC.indexOf("// Live health colour"));
   const addD = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const P = { id: "goal_feb", start: "2026-10-26", eatKcal: 1500 };
-  const mk = (S, { today = "2026-11-07", trained = [], line = 128 } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg",
-    src + "; return weekCompliance;")(S, () => today, addD, (iso) => new Date(iso + "T12:00:00Z"), () => P, () => 800, 0.75,
-      (d) => trained.includes(d), (d) => new Date(d + "T12:00:00Z").getUTCDay() === 0, () => line);
+  const mk = (S, { today = "2026-11-07", trained = [], line = 128, phase = null } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg", "eatKcalFor", "activeMult",
+    src + "; return weekCompliance;")(S, () => today, addD, (iso) => new Date(iso + "T12:00:00Z"), () => phase || P, () => 800, 0.75,
+      (d) => trained.includes(d), (d) => new Date(d + "T12:00:00Z").getUTCDay() === 0, () => line,
+      (p, d) => (p.eatKcalRest != null && new Date(d + "T12:00:00Z").getUTCDay() === 0 ? p.eatKcalRest : p.eatKcal), () => 0.75);
   const wk = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"];
   const day = (kcal, active) => ({ items: kcal ? [{ kcal }] : [], active });
   const allGood = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1400, 900)])), weights: Object.fromEntries(wk.map((d) => [d, 127.5])) } };
@@ -464,6 +507,12 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
   ok("a perfect week scores 100 on every habit", g.food === 100 && g.workouts === 100 && g.weight === 100 && g.weighins === 100 && g.active === 100 && g.overall === 100, JSON.stringify(g));
   const big = JSON.parse(JSON.stringify(allGood)); big.nutrition.days["2026-11-02"] = day(3000, 900);
   ok("a 3,000 kcal day is logged but NOT on target", mk(big, { trained: wk })(P, "2026-11-02", "2026-11-07").foodDays === 4);
+  {
+    const PS = { ...P, eatKcalRest: 1200 }, sun = { nutrition: { days: { "2026-11-01": day(1300, 600), "2026-10-31": day(1300, 900) }, weights: {} } };
+    const c = mk(sun, { today: "2026-11-02", phase: PS });
+    ok("food on target uses the day's own target: 1,300 is on target on Saturday (1,500) but not on Sunday (1,200)",
+      c({ ...PS }, "2026-10-26", "2026-11-01").foodDays === 1);
+  }
   ok("6 workouts is still 100 (never over), and an extra session on the rest day is not penalised",
     mk(allGood, { trained: [...wk, "2026-11-07"] })(P, "2026-11-02", "2026-11-07").workouts === 100);
   const wed = mk(allGood, { today: "2026-11-04", trained: ["2026-11-02", "2026-11-03"] })(P, "2026-11-02", "2026-11-04");
@@ -522,9 +571,9 @@ ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 95 · goalDate Mar 31 2027",
+ok("USER.targetKg 95 · goalDate Feb 28 2027",
   HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:95,heightCm:") &&
-  HTML.includes("goalDate:new Date(2027,2,31)"));
+  HTML.includes("goalDate:new Date(2027,1,28)") && HTML.includes('GOAL_CHECKPOINTS=[{kg:95,by:"2027-02-28"}]'));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -722,9 +771,9 @@ section("15b · Active target reflects real intake, not assumed budget");
 // which kind of day (workout/rest) it is.
 {
   const NUT2 = readFileSync("src/nutrition.js", "utf8");
-  ok("Active target is re-solved from actual consumed, not phase.eatKcal alone",
+  ok("Active target is re-solved from actual consumed against the DAY's food target (1,200 on Sunday)",
     /const plannedTgt=phaseActiveTarget\(phase,date\);/.test(NUT2) &&
-    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-phase\.eatKcal\)\/ACTIVE_MULT\)\);/.test(NUT2));
+    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-eatKcalFor\(phase,date\)\)\/activeMult\(date\)\)\);/.test(NUT2));
   ok("aTgt===0 (nothing further needed) reads as fully met, not a failing 0%",
     /const aPct=aTgt\?Math\.round\(active\/aTgt\*100\):100;/.test(NUT2));
 }
@@ -836,8 +885,8 @@ ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
 // state server-side) — it's a documented, hand-synced mirror, matching how
 // GOALS.targetKg/goalDate already work in this file. Just check it was
 // actually re-synced, not left stale.
-ok("server diet-review cron mirror re-synced (95 by 2027-03-31, 100 by Feb 28 checkpoint, five habits, protein snapshot)",
-  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-03-31"/.test(CRON_SRC) && /100 kg by Feb 28 2027/.test(CRON_SRC) && /five habits/.test(CRON_SRC) &&
+ok("server diet-review cron mirror re-synced (95 by 2027-02-28 in 18-day 5 kg phases, five habits, protein snapshot)",
+  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-02-28"/.test(CRON_SRC) && /95 kg by Feb 28 2027/.test(CRON_SRC) && /18 days each/.test(CRON_SRC) && /five habits/.test(CRON_SRC) &&
   /proteinTargetG: 230,/.test(CRON_SRC));
 
 // Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()
@@ -1842,6 +1891,41 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the cron never overwrites a plan already made for that week", out2.skipped === true && called === 0);
         const VJ = JSON.parse(readFileSync("vercel.json", "utf8"));
         ok("the cron is scheduled for Sunday evening", VJ.crons.some(c => c.path === "/api/cron-weekly-plan" && /^\d+ \d+ \* \* 0$/.test(c.schedule)));
+        // Logging reminders (Oct 27): twice a day, only for what is missing.
+        const { nudgeFor, runNudge } = await import("./api/_nudge.js");
+        const { programFor: PFn, weekKeyOf: WKn } = await import("./src/constants.js");
+        const tue = new Date("2026-11-03T18:00:00Z");           // 1 PM Toronto, a training day
+        const empty = { nutrition: { days: {} }, sessions: {} };
+        const n0 = nudgeFor(empty, tue);
+        const ex = PFn(new Date("2026-11-03T12:00:00")).Tuesday.exercises.find((e) => e.cat === "gym");
+        const part = { nutrition: { days: { "2026-11-03": { items: [{ kcal: 600 }] } } }, sessions: { ["Tuesday_" + WKn(new Date("2026-11-03T12:00:00"))]: { [ex.id]: { sets: [{ done: true }] } } } };
+        const full = { nutrition: { days: { "2026-11-03": { items: [{ kcal: 600 }], active: 400 } } }, sessions: part.sessions };
+        const sun = nudgeFor(empty, new Date("2026-11-08T18:00:00Z"));
+        ok("reminder: nothing logged names food, workout and active; partial names only what is left; all logged sends nothing",
+          n0.title === "Nothing logged today" && n0.missing.join() === "food,your workout,Watch active calories" &&
+          nudgeFor(part, tue).missing.join() === "Watch active calories" && nudgeFor(part, tue).title === "Still to log today" &&
+          nudgeFor(full, tue) === null && !/\u2014|\u00b7/.test(n0.body), JSON.stringify(n0));
+        ok("reminder: Sunday (rest day) never asks for a workout", sun.missing.join() === "food,Watch active calories");
+        ok("reminder: 8 PM Toronto is 01:00 UTC the next day, and still checks the Toronto day",
+          nudgeFor(empty, new Date("2026-11-04T01:00:00Z")).date === "2026-11-03");
+        const fakeQ = (rows, deleted) => (strs, ...vals) => { const t = strs.join("?"); if (/^SELECT/.test(t)) return rows; if (/^DELETE/.test(t)) deleted.push(vals[0]); return []; };
+        const r0 = await runNudge({ state: empty, q: fakeQ([], []), now: tue, env: {} });
+        ok("reminder: without VAPID keys it skips quietly", r0.skipped === "no VAPID keys");
+        // Throwaway keys made here; the real ones live only in Vercel's env.
+        const tk = (await import("web-push")).default.generateVAPIDKeys();
+        const del2 = [];
+        const r2 = await runNudge({ state: empty, q: fakeQ([{ endpoint: "https://a", sub: { a: 1 } }, { endpoint: "https://gone", sub: { g: 1 } }], del2), now: tue,
+          env: { VAPID_PUBLIC_KEY: tk.publicKey, VAPID_PRIVATE_KEY: tk.privateKey },
+          send: async (sub) => { if (sub.g) { const e = new Error("gone"); e.statusCode = 410; throw e; } } });
+        ok("reminder: sends to each subscription and drops ones the push service says are gone",
+          r2.sent === 1 && r2.dropped === 1 && del2[0] === "https://gone", JSON.stringify(r2));
+        ok("reminders are scheduled twice a day (18:00 and 01:00 UTC, ~1 PM and ~8 PM Toronto) inside an existing function",
+          VJ.crons.filter((c) => c.path === "/api/cron-weekly-plan?job=nudge").map((c) => c.schedule).sort().join("|") === "0 1 * * *|0 18 * * *");
+        const SWS = readFileSync("sw.js", "utf8"), SETS = readFileSync("src/settings.js", "utf8"), STS = readFileSync("api/state.js", "utf8");
+        ok("the worker shows pushes and opens Forge on tap; Settings has a Reminders switch; the public key arrives with each sync; no private key in the repo",
+          /addEventListener\("push"/.test(SWS) && /addEventListener\("notificationclick"/.test(SWS) &&
+          /onclick="toggleReminders\(\)"/.test(SETS) && /vapidPublicKey: process\.env\.VAPID_PUBLIC_KEY/.test(STS) &&
+          !/VAPID_PRIVATE_KEY\s*[:=]\s*["'][A-Za-z0-9_-]{30,}/.test(readFileSync("api/_nudge.js", "utf8") + SETS + STS));
       }
       {
         // The weekly email is a REPORT now, not "your CSV is attached": verdict
@@ -1876,9 +1960,11 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         // the rule-based verdict and at most three next-week items.
         ok("with no AI coach the email falls back to the rule-based verdict and focus",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
-        ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 15)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
-        ok("the report scores nutrition against the phase (1,500 kcal, 1,833 deficit)",
-          x.eatTarget === 1500 && x.req === 1833 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 12)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
+        ok("the email's weekly deficit counts only complete days (Saturday logged food but no workout, so it is out)",
+          x.nut.deficitDaysCounted === 5 && x.nut.daysLogged === 6, JSON.stringify({ c: x.nut.deficitDaysCounted, l: x.nut.daysLogged }));
+        ok("the report scores nutrition against the phase (1,500 kcal, 2,139 deficit)",
+          x.eatTarget === 1500 && x.req === 2139 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
@@ -1936,6 +2022,23 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("each addition is a movement already in Southpaw (no new pattern for the spine) and passes the spine filter",
           added.length === 4 && added.every((e) => v4Base.has(e.name) && !REAL_IS_BANNED(e.name)));
         const setsAt = (iso, d, id) => REAL_PROGRAM_FOR(new Date(iso + "T12:00:00"))[d].exercises.find((e) => e.id === id)?.sets;
+        {
+          // Oct 27: "up the ante, harder training", dated from Mon Nov 2 so the
+          // week in progress and every past week keep what they had.
+          const at = (iso) => REAL_PROGRAM_FOR(new Date(iso + "T12:00:00"));
+          const ex = (iso, day, name) => at(iso)[day].exercises.find((e) => e.name === name);
+          const gymSets = (iso) => Object.values(at(iso)).reduce((a, v) => a + (v.exercises || []).filter((e) => e.cat === "gym").reduce((b, e) => b + Number(e.sets), 0), 0);
+          ok("harder training starts Mon Nov 2: +7 working sets a week, nothing new before then",
+            gymSets("2026-11-02") - gymSets("2026-10-28") === 7 && gymSets("2026-10-28") === gymSets("2026-10-19") &&
+            ex("2026-10-26", "Monday", "Leg Press Machine").sets === 4 && ex("2026-11-02", "Monday", "Leg Press Machine").sets === 5);
+          ok("cardio from Nov 2: bike 20 min, incline walk 40 min; the walk keeps 15 before Oct 16 and 35 until Nov 1 (a list of dated changes)",
+            ex("2026-11-03", "Tuesday", "Stationary Bike").reps === "20 min" && ex("2026-10-27", "Tuesday", "Stationary Bike").reps === "15 min" &&
+            ex("2026-11-03", "Tuesday", "Incline Treadmill Walk").reps === "40 min" && ex("2026-10-27", "Tuesday", "Incline Treadmill Walk").reps === "35 min" &&
+            ex("2026-10-13", "Tuesday", "Incline Treadmill Walk").reps === "15 min");
+          ok("the heavy compounds get a close-to-failure cue from Nov 2 only",
+            /Last set: stop one rep before you cannot do another\./.test(ex("2026-11-03", "Tuesday", "Chest Supported Row").cue) &&
+            !/Last set/.test(ex("2026-10-27", "Tuesday", "Chest Supported Row").cue));
+        }
         ok("Mon Chest Press 4 -> 5 sets and Fri Seated Pulldown 3 -> 4 sets from Oct 12, unchanged in earlier weeks",
           setsAt("2026-10-05", "Monday", "m4_cp") === 4 && setsAt("2026-10-14", "Wednesday", "w7_cp") === 5 &&
           setsAt("2026-10-09", "Friday", "f4_spd") === 3 && setsAt("2026-10-16", "Friday", "f4_spd") === 4);

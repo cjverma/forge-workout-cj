@@ -161,6 +161,17 @@ export default async function handler(req, res) {
         await q`DELETE FROM dropped_exercises WHERE ex_id=${id}`;
         break;
       }
+      case "push_subscription": {
+        const sub = payload?.sub;
+        if (!sub || typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://")) break;
+        await q`INSERT INTO push_subscriptions(endpoint, sub) VALUES (${sub.endpoint}, ${JSON.stringify(sub)})
+                ON CONFLICT (endpoint) DO UPDATE SET sub=EXCLUDED.sub`;
+        break;
+      }
+      case "push_unsubscribe": {
+        if (typeof payload?.endpoint === "string") await q`DELETE FROM push_subscriptions WHERE endpoint=${payload.endpoint}`;
+        break;
+      }
       case "settings": {
         const { theme, aiDeficitModifier, weeklySnapshots, weeklyVerdict, demoCache, demoCacheV, lastBackup } = payload;
         await q`UPDATE app_settings SET

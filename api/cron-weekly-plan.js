@@ -3,6 +3,7 @@ import { sql, ensureSchema } from "./_db.js";
 import { generateWeeklyPlan } from "./weekly-plan.js";
 import { buildPlanPayload, planMonFor, planToUpdates } from "../src/plan.js";
 import { programKeyFor } from "../src/constants.js";
+import { runNudge } from "./_nudge.js";
 
 // Generates next week's plan on the server every Sunday evening, so the week
 // is planned even if the app is never opened (the in-app Sunday auto-plan only
@@ -45,6 +46,21 @@ export default async function handler(req, res) {
   const provided = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   const cronSecret = process.env.CRON_SECRET, appToken = process.env.FORGE_API_TOKEN;
   if (!((cronSecret && provided === cronSecret) || (appToken && provided === appToken))) return res.status(401).json({ error: "Unauthorized" });
+  // The same function also sends the twice-daily logging reminder
+  // (vercel.json: ?job=nudge at 18:00 and 01:00 UTC). The UTC hour is the
+  // fallback in case a cron arrives without its query string.
+  const hour = new Date().getUTCHours();
+  if (req.query?.job === "nudge" || (req.query?.job !== "plan" && (hour === 18 || hour === 1))) {
+    try {
+      await ensureSchema();
+      const out = await runNudge({ state: await assembleState(), q: sql() });
+      console.log("[cron-nudge]", JSON.stringify(out));
+      return res.status(200).json(out);
+    } catch (e) {
+      console.error("[cron-nudge]", e.message);
+      return res.status(502).json({ error: "Reminder failed" });
+    }
+  }
   try {
     const state = await assembleState();
     const out = await runWeeklyPlan({ state, write: writePlan });

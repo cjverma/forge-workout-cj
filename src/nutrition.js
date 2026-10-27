@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
@@ -259,7 +259,7 @@ export function renderNutrition(){
         // the workout/rest split stays intact since plannedTgt already
         // reflects which kind of day this is.
         const plannedTgt=phaseActiveTarget(phase,date);
-        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-phase.eatKcal)/ACTIVE_MULT));
+        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-eatKcalFor(phase,date))/activeMult(date)));
         const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
@@ -360,6 +360,8 @@ export function renderNutrition(){
     <div class="st-sec">Progress</div>
 
     ${phaseCardHtml()}
+
+    ${weekDeficitHtml()}
 
     ${S.dietReview?.text?`<!-- Weekly AI diet review · generated server-side by the Sunday-midnight cron; button re-runs it on demand -->
     <details class="st-acc">
@@ -491,13 +493,13 @@ function weekCompliance(p,weekStartIso,endIso){
   const pct=(n,of)=>of?Math.round(n/of*100):null;
   // Food: logged AND at or under the eat target. A 3,000 kcal day is logged
   // but not on target.
-  const foodDays=finished.filter(d=>{const k=kcalOf(d);return k>0&&k<=p.eatKcal;}).length;
+  const foodDays=finished.filter(d=>{const k=kcalOf(d);return k>0&&k<=eatKcalFor(phaseFor(d)||p,d);}).length;
   const weighDays=finished.filter(d=>ws[d]!=null).length;
   // Watch active target, clamped for scoring: eating LESS never lowers the
   // bar, and a day with nothing logged fails instead of being skipped.
   const activeDays=finished.filter(d=>{
     const ph=phaseFor(d)||p;
-    const tgt=Math.max(0,Math.round(phaseActiveTarget(ph,d)+Math.max(0,kcalOf(d)-ph.eatKcal)/ACTIVE_MULT));
+    const tgt=Math.max(0,Math.round(phaseActiveTarget(ph,d)+Math.max(0,kcalOf(d)-eatKcalFor(ph,d))/activeMult(d)));
     const a=Number(nd(d).active)||0;
     return a>0&&a>=tgt;
   }).length;
@@ -668,7 +670,7 @@ async function aiPhaseReview(id){
     const facts={
       currentPhase:`${p.name||p.id}: ${p.startKg} kg on ${p.start} to ${p.targetKg} kg by ${p.plannedEnd} (5 kg phases)`,
       hardGoals:GOAL_CHECKPOINTS.filter(c=>c.by>=t).map(c=>({kg:c.kg,by:c.by,kgPerWeekNeededNow:latestKg!=null?Math.round((latestKg-c.kg)/Math.max(1,daysBetween(t,c.by))*7*10)/10:null})),
-      eatKcalPerDay:p.eatKcal,watchActiveTargets:at,
+      eatKcalPerDay:p.eatKcalRest!=null?`${p.eatKcal} Mon-Sat, ${p.eatKcalRest} on the rest day`:p.eatKcal,watchActiveTargets:at,
       planLineToday:phaseCurveKg(p,t),
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planThatDay:wvc.expected,aheadKg:wvc.diff}:null,
       lostSoFarKg:latestKg!=null?Math.round((p.startKg-latestKg)*10)/10:null,
@@ -677,7 +679,7 @@ async function aiPhaseReview(id){
       thisWeek:comp.overall==null?null:{overall:comp.overall,foodOnTargetDays:`${comp.foodDays} of ${comp.finishedDays}`,workouts:`${comp.trained} of ${comp.need} done`,weightVsLineKg:comp.behindKg,weighInDays:`${comp.weighDays} of ${comp.finishedDays}`,activeTargetDays:`${comp.activeDays} of ${comp.finishedDays}`},
       lastWeeks:hist,last14Days:days,
     };
-    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under ${p.eatKcal} kcal (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
+    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under the day's target of ${p.eatKcal} kcal${p.eatKcalRest!=null?` (${p.eatKcalRest} on the rest day)`:""} (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -698,6 +700,82 @@ async function aiPhaseReview(id){
 // phase_1 was never explicitly locked, this card would show a done phase
 // from September instead of the real one. Two passes instead: an active/
 // paused phase always wins over a merely date-elapsed, unlocked one.
+// ── WEEKLY DEFICIT TRACKER ─────────────────────────────────────────────────
+// Brought back (Oct 27, user: "we used to have a weekly tracker that tells us
+// whether we are on track"). Unlike the old Settings card, a day only counts
+// when food, the workout (training days), Watch active and resting are ALL
+// logged (dayDeficitCheck). An incomplete day says what is missing and stays
+// out of the totals; today is still in progress and is counted tomorrow.
+// "On track" compares the counted days' deficit with what the plan needed
+// from those same days, so a week with gaps is judged fairly.
+function weekDeficitSummary(monIso){
+  const t=isoToday();
+  const days=[];let total=0,need=0,counted=0,weekNeed=0;
+  for(let i=0;i<7;i++){
+    const d=addDaysIso(monIso,i);
+    const c=dayDeficitCheck(d,trainedOn(d));
+    weekNeed+=c.expected||0;
+    const state=d>t?"future":d===t?"today":c.complete?"counted":"missing";
+    if(state==="counted"){counted++;total+=c.deficit;need+=c.expected||0;}
+    days.push({d,state,...c});
+  }
+  const finished=days.filter(x=>x.state==="counted"||x.state==="missing").length;
+  // Days people skip logging tend to be the worse ones, so a week with gaps
+  // gets no verdict: more than 2 finished days uncounted (this week), or
+  // fewer than 5 of 7 counted (a finished week).
+  const thin=monIso<mondayOfIso(t)?counted<5:finished-counted>2;
+  return{days,total,need,counted,finished,thin,weekNeed:Math.round(weekNeed),gap:total-need};
+}
+function weekDeficitHtml(){
+  const t=isoToday();
+  const thisMon=mondayOfIso(t);
+  const w=weekDeficitSummary(thisMon);
+  if(!phaseFor(t))return"";
+  const n=x=>Math.round(Math.abs(x)).toLocaleString();
+  const kg=x=>(Math.abs(x)/7700).toFixed(1);
+  const dayLbl=d=>new Date(d+"T12:00:00Z").toLocaleDateString("en-US",{weekday:"short",month:"short",day:"numeric",timeZone:"UTC"});
+  const verdict=s=>!s.counted?null:s.thin?{txt:"Not enough data",col:"var(--mid)"}:s.gap>=0.05*s.need?{txt:`${n(s.gap)} kcal ahead`,col:"var(--green)"}:s.gap>=-0.05*s.need?{txt:"On track",col:"var(--green)"}:{txt:`${n(s.gap)} kcal behind (about ${kg(s.gap)} kg)`,col:"var(--red)"};
+  const v=verdict(w);
+  const line=(lbl,val,col)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--b1);font-size:15px"><span style="color:var(--lt);white-space:nowrap">${lbl}</span><span style="text-align:right;font-variant-numeric:tabular-nums;color:${col||"var(--white)"}">${val}</span></div>`;
+  const rows=w.days.map(x=>{
+    if(x.state==="future")return"";
+    if(x.state==="today")return line(dayLbl(x.d),"Today, counted tomorrow","var(--mid)");
+    if(x.state==="missing")return line(dayLbl(x.d),"Not counted: no "+x.missing.join(", no "),"var(--amber)");
+    return line(dayLbl(x.d),`${n(x.deficit)} of ${n(x.expected)}`,x.deficit>=x.expected?"var(--green)":"var(--red)");
+  }).join("");
+  const past=[1,2,3,4].map(k=>{const m=addDaysIso(thisMon,-7*k);if(!phaseFor(addDaysIso(m,6))&&!phaseFor(m))return"";const s=weekDeficitSummary(m),pv=verdict(s);
+    return line("Week of "+fmtDate(m),s.counted?`${pv.txt}, ${s.counted} of 7 days counted`:"No complete days",s.counted?pv.col:"var(--mid)");}).join("");
+  // The scale is the real answer: this week's weight change vs the plan line.
+  const ws=S.nutrition?.weights||{};
+  const wk=Object.keys(ws).filter(k=>k<=t&&ws[k]!=null).sort();
+  const w0k=wk.filter(k=>k<thisMon).pop()||wk.find(k=>k>=thisMon),w1k=wk.filter(k=>k>=thisMon).pop();
+  const pph=phaseFor(t);
+  let weightLine="";
+  if(w0k&&w1k&&w0k!==w1k&&pph){
+    const act=Math.round((Number(ws[w1k])-Number(ws[w0k]))*10)/10;
+    const plan=Math.round((phaseCurveKg(phaseFor(w1k)||pph,w1k)-phaseCurveKg(phaseFor(w0k)||pph,w0k))*10)/10;
+    weightLine=line("Weight this week",`${act>0?"+":""}${act.toFixed(1)} kg, plan ${plan.toFixed(1)} kg`,act<=plan+0.2?"var(--green)":"var(--red)");
+  }
+  const cal=activeCalibration(t);
+  const calLine=cal.ready
+    ?`Watch check: your weight trend says ${Math.round(cal.mult*100)}% of the Watch's active calories are real (${cal.lostKg} kg lost vs ${cal.predictedKg} kg predicted), so targets use ${Math.round(cal.mult*100)}%.`
+    :`Watch check: counting 75% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend sets it.`;
+  const head=!w.counted?(w.finished?"No complete day yet":"Week starting"):w.thin?`Not enough data, ${w.finished-w.counted} days missing`:`${v.txt}`;
+  return`<details class="st-acc" open>
+    <summary><div><div>${icon("chart",20)} Weekly deficit</div><div class="st-acc-sub">${head}${w.counted?`, ${w.counted} of ${w.finished} days counted`:""}</div></div></summary>
+    <div class="st-acc-inner" style="padding-top:10px">
+      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
+        <span style="font-size:15px;color:var(--mid)">This week so far</span>
+        <span style="font-family:var(--font-num);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:${v?v.col:"var(--mid)"}">${w.counted?n(w.total):"0"} <span style="font-size:15px;font-weight:400;color:var(--mid)">of ${n(w.need)} kcal</span></span>
+      </div>
+      <div style="font-size:13px;color:var(--mid);margin:4px 0 6px">${v?`${v.txt}. `:""}The week needs ${n(w.weekNeed)} kcal. A day counts once food, the workout and active calories are logged; resting is the standard 2,700.</div>
+      ${weightLine}
+      ${rows}
+      <div style="font-size:13px;color:var(--mid);margin-top:10px">${calLine}</div>
+      ${past?`<div style="font-size:13px;font-weight:600;color:var(--mid);margin-top:14px">Last 4 weeks</div>${past}`:""}
+    </div>
+  </details>`;
+}
 function phaseCardHtml(){
   const t=isoToday();
   const active=PHASES.find(x=>{const st=phaseState(x,t);return st==="active"||st==="paused";});

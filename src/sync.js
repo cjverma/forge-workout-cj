@@ -165,6 +165,7 @@ export async function loadServerState(showStatus) {
       return;
     }
     pushSnapshot(ctx.getS());
+    try { if (d.vapidPublicKey) localStorage.setItem("f5_vapid", d.vapidPublicKey); } catch (_) {}
     ctx.setS(d.state);
     // The pull replaces state wholesale, so the custom-exercise name registry
     // has to be rebuilt into the new object before it is persisted, or PR rows
