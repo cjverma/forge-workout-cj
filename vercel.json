@@ -14,12 +14,36 @@
       "schedule": "0 23 * * 0"
     },
     {
-      "path": "/api/cron-weekly-plan?job=nudge",
-      "schedule": "0 18 * * *"
+      "path": "/api/cron-weekly-plan?job=nudge&slot=weight",
+      "schedule": "30 13 * * *"
     },
     {
-      "path": "/api/cron-weekly-plan?job=nudge",
-      "schedule": "0 1 * * *"
+      "path": "/api/cron-weekly-plan?job=nudge&slot=weight",
+      "schedule": "30 14 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=food",
+      "schedule": "0 15 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=food",
+      "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=workout",
+      "schedule": "0 23 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=workout",
+      "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=calories",
+      "schedule": "30 3 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge&slot=calories",
+      "schedule": "30 4 * * *"
     }
   ]
 }

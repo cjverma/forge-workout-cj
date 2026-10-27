@@ -339,19 +339,24 @@ resting and the day's food and active targets): within 5% is on track. The
 card also lists the last 4 weeks. The old Settings card (behind
 `FEATURES.progressCharts`) counted any day with food and stays switched off.
 
-**Logging reminders (Web Push, Oct 27).** Twice a day (vercel.json crons
-`/api/cron-weekly-plan?job=nudge` at 18:00 and 01:00 UTC, ~1 PM and ~8 PM
-Toronto, folded into that function: 12/12) `api/_nudge.js` sends "Still to
-log today: ..." only for what is missing today (food, the workout on a
-training day, Watch active). Subscriptions live in `push_subscriptions`
-(per device, not synced state, untouched by restore/wipe), written by the
-`push_subscription` / `push_unsubscribe` mutations from Settings ->
-Reminders (`toggleReminders`). Needs `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`
-in Vercel's env (skips quietly without them); the public key reaches the
-app via `/api/state`'s `vapidPublicKey`. **Never commit the private key**,
-not even in a test (tests generate throwaway keys). iPhone gets web push
-only in the Home Screen app (iOS 16.4+). `sw.js` handles `push` and
-`notificationclick`.
+**Logging reminders (Web Push, Oct 27).** Four a day, each only when its
+thing isn't logged (`nudgeFor(state, now, slot)` in `api/_nudge.js`):
+**9:30 AM** weigh-in, **11 AM** food, **7 PM** workout not started (training
+days), **11:30 PM** Watch active / resting (and food) not entered. They run
+inside `api/cron-weekly-plan.js` (12/12) via vercel.json crons
+`?job=nudge&slot=...`, TWO per slot (EDT and EST UTC times); only the one
+landing in the slot's Toronto hour sends (`torontoHour`), so daylight saving
+needs no edits. Vercel Hobby fires a cron anywhere within its hour, so times
+are approximate. Subscriptions live in `push_subscriptions` (per device, not
+synced state, untouched by restore/wipe), written by `push_subscription` /
+`push_unsubscribe` from Settings -> Reminders (`toggleReminders`). Needs
+`VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY` in Vercel's env (skips quietly
+without); the public key reaches the app via `/api/state`'s
+`vapidPublicKey`. **Never commit the private key**, not even in a test
+(tests generate throwaway keys). iPhone gets web push only in the Home
+Screen app (iOS 16.4+). `sw.js` handles `push` and `notificationclick`.
+**TEMPORARY:** Settings -> "Send a test reminder" (`sendTestReminder`,
+server `slot=test`). Remove both once the user confirms a test arrived.
 
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:
