@@ -231,16 +231,16 @@ ok("Phase 1 declared with identity-first shape (id, version, strategy, curve, pl
 // Oct 20 2026: the user reset it to 130 -> 95 kg by Feb 20 2027. phase_2 and
 // the first line (goal_v1, Oct 16-19) are kept as history only.
 // Oct 26 2026: reset at 130 kg into 5 kg phases that still hit the hard
-// goals (100 kg by Feb 28, 95 kg by Mar 31). The Oct 20 line is history.
-ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal Oct 20-25 · seven 5 kg phases Oct 26-Mar 31",
+// goal: 95 kg by Feb 28 (Oct 27). The Oct 20 line is history.
+ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal Oct 20-25 · seven 5 kg phases Oct 26-Feb 28",
   E.phaseFor("2026-07-27") === null && E.phaseFor("2026-07-28")?.id === "phase_1" &&
   E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
   E.phaseFor("2026-10-16")?.id === "goal_v1" && E.phaseFor("2026-10-19")?.id === "goal_v1" &&
   E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-10-25")?.id === "goal" &&
-  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-13")?.id === "p5_1" && E.phaseFor("2026-11-14")?.id === "p5_2" &&
-  E.phaseFor("2027-02-16")?.id === "p5_6" && E.phaseFor("2027-02-17")?.id === "p5_7" && E.phaseFor("2027-03-07")?.id === "p5_7" &&
-  E.phaseFor("2027-03-08") === null && !E.PHASES.some((p) => p.id === "phase_3"));
+  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-12")?.id === "p5_1" && E.phaseFor("2026-11-13")?.id === "p5_2" &&
+  E.phaseFor("2027-02-10")?.id === "p5_6" && E.phaseFor("2027-02-11")?.id === "p5_7" && E.phaseFor("2027-02-28")?.id === "p5_7" &&
+  E.phaseFor("2027-03-01") === null && !E.PHASES.some((p) => p.id === "phase_3"));
 ok("goal_v1 history keeps its real ~1,883/day deficit over Oct 16-19",
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "goal_v1")) - 1883) <= 20);
 ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 days",
@@ -251,16 +251,18 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
     G.start === "2026-10-20" && G.plannedEnd === "2026-10-25" && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 10);
   const P5 = E.PHASES.filter((p) => /^p5_/.test(p.id));
   ok("seven 5 kg phases from 130 kg on Oct 26, each starting where the last ended, no gaps, eat 1,500, no '·' in names",
-    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 13" &&
+    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 12" &&
     P5.every((p, i) => p.startKg - p.targetKg === 5 && p.eatKcal === 1500 && !/·/.test(p.name) && p.restingKcal === undefined &&
       (i === 0 || (p.startKg === P5[i - 1].targetKg && E.daysBetween(P5[i - 1].plannedEnd, p.start) === 1))));
   // Oct 27: "up the ante, 2000 kcal deficit". 19-day phases land early; the
   // hard goals stay the deadlines.
-  ok("the phases beat the hard goals: 100 kg by Feb 16 (goal Feb 28), 95 kg by Mar 7 (goal Mar 31)",
-    P5[5].plannedEnd === "2027-02-16" && P5[5].plannedEnd <= "2027-02-28" && Math.abs(E.phaseCurveKg(P5[5], "2027-02-16") - 100) < 0.05 &&
-    P5[6].plannedEnd === "2027-03-07" && P5[6].plannedEnd <= "2027-03-31" && Math.abs(E.phaseCurveKg(P5[6], "2027-03-07") - 95) < 0.05);
-  ok("every phase needs ~2,000 kcal/day (5 kg in 19 days = 2,026)",
-    P5.every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2026) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 18));
+  // Oct 27: "95 by February end is still required". Seven 18-day phases from
+  // Oct 26 land exactly on 95 kg on Feb 28; that is the one hard goal.
+  ok("the last phase lands exactly on the hard goal: 95 kg on Feb 28 2027",
+    P5[6].plannedEnd === "2027-02-28" && Math.abs(E.phaseCurveKg(P5[6], "2027-02-28") - 95) < 0.05 &&
+    E.PHASES.length && P5[5].plannedEnd === "2027-02-10");
+  ok("every phase needs ~2,139 kcal/day (5 kg in 18 days)",
+    P5.every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2139) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 17));
 }
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -524,9 +526,9 @@ ok("date-driven fallback retained for dates outside any phase",
   HTML.includes("function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}") &&
   HTML.includes("phase:null"));
 
-ok("USER.targetKg 95 · goalDate Mar 31 2027",
+ok("USER.targetKg 95 · goalDate Feb 28 2027",
   HTML.includes("USER={birthDate:") && HTML.includes(",targetKg:95,heightCm:") &&
-  HTML.includes("goalDate:new Date(2027,2,31)"));
+  HTML.includes("goalDate:new Date(2027,1,28)") && HTML.includes('GOAL_CHECKPOINTS=[{kg:95,by:"2027-02-28"}]'));
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 7. sanitizeCtx
@@ -838,8 +840,8 @@ ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
 // state server-side) — it's a documented, hand-synced mirror, matching how
 // GOALS.targetKg/goalDate already work in this file. Just check it was
 // actually re-synced, not left stale.
-ok("server diet-review cron mirror re-synced (95 by 2027-03-31, 100 by Feb 28 checkpoint, five habits, protein snapshot)",
-  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-03-31"/.test(CRON_SRC) && /100 kg by Feb 28 2027/.test(CRON_SRC) && /five habits/.test(CRON_SRC) &&
+ok("server diet-review cron mirror re-synced (95 by 2027-02-28 in 18-day 5 kg phases, five habits, protein snapshot)",
+  /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-02-28"/.test(CRON_SRC) && /95 kg by Feb 28 2027/.test(CRON_SRC) && /18 days each/.test(CRON_SRC) && /five habits/.test(CRON_SRC) &&
   /proteinTargetG: 230,/.test(CRON_SRC));
 
 // Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()
@@ -1878,9 +1880,9 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         // the rule-based verdict and at most three next-week items.
         ok("with no AI coach the email falls back to the rule-based verdict and focus",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
-        ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 15)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
-        ok("the report scores nutrition against the phase (1,500 kcal, 2,026 deficit)",
-          x.eatTarget === 1500 && x.req === 2026 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 12)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
+        ok("the report scores nutrition against the phase (1,500 kcal, 2,139 deficit)",
+          x.eatTarget === 1500 && x.req === 2139 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",

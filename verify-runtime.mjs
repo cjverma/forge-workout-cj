@@ -680,7 +680,7 @@ try {
     const txt = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
     const bad = txt.match(/.{40}(undefined|NaN|null kg|null%).{30}/g);
     note("the goal card shows the new goal and five habit rows with real numbers",
-      /Phase 1 of 7: 125 kg by Nov 13/.test(txt) && /100 kg by Feb 28.{0,40}kg a week needed/.test(txt) && /95 kg by Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
+      /Phase 1 of 7: 125 kg by Nov 12/.test(txt) && /95 kg by Feb 28.{0,40}kg a week needed/.test(txt) && !/Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
       /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active target/.test(txt) && /Score so far this week/.test(txt) && !bad,
       JSON.stringify(bad) + " " + (txt.match(/This week.{0,260}/) || [""])[0]);
     note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));

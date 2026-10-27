@@ -3,14 +3,14 @@ import { kg1 } from "./constants.js";
 import { isGymRestDay } from "./constants.js";
 
 // Personal constants · never rendered in UI
-export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,2,31)};
+export const USER={birthDate:new Date(1995,7,1),weightKg:130,targetKg:95,heightCm:190.5,sex:"M",goalDate:new Date(2027,1,28)};
 export const ACTIVE_MULT=0.75;
 
 export function isoDate(d){return d.toLocaleDateString("en-CA",{timeZone:"America/Toronto"});}
 export function isoToday(){return isoDate(new Date());}
 
 // Fallback when no phase covers a date: date-driven deficit toward 95kg by
-// Mar 31, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
+// Feb 28, 2027. Inside a phase, phase targets rule (see PHASE ENGINE below).
 export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-USER.targetKg)*7700)/daysLeft);}
 
 // ── PHASE ENGINE (2026-07-16) ────────────────────────────────────────────────
@@ -33,7 +33,7 @@ export function requiredDeficit(lw,daysLeft){return Math.round(Math.max(0,(lw-US
 // on phaseActiveTarget below.
 // The user's hard goals. The phases above are the steps; these are what the
 // card and the AI review hold every phase to.
-export const GOAL_CHECKPOINTS=[{kg:100,by:"2027-02-28"},{kg:95,by:"2027-03-31"}];
+export const GOAL_CHECKPOINTS=[{kg:95,by:"2027-02-28"}];
 export const PHASES=[
   {id:"phase_1",version:2,strategy:"fat_loss",curve:"front_loaded",
    start:"2026-07-28",plannedEnd:"2026-09-07",startKg:140,targetKg:128,
@@ -58,24 +58,23 @@ export const PHASES=[
   {id:"goal",name:"Goal: 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
    start:"2026-10-20",plannedEnd:"2026-10-25",startKg:130,targetKg:128.31,
    eatKcal:1500},
-  // THE plan from Oct 26 2026: 5 kg phases from 130 kg (user, Oct 26), at a
-  // ~2,000 kcal/day deficit (user, Oct 27: "up the ante, 2000 kcal deficit").
-  // Each phase is 19 days, so 5 x 7,700 / 19 = 2,026 kcal/day (~1.84 kg/week),
-  // landing 100 kg on Feb 16 and 95 kg on Mar 7: 12 and 24 days inside the
-  // hard goals below, which stay as the deadlines. Every phase eats 1,500;
-  // the Watch active target is solved daily from the real resting burn (~930
-  // active on a 2,800 resting day). Phase k starts at the previous phase's
-  // target the day after it ends, so the line is continuous. Names carry no
-  // "·". (The first version, Oct 26, used 21-day phases at 1,833/day; no day
-  // has closed under it beyond Oct 26, so it is replaced, not kept as history.)
+  // THE plan from Oct 26 2026: 5 kg phases from 130 kg (user, Oct 26) to
+  // the hard goal of 95 kg by Feb 28 2027 (user, Oct 27: "95 by February end
+  // is still required"). Oct 26 -> Feb 28 is 126 days = seven 18-day phases,
+  // each 5 x 7,700 / 18 = 2,139 kcal/day (~1.94 kg/week). Every phase eats
+  // 1,500; the Watch active target is solved daily from the real resting
+  // burn (~1,120 active on a 2,800 resting day). Phase k starts at the
+  // previous phase's target the day after it ends, so the line is continuous
+  // and lands on 95 kg exactly on Feb 28. Names carry no "·". (Oct 26-27 it
+  // was 21-day then 19-day phases; replaced before any phase closed.)
   ...[
-    ["2026-10-26","2026-11-13",130,125],
-    ["2026-11-14","2026-12-02",125,120],
-    ["2026-12-03","2026-12-21",120,115],
-    ["2026-12-22","2027-01-09",115,110],
-    ["2027-01-10","2027-01-28",110,105],
-    ["2027-01-29","2027-02-16",105,100],
-    ["2027-02-17","2027-03-07",100,95],
+    ["2026-10-26","2026-11-12",130,125],
+    ["2026-11-13","2026-11-30",125,120],
+    ["2026-12-01","2026-12-18",120,115],
+    ["2026-12-19","2027-01-05",115,110],
+    ["2027-01-06","2027-01-23",110,105],
+    ["2027-01-24","2027-02-10",105,100],
+    ["2027-02-11","2027-02-28",100,95],
   ].map(([start,plannedEnd,startKg,targetKg],i)=>({id:"p5_"+(i+1),
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
     version:6,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500})),
