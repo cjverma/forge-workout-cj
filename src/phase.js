@@ -58,23 +58,24 @@ export const PHASES=[
   {id:"goal",name:"Goal: 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
    start:"2026-10-20",plannedEnd:"2026-10-25",startKg:130,targetKg:128.31,
    eatKcal:1500},
-  // THE plan from Oct 26 2026 (user: "5 kg phases starting today, 130 kg
-  // starting weight, original goals still need to hit"). The hard goals are
-  // the CHECKPOINTS below: 100 kg by Feb 28, 95 kg by Mar 31 2027. Oct 26 ->
-  // Feb 28 is exactly 126 days = six 21-day phases of 5 kg, each 5x7700/21 =
-  // 1,833 kcal/day required deficit (~1.67 kg/week). March is the 7th phase,
-  // 5 kg over 31 days = 1,242/day. Every phase eats 1,500; the Watch active
-  // target is solved daily from the real resting burn. Phase k starts at the
-  // previous phase's target, so the line is continuous and lands on both
-  // checkpoints exactly. Names carry no "·".
+  // THE plan from Oct 26 2026: 5 kg phases from 130 kg (user, Oct 26), at a
+  // ~2,000 kcal/day deficit (user, Oct 27: "up the ante, 2000 kcal deficit").
+  // Each phase is 19 days, so 5 x 7,700 / 19 = 2,026 kcal/day (~1.84 kg/week),
+  // landing 100 kg on Feb 16 and 95 kg on Mar 7: 12 and 24 days inside the
+  // hard goals below, which stay as the deadlines. Every phase eats 1,500;
+  // the Watch active target is solved daily from the real resting burn (~930
+  // active on a 2,800 resting day). Phase k starts at the previous phase's
+  // target the day after it ends, so the line is continuous. Names carry no
+  // "·". (The first version, Oct 26, used 21-day phases at 1,833/day; no day
+  // has closed under it beyond Oct 26, so it is replaced, not kept as history.)
   ...[
-    ["2026-10-26","2026-11-15",130,125],
-    ["2026-11-16","2026-12-06",125,120],
-    ["2026-12-07","2026-12-27",120,115],
-    ["2026-12-28","2027-01-17",115,110],
-    ["2027-01-18","2027-02-07",110,105],
-    ["2027-02-08","2027-02-28",105,100],
-    ["2027-03-01","2027-03-31",100,95],
+    ["2026-10-26","2026-11-13",130,125],
+    ["2026-11-14","2026-12-02",125,120],
+    ["2026-12-03","2026-12-21",120,115],
+    ["2026-12-22","2027-01-09",115,110],
+    ["2027-01-10","2027-01-28",110,105],
+    ["2027-01-29","2027-02-16",105,100],
+    ["2027-02-17","2027-03-07",100,95],
   ].map(([start,plannedEnd,startKg,targetKg],i)=>({id:"p5_"+(i+1),
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
     version:6,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500})),

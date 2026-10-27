@@ -266,32 +266,44 @@ recomputed from the log by `longestWeekStreak()` (it used to hold days).
 physio block, and "no exercises at all" made every unlogged Sunday break the
 streak, so it reset each Monday.
 
-## The weight goal: 5 kg phases to two hard goals (reset Oct 26 2026)
+## The weight goal: 5 kg phases at ~2,000/day to two hard goals (Oct 26-27 2026)
 
 The user (Oct 26): "5 kg phases starting today, 130 kg starting weight, and
-the original goals still need to hit". The HARD goals are
-`GOAL_CHECKPOINTS` in `src/phase.js`: **100 kg by Feb 28 2027, 95 kg by Mar 31
-2027**. `PHASES` ends in seven 5 kg steps (`p5_1`..`p5_7`, built from one
-table):
+the original goals still need to hit"; then (Oct 27) "up the ante: 2000 kcal
+deficit and harder training". The HARD goals are `GOAL_CHECKPOINTS` in
+`src/phase.js`: **100 kg by Feb 28 2027, 95 kg by Mar 31 2027**. `PHASES` ends
+in seven 5 kg steps (`p5_1`..`p5_7`, built from one table), **19 days each**:
 
-| phase | dates | kg | required deficit |
+| phase | ends | kg | required deficit |
 |---|---|---|---|
-| 1-6 | Oct 26 -> Feb 28, 21 days each (Nov 15, Dec 6, Dec 27, Jan 17, Feb 7, Feb 28) | 130 -> 100 | 1,833 kcal/day (~1.67 kg/week) |
-| 7 | Mar 1 -> Mar 31 | 100 -> 95 | 1,242 kcal/day |
+| 1 | Nov 13 | 130 -> 125 | 2,026 kcal/day (5 x 7,700 / 19) |
+| 2-5 | Dec 2, Dec 21, Jan 9, Jan 28 | -> 105 | 2,026 |
+| 6 | Feb 16 | -> 100 | 2,026 |
+| 7 | Mar 7 | 100 -> 95 | 2,026 |
 
-Oct 26 -> Feb 28 is exactly 126 days, so six equal phases land on 100 kg
-on Feb 28. Each phase starts at the previous target, the day after it ends:
-the line is continuous and hits both goals exactly (tested). Every phase
-eats **1,500**; the Watch active target is solved daily from the real
-resting burn (~700 active on a 2,800 resting day). The goal card shows the
-current phase, plus a row per remaining hard goal with the kg a week it
-needs from the latest weigh-in; the AI review gets the same `hardGoals`.
-History stays so past days keep their real deficits: `phase_1`,
-`phase_2`, `goal_v1` (Oct 16-19) and `goal` (the 130 -> 95 by Feb 20 line,
-cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Mar 31 2027
-and `api/cron-diet-review.js` GOALS mirrors the phases. Resting burn for an
+The phases land 12 and 24 days inside the hard goals, which stay as the
+deadlines (the card's "kg a week needed" rows measure against them). Each
+phase starts at the previous target the day after it ends: the line is
+continuous (tested). Every phase eats **1,500**; the Watch active target is
+solved daily from the real resting burn (~930 active on a 2,800 resting
+day). The Oct 26 version used 21-day phases at 1,833/day and was replaced
+the next day. History stays so past days keep their real deficits:
+`phase_1`, `phase_2`, `goal_v1` (Oct 16-19) and `goal` (130 -> 95 by Feb 20,
+cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Mar 31 2027 and
+`api/cron-diet-review.js` GOALS mirrors the phases. Resting burn for an
 unlogged day is `restingDefaultFor()` (last 5 logged, else 2,800). Phase
 names never use "·". Don't change the phases or add a goal unasked.
+
+**Harder training from Mon Nov 2 2026** (dated, so earlier weeks show what
+they had): +1 working set on a main lift each day (Leg Press, Chest
+Supported Row, Seated Pulldown, Incline Chest Press, Saturday Leg Press,
+Friday Chest Supported Row, Saturday Incline Chest Press: +7 sets a week),
+bike 15 -> 20 min, incline walk 35 -> 40 min, and a "last set: stop one rep
+before you cannot do another" cue on the four heavy compounds. No new
+movement (the one-new-pattern-a-week and recovery rules hold). `_stage()`
+now accepts a LIST of dated changes in `before`/`setsBefore` (the walk has
+two: 15 -> 35 on Oct 16, 35 -> 40 on Nov 2); a date takes the earliest entry
+it falls before.
 
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:

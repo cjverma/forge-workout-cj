@@ -238,9 +238,9 @@ ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal 
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
   E.phaseFor("2026-10-16")?.id === "goal_v1" && E.phaseFor("2026-10-19")?.id === "goal_v1" &&
   E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-10-25")?.id === "goal" &&
-  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-15")?.id === "p5_1" && E.phaseFor("2026-11-16")?.id === "p5_2" &&
-  E.phaseFor("2027-02-28")?.id === "p5_6" && E.phaseFor("2027-03-01")?.id === "p5_7" && E.phaseFor("2027-03-31")?.id === "p5_7" &&
-  E.phaseFor("2027-04-01") === null && !E.PHASES.some((p) => p.id === "phase_3"));
+  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-13")?.id === "p5_1" && E.phaseFor("2026-11-14")?.id === "p5_2" &&
+  E.phaseFor("2027-02-16")?.id === "p5_6" && E.phaseFor("2027-02-17")?.id === "p5_7" && E.phaseFor("2027-03-07")?.id === "p5_7" &&
+  E.phaseFor("2027-03-08") === null && !E.PHASES.some((p) => p.id === "phase_3"));
 ok("goal_v1 history keeps its real ~1,883/day deficit over Oct 16-19",
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "goal_v1")) - 1883) <= 20);
 ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 days",
@@ -251,14 +251,16 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
     G.start === "2026-10-20" && G.plannedEnd === "2026-10-25" && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 10);
   const P5 = E.PHASES.filter((p) => /^p5_/.test(p.id));
   ok("seven 5 kg phases from 130 kg on Oct 26, each starting where the last ended, no gaps, eat 1,500, no '·' in names",
-    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 15" &&
+    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 13" &&
     P5.every((p, i) => p.startKg - p.targetKg === 5 && p.eatKcal === 1500 && !/·/.test(p.name) && p.restingKcal === undefined &&
       (i === 0 || (p.startKg === P5[i - 1].targetKg && E.daysBetween(P5[i - 1].plannedEnd, p.start) === 1))));
-  ok("the phases still hit the hard goals: 100 kg on Feb 28 and 95 kg on Mar 31 2027",
-    P5[5].plannedEnd === "2027-02-28" && Math.abs(E.phaseCurveKg(P5[5], "2027-02-28") - 100) < 0.05 &&
-    P5[6].plannedEnd === "2027-03-31" && Math.abs(E.phaseCurveKg(P5[6], "2027-03-31") - 95) < 0.05);
-  ok("the Feb phases need ~1,833 kcal/day (5 kg in 21 days), March ~1,242/day",
-    P5.slice(0, 6).every((p) => Math.abs(E.phaseRequiredDeficit(p) - 1833) <= 1) && Math.abs(E.phaseRequiredDeficit(P5[6]) - 1242) <= 1);
+  // Oct 27: "up the ante, 2000 kcal deficit". 19-day phases land early; the
+  // hard goals stay the deadlines.
+  ok("the phases beat the hard goals: 100 kg by Feb 16 (goal Feb 28), 95 kg by Mar 7 (goal Mar 31)",
+    P5[5].plannedEnd === "2027-02-16" && P5[5].plannedEnd <= "2027-02-28" && Math.abs(E.phaseCurveKg(P5[5], "2027-02-16") - 100) < 0.05 &&
+    P5[6].plannedEnd === "2027-03-07" && P5[6].plannedEnd <= "2027-03-31" && Math.abs(E.phaseCurveKg(P5[6], "2027-03-07") - 95) < 0.05);
+  ok("every phase needs ~2,000 kcal/day (5 kg in 19 days = 2,026)",
+    P5.every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2026) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 18));
 }
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -1877,8 +1879,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("with no AI coach the email falls back to the rule-based verdict and focus",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
         ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 15)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
-        ok("the report scores nutrition against the phase (1,500 kcal, 1,833 deficit)",
-          x.eatTarget === 1500 && x.req === 1833 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report scores nutrition against the phase (1,500 kcal, 2,026 deficit)",
+          x.eatTarget === 1500 && x.req === 2026 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",
@@ -1936,6 +1938,23 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("each addition is a movement already in Southpaw (no new pattern for the spine) and passes the spine filter",
           added.length === 4 && added.every((e) => v4Base.has(e.name) && !REAL_IS_BANNED(e.name)));
         const setsAt = (iso, d, id) => REAL_PROGRAM_FOR(new Date(iso + "T12:00:00"))[d].exercises.find((e) => e.id === id)?.sets;
+        {
+          // Oct 27: "up the ante, harder training", dated from Mon Nov 2 so the
+          // week in progress and every past week keep what they had.
+          const at = (iso) => REAL_PROGRAM_FOR(new Date(iso + "T12:00:00"));
+          const ex = (iso, day, name) => at(iso)[day].exercises.find((e) => e.name === name);
+          const gymSets = (iso) => Object.values(at(iso)).reduce((a, v) => a + (v.exercises || []).filter((e) => e.cat === "gym").reduce((b, e) => b + Number(e.sets), 0), 0);
+          ok("harder training starts Mon Nov 2: +7 working sets a week, nothing new before then",
+            gymSets("2026-11-02") - gymSets("2026-10-28") === 7 && gymSets("2026-10-28") === gymSets("2026-10-19") &&
+            ex("2026-10-26", "Monday", "Leg Press Machine").sets === 4 && ex("2026-11-02", "Monday", "Leg Press Machine").sets === 5);
+          ok("cardio from Nov 2: bike 20 min, incline walk 40 min; the walk keeps 15 before Oct 16 and 35 until Nov 1 (a list of dated changes)",
+            ex("2026-11-03", "Tuesday", "Stationary Bike").reps === "20 min" && ex("2026-10-27", "Tuesday", "Stationary Bike").reps === "15 min" &&
+            ex("2026-11-03", "Tuesday", "Incline Treadmill Walk").reps === "40 min" && ex("2026-10-27", "Tuesday", "Incline Treadmill Walk").reps === "35 min" &&
+            ex("2026-10-13", "Tuesday", "Incline Treadmill Walk").reps === "15 min");
+          ok("the heavy compounds get a close-to-failure cue from Nov 2 only",
+            /Last set: stop one rep before you cannot do another\./.test(ex("2026-11-03", "Tuesday", "Chest Supported Row").cue) &&
+            !/Last set/.test(ex("2026-10-27", "Tuesday", "Chest Supported Row").cue));
+        }
         ok("Mon Chest Press 4 -> 5 sets and Fri Seated Pulldown 3 -> 4 sets from Oct 12, unchanged in earlier weeks",
           setsAt("2026-10-05", "Monday", "m4_cp") === 4 && setsAt("2026-10-14", "Wednesday", "w7_cp") === 5 &&
           setsAt("2026-10-09", "Friday", "f4_spd") === 3 && setsAt("2026-10-16", "Friday", "f4_spd") === 4);
