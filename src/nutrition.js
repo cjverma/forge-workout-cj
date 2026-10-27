@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
@@ -259,7 +259,7 @@ export function renderNutrition(){
         // the workout/rest split stays intact since plannedTgt already
         // reflects which kind of day this is.
         const plannedTgt=phaseActiveTarget(phase,date);
-        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-phase.eatKcal)/ACTIVE_MULT));
+        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-eatKcalFor(phase,date))/ACTIVE_MULT));
         const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
@@ -491,13 +491,13 @@ function weekCompliance(p,weekStartIso,endIso){
   const pct=(n,of)=>of?Math.round(n/of*100):null;
   // Food: logged AND at or under the eat target. A 3,000 kcal day is logged
   // but not on target.
-  const foodDays=finished.filter(d=>{const k=kcalOf(d);return k>0&&k<=p.eatKcal;}).length;
+  const foodDays=finished.filter(d=>{const k=kcalOf(d);return k>0&&k<=eatKcalFor(phaseFor(d)||p,d);}).length;
   const weighDays=finished.filter(d=>ws[d]!=null).length;
   // Watch active target, clamped for scoring: eating LESS never lowers the
   // bar, and a day with nothing logged fails instead of being skipped.
   const activeDays=finished.filter(d=>{
     const ph=phaseFor(d)||p;
-    const tgt=Math.max(0,Math.round(phaseActiveTarget(ph,d)+Math.max(0,kcalOf(d)-ph.eatKcal)/ACTIVE_MULT));
+    const tgt=Math.max(0,Math.round(phaseActiveTarget(ph,d)+Math.max(0,kcalOf(d)-eatKcalFor(ph,d))/ACTIVE_MULT));
     const a=Number(nd(d).active)||0;
     return a>0&&a>=tgt;
   }).length;
@@ -668,7 +668,7 @@ async function aiPhaseReview(id){
     const facts={
       currentPhase:`${p.name||p.id}: ${p.startKg} kg on ${p.start} to ${p.targetKg} kg by ${p.plannedEnd} (5 kg phases)`,
       hardGoals:GOAL_CHECKPOINTS.filter(c=>c.by>=t).map(c=>({kg:c.kg,by:c.by,kgPerWeekNeededNow:latestKg!=null?Math.round((latestKg-c.kg)/Math.max(1,daysBetween(t,c.by))*7*10)/10:null})),
-      eatKcalPerDay:p.eatKcal,watchActiveTargets:at,
+      eatKcalPerDay:p.eatKcalRest!=null?`${p.eatKcal} Mon-Sat, ${p.eatKcalRest} on the rest day`:p.eatKcal,watchActiveTargets:at,
       planLineToday:phaseCurveKg(p,t),
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planThatDay:wvc.expected,aheadKg:wvc.diff}:null,
       lostSoFarKg:latestKg!=null?Math.round((p.startKg-latestKg)*10)/10:null,
@@ -677,7 +677,7 @@ async function aiPhaseReview(id){
       thisWeek:comp.overall==null?null:{overall:comp.overall,foodOnTargetDays:`${comp.foodDays} of ${comp.finishedDays}`,workouts:`${comp.trained} of ${comp.need} done`,weightVsLineKg:comp.behindKg,weighInDays:`${comp.weighDays} of ${comp.finishedDays}`,activeTargetDays:`${comp.activeDays} of ${comp.finishedDays}`},
       lastWeeks:hist,last14Days:days,
     };
-    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under ${p.eatKcal} kcal (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
+    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under the day's target of ${p.eatKcal} kcal${p.eatKcalRest!=null?` (${p.eatKcalRest} on the rest day)`:""} (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");

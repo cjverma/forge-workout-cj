@@ -2748,7 +2748,12 @@ const PHASES=[
   // 1,500; the Watch active target is solved daily from the real resting
   // burn (~1,120 active on a 2,800 resting day). Phase k starts at the
   // previous phase's target the day after it ends, so the line is continuous
-  // and lands on 95 kg exactly on Feb 28. Names carry no "·". (Oct 26-27 it
+  // and lands on 95 kg exactly on Feb 28. Names carry no "·".
+  // Oct 27 (user): eat 1,200 on Sunday (the rest day), 1,500 Mon-Sat
+  // (eatKcalRest), and plan with resting burn FIXED at 2,700 (restingKcal):
+  // the Watch's resting figure is an estimate, not a measurement. With the
+  // week averaging 1,457 eaten, the Watch active target is ~1,300 Mon-Sat and
+  // ~560 on Sunday; the deficit stays a flat 2,139 a day on average. (Oct 26-27 it
   // was 21-day then 19-day phases; replaced before any phase closed.)
   ...[
     ["2026-10-26","2026-11-12",130,125],
@@ -2760,7 +2765,7 @@ const PHASES=[
     ["2027-02-11","2027-02-28",100,95],
   ].map(([start,plannedEnd,startKg,targetKg],i)=>({id:"p5_"+(i+1),
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
-    version:6,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500})),
+    version:7,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500,eatKcalRest:1200,restingKcal:2700})),
 ];
 function phaseStore(){
   if(typeof S!=="undefined")return S;
@@ -2826,6 +2831,11 @@ function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{expecte
 // 850 kcal error in both directions every week, plus skewed adherence counts.
 // Now derived from whatever the program actually schedules.
 function isRestDay(dateIso){return isGymRestDay(dateIso);}
+// The day's food target: a phase may eat less on the rest day (eatKcalRest).
+function eatKcalFor(p,dateIso){return p.eatKcalRest!=null&&isRestDay(dateIso)?p.eatKcalRest:p.eatKcal;}
+// The week's average food target (one rest day a week), which is what the
+// fixed daily deficit is solved against.
+function eatKcalAvg(p){return p.eatKcalRest!=null?(6*p.eatKcal+p.eatKcalRest)/7:p.eatKcal;}
 // BMR for a specific phase+date. A COMPLETED phase (e.g. phase_1) keeps its
 // authored restingKcal untouched rather than recomputing live — calcBMR()
 // depends on calcAge(), which reads real "now", so live-recomputing a
@@ -2853,7 +2863,7 @@ function restingForPhase(p,dateIso){
 // on or before that day, else 2,800 (their measured figure). The formula
 // (Mifflin-St Jeor, ~2,300 for them) understated it by ~500 kcal, which
 // inflated every solved active target. Oct 2026, the user's choice.
-const RESTING_FALLBACK=2800;
+const RESTING_FALLBACK=2700;  // the user's standard figure (Oct 27; was 2,800)
 function restingDefaultFor(dateIso){
   const days=phaseStore().nutrition?.days||{};
   const vals=Object.keys(days).filter(d=>d<=dateIso&&days[d]?.restingOverride!=null).sort().slice(-5).map(d=>Number(days[d].restingOverride)).filter(Number.isFinite);
@@ -2875,7 +2885,7 @@ function phaseActiveTargets(p,dateIso){
     return{workout:p.activeTargetWorkout,rest:p.activeTargetRest};
   const req=phaseRequiredDeficit(p);
   const resting=restingForPhase(p,dateIso);
-  const blended=Math.max(0,(req-resting+p.eatKcal)/ACTIVE_MULT);
+  const blended=Math.max(0,(req-resting+eatKcalAvg(p))/ACTIVE_MULT);
   const workout=Math.round(blended*49/45);
   const rest=Math.round(3*workout/7);
   return{workout,rest};
@@ -2915,7 +2925,7 @@ function phaseRequiredDeficit(p){
   return Math.max(0,Math.round((p.startKg-p.targetKg)*7700/days));
 }
 
-function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-p.eatKcal);}
+function phaseDayDeficit(p,dateIso){return Math.round(restingForPhase(p,dateIso)+ACTIVE_MULT*phaseActiveTarget(p,dateIso)-eatKcalFor(p,dateIso));}
 function restingFor(dateIso,dayData){
   if(dayData&&dayData.restingOverride!=null)return dayData.restingOverride;
   const p=phaseFor(dateIso);
@@ -2988,7 +2998,7 @@ function calcTarget(bmr,active,dateIso){
   const t=dateIso||isoToday();
   const lw=latestWeightLog()||USER.weightKg;
   const p=phaseFor(t);
-  if(p)return{bmr,req:phaseDayDeficit(p,t),target:p.eatKcal,daysLeft:daysBetween(t,effectiveEnd(p,t)),lw,phase:p};
+  if(p)return{bmr,req:phaseDayDeficit(p,t),target:eatKcalFor(p,t),daysLeft:daysBetween(t,effectiveEnd(p,t)),lw,phase:p};
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   const req=requiredDeficit(lw,daysLeft);
   return{bmr,req,target:bmr+active-req,daysLeft,lw,phase:null};
@@ -5384,7 +5394,7 @@ function renderNutrition(){
         // the workout/rest split stays intact since plannedTgt already
         // reflects which kind of day this is.
         const plannedTgt=phaseActiveTarget(phase,date);
-        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-phase.eatKcal)/ACTIVE_MULT));
+        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-eatKcalFor(phase,date))/ACTIVE_MULT));
         const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
@@ -5616,13 +5626,13 @@ function weekCompliance(p,weekStartIso,endIso){
   const pct=(n,of)=>of?Math.round(n/of*100):null;
   // Food: logged AND at or under the eat target. A 3,000 kcal day is logged
   // but not on target.
-  const foodDays=finished.filter(d=>{const k=kcalOf(d);return k>0&&k<=p.eatKcal;}).length;
+  const foodDays=finished.filter(d=>{const k=kcalOf(d);return k>0&&k<=eatKcalFor(phaseFor(d)||p,d);}).length;
   const weighDays=finished.filter(d=>ws[d]!=null).length;
   // Watch active target, clamped for scoring: eating LESS never lowers the
   // bar, and a day with nothing logged fails instead of being skipped.
   const activeDays=finished.filter(d=>{
     const ph=phaseFor(d)||p;
-    const tgt=Math.max(0,Math.round(phaseActiveTarget(ph,d)+Math.max(0,kcalOf(d)-ph.eatKcal)/ACTIVE_MULT));
+    const tgt=Math.max(0,Math.round(phaseActiveTarget(ph,d)+Math.max(0,kcalOf(d)-eatKcalFor(ph,d))/ACTIVE_MULT));
     const a=Number(nd(d).active)||0;
     return a>0&&a>=tgt;
   }).length;
@@ -5793,7 +5803,7 @@ async function aiPhaseReview(id){
     const facts={
       currentPhase:`${p.name||p.id}: ${p.startKg} kg on ${p.start} to ${p.targetKg} kg by ${p.plannedEnd} (5 kg phases)`,
       hardGoals:GOAL_CHECKPOINTS.filter(c=>c.by>=t).map(c=>({kg:c.kg,by:c.by,kgPerWeekNeededNow:latestKg!=null?Math.round((latestKg-c.kg)/Math.max(1,daysBetween(t,c.by))*7*10)/10:null})),
-      eatKcalPerDay:p.eatKcal,watchActiveTargets:at,
+      eatKcalPerDay:p.eatKcalRest!=null?`${p.eatKcal} Mon-Sat, ${p.eatKcalRest} on the rest day`:p.eatKcal,watchActiveTargets:at,
       planLineToday:phaseCurveKg(p,t),
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planThatDay:wvc.expected,aheadKg:wvc.diff}:null,
       lostSoFarKg:latestKg!=null?Math.round((p.startKg-latestKg)*10)/10:null,
@@ -5802,7 +5812,7 @@ async function aiPhaseReview(id){
       thisWeek:comp.overall==null?null:{overall:comp.overall,foodOnTargetDays:`${comp.foodDays} of ${comp.finishedDays}`,workouts:`${comp.trained} of ${comp.need} done`,weightVsLineKg:comp.behindKg,weighInDays:`${comp.weighDays} of ${comp.finishedDays}`,activeTargetDays:`${comp.activeDays} of ${comp.finishedDays}`},
       lastWeeks:hist,last14Days:days,
     };
-    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under ${p.eatKcal} kcal (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
+    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under the day's target of ${p.eatKcal} kcal${p.eatKcalRest!=null?` (${p.eatKcalRest} on the rest day)`:""} (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -7146,7 +7156,7 @@ function buildChatContext(){
     const banked=bankedDays(phase,today);
     const comp=weekCompliance(phase,mondayOfIso(today),today);
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
-      eatKcal:phase.eatKcal,activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
+      eatKcal:eatKcalFor(phase,today),activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
       weekCompliance:comp.overall==null?null:{overall:comp.overall,scoring:"food logged and at or under eatKcal 30%, 5 workouts a week 25%, weight at or under the plan line 25%, daily weigh-in 10%, Watch active target 10%",foodOnTargetDays:comp.foodDays,weighInDays:comp.weighDays,activeTargetDays:comp.activeDays,finishedDays:comp.finishedDays,workoutsDone:comp.trained,workoutsNeeded:comp.need,kgBehindLine:comp.behindKg},expectedDeficitToday:dailyDeficitReq};
   })():null;

@@ -286,16 +286,25 @@ February end is still required". The ONE hard goal is `GOAL_CHECKPOINTS` in
 | 7 | Feb 28 | -> 95 |
 
 Each phase starts at the previous target the day after it ends: the line is
-continuous and lands on 95 exactly on Feb 28 (tested). Every phase eats
-**1,500**; the Watch active target is solved daily from the real resting
-burn (~1,120 active on a 2,800 resting day). A custom 120-by-Nov-22 milestone
+continuous and lands on 95 exactly on Feb 28 (tested). **Food: 1,500
+Mon-Sat, 1,200 on Sunday** (the rest day; `eatKcalRest`, read through
+`eatKcalFor(p,date)` everywhere a food target is used, and `eatKcalAvg(p)`
+for solving). **Resting is planned at a fixed 2,700** (`restingKcal` on the
+phases, the user's call: the Watch's resting figure is an estimate); a
+logged resting value still feeds the "what the day actually produced"
+deficit, but never the targets. The flat 2,139 average then needs **~1,300
+Watch active Mon-Sat and ~560 on Sunday** (7:3 split). A taper (higher
+deficit first) was considered and declined: it starts near 1,700 active,
+and the ~300 kcal fall in resting burn over 35 kg already makes a flat
+deficit slightly harder over time. Check after two weeks: on the line means
+the targets are right. A custom 120-by-Nov-22 milestone
 was asked about and declined (2,750/day for four weeks). Earlier versions
 (Oct 26: 21-day phases at 1,833; Oct 27: 19-day at 2,026) were replaced
 before any phase closed. History stays so past days keep their real
 deficits: `phase_1`, `phase_2`, `goal_v1` (Oct 16-19) and `goal` (130 -> 95
 by Feb 20, cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Feb
 28 2027 and `api/cron-diet-review.js` GOALS mirrors the phases. Resting burn
-for an unlogged day is `restingDefaultFor()` (last 5 logged, else 2,800).
+for an unlogged day outside these phases is `restingDefaultFor()` (last 5 logged, else 2,700).
 Phase names never use "·". Don't change the phases or add a goal unasked.
 
 **Harder training from Mon Nov 2 2026** (dated, so earlier weeks show what

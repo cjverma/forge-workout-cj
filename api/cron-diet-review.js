@@ -16,7 +16,7 @@ import { kg1 } from "../src/constants.js";
 const GOALS = {
   targetKg: 95,
   goalDate: "2027-02-28",
-  phase: "Reset Oct 26 2026 at 130 kg into seven 5 kg phases to the HARD goal of 95 kg by Feb 28 2027: 18 days each (130->125 by Nov 12, ->120 Nov 30, ->115 Dec 18, ->110 Jan 5, ->105 Jan 23, ->100 Feb 10, ->95 Feb 28), ~2,139 kcal/day required deficit (~1.94 kg/week). Eat 1,500 kcal/day fixed, protein ~1.8 g/kg. Most of the deficit comes from activity (~1,120 Watch active kcal on a 2,800 resting day); training got harder from Nov 2 (more sets on the main lifts, bike 20 min, incline walk 40 min). The user scores each week on five habits: food logged and at or under 1,500 kcal (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%). Active-calorie targets are DYNAMIC, solved daily from the required deficit and the live resting burn.",
+  phase: "Reset Oct 26 2026 at 130 kg into seven 5 kg phases to the HARD goal of 95 kg by Feb 28 2027: 18 days each (130->125 by Nov 12, ->120 Nov 30, ->115 Dec 18, ->110 Jan 5, ->105 Jan 23, ->100 Feb 10, ->95 Feb 28), ~2,139 kcal/day required deficit (~1.94 kg/week). Eat 1,500 kcal Mon-Sat and 1,200 on Sunday (the rest day), protein ~1.8 g/kg. Resting burn is planned at a fixed 2,700 (the user does not trust the Watch estimate). Most of the deficit comes from activity: ~1,300 Watch active kcal Mon-Sat, ~560 on Sunday; training got harder from Nov 2 (more sets on the main lifts, bike 20 min, incline walk 40 min). The user scores each week on five habits: food logged and at or under the day's target, 1,500 or 1,200 on Sunday (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%). Active-calorie targets are DYNAMIC, solved daily from the required deficit and the live resting burn.",
   proteinTargetG: 230,
   fibreTargetG: 38,
   sugarLimitG: 50,
@@ -70,7 +70,7 @@ export function buildPrompt(weekDays, weights) {
 
 Medical context (non-negotiable): ${HARD_RULES}
 
-The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, as one hard goal in 5 kg phases. Current: ${GOALS.phase}. Judge the week against the fixed 1,500 kcal/day eating target, the five habits and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
+The user's goals: reach ${GOALS.targetKg} kg by ${GOALS.goalDate}, as one hard goal in 5 kg phases. Current: ${GOALS.phase}. Judge the week against the eating target (1,500 Mon-Sat, 1,200 Sunday), the five habits and the activity targets — the user chases behaviours (eat target, protein, active target, training), not deficit numbers. Daily targets: protein ${GOALS.proteinTargetG}g, fibre ${GOALS.fibreTargetG}g; limits: sugar ≤${GOALS.sugarLimitG}g, sodium ≤${GOALS.sodiumLimitMg}mg.
 
 Write your feedback with a SANDWICH structure, in this exact order:
 1. Start with 2-3 specific things done WELL this week — name actual foods from the log, not generalities.

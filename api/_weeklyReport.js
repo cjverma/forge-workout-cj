@@ -14,7 +14,7 @@
 // Every number comes from the SAME engine the app uses (src/phase.js,
 // src/constants.js), so the email can never disagree with the screen.
 import { ctx } from "../src/runtime.js";
-import { PHASES, phaseFor, phaseCurveKg, phaseRequiredDeficit, phaseActiveTargets, restingFor, actualDeficit,
+import { PHASES, phaseFor, phaseCurveKg, eatKcalFor, phaseRequiredDeficit, phaseActiveTargets, restingFor, actualDeficit,
   weightVsCurve, projectedFinish, proteinTargetG, isRestDay, isoDate, addDaysIso, daysBetween, ACTIVE_MULT } from "../src/phase.js";
 import { programFor, weekKeyOf, DAYS, PR_ALIAS, prSlug, kg1, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7 } from "../src/constants.js";
 
@@ -122,14 +122,14 @@ function build(S, now) {
     const nd = S.nutrition.days[d] || {}, items = nd.items || [];
     const kcal = items.reduce((a, i) => a + (i.kcal || 0), 0), prot = items.reduce((a, i) => a + (i.protein || 0), 0);
     const tgt = goal ? phaseActiveTargets(goal, d) : null;
-    return { d, logged: kcal > 0, kcal: r0(kcal), prot: r0(prot), active: nd.active || 0, activeTarget: tgt ? (isRestDay(d) ? tgt.rest : tgt.workout) : null,
+    return { d, logged: kcal > 0, kcal: r0(kcal), prot: r0(prot), eatTarget: goal ? eatKcalFor(goal, d) : null, active: nd.active || 0, activeTarget: tgt ? (isRestDay(d) ? tgt.rest : tgt.workout) : null,
       resting: restingFor(d, nd), deficit: actualDeficit(d) };
   });
   const logged = daysN.filter((x) => x.logged);
   const mean = (arr, f) => (arr.length ? r0(arr.reduce((a, x) => a + f(x), 0) / arr.length) : null);
   const nut = {
     daysLogged: logged.length, daysElapsed: elapsed.length,
-    avgKcal: mean(logged, (x) => x.kcal), onTarget: eatTarget ? logged.filter((x) => x.kcal <= eatTarget).length : 0,
+    avgKcal: mean(logged, (x) => x.kcal), onTarget: eatTarget ? logged.filter((x) => x.kcal <= (x.eatTarget ?? eatTarget)).length : 0,
     avgProt: mean(logged, (x) => x.prot), protHit: logged.filter((x) => x.prot >= protTarget).length,
     avgDeficit: mean(logged.filter((x) => x.deficit != null), (x) => x.deficit),
     weekDeficit: logged.reduce((a, x) => a + (x.deficit || 0), 0),
