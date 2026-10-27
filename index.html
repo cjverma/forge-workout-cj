@@ -1295,8 +1295,9 @@ body[data-tab] .wv .calf-badge,body[data-tab] .calf-badge{font-size:11px;min-wid
 .wv .action-row{padding:0 16px 10px 0;gap:18px;}
 .wv .watch-chip,.wv .skip-btn{background:none;border:0;padding:4px 0;font-size:15px;font-weight:400;letter-spacing:0;color:var(--accent-text);border-radius:0;}
 .wv .demo-wrap{margin:12px 16px 0 0;border-radius:var(--r-md);}
-.wv .install-hint{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px var(--sp-4) 10px;padding:10px 14px;background:var(--s1);border-radius:var(--r-lg);font-size:15px;color:var(--mid);}
-.wv .install-hint button{background:none;border:0;color:var(--accent-text);font-size:15px;cursor:pointer;flex:none;}
+.wv .install-hint{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:2px var(--sp-4) 10px;padding:0 6px 0 14px;background:var(--s1);border-radius:var(--r-lg);font-size:15px;color:var(--mid);}
+/* 44pt tap target (Safari-only line, so only the iPhone audit run sees it). */
+.wv .install-hint button{background:none;border:0;color:var(--accent-text);font-size:15px;cursor:pointer;flex:none;min-height:44px;min-width:44px;padding:0 8px;}
 .wv .demo-none{margin:12px 16px 4px 0;font-size:15px;color:var(--dim);}
 .wv .sets-wrap{padding:0 16px 6px 0;}
 .wv .set-hdr{font-size:13px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--mid);padding:4px 0 4px;}

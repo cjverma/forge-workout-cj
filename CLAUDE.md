@@ -801,8 +801,12 @@ deleted, and the badge never changed.
 - **`verify-layout.mjs` measures every screen** (run by `node test.js`):
   Workout (day, past, exercise open, running), Food (top, cards open, meal
   entry, AI estimate, search, past day), Settings (all open), the drawer,
-  chat, and every sheet/pop-up, at 375/390/430 in both themes, on the shared
-  fixture (`test-fixture.mjs`) plus an empty state. It fails on text off
+  chat, and every sheet/pop-up, as four iPhones (mini 375x812, 15 390x844,
+  17 Pro 402x874, 17 Pro Max 440x956; 3x, touch, Safari user agent) in both
+  themes, on the shared fixture (`test-fixture.mjs`) plus an empty state.
+  It is Chromium emulating the phones (WebKit is not installed here), so SF
+  fonts and safe-area insets are approximations; the Safari user agent is
+  what makes Safari-only UI (the Home Screen hint) render at all. It fails on text off
   screen, clipped, overlapping, outside its card or ring, under 4.5:1 (3:1
   large), under 11px (tab bar exempt), controls under 44x44, and old-look
   leftovers. It found what screenshots missed ("1,500" touching its ring,

@@ -42,6 +42,17 @@ const ALLOW = [
   { check: "offscreen", path: /#dayNav/ },
 ];
 
+// iPhone screens in CSS points, at their real pixel density, as touch
+// devices with Safari's user agent. Chromium stands in for WebKit (the only
+// engine installed here), so fonts and safe areas are approximations.
+const IOS_UA = "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1";
+const DEVICES = [
+  { name: "iPhone mini", w: 375, h: 812, dpr: 3 },
+  { name: "iPhone 15", w: 390, h: 844, dpr: 3 },
+  { name: "iPhone 17 Pro", w: 402, h: 874, dpr: 3 },
+  { name: "iPhone 17 Pro Max", w: 440, h: 956, dpr: 3 },
+];
+
 const PAGE = [".hdr", "#dayNav", "#mainScroll", ".bot-nav"];
 const SCREENS = [
   { name: "workout: day", root: PAGE, run: async (p) => { await p.evaluate(() => document.getElementById("nav-workout")?.click()); } },
@@ -277,8 +288,8 @@ app.use(express.static("dist"));
 const server = app.listen(PORT);
 const browser = await chromium.launch({ executablePath: CHROME });
 
-async function open(width, theme, state) {
-  const ctx = await browser.newContext({ viewport: { width, height: 844 }, deviceScaleFactor: 2, colorScheme: theme, timezoneId: "America/Toronto", serviceWorkers: "block" });
+async function open(dev, theme, state) {
+  const ctx = await browser.newContext({ viewport: { width: dev.w, height: dev.h }, deviceScaleFactor: dev.dpr, isMobile: true, hasTouch: true, userAgent: IOS_UA, colorScheme: theme, timezoneId: "America/Toronto", serviceWorkers: "block" });
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message));
@@ -310,7 +321,7 @@ async function open(width, theme, state) {
 }
 
 // Fresh install -> the shared fixture, plus the states that only exist with data.
-const fresh = await (async () => { const { ctx, page } = await open(390, "light", null); const s = await page.evaluate(() => JSON.parse(localStorage.f5)); await ctx.close(); return s; })();
+const fresh = await (async () => { const { ctx, page } = await open(DEVICES[1], "light", null); const s = await page.evaluate(() => JSON.parse(localStorage.f5)); await ctx.close(); return s; })();
 const seeded = fixture(fresh);
 if (!process.env.E2E_STATE) {
   seeded.dietReview = { text: "**Good week overall.** Protein averaged 182 g against a 230 g target, and you logged food on 6 of 7 days.\n\n- Add a protein shake on rest days\n- Keep sodium under 2,300 mg", weekStart: dayIso(-9), generatedAt: Date.now() };
@@ -321,12 +332,13 @@ const empty = JSON.parse(JSON.stringify(fresh));
 
 const all = [];
 const runs = [
-  ...[375, 390, 430].flatMap((w) => ["light", "dark"].map((t) => ({ w, t, state: seeded, data: process.env.E2E_STATE ? "backup" : "fixture" }))),
-  ...["light", "dark"].map((t) => ({ w: 375, t, state: empty, data: "empty" })),
+  ...DEVICES.flatMap((d) => ["light", "dark"].map((t) => ({ d, t, state: seeded, data: process.env.E2E_STATE ? "backup" : "fixture" }))),
+  // Nothing eaten gives the widest numbers; test it on the narrowest and the Pro.
+  ...[DEVICES[0], DEVICES[2]].flatMap((d) => ["light", "dark"].map((t) => ({ d, t, state: empty, data: "empty" }))),
 ];
 let jsErrors = [];
 for (const run of runs) {
-  const { ctx, page, errors } = await open(run.w, run.t, run.state);
+  const { ctx, page, errors } = await open(run.d, run.t, run.state);
   for (const sc of SCREENS) {
     if (run.data === "empty" && /unit review|swap/.test(sc.name)) continue;
     try {
@@ -335,16 +347,16 @@ for (const run of runs) {
       const f = await page.evaluate(measure, sc.root);
       for (const x of f) {
         if (ALLOW.some((a) => a.check === x.check && a.path.test(x.path))) continue;
-        x.where = `${sc.name} @${run.w} ${run.t} ${run.data}`;
+        x.where = `${sc.name} @${run.d.name} ${run.t} ${run.data}`;
         if (OUT && x.rect && x.rect.w > 0) {
           const file = `${OUT}/${all.length}-${x.check}.png`;
-          try { await page.screenshot({ path: file, clip: { x: Math.max(0, x.rect.x - 14), y: Math.max(0, x.rect.y - 14), width: Math.min(run.w, x.rect.w + 28), height: Math.min(844, x.rect.h + 28) } }); x.crop = file; } catch (_) {}
+          try { await page.screenshot({ path: file, clip: { x: Math.max(0, x.rect.x - 14), y: Math.max(0, x.rect.y - 14), width: Math.min(run.d.w, x.rect.w + 28), height: Math.min(run.d.h, x.rect.h + 28) } }); x.crop = file; } catch (_) {}
         }
         all.push(x);
       }
       if (sc.after) await sc.after(page);
       await page.waitForTimeout(120);
-    } catch (e) { all.push({ check: "harness", path: sc.name, text: String(e.message).slice(0, 140), detail: "", where: `${sc.name} @${run.w} ${run.t} ${run.data}` }); }
+    } catch (e) { all.push({ check: "harness", path: sc.name, text: String(e.message).slice(0, 140), detail: "", where: `${sc.name} @${run.d.name} ${run.t} ${run.data}` }); }
   }
   jsErrors.push(...errors);
   await ctx.close();
@@ -364,7 +376,7 @@ const LABEL = {
 for (const c of CHECKS) {
   const hits = all.filter((x) => x.check === c);
   const uniq = new Map();
-  for (const h of hits) { const k = h.path + "|" + h.text; if (!uniq.has(k)) uniq.set(k, { ...h, n: 0, wheres: new Set() }); const u = uniq.get(k); u.n++; u.wheres.add(h.where.split(" @")[0] + (/ dark /.test(h.where) ? " (dark)" : "")); }
+  for (const h of hits) { const k = h.path + "|" + h.text; if (!uniq.has(k)) uniq.set(k, { ...h, n: 0, wheres: new Set() }); const u = uniq.get(k); u.n++; u.wheres.add(h.where.split(" @")[0] + " on " + h.where.split(" @")[1].replace(/ (light|dark) .*/, "") + (/ dark /.test(h.where) ? " (dark)" : "")); }
   const ok = uniq.size === 0;
   if (!ok) failed++;
   console.log(`  ${ok ? "✓" : "✗"}  layout: ${LABEL[c]}${ok ? "" : ` (${uniq.size})`}`);
@@ -373,5 +385,5 @@ for (const c of CHECKS) {
 const errs = [...new Set(jsErrors)];
 console.log(`  ${errs.length ? "✗" : "✓"}  layout: no JS errors while opening every screen${errs.length ? " · " + errs.slice(0, 3).join(" | ") : ""}`);
 if (errs.length) failed++;
-console.log(`\n  layout audit: ${CHECKS.length + 1 - failed} passed, ${failed} failed (${runs.length} width/theme/data runs x ${SCREENS.length} screens)`);
+console.log(`\n  layout audit: ${CHECKS.length + 1 - failed} passed, ${failed} failed (${DEVICES.map((d) => d.name).join(", ")}; light + dark; ${runs.length} runs x ${SCREENS.length} screens)`);
 process.exit(failed ? 1 : 0);
