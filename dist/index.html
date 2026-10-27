@@ -926,22 +926,25 @@ body[data-tab]{
   --s3:light-dark(#E5E5EA,#3A3A3C);
   --b1:light-dark(#DCDCE1,#38383A);
   --b2:light-dark(#C6C6C8,#48484A);
-  --dim:light-dark(#86868B,#8E8E93);
-  --mid:light-dark(#6C6C70,#AEAEB2);
+  --dim:light-dark(#6C6C70,#A1A1A6);
+  --mid:light-dark(#636366,#AEAEB2);
   --lt:light-dark(#1C1C1E,#E5E5EA);
   --white:light-dark(#000000,#FFFFFF);
-  --accent:light-dark(#007AFF,#0A84FF);
+  /* Apple's stock #007AFF is 4.0:1 on white and white-on-#0A84FF is 3.6:1, so
+     small text and labels on fills failed WCAG AA (layout audit). Same hue,
+     one step deeper for fills and light text, one lighter for dark text. */
+  --accent:#0062C4;
   --accent-ink:#FFFFFF;
-  --accent-text:light-dark(#007AFF,#0A84FF);
+  --accent-text:light-dark(#0062C4,#409CFF);
   --accent-grad:linear-gradient(var(--accent),var(--accent));
   --accent-lo:light-dark(#E5F1FF,#0B2A4A);
   --orange:var(--accent-text);
   --orange-lo:var(--accent-lo);
   --orange-mid:light-dark(#3A6FB0,#9CC3F5);
   --on-accent:var(--accent-ink);
-  --green:light-dark(#248A3D,#30D158);
+  --green:light-dark(#1E7234,#30D158);
   --green-lo:light-dark(#E8F5EC,#0F2A17);
-  --red:light-dark(#D70015,#FF453A);
+  --red:light-dark(#D70015,#FF6961);
   --red-lo:light-dark(#FDECEB,#3A1412);
   --amber:light-dark(#C93400,#FF9F0A);
   --amber-lo:light-dark(#FFF1E0,#33230A);
@@ -1200,6 +1203,23 @@ body[data-tab] .export-opt{flex-direction:row;flex-wrap:wrap;align-items:center;
 body[data-tab] .export-opt svg{color:var(--accent-text);}
 body[data-tab] .export-opt-sub{flex-basis:100%;padding-left:30px;font-size:13px;color:var(--mid);margin-top:1px;}
 body[data-tab] .export-cancel{width:100%;background:var(--s1);border:0;border-radius:var(--r-lg);padding:14px;color:var(--accent-text);font-family:var(--font-body);font-size:17px;font-weight:600;}
+
+/* Tap targets: Apple's minimum is 44x44 pt (layout audit "tap"). Small
+   circular buttons keep their look and gain the box through transparent
+   padding (background-clip:content-box); text buttons gain min-height. */
+body[data-tab] .hdr-burger{min-width:44px;min-height:44px;justify-content:center;align-items:center;margin:-8px -8px -8px 0;}
+body[data-tab] .wk-nav-btn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;}
+body[data-tab] :is(.edit-pill,.drawer-close,.nut-nav-btns button){width:44px;height:44px;padding:4px;background-clip:content-box;}
+body[data-tab] :is(.watch-chip,.skip-btn,.food-del,.ai-chat-clear,.ai-chat-send,.add-food-btn,.add-food-btn+button,.ai-sm,.pf-add,.pf-redo,.food-cancel,.food-submit){min-height:44px;}
+body[data-tab] :is(.watch-chip,.skip-btn){display:inline-flex;align-items:center;}
+body[data-tab] .food-del{padding:0 10px;}
+body[data-tab] .ai-chat-clear{min-width:44px;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) button{min-height:44px;}
+body[data-tab] :is(.nut-wrap,.st-wrap,.drawer,.plan-modal) button{min-width:44px;}
+body[data-tab] .skip-btn{min-width:44px;justify-content:center;}
+/* Count on the amber calf badge: white is 2:1 on dark-mode amber, so dark ink there. */
+body[data-tab] .wv .calf-badge{color:light-dark(#FFFFFF,#000000);}
+body[data-tab] .wv .calf-badge,body[data-tab] .calf-badge{font-size:11px;min-width:18px;height:18px;line-height:18px;}
 
 /* ══ WORKOUT TAB · iOS (Oct 2026 redesign) ══════════════════════════════════
    Everything here is scoped to .wv (renderW's root), so other tabs keep their
@@ -5059,8 +5079,8 @@ function renderUnitReview(){
     const usual=s.unit==="lbs"?`~${Math.round(s.usual/LB_TO_KG)} lbs`:`~${Math.round(s.usual)} kg`;
     return `<div class="pm-change">
       <div class="pm-change-day">${esc(s.date?fmtDate(s.date):"")}</div>
-      <div class="pm-change-ex">${esc(s.name)}</div>
-      <div class="pm-change-val">${esc(typed)} × ${esc(String(s.reps))} · usual ${esc(usual)}</div>
+      <div class="pm-change-ex">${esc(String(s.name).replace(/^Warm-Up · /,""))}${/^Warm-Up · /.test(s.name)?" (warm-up)":""}</div>
+      <div class="pm-change-val">${esc(typed)} × ${esc(String(s.reps))}, usual ${esc(usual)}</div>
       <div class="pm-change-reason">Looks like ${s.to} was meant. Convert to ${esc(conv)}?</div>
       <div class="uf-btns"><button class="pm-cancel uf-sm" onclick="unitFix(${idx},false)">Keep</button><button class="pm-apply uf-sm" onclick="unitFix(${idx},true)">Convert</button></div>
     </div>`;}).join("");

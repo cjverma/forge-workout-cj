@@ -190,16 +190,7 @@ try {
       }
       return out;
     });
-    // The kcal figure must sit inside the ring's opening with room to spare.
-    // Measured at the widest real value ("1,500", nothing eaten yet).
-    const ring = await page.evaluate(() => {
-      const big = document.querySelector(".nut-ring-big"), svg = document.querySelector(".nut-ring-wrap svg");
-      if (!big || !svg) return null;
-      big.textContent = "1,500";
-      const inner = svg.getBoundingClientRect().width * (56 - 5) / 64;
-      return { text: Math.round(big.getBoundingClientRect().width), inner: Math.round(inner) };
-    });
-    note(`${theme}: "1,500" fits inside the intake ring (${ring && ring.text}px in a ${ring && ring.inner}px opening)`, !!ring && ring.text < ring.inner * 0.8, JSON.stringify(ring));
+    // (The kcal-in-ring fit is measured, with everything else, by verify-layout.mjs.)
     for (const [sel, v] of Object.entries(heroes)) {
       note(`${theme}: ${sel} text stays legible on its own surface (${v.contrast}:1)`, v.contrast >= 4.5);
     }
@@ -546,7 +537,7 @@ try {
     note("Stop Workout opens the styled finish sheet with time, sets and exercises (no native dialog)", sheet.shown && /Time/.test(sheet.stats) && /Sets/.test(sheet.stats) && /Exercises/.test(sheet.stats), JSON.stringify(sheet));
     // The sheet sits outside #mainScroll: it must still wear the Workout look
     // (it shipped in the old volt style once). System blue, sentence case.
-    const blue = (c) => /^rgb\((0, 122, 255|10, 132, 255)\)$/.test(c);
+    const blue = (c) => /^rgb\(0, 98, 196\)$/.test(c);  // #0062C4: Apple's blue, one step deeper for AA
     const sl = await page.evaluate(() => ({ btn: getComputedStyle(document.getElementById("stopConfirm")).backgroundColor, tt: getComputedStyle(document.getElementById("stopTitle")).textTransform }));
     note("the finish sheet wears the Workout look (blue button, sentence-case title)", blue(sl.btn) && sl.tt === "none", JSON.stringify(sl));
     await page.evaluate(() => window.closeStopSheet());
@@ -932,9 +923,9 @@ try {
     const dr = await page.evaluate(() => getComputedStyle(document.getElementById("drawer")).getPropertyValue("--accent").trim());
     await page.evaluate(() => closeDrawer());
     await page.locator("#nav-workout").click(); await page.waitForTimeout(600); const w2 = await look();
-    const ios = (l) => /242, 242, 247/.test(l.bg) && /#007AFF/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
+    const ios = (l) => /242, 242, 247/.test(l.bg) && /#0062C4/i.test(l.accent), old = (l) => /237, 236, 234/.test(l.bg) && /#B9E425/i.test(l.accent);
     note("every tab and the drawer wear the iOS look (system background, system blue), none falls back to volt",
-      ios(w) && ios(n) && ios(st) && /#007AFF/i.test(dr) && ios(w2) && ![w, n, st, w2].some(old), JSON.stringify({ w, n, st, dr, w2 }));
+      ios(w) && ios(n) && ios(st) && /#0062C4/i.test(dr) && ios(w2) && ![w, n, st, w2].some(old), JSON.stringify({ w, n, st, dr, w2 }));
     await page.close();
   }
 

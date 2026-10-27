@@ -1590,8 +1590,8 @@ function renderUnitReview(){
     const usual=s.unit==="lbs"?`~${Math.round(s.usual/LB_TO_KG)} lbs`:`~${Math.round(s.usual)} kg`;
     return `<div class="pm-change">
       <div class="pm-change-day">${esc(s.date?fmtDate(s.date):"")}</div>
-      <div class="pm-change-ex">${esc(s.name)}</div>
-      <div class="pm-change-val">${esc(typed)} × ${esc(String(s.reps))} · usual ${esc(usual)}</div>
+      <div class="pm-change-ex">${esc(String(s.name).replace(/^Warm-Up · /,""))}${/^Warm-Up · /.test(s.name)?" (warm-up)":""}</div>
+      <div class="pm-change-val">${esc(typed)} × ${esc(String(s.reps))}, usual ${esc(usual)}</div>
       <div class="pm-change-reason">Looks like ${s.to} was meant. Convert to ${esc(conv)}?</div>
       <div class="uf-btns"><button class="pm-cancel uf-sm" onclick="unitFix(${idx},false)">Keep</button><button class="pm-apply uf-sm" onclick="unitFix(${idx},true)">Convert</button></div>
     </div>`;}).join("");

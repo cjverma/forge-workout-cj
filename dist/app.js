@@ -93,8 +93,8 @@ Did you mean ${c} kg?
 OK: log it as ${w} lbs
 Cancel: keep ${c} lbs`)?(a.weight=String(w),n&&(n.value=a.weight)):a.unitOk=!0}}function Dn(){let e=l.getS(),t=new Set;for(let a of Object.values(e.sessions||{}))if(!(!a||typeof a!="object"))for(let[o,n]of Object.entries(a))n&&typeof n=="object"&&!o.startsWith("_")&&t.add(he(o));let s=[];for(let a of t){let o=ia(a),n=ca(o);for(let r of o){if(r.ok)continue;let i=la(r.kg,r.unit,n);i&&s.push({...r,cid:a,to:i,usual:n,name:l.prName?.(a)||a,date:kt(r.key)})}}return s.sort((a,o)=>String(o.date).localeCompare(String(a.date)))}function Mn(e){let t=l.getS(),s=Js(e),a=(s?s.est:0)+1,o=t.prs?.[e]||[],n=o.filter(r=>Number(r.est)<=a);for(let r of o)Number(r.est)>a&&O("pr_delete",{exerciseId:e,date:r.date,est:r.est});n.length?t.prs[e]=n:t.prs&&delete t.prs[e],Qt(e)}var Ce=[];function ua(e){if(Ce=Dn(),!Ce.length){e||C("No kg/lbs mix-ups found.");return}da()}function da(){let e=document.getElementById("planModal");if(!e)return;if(!Ce.length){e.classList.remove("show"),C("Units checked. PRs rebuilt."),l.renderW?.();return}let t=Ce.map((s,a)=>{let o=s.to==="lbs"?`${Qe(s.weight*we)} kg`:`${Qe(s.weight/we)} lbs`,n=`${s.weight} ${s.unit}`,r=s.unit==="lbs"?`~${Math.round(s.usual/we)} lbs`:`~${Math.round(s.usual)} kg`;return`<div class="pm-change">
       <div class="pm-change-day">${k(s.date?J(s.date):"")}</div>
-      <div class="pm-change-ex">${k(s.name)}</div>
-      <div class="pm-change-val">${k(n)} \xD7 ${k(String(s.reps))} \xB7 usual ${k(r)}</div>
+      <div class="pm-change-ex">${k(String(s.name).replace(/^Warm-Up · /,""))}${/^Warm-Up · /.test(s.name)?" (warm-up)":""}</div>
+      <div class="pm-change-val">${k(n)} \xD7 ${k(String(s.reps))}, usual ${k(r)}</div>
       <div class="pm-change-reason">Looks like ${s.to} was meant. Convert to ${k(o)}?</div>
       <div class="uf-btns"><button class="pm-cancel uf-sm" onclick="unitFix(${a},false)">Keep</button><button class="pm-apply uf-sm" onclick="unitFix(${a},true)">Convert</button></div>
     </div>`}).join("");e.innerHTML=`<div class="pm-title">Check units</div>

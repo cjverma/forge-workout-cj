@@ -1385,8 +1385,8 @@ ok("delete control is hidden on read-only days",
 // pop-ups) inherits them; :root keeps the old values only as a fallback.
 {
   const IDX = readFileSync("index.html", "utf8"), MAIN_SRC = readFileSync("src/main.js", "utf8");
-  ok("the iOS tokens apply to every screen (on body[data-tab]), with system blue",
-    /\nbody\[data-tab\]\{\n  --black:light-dark\(#F2F2F7,#000000\);[^}]*--accent:light-dark\(#007AFF,#0A84FF\)/.test(IDX) && !IDX.includes('body[data-tab="workout"]'));
+  ok("the iOS tokens apply to every screen (on body[data-tab]), with an AA-contrast system blue",
+    /\nbody\[data-tab\]\{\n  --black:light-dark\(#F2F2F7,#000000\);[^}]*--accent:#0062C4;[^}]*--accent-text:light-dark\(#0062C4,#409CFF\)/.test(IDX) && !IDX.includes('body[data-tab="workout"]'));
   ok("Food, Settings, the drawer, chat, the plan review and the lock screen are restyled in the same grammar",
     IDX.includes("EVERY OTHER SCREEN · iOS") && /body\[data-tab\] \.nut-hero\{background:var\(--s1\)/.test(IDX) &&
     /body\[data-tab\] \.chat-user\{background:var\(--accent\)/.test(IDX) && /body\[data-tab\] \.drawer\{background:var\(--black\)/.test(IDX));
@@ -2739,6 +2739,22 @@ section("Runtime (rendered DOM)");
       const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
       out.split("\n").filter(Boolean).forEach((l) => console.log(l));
       ok("end-to-end flows", false, "see output above");
+    }
+    // Layout audit (verify-layout.mjs): every screen and sheet at 375/390/430
+    // in both themes, MEASURED for off-screen, clipped, overlapping and
+    // low-contrast text, text escaping its card or ring, tiny text, small tap
+    // targets and old-look leftovers. Screenshots missed "1,500" touching its
+    // ring; this would not.
+    section("Layout audit (every screen, 3 widths, both themes)");
+    try {
+      const out = execSync("node verify-layout.mjs", { stdio: "pipe", maxBuffer: 32 * 1024 * 1024 }).toString();
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      const n = (out.match(/✓/g) || []).length;
+      for (let i = 0; i < n; i++) passed++;
+    } catch (e) {
+      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
+      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
+      ok("layout audit", false, "see output above");
     }
   }
 }

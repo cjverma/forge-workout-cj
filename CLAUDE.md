@@ -798,6 +798,18 @@ sessions — with the set still present it recovered the very PR it had just
 deleted, and the badge never changed.
 
 ## Testing Before Merging
+- **`verify-layout.mjs` measures every screen** (run by `node test.js`):
+  Workout (day, past, exercise open, running), Food (top, cards open, meal
+  entry, AI estimate, search, past day), Settings (all open), the drawer,
+  chat, and every sheet/pop-up, at 375/390/430 in both themes, on the shared
+  fixture (`test-fixture.mjs`) plus an empty state. It fails on text off
+  screen, clipped, overlapping, outside its card or ring, under 4.5:1 (3:1
+  large), under 11px (tab bar exempt), controls under 44x44, and old-look
+  leftovers. It found what screenshots missed ("1,500" touching its ring,
+  Apple's stock blue/grey/green failing contrast, 23 small tap targets).
+  **Add any new screen or sheet to its `SCREENS` list.** Exceptions go in
+  `ALLOW` with a reason. `E2E_STATE=backup.json` runs it on real data
+  (local only); `LAYOUT_OUT=dir` crops every finding.
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,
   and fails on: template placeholders reaching the DOM, a hero losing its
