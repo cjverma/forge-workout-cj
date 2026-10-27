@@ -1,6 +1,6 @@
 // Cache version: bump this string on any asset/design change so every client
 // drops the old cache and installs the new one.
-const V = "forge-v116";
+const V = "forge-v117";
 
 // Offline-first PWA. build.mjs copies this file into dist/ (the only folder
 // Vercel serves) and fills DEMOS with every bundled demo image, so the app AND
@@ -65,4 +65,21 @@ self.addEventListener("fetch", e => {
       (await caches.match(req, { ignoreSearch: req.mode === "navigate" })) ||
       (req.mode === "navigate" ? caches.match("/") : undefined))
   );
+});
+
+// Logging reminders (api/_nudge.js, Web Push). Shown even when the app is
+// closed; tapping one opens (or focuses) Forge.
+self.addEventListener("push", (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch (_) { d = { title: "Forge", body: e.data ? e.data.text() : "" }; }
+  e.waitUntil(self.registration.showNotification(d.title || "Forge", {
+    body: d.body || "", icon: "/icon-192.png", badge: "/icon-192.png", tag: "forge-nudge", data: { url: "/" },
+  }));
+});
+self.addEventListener("notificationclick", (e) => {
+  e.notification.close();
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((ws) => {
+    for (const w of ws) if ("focus" in w) return w.focus();
+    return self.clients.openWindow("/");
+  }));
 });

@@ -1891,6 +1891,41 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the cron never overwrites a plan already made for that week", out2.skipped === true && called === 0);
         const VJ = JSON.parse(readFileSync("vercel.json", "utf8"));
         ok("the cron is scheduled for Sunday evening", VJ.crons.some(c => c.path === "/api/cron-weekly-plan" && /^\d+ \d+ \* \* 0$/.test(c.schedule)));
+        // Logging reminders (Oct 27): twice a day, only for what is missing.
+        const { nudgeFor, runNudge } = await import("./api/_nudge.js");
+        const { programFor: PFn, weekKeyOf: WKn } = await import("./src/constants.js");
+        const tue = new Date("2026-11-03T18:00:00Z");           // 1 PM Toronto, a training day
+        const empty = { nutrition: { days: {} }, sessions: {} };
+        const n0 = nudgeFor(empty, tue);
+        const ex = PFn(new Date("2026-11-03T12:00:00")).Tuesday.exercises.find((e) => e.cat === "gym");
+        const part = { nutrition: { days: { "2026-11-03": { items: [{ kcal: 600 }] } } }, sessions: { ["Tuesday_" + WKn(new Date("2026-11-03T12:00:00"))]: { [ex.id]: { sets: [{ done: true }] } } } };
+        const full = { nutrition: { days: { "2026-11-03": { items: [{ kcal: 600 }], active: 400 } } }, sessions: part.sessions };
+        const sun = nudgeFor(empty, new Date("2026-11-08T18:00:00Z"));
+        ok("reminder: nothing logged names food, workout and active; partial names only what is left; all logged sends nothing",
+          n0.title === "Nothing logged today" && n0.missing.join() === "food,your workout,Watch active calories" &&
+          nudgeFor(part, tue).missing.join() === "Watch active calories" && nudgeFor(part, tue).title === "Still to log today" &&
+          nudgeFor(full, tue) === null && !/\u2014|\u00b7/.test(n0.body), JSON.stringify(n0));
+        ok("reminder: Sunday (rest day) never asks for a workout", sun.missing.join() === "food,Watch active calories");
+        ok("reminder: 8 PM Toronto is 01:00 UTC the next day, and still checks the Toronto day",
+          nudgeFor(empty, new Date("2026-11-04T01:00:00Z")).date === "2026-11-03");
+        const fakeQ = (rows, deleted) => (strs, ...vals) => { const t = strs.join("?"); if (/^SELECT/.test(t)) return rows; if (/^DELETE/.test(t)) deleted.push(vals[0]); return []; };
+        const r0 = await runNudge({ state: empty, q: fakeQ([], []), now: tue, env: {} });
+        ok("reminder: without VAPID keys it skips quietly", r0.skipped === "no VAPID keys");
+        // Throwaway keys made here; the real ones live only in Vercel's env.
+        const tk = (await import("web-push")).default.generateVAPIDKeys();
+        const del2 = [];
+        const r2 = await runNudge({ state: empty, q: fakeQ([{ endpoint: "https://a", sub: { a: 1 } }, { endpoint: "https://gone", sub: { g: 1 } }], del2), now: tue,
+          env: { VAPID_PUBLIC_KEY: tk.publicKey, VAPID_PRIVATE_KEY: tk.privateKey },
+          send: async (sub) => { if (sub.g) { const e = new Error("gone"); e.statusCode = 410; throw e; } } });
+        ok("reminder: sends to each subscription and drops ones the push service says are gone",
+          r2.sent === 1 && r2.dropped === 1 && del2[0] === "https://gone", JSON.stringify(r2));
+        ok("reminders are scheduled twice a day (18:00 and 01:00 UTC, ~1 PM and ~8 PM Toronto) inside an existing function",
+          VJ.crons.filter((c) => c.path === "/api/cron-weekly-plan?job=nudge").map((c) => c.schedule).sort().join("|") === "0 1 * * *|0 18 * * *");
+        const SWS = readFileSync("sw.js", "utf8"), SETS = readFileSync("src/settings.js", "utf8"), STS = readFileSync("api/state.js", "utf8");
+        ok("the worker shows pushes and opens Forge on tap; Settings has a Reminders switch; the public key arrives with each sync; no private key in the repo",
+          /addEventListener\("push"/.test(SWS) && /addEventListener\("notificationclick"/.test(SWS) &&
+          /onclick="toggleReminders\(\)"/.test(SETS) && /vapidPublicKey: process\.env\.VAPID_PUBLIC_KEY/.test(STS) &&
+          !/VAPID_PRIVATE_KEY\s*[:=]\s*["'][A-Za-z0-9_-]{30,}/.test(readFileSync("api/_nudge.js", "utf8") + SETS + STS));
       }
       {
         // The weekly email is a REPORT now, not "your CSV is attached": verdict

@@ -14,6 +14,31 @@ function fetchT(url, opts, ms = 15000) {
 }
 
 // Settings
+// ── Logging reminders (Web Push) ───────────────────────────────────────────
+// Per device (localStorage f5_push), never synced state. iPhone delivers web
+// push only to the Home Screen app (iOS 16.4+). The server sends them
+// (api/_nudge.js) and needs VAPID keys; the public one arrives with each sync.
+function remindersOn(){try{return localStorage.getItem("f5_push")==="1";}catch(_){return false;}}
+function vapidBytes(b64){const p="=".repeat((4-b64.length%4)%4),raw=atob((b64+p).replace(/-/g,"+").replace(/_/g,"/"));return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)));}
+async function toggleReminders(){
+  try{
+    if(!("serviceWorker" in navigator)||!("PushManager" in window)||!("Notification" in window)){
+      showToast(/iPhone|iPad/.test(navigator.userAgent)?"Open Forge from your Home Screen icon to turn on reminders.":"This browser can't receive reminders.");return;}
+    const key=localStorage.getItem("f5_vapid");
+    if(!key){showToast("Reminders aren't set up on the server yet.");return;}
+    const reg=await navigator.serviceWorker.ready;
+    const cur=await reg.pushManager.getSubscription();
+    if(remindersOn()&&cur){
+      await cur.unsubscribe();queueMutation("push_unsubscribe",{endpoint:cur.endpoint});
+      localStorage.removeItem("f5_push");showToast("Reminders off");renderST();return;}
+    const perm=await Notification.requestPermission();
+    if(perm!=="granted"){showToast("Notifications are off for Forge. Turn them on in iPhone Settings, Notifications.");return;}
+    const sub=cur||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vapidBytes(key)});
+    queueMutation("push_subscription",{sub:sub.toJSON()});
+    localStorage.setItem("f5_push","1");showToast("Reminders on");renderST();
+  }catch(e){showToast("Couldn't turn on reminders. Try again from the Home Screen app.");}
+}
+window.toggleReminders=toggleReminders;
 export function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Settings</div>
@@ -148,6 +173,7 @@ export function renderST(){
         <div class="st-sec">Appearance</div>
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
+          <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: a nudge at 1 PM and 8 PM when food, the workout or active calories are missing. Tap to turn off":"Off. Tap to get a nudge at 1 PM and 8 PM when something isn't logged"}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""}, tap to view</div></div></summary>

@@ -12,6 +12,14 @@
     {
       "path": "/api/cron-weekly-plan",
       "schedule": "0 23 * * 0"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge",
+      "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron-weekly-plan?job=nudge",
+      "schedule": "0 1 * * *"
     }
   ]
 }

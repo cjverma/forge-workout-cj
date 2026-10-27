@@ -339,6 +339,20 @@ resting and the day's food and active targets): within 5% is on track. The
 card also lists the last 4 weeks. The old Settings card (behind
 `FEATURES.progressCharts`) counted any day with food and stays switched off.
 
+**Logging reminders (Web Push, Oct 27).** Twice a day (vercel.json crons
+`/api/cron-weekly-plan?job=nudge` at 18:00 and 01:00 UTC, ~1 PM and ~8 PM
+Toronto, folded into that function: 12/12) `api/_nudge.js` sends "Still to
+log today: ..." only for what is missing today (food, the workout on a
+training day, Watch active). Subscriptions live in `push_subscriptions`
+(per device, not synced state, untouched by restore/wipe), written by the
+`push_subscription` / `push_unsubscribe` mutations from Settings ->
+Reminders (`toggleReminders`). Needs `VAPID_PUBLIC_KEY` + `VAPID_PRIVATE_KEY`
+in Vercel's env (skips quietly without them); the public key reaches the
+app via `/api/state`'s `vapidPublicKey`. **Never commit the private key**,
+not even in a test (tests generate throwaway keys). iPhone gets web push
+only in the Home Screen app (iOS 16.4+). `sw.js` handles `push` and
+`notificationclick`.
+
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:
 

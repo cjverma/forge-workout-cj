@@ -143,7 +143,9 @@ export default async function handler(req, res) {
 
   try {
     const state = await assembleState();
-    return res.json({ state, updatedAt: Date.now() });
+    // The Web Push public key rides along (it is public by design) so the
+    // app can subscribe without a key baked into the bundle.
+    return res.json({ state, updatedAt: Date.now(), vapidPublicKey: process.env.VAPID_PUBLIC_KEY || null });
   } catch (e) {
     console.error("[state]", e.message);
     return res.status(502).json({ error: "Failed to load state" });
