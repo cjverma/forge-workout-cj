@@ -35,7 +35,7 @@ async function toggleReminders(){
     if(perm!=="granted"){showToast("Notifications are off for Forge. Turn them on in iPhone Settings, Notifications.");return;}
     const sub=cur||await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:vapidBytes(key)});
     queueMutation("push_subscription",{sub:sub.toJSON()});
-    localStorage.setItem("f5_push","1");showToast("Reminders on");renderST();
+    localStorage.setItem("f5_push","1");showToast("Reminders on. A confirmation is on its way.");renderST();
   }catch(e){showToast("Couldn't turn on reminders. Try again from the Home Screen app.");}
 }
 window.toggleReminders=toggleReminders;

@@ -1931,6 +1931,16 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         const test = await runNudge({ state: logged, q: fakeQ(subs, []), now: at("2026-11-03", 15), env, send, slot: "test" });
         ok("reminders: the daylight-saving twin cron (wrong local hour) sends nothing; the temporary test slot is gone",
           twin.skipped === "other daylight-saving twin" && test.skipped === "unknown slot" && !/sendTestReminder/.test(readFileSync("src/settings.js", "utf8")));
+        {
+          const { sendWelcome, WELCOME } = await import("./api/_nudge.js");
+          const got = [];
+          const w = await sendWelcome({ endpoint: "https://phone" }, { env, send: async (s, b) => got.push([s.endpoint, JSON.parse(b).title]) });
+          const w0 = await sendWelcome({ endpoint: "https://phone" }, { env: {} });
+          const wf = await sendWelcome({ endpoint: "https://phone" }, { env, send: async () => { throw Object.assign(new Error("x"), { statusCode: 500 }); } });
+          ok("switching reminders on sends a confirmation to that phone right away (never blocking the save if it fails)",
+            w.sent === 1 && got[0][0] === "https://phone" && got[0][1] === "Reminders on" && w0.sent === 0 && wf.sent === 0 &&
+            /await sendWelcome\(sub\);/.test(readFileSync("api/mutate.js", "utf8")) && !/\u2014|\u00b7/.test(WELCOME.body));
+        }
         const nudgeCrons = VJ.crons.filter((c) => /job=nudge/.test(c.path));
         const bySlot = (sl) => nudgeCrons.filter((c) => c.path.endsWith("slot=" + sl)).map((c) => c.schedule).sort().join("|");
         ok("reminder crons: two per slot (EDT and EST) at 9:30 AM, 11 AM, 7 PM and 11:30 PM Toronto",

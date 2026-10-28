@@ -356,8 +356,9 @@ without); the public key reaches the app via `/api/state`'s
 `vapidPublicKey`. **Never commit the private key**, not even in a test
 (tests generate throwaway keys). iPhone gets web push only in the Home
 Screen app (iOS 16.4+). `sw.js` handles `push` and `notificationclick`.
-The temporary test button (and server `slot=test`) was removed after the
-user confirmed a test reached the phone (Oct 28).
+Switching reminders ON sends a "Reminders on" confirmation to that phone at
+once (`sendWelcome`, called from the `push_subscription` mutation; failures
+never block the save). It replaced the temporary test button (Oct 28).
 
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:
