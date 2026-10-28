@@ -1348,6 +1348,14 @@ body[data-tab] .wv .calf-badge,body[data-tab] .calf-badge{font-size:11px;min-wid
 .wv .custom-trigger{border:0;background:var(--s1);border-radius:var(--r-lg);color:var(--accent-text);font-size:17px;font-weight:400;letter-spacing:0;text-transform:none;text-align:left;padding:13px 16px;}
 .wv .markdone-bar .btn-start{background:var(--s1);color:var(--accent-text);}
 
+/* "Fits what's left": past foods that fit today's room (src/nutrition.js foodSuggestions). */
+body[data-tab] .fit-sugg{margin:0 0 12px;}
+body[data-tab] .fit-sugg-cap{font-size:13px;color:var(--mid);margin-bottom:4px;}
+body[data-tab] .fit-sugg-row{width:100%;min-height:44px;display:grid;grid-template-columns:1fr auto;grid-template-rows:auto auto;column-gap:12px;align-items:center;text-align:left;background:none;border:0;border-bottom:.5px solid var(--b1);padding:9px 0;font-family:var(--font-body);cursor:pointer;color:var(--white);}
+body[data-tab] .fit-sugg-row:last-child{border-bottom:0;}
+body[data-tab] .fit-sugg-name{font-size:17px;letter-spacing:-.4px;grid-column:1;}
+body[data-tab] .fit-sugg-meta{font-size:13px;color:var(--mid);grid-column:1;}
+body[data-tab] .fit-sugg-add{grid-column:2;grid-row:1/3;color:var(--accent-text);display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;}
 </style>
 </head>
 <body data-tab="workout">

@@ -1346,7 +1346,23 @@ export function buildDayReviewFacts(){
   const sum=f=>Math.round(items.reduce((a,i)=>a+(Number(i[f])||0),0));
   const p=phaseFor(t),eaten=sum("kcal"),eatTarget=p?eatKcalFor(p,t):null;
   const activeTarget=p?Math.round(phaseActiveTarget(p,t)+Math.max(0,eaten-eatTarget)/activeMult(t)):null;
-  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",
+  // Derived numbers, computed here so the coach never does arithmetic: how far
+  // over/under food is, what protein/active is left, the time, and the week.
+  const now=new Date(),hour=now.getHours()+now.getMinutes()/60;
+  const kcalLeft=eatTarget!=null?eatTarget-eaten:null;
+  const wk=ctx.weekDeficitNow?.();
+  const week=wk?{completeDaysCounted:wk.counted,deficitSoFar:Math.round(wk.total),neededSoFar:Math.round(wk.need),
+    aheadBy:Math.round(wk.gap),weekNeeds:wk.weekNeed,notEnoughData:!!wk.thin}:null;
+  const status={localTime:now.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),late:hour>=21,
+    foodOver:kcalLeft!=null&&kcalLeft<0,kcalOverBy:kcalLeft!=null&&kcalLeft<0?-kcalLeft:0,kcalRoomLeft:kcalLeft!=null&&kcalLeft>0?kcalLeft:0,
+    proteinLeftG:Math.max(0,proteinTargetG()-sum("protein")),
+    activeLeft:activeTarget!=null?Math.max(0,activeTarget-(Number(nd.active)||0)):null,
+    biggestItem:items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0]?.name||null,week};
+  // Foods the user has eaten before that fit what is left: the coach may only
+  // suggest food from this list (familiar items, already sized to the room).
+  status.suggestions=!status.foodOver&&status.kcalRoomLeft>=100&&ctx.foodSuggestions
+    ?ctx.foodSuggestions(t,status.kcalRoomLeft,status.proteinLeftG).map(s=>`${s.name} (${s.kcal} kcal, ${s.protein} g protein)`):[];
+  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",status,
     workout:{started:!!ctx.workoutOn||!!sess._stopped||exercises.some(e=>e.sets.length||e.done),minutes:sess._duration?Math.round(sess._duration/60):null,
       exercises,prsToday,notes:(sess._notes||"").trim()||null,calfTwinges:(sess._calfTwinges||[]).length},
     food:{items:items.map(i=>`${i.name} (${Math.round(i.kcal||0)} kcal, ${Math.round(i.protein||0)} g protein)`),
@@ -1358,11 +1374,24 @@ async function reviewToday(){
   if(!btn||!out)return;
   btn.disabled=true;out.hidden=false;out.innerHTML='<span class="spin"></span>Looking at today…';
   const facts=buildDayReviewFacts();
-  const prompt=`Review the user's day so far as their coach. It is ${new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})} in their day; things not logged yet may still happen.
-Goal: 95 kg by Feb 28 2027, eating ${facts.food.kcalTarget??1500} kcal today, protein about ${facts.food.proteinTargetG} g, Watch active target ${facts.activity.watchActiveTarget??"n/a"}.
-Their rule: weights falling set to set mean the first set was too heavy. Each session aims to beat last time's best set.
-Facts: ${JSON.stringify(facts)}
-Write: one or two sentences on how the workout went (compare sets with lastTimeBest, call out PRs, skipped or unfinished work, calf twinges). One or two sentences on food so far (calories and protein against target, anything that stands out). Then "Before bed:" with one or two concrete things for the rest of today, with numbers (for example active calories still to burn, protein still to eat). Plain text, short, no headings, no em dashes.`;
+  const st=facts.status;
+  // The rules come from the user (Oct 28): an over-target day happens; judge
+  // it inside the week, never prescribe late-night catch-up cardio, never
+  // suggest more food once over, and name the cause with a fix for next time.
+  const prompt=`You are the user's calm, practical coach reviewing their day. Goal: 95 kg by Feb 28 2027 on a weekly deficit plan.
+Facts (all numbers are already worked out, use them as given): ${JSON.stringify(facts)}
+
+Rules:
+- Judge food inside the WEEK, not the day alone. status.week shows the counted days' deficit vs what the plan needed (aheadBy > 0 is ahead). One day over moves the week a little; say what it does to the week in plain numbers.
+- ${st.foodOver?`Food is OVER today's target by ${st.kcalOverBy} kcal. Do NOT suggest eating anything more today, not even a protein snack. Treat the protein gap as a note for tomorrow (for example a high-protein breakfast).`:`Food has ${st.kcalRoomLeft} kcal of room left and ${st.proteinLeftG} g protein to go. If you suggest food, it must fit inside that room and close the protein gap. ${st.suggestions.length?`Suggest ONLY from status.suggestions, foods they have eaten before that already fit (name it exactly, e.g. "${st.suggestions[0].replace(/ \(.*$/,"")}"). Never invent a food they have not logged.`:"They have no logged food that fits, so suggest a simple high-protein option in general terms."}`}
+- ${st.late?`It is late (${st.localTime}). Do NOT set a calorie-burning target for tonight. At most an optional gentle 10 to 20 minute walk. Spread any shortfall over the next few days instead (for example 100 kcal less a day or a slightly longer walk).`:`There is still time today; any activity suggestion must be realistic for the hours left.`}
+- If they went over, name the likely cause (status.biggestItem or the item list) and one specific swap for next time. One short sentence, no guilt, no lecture. Days like this happen.
+- Workout: compare logged sets with lastTimeBest, mention PRs in prsToday only if real, call out skipped or unfinished work and calf twinges. Weights falling set to set mean the first set was too heavy.
+- Never praise and scold in the same breath, never use the words "disappointing" or "unfortunately".
+Write three short parts, plain text, no headings, no em dashes:
+1) Workout, one or two sentences.
+2) Food, one or two sentences including what it means for the week.
+3) "Next:" one or two concrete actions with numbers, for tonight only if it is not late and not over, otherwise for tomorrow.`;
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:facts.session}})},60000);
     const d=await r.json();

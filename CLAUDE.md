@@ -632,7 +632,24 @@ Four surfaces resolve those keys back to names, and all four must agree:
   last time's best, PRs, notes, calf twinges, duration, today's food items
   and macros vs targets, Watch active vs target, weigh-in) to `/api/coach`
   and shows the reply in a card; the last review is kept on this device for
-  today (`f5_dayreview`), not synced. No new server function.
+  today (`f5_dayreview`), not synced. No new server function. Runs ONLY on
+  a tap. **Coaching rules** (user, Oct 28, after a review told them to eat a
+  snack when already 581 over at 10 PM): the app computes `status` (kcal
+  over/room left, protein left, active left, late after 9 PM, the biggest
+  item, this week's tracker via `ctx.weekDeficitNow`) and the prompt
+  forbids suggesting food once over, forbids a calorie-burning target late
+  at night, judges the day inside the week, and names the cause with one
+  swap for next time.
+- **"Fits what's left"** (Oct 28: "need about 40 g protein, suggest a David
+  protein bar, I know those items"). `foodSuggestions(date, kcalRoom,
+  proteinLeft)` in `src/nutrition.js` picks from the user's OWN logged foods
+  (`buildFoodHistory`; eaten twice, or in the last 14 days; 60+ kcal; never
+  bigger than the room), ranked by how much of the protein gap each closes,
+  then protein density, then familiarity, with one pair offered when no single
+  food closes 75%. The Food tab shows up to three as one-tap adds (today only,
+  100+ kcal room and 10+ g protein left), and "How was today?" sends them as
+  `status.suggestions`: the coach may suggest food ONLY from that list, and
+  none at all once over target.
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
 - **The target is last session's best set.** The user aims for a PR every
