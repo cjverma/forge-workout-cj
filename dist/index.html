@@ -2573,6 +2573,8 @@ const ICON_PATHS = {
   flag: '<path d="M5 21V4M5 4.5h11l-2 3.5 2 3.5H5"/>',
   ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
   alert: '<path d="M12 4.5L21 19.5H3L12 4.5z"/><path d="M12 10v4M12 17h.01"/>',
+  // notification bell: Settings -> Reminders (the warning triangle read as an error).
+  bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
 };
 
 // Returns an inline <svg> string. Size is the px box; colour comes from the
@@ -6591,8 +6593,8 @@ function renderST(){
         <div class="st-sec">Appearance</div>
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
-          <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM, each only if it isn't done. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
-          ${remindersOn()?`<div class="st-row" onclick="sendTestReminder()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Send Test Reminder</div><div class="st-sub">Temporary. Sends one now to check this phone receives them</div></div></div>`:""}
+          <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("bell",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM, each only if it isn't done. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
+          ${remindersOn()?`<div class="st-row" onclick="sendTestReminder()"><div class="st-icon">${icon("bell",18)}</div><div class="st-info"><div class="st-ttl">Send Test Reminder</div><div class="st-sub">Temporary. Sends one now to check this phone receives them</div></div></div>`:""}
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""}, tap to view</div></div></summary>
