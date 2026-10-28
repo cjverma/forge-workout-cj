@@ -40,6 +40,12 @@ const ALLOW = [
   { check: "size", path: /\.bot-nav/ },
   // The date strip scrolls sideways on purpose.
   { check: "offscreen", path: /#dayNav/ },
+  // Ending a workout is red in Apple's Fitness too (a destructive action).
+  { check: "theme", path: /#bStop/ },
+  // The macro donut is a chart drawn with a conic gradient.
+  { check: "theme", path: /\.mpie-donut/ },
+  // The tint focus ring on a focused input is the iOS look.
+  { check: "theme", path: /(textarea|input)[#.]/ },
 ];
 
 // iPhone screens in CSS points, at their real pixel density, as touch
@@ -261,6 +267,29 @@ function measure(rootSels) {
     if (isOld(cs.color) || isOld(cs.backgroundColor) || isOld(cs.borderTopColor)) add("leftover", el, text, "old volt/moss colour", box);
     if (cs.textTransform === "uppercase" && parseFloat(cs.letterSpacing) > 0.5) add("leftover", el, text, `uppercase letterspaced (${cs.letterSpacing})`, box);
     if (/\s·\s|—|\$\{|\bundefined\b|\bNaN\b|\bnull\b/.test(text)) add("leftover", el, text, "separator dot, em dash or placeholder in text", box);
+    // theme: one look everywhere (Oct 28, "is the theme constant across every
+    // part?"). Text is label grey/white or the accent blue; red text only on
+    // destructive actions; system font; no gradients or card shadows.
+    const tc = rgba(cs.color);
+    if (tc && tc.a > 0.3 && !el.closest("svg,.donut-legend,.macro-legend")) {
+      const mx = Math.max(tc.r, tc.g, tc.b), mn = Math.min(tc.r, tc.g, tc.b);
+      if (mx - mn > 60) {
+        let h = mx === tc.r ? ((tc.g - tc.b) / (mx - mn)) % 6 : mx === tc.g ? (tc.b - tc.r) / (mx - mn) + 2 : (tc.r - tc.g) / (mx - mn) + 4;
+        h = (h * 60 + 360) % 360;
+        const blue = h >= 195 && h <= 235;
+        const destructive = (h < 20 || h > 340) && /^(Delete|Clear All Data|Remove|Discard|Reset|Sign Out|Delete .*)$/i.test(text.trim());
+        if (!blue && !destructive) add("theme", el, text, `coloured text ${cs.color}`, box);
+      }
+    }
+    if (/Barlow|Inter\b/.test(cs.fontFamily.split(",")[0])) add("theme", el, text, `old font ${cs.fontFamily.split(",")[0]}`, box);
+  }
+  // Surfaces: no gradients, no shadows on in-page cards (sheets may lift).
+  for (const el of roots.flatMap((r) => [r, ...r.querySelectorAll("*")])) {
+    if (!visible(el)) continue;
+    const cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    if (r.width < 40 || r.height < 20) continue;
+    if (/gradient/.test(cs.backgroundImage)) add("theme", el, (el.innerText || "").slice(0, 40), "gradient background", r);
+    if (cs.boxShadow !== "none" && el.closest("#mainScroll") && !/scale|pressed/.test(el.className)) add("theme", el, (el.innerText || "").slice(0, 40), `shadow ${cs.boxShadow.slice(0, 40)}`, r);
   }
 
   // overlap: two text runs on the same layer drawn on top of each other
@@ -373,12 +402,12 @@ await browser.close();
 server.close();
 
 // Report: one line per check, deduplicated across widths/themes.
-const CHECKS = ["offscreen", "clipped", "container", "ring", "overlap", "contrast", "size", "tap", "leftover", "harness"];
+const CHECKS = ["offscreen", "clipped", "container", "ring", "overlap", "contrast", "size", "tap", "leftover", "theme", "harness"];
 let failed = 0;
 const LABEL = {
   offscreen: "nothing runs off the screen or scrolls sideways", clipped: "no text is cut off", container: "text stays inside its card, pill or button",
   ring: "numbers inside a ring clear its stroke", overlap: "no text is drawn over other text", contrast: "text is readable (4.5:1, 3:1 large) in both themes",
-  size: "no text under 11px (tab bar exempt)", tap: "every control is at least 44x44", leftover: "no old volt colours, shouty labels, '·', em dashes or placeholders",
+  size: "no text under 11px (tab bar exempt)", tap: "every control is at least 44x44", leftover: "no old volt colours, shouty labels, '·', em dashes or placeholders", theme: "one look: label or accent-blue text (red only on destructive actions), system font, no gradients or card shadows",
   harness: "every screen could be opened",
 };
 for (const c of CHECKS) {

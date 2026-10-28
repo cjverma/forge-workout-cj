@@ -914,7 +914,10 @@ deleted, and the badge never changed.
   what makes Safari-only UI (the Home Screen hint) render at all. It fails on text off
   screen, clipped, overlapping, outside its card or ring, under 4.5:1 (3:1
   large), under 11px (tab bar exempt), controls under 44x44, and old-look
-  leftovers. It found what screenshots missed ("1,500" touching its ring,
+  leftovers, plus a `theme` check (Oct 28): text is label grey/white or
+  accent blue (red only on destructive actions), no old font, no gradients,
+  no shadows on in-page cards. Allowed: Stop Workout (red, as in Fitness),
+  the macro donut (a chart), input focus rings. It found what screenshots missed ("1,500" touching its ring,
   Apple's stock blue/grey/green failing contrast, 23 small tap targets).
   **Add any new screen or sheet to its `SCREENS` list.** Exceptions go in
   `ALLOW` with a reason. `E2E_STATE=backup.json` runs it on real data
