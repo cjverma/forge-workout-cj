@@ -286,8 +286,8 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
       !noWk.complete && noWk.missing.join() === "workout" && noWk.deficit === null &&
       D.dayDeficitCheck("2026-11-05", true).missing.join() === "food" &&
       D.dayDeficitCheck("2026-11-06", true).missing.join() === "food,active");
-    ok("resting is the fixed 2,700 on both sides: a Watch reading of 3,100 does not inflate the day",
-      D.dayDeficitCheck("2026-11-04", true).deficit === 2150);
+    ok("resting is the actual number entered (3,100 counts as 3,100), and 2,700 only until one is entered",
+      D.dayDeficitCheck("2026-11-04", true).deficit === 2550);
     // Watch calibration from the weight trend (Oct 27): 3 weeks from Nov 9.
     const cd = {}, cw = {};
     for (let i = -10; i <= 28; i++) { const d = D.addDaysIso("2026-11-09", i); cd[d] = { items: [{ kcal: 1450 }], active: 1300 }; cw[d] = Math.round((126 - i * 0.22) * 10) / 10; }

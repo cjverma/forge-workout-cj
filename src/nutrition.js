@@ -772,7 +772,7 @@ function weekDeficitHtml(){
         <span style="font-size:15px;color:var(--mid)">This week so far</span>
         <span style="font-family:var(--font-num);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:${v?v.col:"var(--mid)"}">${w.counted?n(w.total):"0"} <span style="font-size:15px;font-weight:400;color:var(--mid)">of ${n(w.need)} kcal</span></span>
       </div>
-      <div style="font-size:13px;color:var(--mid);margin:4px 0 6px">${v?`${v.txt}. `:""}The week needs ${n(w.weekNeed)} kcal. A day counts once food, the workout and active calories are logged; resting is the standard 2,700.</div>
+      <div style="font-size:13px;color:var(--mid);margin:4px 0 6px">${v?`${v.txt}. `:""}The week needs ${n(w.weekNeed)} kcal. A day counts once food, the workout and active calories are logged. Resting is the number you enter, or 2,700 until you do.</div>
       ${weightLine}
       ${rows}
       <div style="font-size:13px;color:var(--mid);margin-top:10px">${calLine}</div>

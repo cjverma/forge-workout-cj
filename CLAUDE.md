@@ -291,8 +291,8 @@ Mon-Sat, 1,200 on Sunday** (the rest day; `eatKcalRest`, read through
 `eatKcalFor(p,date)` everywhere a food target is used, and `eatKcalAvg(p)`
 for solving). **Resting is planned at a fixed 2,700** (`restingKcal` on the
 phases, the user's call: the Watch's resting figure is an estimate); a
-logged resting value still feeds the "what the day actually produced"
-deficit, but never the targets. The flat 2,139 average then needs **~1,300
+logged resting value feeds the day's actual deficit (the Food card AND
+the weekly tracker), but never the targets. The flat 2,139 average then needs **~1,300
 Watch active Mon-Sat and ~560 on Sunday** (7:3 split). A taper (higher
 deficit first) was considered and declined: it starts near 1,700 active,
 and the ~300 kcal fall in resting burn over 35 kg already makes a flat
@@ -324,8 +324,10 @@ A day's deficit only counts when food, the workout (training days only),
 Watch active AND resting are all logged: `dayDeficitCheck(date, trained)` in
 `src/phase.js` is the one rule, and the weekly email uses it too (its
 average and weekly deficit come from complete days; `deficitDaysCounted`).
-Resting is the phase's FIXED 2,700 on both sides (logged Watch resting is
-not needed and never inflates a day). An incomplete day shows "Not counted:
+Resting is the number the user ENTERED for the day (the Watch's actual),
+else 2,700 (Oct 28, the user: "why would I need standard over actual"); the
+plan side stays at 2,700 because the targets were solved with it, and the
+Watch calibration uses the same actual-else-2,700 resting. An incomplete day shows "Not counted:
 no workout" etc.; today shows "Today, counted tomorrow". A week with more
 than 2 uncounted finished days (or under 5 of 7 once over) shows "Not
 enough data" instead of a verdict: skipped days tend to be the bad ones.
