@@ -230,18 +230,20 @@ export function dayDeficitCheck(dateIso,trained){
   const eaten=(nd.items||[]).reduce((a,i)=>a+(Number(i.kcal)||0),0);
   const p=phaseFor(dateIso);
   const expected=p?phaseDayDeficit(p,dateIso):null;
-  // Resting is the phase's FIXED figure when it has one (2,700, the user's
-  // standard), on both sides of the comparison: counting the Watch's logged
-  // resting here while the plan assumes 2,700 made every day look better by
-  // the Watch's overestimate. Only a phase without a fixed figure needs it logged.
+  // Resting: the number the user entered for the day (the Watch's actual),
+  // else the phase's standard 2,700 (Oct 28, the user: "why would I need
+  // standard over actual"). The plan side (expected) stays at 2,700: that is
+  // what the targets were solved with. Only a phase without a standard
+  // figure needs resting logged.
   const fixed=p&&p.restingKcal!=null?Number(p.restingKcal):null;
+  const logged=Number(nd.restingOverride)>0?Number(nd.restingOverride):null;
   const missing=[];
   if(!(eaten>0))missing.push("food");
   if(!isRestDay(dateIso)&&!trained)missing.push("workout");
   if(!(Number(nd.active)>0))missing.push("active");
-  if(fixed==null&&!(Number(nd.restingOverride)>0))missing.push("resting");
+  if(fixed==null&&logged==null)missing.push("resting");
   if(missing.length)return{complete:false,missing,expected,deficit:null};
-  const resting=fixed!=null?fixed:Number(nd.restingOverride);
+  const resting=logged!=null?logged:fixed;
   return{complete:true,missing,expected,deficit:Math.round(resting+activeMult(dateIso)*Number(nd.active)-eaten)};
 }
 // ── WATCH CALIBRATION (Oct 27) ──────────────────────────────────────────────
@@ -269,7 +271,7 @@ export function activeCalibration(dateIso){
       const f=(nd.items||[]).reduce((a,x)=>a+(Number(x.kcal)||0),0),a=Number(nd.active)||0;
       if(!(f>0&&a>0))continue;
       const p=phaseFor(d);n++;sumF+=f;sumA+=a;
-      sumR+=p&&p.restingKcal!=null?Number(p.restingKcal):restingFor(d,nd);
+      sumR+=restingFor(d,nd);
     }
     const w0=sevenDayAvg(addDaysIso(start,3)),w1=sevenDayAvg(end);
     if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:ACTIVE_MULT,readyOn:null,days:n};

@@ -291,8 +291,8 @@ Mon-Sat, 1,200 on Sunday** (the rest day; `eatKcalRest`, read through
 `eatKcalFor(p,date)` everywhere a food target is used, and `eatKcalAvg(p)`
 for solving). **Resting is planned at a fixed 2,700** (`restingKcal` on the
 phases, the user's call: the Watch's resting figure is an estimate); a
-logged resting value still feeds the "what the day actually produced"
-deficit, but never the targets. The flat 2,139 average then needs **~1,300
+logged resting value feeds the day's actual deficit (the Food card AND
+the weekly tracker), but never the targets. The flat 2,139 average then needs **~1,300
 Watch active Mon-Sat and ~560 on Sunday** (7:3 split). A taper (higher
 deficit first) was considered and declined: it starts near 1,700 active,
 and the ~300 kcal fall in resting burn over 35 kg already makes a flat
@@ -324,8 +324,10 @@ A day's deficit only counts when food, the workout (training days only),
 Watch active AND resting are all logged: `dayDeficitCheck(date, trained)` in
 `src/phase.js` is the one rule, and the weekly email uses it too (its
 average and weekly deficit come from complete days; `deficitDaysCounted`).
-Resting is the phase's FIXED 2,700 on both sides (logged Watch resting is
-not needed and never inflates a day). An incomplete day shows "Not counted:
+Resting is the number the user ENTERED for the day (the Watch's actual),
+else 2,700 (Oct 28, the user: "why would I need standard over actual"); the
+plan side stays at 2,700 because the targets were solved with it, and the
+Watch calibration uses the same actual-else-2,700 resting. An incomplete day shows "Not counted:
 no workout" etc.; today shows "Today, counted tomorrow". A week with more
 than 2 uncounted finished days (or under 5 of 7 once over) shows "Not
 enough data" instead of a verdict: skipped days tend to be the bad ones.
@@ -905,6 +907,14 @@ deleted, and the badge never changed.
   **Add any new screen or sheet to its `SCREENS` list.** Exceptions go in
   `ALLOW` with a reason. `E2E_STATE=backup.json` runs it on real data
   (local only); `LAYOUT_OUT=dir` crops every finding.
+- **Test time (Oct 28, the user: "we need to improve overall time").**
+  `node test.js` runs the three browser suites (`verify-runtime.mjs`,
+  `e2e-flows.mjs`, `verify-layout.mjs`) AT THE SAME TIME (own ports: 8791-2,
+  8793-4, 8795), and the layout audit runs 3 of its 12 runs at once
+  (`LAYOUT_JOBS`): ~10 min became ~2 min, same 687 checks. `node test.js
+  --quick` is the static half only (~2 s) for checks while working; the
+  full run is the gate before main, always. A new browser suite needs its
+  own port.
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,
   and fails on: template placeholders reaching the DOM, a hero losing its
