@@ -316,9 +316,9 @@ export function renderNutrition(){
           return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, ${Math.round((f.protein||0)*400/f.kcal)}% protein`:""}${f.n>1?`, ${f.n}×`:""}</div>
             </div>
-            <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+            <span style="font-size:20px;color:var(--accent-text);padding-left:12px">+</span>
           </div>`;
         }).join("");
         return`<div>
@@ -1091,9 +1091,9 @@ function filterFoodSearch(q,date){
     return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer">
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, ${Math.round((f.protein||0)*400/f.kcal)}% protein`:""}${f.n>1?`, ${f.n}×`:""}</div>
       </div>
-      <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+      <span style="font-size:20px;color:var(--accent-text);padding-left:12px">+</span>
     </div>`;
   }).join("")||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`;
 }

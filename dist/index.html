@@ -1356,6 +1356,19 @@ body[data-tab] .fit-sugg-row:last-child{border-bottom:0;}
 body[data-tab] .fit-sugg-name{font-size:17px;letter-spacing:-.4px;grid-column:1;}
 body[data-tab] .fit-sugg-meta{font-size:13px;color:var(--mid);grid-column:1;}
 body[data-tab] .fit-sugg-add{grid-column:2;grid-row:1/3;color:var(--accent-text);display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;}
+/* Status colour is Apple's way: values and words stay in label colours; colour
+   lives only in rings, bars and charts, and red text only on destructive
+   actions (Delete, Clear All Data). Oct 28, the user: "it has green, red etc
+   but Apple apps don't". The JS paints status text inline, so it is
+   normalised here (inline styles need !important). */
+body[data-tab] :is(#tc,#drawer,#planModal,#sum) :is([style*="color:var(--green)"],[style*="color:var(--red)"],[style*="color:var(--hero-pos)"],[style*="color:var(--hero-neg)"],[style*="color:#e8853d"]){color:var(--white)!important;}
+body[data-tab] :is(#tc,#drawer,#planModal,#sum) [style*="color:var(--amber)"]{color:var(--mid)!important;}
+body[data-tab] .nut-hero :is(.tpill-green,.tpill-amber,.tpill-red){background:var(--s2)!important;color:var(--mid)!important;}
+body[data-tab] .net-line:is(.net-green,.net-red),body[data-tab] .nut-hero .net-line:is(.net-green,.net-red){color:var(--white);}
+body[data-tab] .danger-zone{border:0;margin:24px 0 0;border-radius:0;}
+body[data-tab] .danger-zone .st-sec{color:var(--mid);background:none;border:0;padding:0;margin:24px 16px 7px;}
+body[data-tab] .danger-zone .st-group{border-radius:var(--r-lg);}
+body[data-tab] #tc .danger-zone .st-ttl[style*="color:var(--red)"]{color:var(--red)!important;}
 </style>
 </head>
 <body data-tab="workout">
@@ -5636,9 +5649,9 @@ function renderNutrition(){
           return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, ${Math.round((f.protein||0)*400/f.kcal)}% protein`:""}${f.n>1?`, ${f.n}×`:""}</div>
             </div>
-            <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+            <span style="font-size:20px;color:var(--accent-text);padding-left:12px">+</span>
           </div>`;
         }).join("");
         return`<div>
@@ -6411,9 +6424,9 @@ function filterFoodSearch(q,date){
     return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer">
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, ${Math.round((f.protein||0)*400/f.kcal)}% protein`:""}${f.n>1?`, ${f.n}×`:""}</div>
       </div>
-      <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+      <span style="font-size:20px;color:var(--accent-text);padding-left:12px">+</span>
     </div>`;
   }).join("")||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`;
 }

@@ -37,6 +37,13 @@ macro chart. The `:root` volt tokens below are only a fallback now.
 - No "·" separators in UI copy (an AI tell for the user): use a comma, a
   colon or two sentences. `mdLite` turns AI em dashes into ", " (": " in a
   heading). The PDF report is exempt.
+- **Status colour, Apple's way** (Oct 28, the user: "it has green, red
+  etc but Apple apps don't"): values and status words are label colours
+  (green/red text -> `--white`, amber text -> `--mid`); colour lives only in
+  rings, bars, charts, and red TEXT only on destructive actions (Delete,
+  Clear All Data). The JS paints status inline, so one `!important` block at
+  the end of `index.html`'s styles normalises it; prefer neutral colours in
+  new render code rather than leaning on it.
 - Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=3`).
 - `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
 
