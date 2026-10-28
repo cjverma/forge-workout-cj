@@ -217,6 +217,10 @@ export function renderNutrition(){
   const arrHtml=arrivalEst();
   const liveBMR=calcBMR(latestWeightLog()||USER.weightKg);
   const remaining=Math.max(0,finalTarget-consumed);
+  // "Fits what's left": today only, once there is real room and protein to go.
+  const pLeft=Math.max(0,pTarget-Math.round(protein));
+  _fitSugg=(!ro&&date===isoToday()&&remaining>=100&&pLeft>=10)?foodSuggestions(date,remaining,pLeft):[];
+  const fitHtml=_fitSugg.length?`<div class="fit-sugg"><div class="fit-sugg-cap">Fits what's left: ${remaining.toLocaleString()} kcal, ${pLeft} g protein</div>${_fitSugg.map((f,i)=>`<button class="fit-sugg-row" onclick="addFoodSuggestion('${date}',${i})"><span class="fit-sugg-name">${esc(f.name)}</span><span class="fit-sugg-meta">${f.kcal} kcal, ${f.protein} g protein</span><span class="fit-sugg-add">${icon("plus",18)}</span></button>`).join("")}</div>`:"";
   document.getElementById("tc").innerHTML=`<div class="nut-wrap">
     <div class="nut-head">
       <div><div class="nut-kicker">${nutDateKicker(date)}</div><div class="nut-title">${nutDateLabel(date)}</div></div>
@@ -331,7 +335,7 @@ export function renderNutrition(){
         const recents=recentFoods(date);
         const chips=recents.length?`<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${recents.map(f=>`<button onclick="quickAddRecent('${date}','${esc(f.name).replace(/'/g,"\\'")}',${f.kcal},${f.protein||0},${f.carbs||0},${f.fat||0},${f.fibre||0},${f.sugar||0},${f.sodium||0})" style="background:var(--s2);border:1px solid var(--b2);border-radius:99px;padding:6px 12px;font-family:var(--font-body);font-size:11px;color:var(--lt);cursor:pointer">+ ${esc(f.name)} <span style="color:var(--dim)">${f.kcal}</span></button>`).join("")}</div>`:"";
         return`<div><input class="food-ta" id="foodMealName" placeholder="Meal name (optional, e.g. Morning oats, Post-workout)" style="margin-bottom:7px;height:auto;min-height:0;padding:10px 13px;font-size:13px;resize:none" maxlength="60" value="${esc(_foodDraftMealName)}" oninput="_foodDraftMealName=this.value"><textarea class="food-ta" id="foodTa" placeholder="What did you eat? e.g. 2 eggs on toast, chicken wrap..." rows="3" oninput="_foodDraftText=this.value">${esc(_foodDraftText)}</textarea><div class="ai-out" id="foodOut"></div><div class="food-chat-btns"><button class="food-submit" onclick="askFood()">Estimate with AI</button><button class="food-cancel" onclick="closeFood()">Cancel</button></div>${chips}</div>`;
-      })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet, ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}
+      })():`${!items.length?`<div style="font-size:12px;color:var(--dim);margin-bottom:10px;text-align:center">Nothing logged yet, ${(finalTarget-0).toLocaleString()} kcal remaining</div>`:""}${fitHtml}
 <div style="display:flex;gap:8px;align-items:center"><button class="add-food-btn" style="flex:1" onclick="openFood()">Log a meal</button><button onclick="_foodSearchOpen=true;_foodSearchQ='';renderNutrition();setTimeout(()=>{const i=document.getElementById('foodSearchInp');if(i)i.focus();},50)" title="Search past logs" style="flex:0 0 auto;padding:11px 14px;background:transparent;border:1px solid var(--b1);border-radius:var(--r-md);font-size:14px;cursor:pointer;color:var(--dim);font-family:var(--font-body);font-weight:600;letter-spacing:1px;white-space:nowrap">${icon("search",18)}</button></div>`}
     </div>
 
@@ -1028,6 +1032,53 @@ function buildFoodHistory(excludeDate){
   const protRatio=e=>e.kcal>0?(e.protein*4)/e.kcal:0;
   return Object.values(map).sort((a,b)=>protRatio(b)-protRatio(a)||b.n-a.n||b.last.localeCompare(a.last));
 }
+// Foods you have eaten before that fit what is left today (Oct 28: "need
+// about 40 g protein, suggest a David protein bar, I know those items").
+// Only familiar foods (logged twice, or in the last 14 days), only ones that
+// fit inside the calories left, ranked by how much of the protein gap they
+// close, then protein density, then how often you eat them. A pair of two
+// foods is offered when no single one closes most of the gap. Pure: the Food
+// tab and the "How was today?" coach both read it.
+export function foodSuggestions(date,kcalRoom,proteinLeft,limit=3){
+  kcalRoom=Math.round(Number(kcalRoom)||0);proteinLeft=Math.max(0,Math.round(Number(proteinLeft)||0));
+  if(kcalRoom<60)return[];
+  const ds=x=>Math.round((new Date(date+"T12:00:00")-new Date(x+"T12:00:00"))/86400000);
+  const pool=buildFoodHistory(date).filter(f=>f.kcal>=60&&f.kcal<=kcalRoom&&(f.n>=2||ds(f.last)<=14));
+  const wantP=proteinLeft>=10;
+  const score=(kcal,prot,n)=>{
+    const cover=wantP?Math.min(prot,proteinLeft)/proteinLeft:0;
+    const dens=kcal>0?Math.min(1,(prot*4/kcal)/0.5):0;
+    const fam=Math.min(n,10)/10;
+    return wantP?cover*0.6+dens*0.25+fam*0.15:fam*0.7+dens*0.3;
+  };
+  const one=pool.filter(f=>!wantP||f.protein>=5).map(f=>({items:[f],kcal:f.kcal,protein:Math.round(f.protein),s:score(f.kcal,f.protein,f.n)}))
+    .sort((a,b)=>b.s-a.s);
+  let out=one.slice(0,limit);
+  const bestCover=wantP&&one[0]?Math.min(one[0].protein,proteinLeft)/proteinLeft:1;
+  if(wantP&&bestCover<0.75){
+    const top=one.slice(0,12);let pair=null;
+    for(let i=0;i<top.length;i++)for(let j=i+1;j<top.length;j++){
+      const a=top[i].items[0],b=top[j].items[0],k=a.kcal+b.kcal,pr=Math.round(a.protein+b.protein);
+      if(k>kcalRoom)continue;
+      const s=score(k,pr,Math.min(a.n,b.n));
+      if(Math.min(pr,proteinLeft)/proteinLeft>=bestCover+0.2&&(!pair||s>pair.s))pair={items:[a,b],kcal:k,protein:pr,s};
+    }
+    if(pair)out=[pair,...one.slice(0,limit-1)];
+  }
+  return out.map(o=>({name:o.items.map(f=>f.name).join(" + "),kcal:Math.round(o.kcal),protein:o.protein,items:o.items}));
+}
+let _fitSugg=[];
+function addFoodSuggestion(date,i){
+  const sug=_fitSugg[i];
+  if(!sug||nutLocked(date))return;
+  const day=getDayData(date);
+  sug.items.forEach((f,k)=>{
+    const item={id:"n_"+(Date.now()+k),name:f.name,kcal:f.kcal,protein:f.protein||0,carbs:f.carbs||0,fat:f.fat||0,fibre:f.fibre||0,sugar:f.sugar||0,sodium:f.sodium||0,time:Date.now()};
+    day.items.push(item);queueMutation("nutrition_item_add",{date,item});
+  });
+  save();checkMilestones();showToast("Added "+sug.name+" ✓");renderNutrition();
+}
+window.addFoodSuggestion=addFoodSuggestion;
 function filterFoodSearch(q,date){
   _foodSearchQ=q;
   const container=document.getElementById("foodSearchResults");
@@ -1202,3 +1253,4 @@ ctx.renderNutrition=renderNutrition;
 ctx.trainedOn=ctx.trainedOn;
 // This week's weekly-deficit standing, for the "How was today?" review.
 ctx.weekDeficitNow=()=>weekDeficitSummary(mondayOfIso(isoToday()));
+ctx.foodSuggestions=foodSuggestions;

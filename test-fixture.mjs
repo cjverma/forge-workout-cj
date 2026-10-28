@@ -36,6 +36,8 @@ export function fixture(fresh) {
   S.sessions["Monday_" + WK] = mon;
   S.nutrition = S.nutrition || {}; S.nutrition.days = S.nutrition.days || {}; S.nutrition.weights = S.nutrition.weights || {};
   for (let i = -3; i <= 0; i++) S.nutrition.days[dayIso(i)] = { items: i === 0 ? [] : [{ id: "n_" + (1000 + i), name: "Chicken rice bowl", kcal: 650, protein: 55, carbs: 70, fat: 14, fibre: 6, sugar: 4, sodium: 900, time: 1 }], restingOverride: 2800, active: 700 };
+  // A familiar snack on past days, so the Food tab's "Fits what's left" renders.
+  for (let i = -3; i <= -1; i++) S.nutrition.days[dayIso(i)].items.push({ id: "n_" + (2000 + i), name: "David Protein Bar, Chocolate Chip Cookie Dough", kcal: 150, protein: 28, carbs: 11, fat: 2, fibre: 1, sugar: 0, sodium: 200, time: 2 });
   for (let i = -12; i <= -1; i++) S.nutrition.weights[dayIso(i)] = Math.round((131 - (i + 12) * 0.15) * 10) / 10;
   return S;
 }

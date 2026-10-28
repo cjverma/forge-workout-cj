@@ -1358,6 +1358,10 @@ export function buildDayReviewFacts(){
     proteinLeftG:Math.max(0,proteinTargetG()-sum("protein")),
     activeLeft:activeTarget!=null?Math.max(0,activeTarget-(Number(nd.active)||0)):null,
     biggestItem:items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0]?.name||null,week};
+  // Foods the user has eaten before that fit what is left: the coach may only
+  // suggest food from this list (familiar items, already sized to the room).
+  status.suggestions=!status.foodOver&&status.kcalRoomLeft>=100&&ctx.foodSuggestions
+    ?ctx.foodSuggestions(t,status.kcalRoomLeft,status.proteinLeftG).map(s=>`${s.name} (${s.kcal} kcal, ${s.protein} g protein)`):[];
   return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",status,
     workout:{started:!!ctx.workoutOn||!!sess._stopped||exercises.some(e=>e.sets.length||e.done),minutes:sess._duration?Math.round(sess._duration/60):null,
       exercises,prsToday,notes:(sess._notes||"").trim()||null,calfTwinges:(sess._calfTwinges||[]).length},
@@ -1379,7 +1383,7 @@ Facts (all numbers are already worked out, use them as given): ${JSON.stringify(
 
 Rules:
 - Judge food inside the WEEK, not the day alone. status.week shows the counted days' deficit vs what the plan needed (aheadBy > 0 is ahead). One day over moves the week a little; say what it does to the week in plain numbers.
-- ${st.foodOver?`Food is OVER today's target by ${st.kcalOverBy} kcal. Do NOT suggest eating anything more today, not even a protein snack. Treat the protein gap as a note for tomorrow (for example a high-protein breakfast).`:`Food has ${st.kcalRoomLeft} kcal of room left and ${st.proteinLeftG} g protein to go. If you suggest food, it must fit inside that room and close the protein gap.`}
+- ${st.foodOver?`Food is OVER today's target by ${st.kcalOverBy} kcal. Do NOT suggest eating anything more today, not even a protein snack. Treat the protein gap as a note for tomorrow (for example a high-protein breakfast).`:`Food has ${st.kcalRoomLeft} kcal of room left and ${st.proteinLeftG} g protein to go. If you suggest food, it must fit inside that room and close the protein gap. ${st.suggestions.length?`Suggest ONLY from status.suggestions, foods they have eaten before that already fit (name it exactly, e.g. "${st.suggestions[0].replace(/ \(.*$/,"")}"). Never invent a food they have not logged.`:"They have no logged food that fits, so suggest a simple high-protein option in general terms."}`}
 - ${st.late?`It is late (${st.localTime}). Do NOT set a calorie-burning target for tonight. At most an optional gentle 10 to 20 minute walk. Spread any shortfall over the next few days instead (for example 100 kcal less a day or a slightly longer walk).`:`There is still time today; any activity suggestion must be realistic for the hours left.`}
 - If they went over, name the likely cause (status.biggestItem or the item list) and one specific swap for next time. One short sentence, no guilt, no lecture. Days like this happen.
 - Workout: compare logged sets with lastTimeBest, mention PRs in prsToday only if real, call out skipped or unfinished work and calf twinges. Weights falling set to set mean the first set was too heavy.

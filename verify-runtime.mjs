@@ -723,7 +723,9 @@ try {
     await page.route("**/api/coach", async (r) => { sent = JSON.parse(r.request().postData() || "{}"); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ text: "Good session. Before bed: walk 30 minutes." }) }); });
     await page.clock.install({ time: new Date("2026-11-03T19:00:00-05:00") });   // a Tuesday, training day
     await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" };
-      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ nutrition: { days: { "2026-11-03": { items: [{ name: "Chicken rice bowl", kcal: 650, protein: 55 }], active: 700 } }, weights: {} }, _v6MonDone1: true, _planMove41: true }); });
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ nutrition: { days: { "2026-11-03": { items: [{ name: "Chicken rice bowl", kcal: 650, protein: 55 }], active: 700 },
+        "2026-10-30": { items: [{ name: "David Protein Bar", kcal: 150, protein: 28 }, { name: "Large pizza", kcal: 900, protein: 30 }] },
+        "2026-11-01": { items: [{ name: "David Protein Bar", kcal: 150, protein: 28 }, { name: "Large pizza", kcal: 900, protein: 30 }, { name: "Ketchup", kcal: 20, protein: 0 }] } }, weights: {} }, _v6MonDone1: true, _planMove41: true }); });
     await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
     const onToday = await page.evaluate(() => !!document.getElementById("dayReviewBtn"));
     await page.evaluate(() => window.reviewToday()); await page.waitForTimeout(500);
@@ -734,6 +736,17 @@ try {
       onToday && !onPast && /Good session/.test(out) && /Chicken rice bowl/.test(sent?.prompt || "") && /"workout"/.test(sent?.prompt || "") &&
       /850 kcal of room left/.test(sent?.prompt || "") && /There is still time today/.test(sent?.prompt || ""),
       JSON.stringify({ onToday, onPast, out: out.slice(0, 80) }));
+    // Past foods that fit what is left (Oct 28): the coach may only suggest
+    // from them, and the Food tab offers them as one-tap adds.
+    const sug = (sent?.prompt || "").match(/"suggestions":\[[^\]]*\]/)?.[0] || "";
+    note("the coach gets familiar foods that fit the room (David Protein Bar), never one too big (pizza), and is told to suggest only from them",
+      /David Protein Bar \(150 kcal, 28 g protein\)/.test(sug) && !/pizza|Ketchup/i.test(sug) && /Suggest ONLY from status.suggestions/.test(sent?.prompt || ""), sug);
+    await page.evaluate(() => document.getElementById("nav-nutrition")?.click()); await page.waitForTimeout(700);
+    const fit = await page.evaluate(() => document.querySelector(".fit-sugg")?.innerText || "");
+    await page.evaluate(() => [...document.querySelectorAll(".fit-sugg-row")].find((b) => /David/.test(b.textContent))?.click()); await page.waitForTimeout(400);
+    const added = await page.evaluate(() => JSON.parse(localStorage.f5).nutrition.days["2026-11-03"].items.map((i) => i.name));
+    note("the Food tab shows 'Fits what's left' with the bar, and a tap logs it",
+      /Fits what's left: 850 kcal/.test(fit) && /David Protein Bar/.test(fit) && !/pizza/i.test(fit) && added.includes("David Protein Bar"), JSON.stringify({ fit, added }));
     await page.close();
     // A late night OVER target (user, Oct 28): no snack, no late cardio target,
     // judged inside the week, with the cause named.
@@ -749,7 +762,7 @@ try {
     const pr = sent2?.prompt || "";
     note("over target late at night: the coach is told no more food today, no late cardio target, judge it in the week, name the cause",
       /OVER today's target by 581 kcal/.test(pr) && /Do NOT suggest eating anything more today/.test(pr) && /It is late/.test(pr) && /Do NOT set a calorie-burning target/.test(pr) &&
-      /"biggestItem":"Soy matar pulao"/.test(pr) && /"week":\{/.test(pr), pr.slice(0, 300));
+      /"biggestItem":"Soy matar pulao"/.test(pr) && /"week":\{/.test(pr) && /"suggestions":\[\]/.test(pr), pr.slice(0, 300));
     await p2.close();
   }
 

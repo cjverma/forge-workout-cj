@@ -640,6 +640,16 @@ Four surfaces resolve those keys back to names, and all four must agree:
   forbids suggesting food once over, forbids a calorie-burning target late
   at night, judges the day inside the week, and names the cause with one
   swap for next time.
+- **"Fits what's left"** (Oct 28: "need about 40 g protein, suggest a David
+  protein bar, I know those items"). `foodSuggestions(date, kcalRoom,
+  proteinLeft)` in `src/nutrition.js` picks from the user's OWN logged foods
+  (`buildFoodHistory`; eaten twice, or in the last 14 days; 60+ kcal; never
+  bigger than the room), ranked by how much of the protein gap each closes,
+  then protein density, then familiarity, with one pair offered when no single
+  food closes 75%. The Food tab shows up to three as one-tap adds (today only,
+  100+ kcal room and 10+ g protein left), and "How was today?" sends them as
+  `status.suggestions`: the coach may suggest food ONLY from that list, and
+  none at all once over target.
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
 - **The target is last session's best set.** The user aims for a PR every
