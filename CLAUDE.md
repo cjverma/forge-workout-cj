@@ -632,7 +632,14 @@ Four surfaces resolve those keys back to names, and all four must agree:
   last time's best, PRs, notes, calf twinges, duration, today's food items
   and macros vs targets, Watch active vs target, weigh-in) to `/api/coach`
   and shows the reply in a card; the last review is kept on this device for
-  today (`f5_dayreview`), not synced. No new server function.
+  today (`f5_dayreview`), not synced. No new server function. Runs ONLY on
+  a tap. **Coaching rules** (user, Oct 28, after a review told them to eat a
+  snack when already 581 over at 10 PM): the app computes `status` (kcal
+  over/room left, protein left, active left, late after 9 PM, the biggest
+  item, this week's tracker via `ctx.weekDeficitNow`) and the prompt
+  forbids suggesting food once over, forbids a calorie-burning target late
+  at night, judges the day inside the week, and names the cause with one
+  swap for next time.
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
 - **The target is last session's best set.** The user aims for a PR every

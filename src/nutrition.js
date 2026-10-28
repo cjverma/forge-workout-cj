@@ -1200,3 +1200,5 @@ window.nutDateLabel=nutDateLabel;
 window.filterFoodSearch=filterFoodSearch;
 ctx.renderNutrition=renderNutrition;
 ctx.trainedOn=ctx.trainedOn;
+// This week's weekly-deficit standing, for the "How was today?" review.
+ctx.weekDeficitNow=()=>weekDeficitSummary(mondayOfIso(isoToday()));

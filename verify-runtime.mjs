@@ -731,9 +731,26 @@ try {
     await page.evaluate(() => document.getElementById("p-Monday")?.click()); await page.waitForTimeout(400);
     const onPast = await page.evaluate(() => !!document.getElementById("dayReviewBtn"));
     note("'How was today?' shows on today only, sends today's workout and food, and shows the coach's reply",
-      onToday && !onPast && /Good session/.test(out) && /Chicken rice bowl/.test(sent?.prompt || "") && /"workout"/.test(sent?.prompt || "") && /Before bed/.test(sent?.prompt || ""),
+      onToday && !onPast && /Good session/.test(out) && /Chicken rice bowl/.test(sent?.prompt || "") && /"workout"/.test(sent?.prompt || "") &&
+      /850 kcal of room left/.test(sent?.prompt || "") && /There is still time today/.test(sent?.prompt || ""),
       JSON.stringify({ onToday, onPast, out: out.slice(0, 80) }));
     await page.close();
+    // A late night OVER target (user, Oct 28): no snack, no late cardio target,
+    // judged inside the week, with the cause named.
+    const p2 = await browser.newPage({ viewport: { width: 402, height: 2000 }, timezoneId: "America/Toronto" });
+    p2.on("pageerror", (e) => jsErrors.push(`dayreview2: ${e.message}`));
+    let sent2 = null;
+    await p2.route("**/api/coach", async (r) => { sent2 = JSON.parse(r.request().postData() || "{}"); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ text: "ok" }) }); });
+    await p2.clock.install({ time: new Date("2026-11-03T22:15:00-05:00") });
+    await p2.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ nutrition: { days: { "2026-11-03": { items: [{ name: "Soy matar pulao", kcal: 1300, protein: 30 }, { name: "Eggs", kcal: 781, protein: 50 }], active: 724 } }, weights: {} }, _v6MonDone1: true, _planMove41: true }); });
+    await p2.goto(URL, { waitUntil: "networkidle" }); await p2.waitForTimeout(800);
+    await p2.evaluate(() => window.reviewToday()); await p2.waitForTimeout(500);
+    const pr = sent2?.prompt || "";
+    note("over target late at night: the coach is told no more food today, no late cardio target, judge it in the week, name the cause",
+      /OVER today's target by 581 kcal/.test(pr) && /Do NOT suggest eating anything more today/.test(pr) && /It is late/.test(pr) && /Do NOT set a calorie-burning target/.test(pr) &&
+      /"biggestItem":"Soy matar pulao"/.test(pr) && /"week":\{/.test(pr), pr.slice(0, 300));
+    await p2.close();
   }
 
   // Simplified app (Oct 2026): every feature switched off in FEATURES must be
