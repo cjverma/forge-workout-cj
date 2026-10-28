@@ -59,6 +59,8 @@ const ICON_PATHS = {
   flag: '<path d="M5 21V4M5 4.5h11l-2 3.5 2 3.5H5"/>',
   ban: '<circle cx="12" cy="12" r="8.5"/><path d="M6 6l12 12"/>',
   alert: '<path d="M12 4.5L21 19.5H3L12 4.5z"/><path d="M12 10v4M12 17h.01"/>',
+  // notification bell: Settings -> Reminders (the warning triangle read as an error).
+  bell: '<path d="M6 16.5V11a6 6 0 0 1 12 0v5.5l1.5 1.5h-15L6 16.5z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
 };
 
 // Returns an inline <svg> string. Size is the px box; colour comes from the

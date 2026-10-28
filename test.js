@@ -1906,6 +1906,14 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           nudgeFor(empty, at("2026-11-03", 19), "workout")?.title === "Workout not started" && nudgeFor(logged, at("2026-11-03", 19), "workout") === null &&
           /active calories and resting calories/.test(nudgeFor({ nutrition: { days: { "2026-11-03": { items: [{ kcal: 600 }] } } } }, at("2026-11-03", 23), "calories")?.body || "") &&
           nudgeFor(logged, at("2026-11-03", 23), "calories") === null);
+        {
+          // 8:30 PM: Watch active short of today's target (~1,300 Mon-Sat at 2,700 resting).
+          const day = (active) => ({ nutrition: { days: { "2026-11-03": { items: [{ kcal: 1500 }], ...(active != null ? { active } : {}) } }, weights: {} }, sessions: {} });
+          const short = nudgeFor(day(900), at("2026-11-03", 20), "active"), none = nudgeFor(day(null), at("2026-11-03", 20), "active");
+          ok("reminders: 8:30 PM says how many active calories are left and roughly how long a walk closes it; nothing once the target is met",
+            short?.title === "Active calories short" && Math.abs(short.target - 1301) <= 2 && short.gap === short.target - 900 && /About \d+ minutes of walking/.test(short.body) &&
+            /No Watch active calories logged yet/.test(none?.body || "") && nudgeFor(day(1400), at("2026-11-03", 20), "active") === null, JSON.stringify(short));
+        }
         ok("reminders: Sunday (rest day) gets no workout reminder", nudgeFor(empty, at("2026-11-08", 19), "workout") === null);
         ok("reminders: 11:30 PM Toronto is the next UTC day, and still checks the Toronto day",
           nudgeFor(empty, new Date("2026-11-04T04:30:00Z"), "calories")?.date === "2026-11-03" && torontoHour(new Date("2026-11-04T04:30:00Z")) === 23);
@@ -1921,12 +1929,12 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           r2.sent === 1 && r2.dropped === 1 && del2[0] === "https://gone", JSON.stringify(r2));
         const twin = await runNudge({ state: empty, q: fakeQ(subs, []), now: at("2026-11-03", 8), env, send, slot: "weight" });
         const test = await runNudge({ state: logged, q: fakeQ(subs, []), now: at("2026-11-03", 15), env, send, slot: "test" });
-        ok("reminders: the daylight-saving twin cron (wrong local hour) sends nothing; the test slot always sends",
-          twin.skipped === "other daylight-saving twin" && test.sent === 1 && test.title === "Test reminder");
+        ok("reminders: the daylight-saving twin cron (wrong local hour) sends nothing; the temporary test slot is gone",
+          twin.skipped === "other daylight-saving twin" && test.skipped === "unknown slot" && !/sendTestReminder/.test(readFileSync("src/settings.js", "utf8")));
         const nudgeCrons = VJ.crons.filter((c) => /job=nudge/.test(c.path));
         const bySlot = (sl) => nudgeCrons.filter((c) => c.path.endsWith("slot=" + sl)).map((c) => c.schedule).sort().join("|");
         ok("reminder crons: two per slot (EDT and EST) at 9:30 AM, 11 AM, 7 PM and 11:30 PM Toronto",
-          nudgeCrons.length === 8 && bySlot("weight") === "30 13 * * *|30 14 * * *" && bySlot("food") === "0 15 * * *|0 16 * * *" &&
+          nudgeCrons.length === 10 && bySlot("active") === "30 0 * * *|30 1 * * *" && bySlot("weight") === "30 13 * * *|30 14 * * *" && bySlot("food") === "0 15 * * *|0 16 * * *" &&
           bySlot("workout") === "0 0 * * *|0 23 * * *" && bySlot("calories") === "30 3 * * *|30 4 * * *");
         const SWS = readFileSync("sw.js", "utf8"), SETS = readFileSync("src/settings.js", "utf8"), STS = readFileSync("api/state.js", "utf8");
         ok("the worker shows pushes and opens Forge on tap; Settings has a Reminders switch; the public key arrives with each sync; no private key in the repo",

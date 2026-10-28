@@ -342,7 +342,8 @@ card also lists the last 4 weeks. The old Settings card (behind
 **Logging reminders (Web Push, Oct 27).** Four a day, each only when its
 thing isn't logged (`nudgeFor(state, now, slot)` in `api/_nudge.js`):
 **9:30 AM** weigh-in, **11 AM** food, **7 PM** workout not started (training
-days), **11:30 PM** Watch active / resting (and food) not entered. They run
+days), **8:30 PM** Watch active short of today's target (with roughly how
+many minutes of walking close it), **11:30 PM** Watch active / resting (and food) not entered. They run
 inside `api/cron-weekly-plan.js` (12/12) via vercel.json crons
 `?job=nudge&slot=...`, TWO per slot (EDT and EST UTC times); only the one
 landing in the slot's Toronto hour sends (`torontoHour`), so daylight saving
@@ -355,8 +356,8 @@ without); the public key reaches the app via `/api/state`'s
 `vapidPublicKey`. **Never commit the private key**, not even in a test
 (tests generate throwaway keys). iPhone gets web push only in the Home
 Screen app (iOS 16.4+). `sw.js` handles `push` and `notificationclick`.
-**TEMPORARY:** Settings -> "Send a test reminder" (`sendTestReminder`,
-server `slot=test`). Remove both once the user confirms a test arrived.
+The temporary test button (and server `slot=test`) was removed after the
+user confirmed a test reached the phone (Oct 28).
 
 **Compliance is five habits** (`weekCompliance` in `src/nutrition.js`), not
 deficit maths:

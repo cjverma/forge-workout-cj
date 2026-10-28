@@ -1,11 +1,13 @@
 // Daily logging reminders (Oct 27, user): 9:30 AM weigh-in, 11 AM food,
-// 7 PM workout, 11:30 PM calories, each only when that thing isn't logged.
+// 7 PM workout, 8:30 PM active short of target, 11:30 PM calories, each only
+// when that thing isn't done.
 // Runs inside api/cron-weekly-plan.js (the 12-function limit). Web Push needs VAPID_PUBLIC_KEY and
 // VAPID_PRIVATE_KEY in Vercel's environment; without them it skips quietly.
 // iPhone receives these only for the Home Screen app (iOS 16.4+).
 import webpush from "web-push";
 import { weekKeyOf, DAYS, isGymRestDay } from "../src/constants.js";
-import { isoDate } from "../src/phase.js";
+import { isoDate, phaseFor, phaseActiveTarget, eatKcalFor, activeMult } from "../src/phase.js";
+import { ctx } from "../src/runtime.js";
 
 // The four daily reminders (user, Oct 27), by Toronto local hour. Vercel
 // Hobby runs a cron somewhere within its hour, and Toronto shifts between
@@ -15,6 +17,7 @@ export const SLOTS = {
   weight:   { hour: 9,  label: "9:30 AM" },   // weigh-in
   food:     { hour: 11, label: "11 AM" },     // nothing eaten logged
   workout:  { hour: 19, label: "7 PM" },      // training day, workout not started
+  active:   { hour: 20, label: "8:30 PM" },   // Watch active short of today's target
   calories: { hour: 23, label: "11:30 PM" },  // Watch active / resting not entered
 };
 export function torontoHour(now = new Date()) {
@@ -42,6 +45,24 @@ export function nudgeFor(state, now = new Date(), slot = "calories") {
     if (rest || trained) return null;
     return { ...base, title: "Workout not started", body: food ? "Today's a training day and nothing's ticked off yet. Start it in Forge." : "Today's a training day and nothing's logged yet, food or workout. Start the workout in Forge." };
   }
+  if (slot === "active") {
+    // Today's Watch target, re-solved for what was eaten (eating over the
+    // food target raises it), the same number the Food tab shows.
+    const before = ctx.getS;
+    ctx.getS = () => state;
+    try {
+      const p = phaseFor(d);
+      if (!p) return null;
+      const eaten = (nd.items || []).reduce((a, i) => a + (Number(i.kcal) || 0), 0);
+      const target = Math.round(phaseActiveTarget(p, d) + Math.max(0, eaten - eatKcalFor(p, d)) / activeMult(d));
+      const got = Number(nd.active) || 0, gap = target - got;
+      if (gap <= 0) return null;
+      const mins = Math.max(10, Math.ceil(gap / 10 / 5) * 5);   // ~10 kcal/min brisk walking at this weight
+      return { ...base, title: "Active calories short",
+        body: got ? `You're ${gap.toLocaleString("en-US")} active calories short of today's ${target.toLocaleString("en-US")}. About ${mins} minutes of walking closes it.`
+                  : `No Watch active calories logged yet. Today's target is ${target.toLocaleString("en-US")}.`, gap, target };
+    } finally { ctx.getS = before; }
+  }
   if (slot === "calories") {
     const miss = [!active && "Watch active", !resting && "resting"].filter(Boolean);
     if (!miss.length && food) return null;
@@ -56,16 +77,10 @@ export function nudgeFor(state, now = new Date(), slot = "calories") {
 // service says are gone (404/410). `q` is the Neon tagged-template client.
 export async function runNudge({ state, q, now = new Date(), env = process.env, send, slot } = {}) {
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return { skipped: "no VAPID keys" };
-  let n;
-  // TEMPORARY (Oct 27): the Settings "Send a test reminder" button. Remove
-  // with the button once the user has confirmed reminders arrive.
-  if (slot === "test") n = { title: "Test reminder", body: "Reminders are working. You'll only get them when something isn't logged.", slot };
-  else {
-    if (!SLOTS[slot]) return { skipped: "unknown slot" };
-    if (torontoHour(now) !== SLOTS[slot].hour) return { skipped: "other daylight-saving twin" };
-    n = nudgeFor(state, now, slot);
-    if (!n) return { sent: 0, reason: "already logged" };
-  }
+  if (!SLOTS[slot]) return { skipped: "unknown slot" };
+  if (torontoHour(now) !== SLOTS[slot].hour) return { skipped: "other daylight-saving twin" };
+  const n = nudgeFor(state, now, slot);
+  if (!n) return { sent: 0, reason: "already logged" };
   const subject = env.VAPID_SUBJECT || (env.VERCEL_PROJECT_PRODUCTION_URL ? "https://" + env.VERCEL_PROJECT_PRODUCTION_URL : "https://forge.app");
   webpush.setVapidDetails(subject, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
   const push = send || ((sub, body) => webpush.sendNotification(sub, body));

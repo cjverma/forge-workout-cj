@@ -48,8 +48,7 @@ export default async function handler(req, res) {
   if (!((cronSecret && provided === cronSecret) || (appToken && provided === appToken))) return res.status(401).json({ error: "Unauthorized" });
   // The same function sends the daily logging reminders (vercel.json:
   // ?job=nudge&slot=weight|food|workout|calories, two crons per slot for
-  // daylight saving). slot=test is the TEMPORARY Settings test button, run
-  // with the app's own token.
+  // daylight saving).
   if (req.query?.job === "nudge") {
     try {
       await ensureSchema();
