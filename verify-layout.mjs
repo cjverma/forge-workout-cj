@@ -61,6 +61,10 @@ const SCREENS = [
     await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });
     await p.waitForTimeout(200);
     await p.evaluate(() => document.querySelector('[onclick*="expand("]')?.click()); } },
+  { name: "workout: how was today (review shown)", root: PAGE, run: async (p) => {
+    await p.evaluate(() => document.getElementById("p-Wednesday")?.click()); await p.waitForTimeout(150);
+    await p.evaluate(() => window.reviewToday?.()); await p.waitForTimeout(600);
+    await p.evaluate(() => document.getElementById("dayReviewOut")?.scrollIntoView({ block: "center" })); } },
   { name: "food: top", root: PAGE, run: async (p) => { await p.evaluate(() => document.getElementById("nav-nutrition").click()); } },
   { name: "food: progress cards open", root: PAGE, run: async (p) => { await p.evaluate(() => document.querySelectorAll("#tc details").forEach((d) => (d.open = true))); } },
   { name: "food: meal entry", root: PAGE, run: async (p) => { await p.evaluate(() => window.openFood()); } },

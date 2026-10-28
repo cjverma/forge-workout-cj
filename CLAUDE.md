@@ -626,6 +626,13 @@ Four surfaces resolve those keys back to names, and all four must agree:
   they shipped in the old volt style. The summary shows the session's total
   `_duration` via `fmtWorkoutDur()` ("48 min"), never the stretch since the
   last resume (which read "0m 01s").
+- **"How was today?"** (Oct 28): a tinted button under today's session,
+  ONLY on today's own screen (`isTodayScreen`: current week, today's
+  weekday). It sends `buildDayReviewFacts()` (every exercise's logged sets vs
+  last time's best, PRs, notes, calf twinges, duration, today's food items
+  and macros vs targets, Watch active vs target, weigh-in) to `/api/coach`
+  and shows the reply in a card; the last review is kept on this device for
+  today (`f5_dayreview`), not synced. No new server function.
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
 - **The target is last session's best set.** The user aims for a PR every
