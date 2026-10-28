@@ -79,6 +79,20 @@ function weight30Chart(){
   if(keys.length<2)return`<div class="trend-card"><div class="trend-title">Weight over 30 days</div><div style="font-size:11px;color:var(--dim)">Need at least 2 weigh-ins.</div></div>`;
   return`<div class="trend-card"><div class="trend-title">Weight over 30 days</div>${buildSparkline(keys,wts,true)}</div>`;
 }
+// Targets hit this week, kept off the goal card (user, Oct 28: "count days
+// logged, not days goal met; treat that separately, in the drawer").
+function weekTargetsHtml(){
+  const t=isoToday(),p=phaseFor(t);
+  if(!p)return"";
+  const c=weekCompliance(p,mondayOfIso(t),t);
+  const row=(l,v)=>`<div class="st-row" style="cursor:default"><div class="st-info"><div class="st-ttl">${l}</div></div><div style="font-variant-numeric:tabular-nums;color:var(--mid)">${v}</div></div>`;
+  const of=n=>c.finishedDays?`${n} of ${c.finishedDays} days`:"Starts tomorrow";
+  return`<div class="st-sec">Targets Hit This Week</div><div class="st-group">
+    ${row("Food at or under target",of(c.foodDays))}
+    ${row("Watch active target met",of(c.activeDays))}
+    ${row("Score so far",c.overall==null?"Starts after today":c.overall+"%")}
+  </div>`;
+}
 function renderDrawer(){
   const t=buildTrendData();
   const pTarget=proteinTargetG();
@@ -89,6 +103,7 @@ function renderDrawer(){
     ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained, <span style="color:var(--b2)">▮</span> rest`)}
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
+    ${weekTargetsHtml()}
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
@@ -529,6 +544,8 @@ function weekCompliance(p,weekStartIso,endIso){
     weighins:pct(weighDays,finished.length),
     active:pct(activeDays,finished.length),
     foodDays,weighDays,activeDays,finishedDays:finished.length,
+    // Logged at all (the goal card counts these; targets hit live in the drawer).
+    foodLogged:finished.filter(d=>kcalOf(d)>0).length,activeLogged:finished.filter(d=>Number(nd(d).active)>0).length,
     trained,need,expected,behindKg,weighDate:wDate,carried:!inWeek&&!!wDate,v:2,
   };
   const parts=Object.entries(COMPLIANCE_WEIGHTS).filter(([k])=>m[k]!=null);
@@ -910,19 +927,14 @@ function phaseCardHtml(){
   const ofDays=n=>comp.finishedDays?n+' of '+comp.finishedDays+' days':'Starts tomorrow';
   const wLine=comp.behindKg==null?'No weigh-in yet'
     :(comp.behindKg<=0?Math.abs(comp.behindKg).toFixed(1)+' kg ahead':comp.behindKg.toFixed(1)+' kg behind')+(comp.carried?' (last weigh-in)':'');
+  // Oct 28 (user): the card counts days LOGGED, not days a target was met;
+  // targets hit and the score live in the Insights drawer (weekTargetsHtml).
   const compHtml=
-    habit('Food on target',ofDays(comp.foodDays),comp.food)+
-    habit('Workouts',comp.trained+' of '+comp.need+' done'+(comp.trained<comp.need?', '+(comp.need-comp.trained)+' to go':''),comp.workouts)+
-    // Behind the line never reads green, even inside the 0.5 kg deadband's full score.
-    habit('Weight vs line',wLine,comp.behindKg>0&&comp.weight>=80?79:comp.weight)+
-    habit('Weigh-ins',ofDays(comp.weighDays),comp.weighins)+
-    habit('Watch active target',ofDays(comp.activeDays),comp.active)+
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 2px;border-top:1px solid var(--b1)">'+
-      '<span style="font-size:14px;font-weight:600;color:var(--mid)">Score so far this week</span>'+
-      (comp.overall==null
-        ?'<span style="'+nMuted+'">Starts after today</span>'
-        :'<span style="font-size:24px;font-weight:700;font-family:var(--font-display);font-variant-numeric:tabular-nums;color:'+scoreCol(comp.overall)+'">'+comp.overall+'%</span>')+
-    '</div>';
+    habit('Food logged',ofDays(comp.foodLogged),null)+
+    habit('Workouts',comp.trained+' of '+comp.need+' done'+(comp.trained<comp.need?', '+(comp.need-comp.trained)+' to go':''),null)+
+    habit('Weight vs line',wLine,null)+
+    habit('Weigh-ins',ofDays(comp.weighDays),null)+
+    habit('Watch active logged',ofDays(comp.activeLogged),null);
 
   // Live status chip in the collapsed summary
   // Explicit states: never "Behind -0.8 kg", "null kg" or "null%".

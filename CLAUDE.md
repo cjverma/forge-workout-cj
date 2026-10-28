@@ -279,8 +279,10 @@ The user (Oct 26): "5 kg phases starting today, 130 kg starting weight"; then
 (Oct 27) "up the ante: 2000 kcal deficit and harder training" and "95 by
 February end is still required". The ONE hard goal is `GOAL_CHECKPOINTS` in
 `src/phase.js`: **95 kg by Feb 28 2027**. `PHASES` ends in seven 5 kg steps
-(`p5_1`..`p5_7`, built from one table), **18 days each**, Oct 26 -> Feb 28
-(126 days), every one **2,139 kcal/day** (5 x 7,700 / 18, ~1.94 kg/week):
+(`p5_1`..`p5_7`, built from one table), **18 days each**, Oct 27 -> Feb 28,
+every one **2,139 kcal/day** (5 x 7,700 / 18, ~1.94 kg/week), except phase 1:
+the user moved the start to **Oct 27** (Oct 28), ends unchanged, so phase 1
+is 17 days at ~2,265/day; the `goal` history covers Oct 20-26:
 
 | phase | ends | kg |
 |---|---|---|
@@ -389,8 +391,11 @@ deficit maths:
 - Weekly history is stored with `v:2`; older weeks only carry `overall`, and
   the AI review describes them that way.
 
-The goal card shows only: weight vs the plan line, the "This week" habit rows
-(progress copy: "3 of 5 done, 2 to go"), and "Review my progress" (an AI
+The goal card shows only: weight vs the plan line, the "This week" rows
+counting days LOGGED (food logged, workouts "3 of 5 done, 2 to go", weight vs
+line, weigh-ins, Watch active logged; user, Oct 28: "count days logged and not
+days goal met"); targets hit and the score are in the Insights drawer
+("Targets Hit This Week", `weekTargetsHtml`), and "Review my progress" (an AI
 review of progress so far and how to get back on track). Pause, verdict,
 week summary, banked days and drift are behind `FEATURES.goal*` flags.
 

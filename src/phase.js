@@ -53,10 +53,11 @@ export const PHASES=[
    start:"2026-10-16",plannedEnd:"2026-10-19",startKg:128.5,targetKg:127.52,
    eatKcal:1500},
   // The 130 -> 95 by Feb 20 line, HISTORY since Oct 26 (user reset it to two
-  // hard checkpoints). Cut at Oct 25 with targetKg 128.31 so these six days
-  // keep their real ~2,173/day deficit (same trick as goal_v1 and phase_2).
+  // hard checkpoints). Cut at Oct 26 (the 5 kg plan starts Oct 27, user Oct
+  // 28) with targetKg 128.02 so these seven days keep their real ~2,173/day
+  // deficit (same trick as goal_v1 and phase_2).
   {id:"goal",name:"Goal: 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
-   start:"2026-10-20",plannedEnd:"2026-10-25",startKg:130,targetKg:128.31,
+   start:"2026-10-20",plannedEnd:"2026-10-26",startKg:130,targetKg:128.02,
    eatKcal:1500},
   // THE plan from Oct 26 2026: 5 kg phases from 130 kg (user, Oct 26) to
   // the hard goal of 95 kg by Feb 28 2027 (user, Oct 27: "95 by February end
@@ -72,8 +73,11 @@ export const PHASES=[
   // week averaging 1,457 eaten, the Watch active target is ~1,300 Mon-Sat and
   // ~560 on Sunday; the deficit stays a flat 2,139 a day on average. (Oct 26-27 it
   // was 21-day then 19-day phases; replaced before any phase closed.)
+  // Oct 28 (user): "change start date of plan to 27th instead of 26th". The
+  // phase ends and 95 by Feb 28 stay, so phase 1 is 17 days (Oct 27 - Nov 12,
+  // ~2,265 kcal/day); phases 2-7 are unchanged at 18 days and 2,139.
   ...[
-    ["2026-10-26","2026-11-12",130,125],
+    ["2026-10-27","2026-11-12",130,125],
     ["2026-11-13","2026-11-30",125,120],
     ["2026-12-01","2026-12-18",120,115],
     ["2026-12-19","2027-01-05",115,110],
