@@ -498,10 +498,11 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
   const src = NUTC.slice(NUTC.indexOf("const COMPLIANCE_WEIGHTS="), NUTC.indexOf("// Live health colour"));
   const addD = (iso, n) => { const d = new Date(iso + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const P = { id: "goal_feb", start: "2026-10-26", eatKcal: 1500 };
-  const mk = (S, { today = "2026-11-07", trained = [], line = 128, phase = null } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg", "eatKcalFor", "activeMult",
+  const mk = (S, { today = "2026-11-07", trained = [], line = 128, phase = null } = {}) => new Function("S", "isoToday", "addDaysIso", "noonUTC", "phaseFor", "phaseActiveTarget", "ACTIVE_MULT", "trainedOn", "isRestDay", "phaseCurveKg", "eatKcalFor", "activeMult", "weekCountFrom",
     src + "; return weekCompliance;")(S, () => today, addD, (iso) => new Date(iso + "T12:00:00Z"), () => phase || P, () => 800, 0.75,
       (d) => trained.includes(d), (d) => new Date(d + "T12:00:00Z").getUTCDay() === 0, () => line,
-      (p, d) => (p.eatKcalRest != null && new Date(d + "T12:00:00Z").getUTCDay() === 0 ? p.eatKcalRest : p.eatKcal), () => 0.75);
+      (p, d) => (p.eatKcalRest != null && new Date(d + "T12:00:00Z").getUTCDay() === 0 ? p.eatKcalRest : p.eatKcal), () => 0.75,
+      (m) => (m < "2026-10-27" && addD(m, 6) >= "2026-10-27" ? "2026-10-27" : m));
   const wk = ["2026-11-02", "2026-11-03", "2026-11-04", "2026-11-05", "2026-11-06"];
   const day = (kcal, active) => ({ items: kcal ? [{ kcal }] : [], active });
   const allGood = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1400, 900)])), weights: Object.fromEntries(wk.map((d) => [d, 127.5])) } };
@@ -514,6 +515,13 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
     const c = mk(sun, { today: "2026-11-02", phase: PS });
     ok("food on target uses the day's own target: 1,300 is on target on Saturday (1,500) but not on Sunday (1,200)",
       c({ ...PS }, "2026-10-26", "2026-11-01").foodDays === 1);
+  }
+  {
+    // Oct 28 (user): the plan starts Tue Oct 27; Mon Oct 26 is not a missed day.
+    const S0 = { nutrition: { days: { "2026-10-27": day(1400, 900) }, weights: { "2026-10-27": 129.5 } } };
+    const c = mk(S0, { today: "2026-10-28", trained: ["2026-10-27"] })(P, "2026-10-26", "2026-10-28");
+    ok("the plan's first week counts from Oct 27: Monday Oct 26 is not missed (1 of 1 days, workouts on schedule, 5 needed)",
+      c.finishedDays === 1 && c.foodLogged === 1 && c.weighDays === 1 && c.activeLogged === 1 && c.trained === 1 && c.expected === 1 && c.need === 5, JSON.stringify(c));
   }
   ok("6 workouts is still 100 (never over), and an extra session on the rest day is not penalised",
     mk(allGood, { trained: [...wk, "2026-11-07"] })(P, "2026-11-02", "2026-11-07").workouts === 100);
@@ -1989,9 +1997,9 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           rep.html.includes(x.verdict) && (rep.html.match(/<li /g) || []).length <= 3 && !/>Diet</.test(rep.html));
         ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 12)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
         ok("the email's weekly deficit counts only complete days (Saturday logged food but no workout, so it is out)",
-          x.nut.deficitDaysCounted === 5 && x.nut.daysLogged === 6, JSON.stringify({ c: x.nut.deficitDaysCounted, l: x.nut.daysLogged }));
-        ok("the report scores nutrition against the phase (1,500 kcal, 2,265 deficit in the 17-day phase 1)",
-          x.eatTarget === 1500 && x.req === 2265 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+          x.nut.deficitDaysCounted === 4 && x.nut.daysLogged === 5, JSON.stringify({ c: x.nut.deficitDaysCounted, l: x.nut.daysLogged }));
+        ok("the report scores nutrition against the phase (1,500 kcal, 2,265 deficit in the 17-day phase 1; Mon Oct 26 is before the plan, so 6 days)",
+          x.eatTarget === 1500 && x.req === 2265 && x.nut.daysLogged === 5 && x.nut.daysElapsed === 6 && x.nut.avgKcal === 1450 && x.nut.onTarget === 5, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",

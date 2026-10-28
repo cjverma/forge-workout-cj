@@ -2834,6 +2834,12 @@ const PHASES=[
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
     version:7,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500,eatKcalRest:1200,restingKcal:2700})),
 ];
+// The 5 kg plan's first day (Oct 27, user Oct 28: "plan didn't start from
+// Oct 26, so missing that shouldn't matter"). In the week it starts, days
+// before it are not counted by the habits or the deficit tracker.
+const PLAN_START=PHASES.find(p=>p.id==="p5_1").start;
+// First day a week's counts start from: Monday, or PLAN_START in its week.
+function weekCountFrom(monIso){return monIso<PLAN_START&&addDaysIso(monIso,6)>=PLAN_START?PLAN_START:monIso;}
 function phaseStore(){
   if(typeof S!=="undefined")return S;
   return ctx.getS();
@@ -5881,8 +5887,9 @@ function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addD
 function weekCompliance(p,weekStartIso,endIso){
   const t=isoToday();
   const days=[];
-  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
-  const week=[0,1,2,3,4,5,6].map(i=>addDaysIso(weekStartIso,i));
+  const from=weekCountFrom(weekStartIso);
+  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;if(d>=from)days.push(d);}
+  const week=[0,1,2,3,4,5,6].map(i=>addDaysIso(weekStartIso,i)).filter(d=>d>=from);
   const finished=days.filter(d=>d<t);
   const nd=d=>S.nutrition?.days?.[d]||{};
   const kcalOf=d=>(nd(d).items||[]).reduce((s,it)=>s+(Number(it.kcal)||0),0);
@@ -6110,8 +6117,10 @@ async function aiPhaseReview(id){
 function weekDeficitSummary(monIso){
   const t=isoToday();
   const days=[];let total=0,need=0,counted=0,weekNeed=0;
+  const from=weekCountFrom(monIso);
   for(let i=0;i<7;i++){
     const d=addDaysIso(monIso,i);
+    if(d<from)continue;
     const c=dayDeficitCheck(d,trainedOn(d));
     weekNeed+=c.expected||0;
     const state=d>t?"future":d===t?"today":c.complete?"counted":"missing";
@@ -6122,7 +6131,7 @@ function weekDeficitSummary(monIso){
   // Days people skip logging tend to be the worse ones, so a week with gaps
   // gets no verdict: more than 2 finished days uncounted (this week), or
   // fewer than 5 of 7 counted (a finished week).
-  const thin=monIso<mondayOfIso(t)?counted<5:finished-counted>2;
+  const thin=monIso<mondayOfIso(t)?counted<Math.min(5,days.length):finished-counted>2;
   return{days,total,need,counted,finished,thin,weekNeed:Math.round(weekNeed),gap:total-need};
 }
 // Gaps without colour (Oct 28 mockups, the user: "you're on to something"):

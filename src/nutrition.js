@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase, weekCountFrom } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
@@ -513,8 +513,9 @@ function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addD
 function weekCompliance(p,weekStartIso,endIso){
   const t=isoToday();
   const days=[];
-  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
-  const week=[0,1,2,3,4,5,6].map(i=>addDaysIso(weekStartIso,i));
+  const from=weekCountFrom(weekStartIso);
+  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;if(d>=from)days.push(d);}
+  const week=[0,1,2,3,4,5,6].map(i=>addDaysIso(weekStartIso,i)).filter(d=>d>=from);
   const finished=days.filter(d=>d<t);
   const nd=d=>S.nutrition?.days?.[d]||{};
   const kcalOf=d=>(nd(d).items||[]).reduce((s,it)=>s+(Number(it.kcal)||0),0);
@@ -742,8 +743,10 @@ async function aiPhaseReview(id){
 function weekDeficitSummary(monIso){
   const t=isoToday();
   const days=[];let total=0,need=0,counted=0,weekNeed=0;
+  const from=weekCountFrom(monIso);
   for(let i=0;i<7;i++){
     const d=addDaysIso(monIso,i);
+    if(d<from)continue;
     const c=dayDeficitCheck(d,trainedOn(d));
     weekNeed+=c.expected||0;
     const state=d>t?"future":d===t?"today":c.complete?"counted":"missing";
@@ -754,7 +757,7 @@ function weekDeficitSummary(monIso){
   // Days people skip logging tend to be the worse ones, so a week with gaps
   // gets no verdict: more than 2 finished days uncounted (this week), or
   // fewer than 5 of 7 counted (a finished week).
-  const thin=monIso<mondayOfIso(t)?counted<5:finished-counted>2;
+  const thin=monIso<mondayOfIso(t)?counted<Math.min(5,days.length):finished-counted>2;
   return{days,total,need,counted,finished,thin,weekNeed:Math.round(weekNeed),gap:total-need};
 }
 // Gaps without colour (Oct 28 mockups, the user: "you're on to something"):
