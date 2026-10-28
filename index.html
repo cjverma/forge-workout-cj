@@ -1374,6 +1374,32 @@ body[data-tab] #tc .danger-zone .st-ttl[style*="color:var(--red)"]{color:var(--r
 .wv .calf-btn{color:var(--accent-text);}
 body[data-tab] .edit-pill{box-shadow:none;}
 body[data-tab] .export-card{background:none;}
+/* Gaps without colour (Oct 28 mockups): empty circle = open, filled check =
+   done, dashed = not counted, clock = not over yet; open rows bold, done fade. */
+body[data-tab] .gap-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 0;border-top:.5px solid var(--b1);font-size:17px;letter-spacing:-.4px;color:var(--white);}
+body[data-tab] .gap-ic{width:22px;height:22px;flex:none;}
+body[data-tab] .gap-lbl{flex:1;min-width:0;}
+body[data-tab] .gap-sub{font-size:13px;letter-spacing:0;color:var(--mid);margin-top:1px;}
+body[data-tab] .gap-val{text-align:right;font-variant-numeric:tabular-nums;}
+body[data-tab] .gap-open .gap-val{font-weight:600;}
+body[data-tab] :is(.gap-done,.gap-skip,.gap-wait){color:var(--mid);}
+body[data-tab] :is(.gap-skip,.gap-wait) .gap-val{font-size:15px;}
+body[data-tab] .gap-note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:10px;padding:12px;margin:4px 0 12px;color:var(--white);}
+body[data-tab] .gap-note-t{font-size:15px;font-weight:600;}
+body[data-tab] .gap-note-b{font-size:15px;line-height:20px;color:var(--lt);margin-top:2px;}
+body[data-tab] .gap-group{padding:0 16px 4px;background:var(--s1);border-radius:var(--r-lg);}
+body[data-tab] .score-head{display:flex;align-items:center;gap:16px;padding:14px 0 10px;}
+body[data-tab] .score-big{font-family:var(--font-num);font-size:28px;font-weight:700;color:var(--white);font-variant-numeric:tabular-nums;}
+body[data-tab] .score-sub{font-size:15px;color:var(--mid);}
+body[data-tab] .act-line{font-size:15px;color:var(--lt);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;}
+body[data-tab] .act-line b{color:var(--white);font-weight:600;}
+body[data-tab] .act-line span{font-size:13px;color:var(--mid);}
+body[data-tab] .act-line.act-met{color:var(--mid);}
+body[data-tab] .macro-tr{position:relative;overflow:visible;}
+body[data-tab] .macro-tick{position:absolute;top:-3px;width:2px;height:10px;border-radius:1px;background:var(--white);margin-left:-1px;}
+body[data-tab] .macro-gap{font-size:13px;color:var(--mid);margin-top:5px;}
+body[data-tab] .macro-gap.open{color:var(--white);font-weight:600;}
+body[data-tab] .macro-plain .macro-v{color:var(--lt);}
 </style>
 </head>
 <body data-tab="workout">

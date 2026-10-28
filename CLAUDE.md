@@ -44,6 +44,15 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   Clear All Data). The JS paints status inline, so one `!important` block at
   the end of `index.html`'s styles normalises it; prefer neutral colours in
   new render code rather than leaning on it.
+- **Gaps without colour** (Oct 28, from the design-canvas mockups the user
+  liked): status lists use `gapRow(state,label,value,sub)` in
+  `src/nutrition.js`: `open` (empty circle, value bold, said as the gap:
+  "4 to go", "1 missed", "506 short"), `done` (filled check, faded), `skip`
+  (dashed circle, not counted), `wait` (clock, not over yet); open rows sort
+  first (`gapSort`). One `gapNote(title, body)` "Needs attention" box sits at
+  the top of a card with the biggest gap. Used on the goal card, the weekly
+  deficit, Insights' Targets Hit This Week; the intake ring reads "+581 kcal
+  over", macro tiles say "129 g to go" / "17 g over" with a limit tick.
 - Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=3`).
 - `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
 
