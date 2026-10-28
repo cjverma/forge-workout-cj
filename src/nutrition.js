@@ -557,6 +557,12 @@ function weekCompliance(p,weekStartIso,endIso){
     foodDays,weighDays,activeDays,finishedDays:finished.length,
     // Logged at all (the goal card counts these; targets hit live in the drawer).
     foodLogged:finished.filter(d=>kcalOf(d)>0).length,activeLogged:finished.filter(d=>Number(nd(d).active)>0).length,
+    // Logging counted day by day INCLUDING today once it is logged (user, Oct
+    // 28: "1 of 1 makes no sense, it has to be every single day"). An
+    // unlogged today is never missed: it only joins the count when done.
+    logged:Object.fromEntries([["food",d=>kcalOf(d)>0],["weigh",d=>ws[d]!=null],["active",d=>Number(nd(d).active)>0]].map(([k,f])=>{
+      const today=days.includes(t)&&f(t)?1:0;
+      return[k,{n:finished.filter(f).length+today,of:finished.length+today}];})),
     trained,need,expected,behindKg,weighDate:wDate,carried:!inWeek&&!!wDate,v:2,
   };
   const parts=Object.entries(COMPLIANCE_WEIGHTS).filter(([k])=>m[k]!=null);
@@ -967,15 +973,15 @@ function phaseCardHtml(){
   // Oct 28 (user): the card counts days LOGGED, not days a target was met;
   // targets hit and the score live in the Insights drawer (weekTargetsHtml).
   const fin=comp.finishedDays;
-  const logRow=(lbl,n)=>!fin?{state:"wait",lbl,val:"Starts tomorrow"}:n>=fin?{state:"done",lbl,val:ofDays(n)}:{state:"open",lbl,val:(fin-n)+" missed",sub:ofDays(n)};
+  const logRow=(lbl,c)=>!c.of?{state:"wait",lbl,val:"Not logged today yet"}:c.n>=c.of?{state:"done",lbl,val:`${c.n} of ${c.of} days`}:{state:"open",lbl,val:(c.of-c.n)+" missed",sub:`${c.n} of ${c.of} days`};
   const habitRows=[
     comp.trained>=comp.need?{state:"done",lbl:"Workouts",val:comp.trained+" of "+comp.need+" done"}
       :{state:"open",lbl:"Workouts",val:(comp.need-comp.trained)+" to go",sub:comp.trained+" of "+comp.need+" done"},
     comp.behindKg==null?{state:"open",lbl:"Weight vs line",val:"No weigh-in yet"}
       :comp.behindKg>0?{state:"open",lbl:"Weight vs line",val:wLine}:{state:"done",lbl:"Weight vs line",val:wLine},
-    logRow("Food logged",comp.foodLogged),
-    logRow("Weigh-ins",comp.weighDays),
-    logRow("Watch active logged",comp.activeLogged),
+    logRow("Food logged",comp.logged.food),
+    logRow("Weigh-ins",comp.logged.weigh),
+    logRow("Watch active logged",comp.logged.active),
   ];
   // Needs attention: what is actually behind (workouts only once behind
   // schedule, not merely "to go" on a Monday).
