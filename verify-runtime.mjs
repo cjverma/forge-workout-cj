@@ -680,9 +680,14 @@ try {
     const txt = await page.evaluate(() => document.getElementById("tc")?.textContent || "");
     const bad = txt.match(/.{40}(undefined|NaN|null kg|null%).{30}/g);
     note("the goal card shows the new goal and five habit rows with real numbers",
-      /Phase 1 of 7: 125 kg by Nov 12/.test(txt) && /95 kg by Feb 28.{0,40}kg a week needed/.test(txt) && !/Mar 31/.test(txt) && /Food on target\s*2 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
-      /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active target/.test(txt) && /Score so far this week/.test(txt) && !bad,
+      /Phase 1 of 7: 125 kg by Nov 12/.test(txt) && /95 kg by Feb 28.{0,40}kg a week needed/.test(txt) && !/Mar 31/.test(txt) && /Food logged\s*3 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
+      /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active logged\s*3 of 3 days/.test(txt) && !/Score so far|Food on target/.test(txt) && !bad,
       JSON.stringify(bad) + " " + (txt.match(/This week.{0,260}/) || [""])[0]);
+    // Targets hit (and the score) live in the Insights drawer instead.
+    await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
+    const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
+    note("the Insights drawer shows targets hit this week and the score (Nov 3 at 2,600 kcal is logged but not on target)",
+      /Targets Hit This Week/.test(dr) && /Food at or under target\s*2 of 3 days/.test(dr) && /Watch active target met\s*\d of 3 days/.test(dr) && /Score so far\s*\d+%/.test(dr), dr.slice(dr.indexOf("Targets"), dr.indexOf("Targets") + 200));
     note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));
     await page.close();
   }
@@ -710,7 +715,7 @@ try {
     const txt = await page.evaluate(() => [...document.querySelectorAll("details.st-acc")].find((x) => /Weekly deficit/.test(x.textContent))?.textContent || "");
     note("the weekly deficit tracker counts only complete days and names what is missing",
       /2 of 3 days counted/.test(txt) && !/no resting/.test(txt) && /Not counted: no workout/.test(txt) && /Today, counted tomorrow/.test(txt) && /Watch check: counting 75%/.test(txt) &&
-      /The week needs 14,9\d\d kcal/.test(txt) && /Last 4 weeks/.test(txt) && !/undefined|NaN|null/.test(txt), txt.slice(0, 400));
+      /The week needs 15,8\d\d kcal/.test(txt) && /Last 4 weeks/.test(txt) && !/undefined|NaN|null/.test(txt), txt.slice(0, 400));
     await page.close();
   }
 

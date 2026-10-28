@@ -237,8 +237,8 @@ ok("phaseFor boundaries: phase_1 · gap · phase_2 · goal_v1 Oct 16-19 · goal 
   E.phaseFor("2026-09-07")?.id === "phase_1" && E.phaseFor("2026-09-08") === null &&
   E.phaseFor("2026-09-22")?.id === "phase_2" && E.phaseFor("2026-10-15")?.id === "phase_2" &&
   E.phaseFor("2026-10-16")?.id === "goal_v1" && E.phaseFor("2026-10-19")?.id === "goal_v1" &&
-  E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-10-25")?.id === "goal" &&
-  E.phaseFor("2026-10-26")?.id === "p5_1" && E.phaseFor("2026-11-12")?.id === "p5_1" && E.phaseFor("2026-11-13")?.id === "p5_2" &&
+  E.phaseFor("2026-10-20")?.id === "goal" && E.phaseFor("2026-10-26")?.id === "goal" &&
+  E.phaseFor("2026-10-27")?.id === "p5_1" && E.phaseFor("2026-11-12")?.id === "p5_1" && E.phaseFor("2026-11-13")?.id === "p5_2" &&
   E.phaseFor("2027-02-10")?.id === "p5_6" && E.phaseFor("2027-02-11")?.id === "p5_7" && E.phaseFor("2027-02-28")?.id === "p5_7" &&
   E.phaseFor("2027-03-01") === null && !E.PHASES.some((p) => p.id === "phase_3"));
 ok("goal_v1 history keeps its real ~1,883/day deficit over Oct 16-19",
@@ -247,11 +247,11 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
   Math.abs(E.phaseRequiredDeficit(E.PHASES.find((p) => p.id === "phase_2")) - 2343) <= 60);
 {
   const G = E.PHASES.find((p) => p.id === "goal");
-  ok("the Oct 20 line is history: cut at Oct 25 keeping its real ~2,173 kcal/day",
-    G.start === "2026-10-20" && G.plannedEnd === "2026-10-25" && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 10);
+  ok("the Oct 20 line is history: cut at Oct 26 keeping its real ~2,173 kcal/day",
+    G.start === "2026-10-20" && G.plannedEnd === "2026-10-26" && Math.abs(E.phaseRequiredDeficit(G) - 2173) <= 10);
   const P5 = E.PHASES.filter((p) => /^p5_/.test(p.id));
-  ok("seven 5 kg phases from 130 kg on Oct 26, each starting where the last ended, no gaps, eat 1,500, no '·' in names",
-    P5.length === 7 && P5[0].start === "2026-10-26" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 12" &&
+  ok("seven 5 kg phases from 130 kg on Oct 27, each starting where the last ended, no gaps, eat 1,500, no '·' in names",
+    P5.length === 7 && P5[0].start === "2026-10-27" && P5[0].startKg === 130 && P5[0].name === "Phase 1 of 7: 125 kg by Nov 12" &&
     P5.every((p, i) => p.startKg - p.targetKg === 5 && p.eatKcal === 1500 && p.eatKcalRest === 1200 && p.restingKcal === 2700 && !/·/.test(p.name) &&
       (i === 0 || (p.startKg === P5[i - 1].targetKg && E.daysBetween(P5[i - 1].plannedEnd, p.start) === 1))));
   // Oct 27: "up the ante, 2000 kcal deficit". 19-day phases land early; the
@@ -266,8 +266,9 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
   ok("Sunday eats 1,200 and Mon-Sat 1,500; planning resting is a fixed 2,700, whatever the Watch logs",
     E.PHASES.find((p) => p.id === "p5_1") && mkEngine({ nutrition: { weights: {}, days: { "2026-10-27": { restingOverride: 3100 } } } }).restingForPhase(P5[0], "2026-10-28") === 2700);
   {
-    const t = E.phaseActiveTargets(P5[0], "2026-10-28");
-    ok("Watch active targets: ~1,300 Mon-Sat and ~560 on Sunday at 2,700 resting", Math.abs(t.workout - 1301) <= 2 && Math.abs(t.rest - 558) <= 2, JSON.stringify(t));
+    const t = E.phaseActiveTargets(P5[1], "2026-11-20"), t1 = E.phaseActiveTargets(P5[0], "2026-10-28");
+    ok("Watch active targets: ~1,300 Mon-Sat and ~560 on Sunday at 2,700 resting (phase 1, one day shorter: ~1,484 and ~636)",
+      Math.abs(t.workout - 1301) <= 2 && Math.abs(t.rest - 558) <= 2 && Math.abs(t1.workout - 1484) <= 2 && Math.abs(t1.rest - 636) <= 2, JSON.stringify({ t, t1 }));
   }
   // Oct 27 (user): a day's deficit only counts with food, the workout
   // (training days), active and resting all logged.
@@ -280,8 +281,8 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
       "2026-11-01": day({ kcal: 1200, active: 600, rest: 2700 }),    // Sun, rest day
     } } });
     const ok1 = D.dayDeficitCheck("2026-11-03", true), noWk = D.dayDeficitCheck("2026-11-03", false);
-    ok("a day with food, workout, active and resting counts: 2,700 + 0.75 x 1,200 - 1,450 = 2,150, against the plan's ~2,176",
-      ok1.complete && ok1.deficit === 2150 && Math.abs(ok1.expected - 2176) <= 2, JSON.stringify(ok1));
+    ok("a day with food, workout, active and resting counts: 2,700 + 0.75 x 1,200 - 1,450 = 2,150, against the plan's ~2,313 (phase 1)",
+      ok1.complete && ok1.deficit === 2150 && Math.abs(ok1.expected - 2313) <= 2, JSON.stringify(ok1));
     ok("a missing workout, food or active log keeps the day out and names what is missing",
       !noWk.complete && noWk.missing.join() === "workout" && noWk.deficit === null &&
       D.dayDeficitCheck("2026-11-05", true).missing.join() === "food" &&
@@ -299,8 +300,9 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
     ok("the rest day needs no workout to count",
       D.dayDeficitCheck("2026-11-01", false).complete === true);
   }
-  ok("every phase needs ~2,139 kcal/day (5 kg in 18 days)",
-    P5.every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2139) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 17));
+  ok("phases 2-7 need ~2,139 kcal/day (5 kg in 18 days); phase 1 starts Oct 27, so 17 days at ~2,265",
+    P5.slice(1).every((p) => Math.abs(E.phaseRequiredDeficit(p) - 2139) <= 1 && E.daysBetween(p.start, p.plannedEnd) === 17) &&
+    Math.abs(E.phaseRequiredDeficit(P5[0]) - 2265) <= 1 && E.daysBetween(P5[0].start, P5[0].plannedEnd) === 16);
 }
 
 // Pauses: extend:true shifts effectiveEnd, extend:false does not
@@ -556,7 +558,7 @@ ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
 ok("goal card: plan-vs-weigh-in row, This week habits, Review my progress; pause/verdict/banked/drift behind FEATURES flags",
   !HTML.includes("Range today") && HTML.includes("Your weigh-in: ") && HTML.includes("Exactly on plan") && HTML.includes("Review my progress") &&
-  HTML.includes("Food on target") && HTML.includes("Watch active target") &&
+  HTML.includes("Food logged") && HTML.includes("Watch active logged") && HTML.includes("Targets Hit This Week") && HTML.includes("Watch active target met") &&
   /FEATURES\.goalPause&&/.test(HTML) && /FEATURES\.goalVerdict&&/.test(HTML) && /FEATURES\.goalBanked&&banked/.test(HTML) && /FEATURES\.goalDrift&&/.test(HTML));
 ok("immutable snapshot on completion (S.phaseHistory) + quiet analytics incl. recoveryDays",
   HTML.includes("S.phaseHistory[id]=") && HTML.includes("recoveryDays") && HTML.includes("pauseDays"));
@@ -1911,8 +1913,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           const day = (active) => ({ nutrition: { days: { "2026-11-03": { items: [{ kcal: 1500 }], ...(active != null ? { active } : {}) } }, weights: {} }, sessions: {} });
           const short = nudgeFor(day(900), at("2026-11-03", 20), "active"), none = nudgeFor(day(null), at("2026-11-03", 20), "active");
           ok("reminders: 8:30 PM says how many active calories are left and roughly how long a walk closes it; nothing once the target is met",
-            short?.title === "Active calories short" && Math.abs(short.target - 1301) <= 2 && short.gap === short.target - 900 && /About \d+ minutes of walking/.test(short.body) &&
-            /No Watch active calories logged yet/.test(none?.body || "") && nudgeFor(day(1400), at("2026-11-03", 20), "active") === null, JSON.stringify(short));
+            short?.title === "Active calories short" && Math.abs(short.target - 1484) <= 2 && short.gap === short.target - 900 && /About \d+ minutes of walking/.test(short.body) &&
+            /No Watch active calories logged yet/.test(none?.body || "") && nudgeFor(day(1500), at("2026-11-03", 20), "active") === null, JSON.stringify(short));
         }
         ok("reminders: Sunday (rest day) gets no workout reminder", nudgeFor(empty, at("2026-11-08", 19), "workout") === null);
         ok("reminders: 11:30 PM Toronto is the next UTC day, and still checks the Toronto day",
@@ -1988,8 +1990,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
         ok("the report verdict is measured against the live 5 kg phase (130 to 125 by Nov 12)", /On track for 125 kg\./.test(x.verdict) && x.vs && x.vs.date === "2026-11-01" && x.goal.targetKg === 125 && x.goal.startKg === 130, x.verdict + " " + JSON.stringify(x.goal));
         ok("the email's weekly deficit counts only complete days (Saturday logged food but no workout, so it is out)",
           x.nut.deficitDaysCounted === 5 && x.nut.daysLogged === 6, JSON.stringify({ c: x.nut.deficitDaysCounted, l: x.nut.daysLogged }));
-        ok("the report scores nutrition against the phase (1,500 kcal, 2,139 deficit)",
-          x.eatTarget === 1500 && x.req === 2139 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
+        ok("the report scores nutrition against the phase (1,500 kcal, 2,265 deficit in the 17-day phase 1)",
+          x.eatTarget === 1500 && x.req === 2265 && x.nut.daysLogged === 6 && x.nut.daysElapsed === 7 && x.nut.avgKcal === 1450 && x.nut.onTarget === 6, JSON.stringify(x.nut));
         ok("5 of 6 workouts is not flagged (streak rule), a missing food log is",
           !x.focus.some((f) => /workouts to keep your streak/.test(f)) && x.focus.some((f) => /1 day missing/.test(f)), JSON.stringify(x.focus));
         ok("the report shows the PR with its gain over the previous best",

@@ -1356,6 +1356,19 @@ body[data-tab] .fit-sugg-row:last-child{border-bottom:0;}
 body[data-tab] .fit-sugg-name{font-size:17px;letter-spacing:-.4px;grid-column:1;}
 body[data-tab] .fit-sugg-meta{font-size:13px;color:var(--mid);grid-column:1;}
 body[data-tab] .fit-sugg-add{grid-column:2;grid-row:1/3;color:var(--accent-text);display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;}
+/* Status colour is Apple's way: values and words stay in label colours; colour
+   lives only in rings, bars and charts, and red text only on destructive
+   actions (Delete, Clear All Data). Oct 28, the user: "it has green, red etc
+   but Apple apps don't". The JS paints status text inline, so it is
+   normalised here (inline styles need !important). */
+body[data-tab] :is(#tc,#drawer,#planModal,#sum) :is([style*="color:var(--green)"],[style*="color:var(--red)"],[style*="color:var(--hero-pos)"],[style*="color:var(--hero-neg)"],[style*="color:#e8853d"]){color:var(--white)!important;}
+body[data-tab] :is(#tc,#drawer,#planModal,#sum) [style*="color:var(--amber)"]{color:var(--mid)!important;}
+body[data-tab] .nut-hero :is(.tpill-green,.tpill-amber,.tpill-red){background:var(--s2)!important;color:var(--mid)!important;}
+body[data-tab] .net-line:is(.net-green,.net-red),body[data-tab] .nut-hero .net-line:is(.net-green,.net-red){color:var(--white);}
+body[data-tab] .danger-zone{border:0;margin:24px 0 0;border-radius:0;}
+body[data-tab] .danger-zone .st-sec{color:var(--mid);background:none;border:0;padding:0;margin:24px 16px 7px;}
+body[data-tab] .danger-zone .st-group{border-radius:var(--r-lg);}
+body[data-tab] #tc .danger-zone .st-ttl[style*="color:var(--red)"]{color:var(--red)!important;}
 </style>
 </head>
 <body data-tab="workout">
@@ -2755,10 +2768,11 @@ const PHASES=[
    start:"2026-10-16",plannedEnd:"2026-10-19",startKg:128.5,targetKg:127.52,
    eatKcal:1500},
   // The 130 -> 95 by Feb 20 line, HISTORY since Oct 26 (user reset it to two
-  // hard checkpoints). Cut at Oct 25 with targetKg 128.31 so these six days
-  // keep their real ~2,173/day deficit (same trick as goal_v1 and phase_2).
+  // hard checkpoints). Cut at Oct 26 (the 5 kg plan starts Oct 27, user Oct
+  // 28) with targetKg 128.02 so these seven days keep their real ~2,173/day
+  // deficit (same trick as goal_v1 and phase_2).
   {id:"goal",name:"Goal: 95 kg by Feb 20",version:4,strategy:"fat_loss",curve:"linear",
-   start:"2026-10-20",plannedEnd:"2026-10-25",startKg:130,targetKg:128.31,
+   start:"2026-10-20",plannedEnd:"2026-10-26",startKg:130,targetKg:128.02,
    eatKcal:1500},
   // THE plan from Oct 26 2026: 5 kg phases from 130 kg (user, Oct 26) to
   // the hard goal of 95 kg by Feb 28 2027 (user, Oct 27: "95 by February end
@@ -2774,8 +2788,11 @@ const PHASES=[
   // week averaging 1,457 eaten, the Watch active target is ~1,300 Mon-Sat and
   // ~560 on Sunday; the deficit stays a flat 2,139 a day on average. (Oct 26-27 it
   // was 21-day then 19-day phases; replaced before any phase closed.)
+  // Oct 28 (user): "change start date of plan to 27th instead of 26th". The
+  // phase ends and 95 by Feb 28 stay, so phase 1 is 17 days (Oct 27 - Nov 12,
+  // ~2,265 kcal/day); phases 2-7 are unchanged at 18 days and 2,139.
   ...[
-    ["2026-10-26","2026-11-12",130,125],
+    ["2026-10-27","2026-11-12",130,125],
     ["2026-11-13","2026-11-30",125,120],
     ["2026-12-01","2026-12-18",120,115],
     ["2026-12-19","2027-01-05",115,110],
@@ -5399,6 +5416,20 @@ function weight30Chart(){
   if(keys.length<2)return`<div class="trend-card"><div class="trend-title">Weight over 30 days</div><div style="font-size:11px;color:var(--dim)">Need at least 2 weigh-ins.</div></div>`;
   return`<div class="trend-card"><div class="trend-title">Weight over 30 days</div>${buildSparkline(keys,wts,true)}</div>`;
 }
+// Targets hit this week, kept off the goal card (user, Oct 28: "count days
+// logged, not days goal met; treat that separately, in the drawer").
+function weekTargetsHtml(){
+  const t=isoToday(),p=phaseFor(t);
+  if(!p)return"";
+  const c=weekCompliance(p,mondayOfIso(t),t);
+  const row=(l,v)=>`<div class="st-row" style="cursor:default"><div class="st-info"><div class="st-ttl">${l}</div></div><div style="font-variant-numeric:tabular-nums;color:var(--mid)">${v}</div></div>`;
+  const of=n=>c.finishedDays?`${n} of ${c.finishedDays} days`:"Starts tomorrow";
+  return`<div class="st-sec">Targets Hit This Week</div><div class="st-group">
+    ${row("Food at or under target",of(c.foodDays))}
+    ${row("Watch active target met",of(c.activeDays))}
+    ${row("Score so far",c.overall==null?"Starts after today":c.overall+"%")}
+  </div>`;
+}
 function renderDrawer(){
   const t=buildTrendData();
   const pTarget=proteinTargetG();
@@ -5409,6 +5440,7 @@ function renderDrawer(){
     ${tbarChart("Calorie burn",t,d=>d.burn,d=>d.trained?"var(--orange)":"var(--b2)",`<span style="color:var(--orange)">▮</span> trained, <span style="color:var(--b2)">▮</span> rest`)}
     ${tbarChart("Daily deficit",t,d=>d.deficit,(d,v)=>v==null?"var(--b2)":v>=0?"var(--green)":"var(--red)","green = deficit")}
     ${weight30Chart()}
+    ${weekTargetsHtml()}
     <div class="st-sec">AI Coaching</div>
     <div class="ai-card" style="margin-bottom:10px"><div class="ai-card-title">${icon("refresh",20)} Machine Busy?</div><input class="ai-inp" id="si" placeholder='e.g. "chest press 20kg is busy"'><button class="ai-btn" onclick="aiRun('sub')">Find Alternative</button><div class="ai-out" id="so"></div></div>
     <div class="ai-card"><div class="ai-card-title">${icon("moon",20)} How Hard Should I Train?</div><div class="g2"><div><label class="ai-lbl">CPAP Score</label><input class="ai-sm" id="sl" type="number" placeholder="91"></div><div><label class="ai-lbl">Energy (1-10)</label><input class="ai-sm" id="en" type="number" placeholder="7"></div><div><label class="ai-lbl">Soreness (1-10)</label><input class="ai-sm" id="sr" type="number" placeholder="3"></div><div><label class="ai-lbl">Calf Pain</label><select class="ai-sm" id="cp"><option value="none">None</option><option value="mild">Mild</option><option value="moderate">Moderate</option><option value="severe">Severe</option></select></div></div><button class="ai-btn" onclick="aiRun('recovery')">Analyse Recovery</button><div class="ai-out" id="ro"></div></div>
@@ -5636,9 +5668,9 @@ function renderNutrition(){
           return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer;active:background:var(--s2)">
             <div>
               <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
+              <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, ${Math.round((f.protein||0)*400/f.kcal)}% protein`:""}${f.n>1?`, ${f.n}×`:""}</div>
             </div>
-            <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+            <span style="font-size:20px;color:var(--accent-text);padding-left:12px">+</span>
           </div>`;
         }).join("");
         return`<div>
@@ -5849,6 +5881,8 @@ function weekCompliance(p,weekStartIso,endIso){
     weighins:pct(weighDays,finished.length),
     active:pct(activeDays,finished.length),
     foodDays,weighDays,activeDays,finishedDays:finished.length,
+    // Logged at all (the goal card counts these; targets hit live in the drawer).
+    foodLogged:finished.filter(d=>kcalOf(d)>0).length,activeLogged:finished.filter(d=>Number(nd(d).active)>0).length,
     trained,need,expected,behindKg,weighDate:wDate,carried:!inWeek&&!!wDate,v:2,
   };
   const parts=Object.entries(COMPLIANCE_WEIGHTS).filter(([k])=>m[k]!=null);
@@ -6230,19 +6264,14 @@ function phaseCardHtml(){
   const ofDays=n=>comp.finishedDays?n+' of '+comp.finishedDays+' days':'Starts tomorrow';
   const wLine=comp.behindKg==null?'No weigh-in yet'
     :(comp.behindKg<=0?Math.abs(comp.behindKg).toFixed(1)+' kg ahead':comp.behindKg.toFixed(1)+' kg behind')+(comp.carried?' (last weigh-in)':'');
+  // Oct 28 (user): the card counts days LOGGED, not days a target was met;
+  // targets hit and the score live in the Insights drawer (weekTargetsHtml).
   const compHtml=
-    habit('Food on target',ofDays(comp.foodDays),comp.food)+
-    habit('Workouts',comp.trained+' of '+comp.need+' done'+(comp.trained<comp.need?', '+(comp.need-comp.trained)+' to go':''),comp.workouts)+
-    // Behind the line never reads green, even inside the 0.5 kg deadband's full score.
-    habit('Weight vs line',wLine,comp.behindKg>0&&comp.weight>=80?79:comp.weight)+
-    habit('Weigh-ins',ofDays(comp.weighDays),comp.weighins)+
-    habit('Watch active target',ofDays(comp.activeDays),comp.active)+
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:8px 0 2px;border-top:1px solid var(--b1)">'+
-      '<span style="font-size:14px;font-weight:600;color:var(--mid)">Score so far this week</span>'+
-      (comp.overall==null
-        ?'<span style="'+nMuted+'">Starts after today</span>'
-        :'<span style="font-size:24px;font-weight:700;font-family:var(--font-display);font-variant-numeric:tabular-nums;color:'+scoreCol(comp.overall)+'">'+comp.overall+'%</span>')+
-    '</div>';
+    habit('Food logged',ofDays(comp.foodLogged),null)+
+    habit('Workouts',comp.trained+' of '+comp.need+' done'+(comp.trained<comp.need?', '+(comp.need-comp.trained)+' to go':''),null)+
+    habit('Weight vs line',wLine,null)+
+    habit('Weigh-ins',ofDays(comp.weighDays),null)+
+    habit('Watch active logged',ofDays(comp.activeLogged),null);
 
   // Live status chip in the collapsed summary
   // Explicit states: never "Behind -0.8 kg", "null kg" or "null%".
@@ -6411,9 +6440,9 @@ function filterFoodSearch(q,date){
     return`<div onclick="quickAddRecent(${args});_foodSearchOpen=false;_foodSearchQ='';renderNutrition()" style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--b1);cursor:pointer">
       <div>
         <div style="font-size:13px;font-weight:600;color:var(--white)">${esc(f.name)}</div>
-        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, <span style="color:var(--amber)">${Math.round((f.protein||0)*400/f.kcal)}% protein</span>`:""}${f.n>1?`, ${f.n}×`:""}</div>
+        <div style="font-size:11px;color:var(--dim);margin-top:2px">${f.kcal} kcal, P ${f.protein||0}g, C ${f.carbs||0}g, F ${f.fat||0}g${f.kcal>0?`, ${Math.round((f.protein||0)*400/f.kcal)}% protein`:""}${f.n>1?`, ${f.n}×`:""}</div>
       </div>
-      <span style="font-size:20px;color:var(--amber);padding-left:12px">+</span>
+      <span style="font-size:20px;color:var(--accent-text);padding-left:12px">+</span>
     </div>`;
   }).join("")||`<div style="color:var(--dim);font-size:13px;padding:16px 0;text-align:center">No matches found</div>`;
 }

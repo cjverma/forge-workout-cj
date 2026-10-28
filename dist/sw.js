@@ -1,6 +1,6 @@
 // Cache version: bump this string on any asset/design change so every client
 // drops the old cache and installs the new one.
-const V = "forge-v126";
+const V = "forge-v128";
 
 // Offline-first PWA. build.mjs copies this file into dist/ (the only folder
 // Vercel serves) and fills DEMOS with every bundled demo image, so the app AND
