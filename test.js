@@ -880,8 +880,8 @@ ok("the DOM read is unconditional (no truthiness gate that would preserve stale 
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");
-ok("proteinTargetG defined once, dosed off CURRENT weight not goal weight",
-  /export function proteinTargetG\(\)\{return Math\.round\(\(latestWeightLog\(\)\|\|USER\.weightKg\)\*1\.8\);\}/.test(PHASE_SRC));
+ok("proteinTargetG defined once: 1.8 g x the 80 kg eventual goal (144 g), not current weight (user, Oct 28)",
+  /export const PROTEIN_GOAL_KG=80;/.test(PHASE_SRC) && /export function proteinTargetG\(\)\{return Math\.round\(PROTEIN_GOAL_KG\*1\.8\);\}/.test(PHASE_SRC));
 
 const NUT_SRC = readFileSync("src/nutrition.js", "utf8");
 const SET_SRC = readFileSync("src/settings.js", "utf8");
@@ -889,7 +889,7 @@ const WK_SRC = readFileSync("src/workout.js", "utf8");
 const CRON_SRC = readFileSync("api/cron-diet-review.js", "utf8");
 ok("every former hardcoded protein number now calls proteinTargetG()",
   /const pTarget=proteinTargetG\(\);/.test(NUT_SRC) &&
-  /const pTarget=Math\.round\(proteinTargetG\(\)\*\(trained\?1\.1:1\)\);/.test(NUT_SRC) &&
+  !/proteinTargetG\(\)\*\(trained/.test(NUT_SRC) &&
   /const pTarget=proteinTargetG\(\);/.test(SET_SRC) &&
   /const pt=proteinTargetG\(\);/.test(WK_SRC) && />=pt;/.test(WK_SRC));
 ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
@@ -902,7 +902,7 @@ ok("no leftover hardcoded 130/143/160/190 protein numbers at the old sites",
 // actually re-synced, not left stale.
 ok("server diet-review cron mirror re-synced (95 by 2027-02-28 in 18-day 5 kg phases, five habits, protein snapshot)",
   /targetKg: 95,/.test(CRON_SRC) && /goalDate: "2027-02-28"/.test(CRON_SRC) && /95 kg by Feb 28 2027/.test(CRON_SRC) && /18 days each/.test(CRON_SRC) && /five habits/.test(CRON_SRC) &&
-  /proteinTargetG: 230,/.test(CRON_SRC));
+  /proteinTargetG: 144,/.test(CRON_SRC));
 
 // Found live while verifying the phase_2/phase_3 changes: phaseCardHtml()
 // used a single `.find()`, which takes array order. A phase that has PASSED

@@ -386,7 +386,12 @@ export function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()
 // overshoot relative to lean mass at a higher body-fat%) and lands at a
 // defensible middle point without needing lean-mass-tracking infrastructure
 // this app doesn't have.
-export function proteinTargetG(){return Math.round((latestWeightLog()||USER.weightKg)*1.8);}
+// Protein: 1.8 g per kg of the user's EVENTUAL goal weight, 80 kg (Oct 28:
+// "my goal weight eventually is 80 kg so it should be based on that"). Dosed
+// off current weight it was 256 g on 1,500 kcal (68% of the food); body fat
+// needs no protein, so the goal weight is the right base. Fixed: 144 g.
+export const PROTEIN_GOAL_KG=80;
+export function proteinTargetG(){return Math.round(PROTEIN_GOAL_KG*1.8);}
 // Rounded here too. Every renderer, prompt and export reads through this, so
 // one stale unrounded value cannot leak past it.
 export function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?kg1(ws[keys[keys.length-1]]):null;}

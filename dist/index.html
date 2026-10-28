@@ -3132,7 +3132,12 @@ function calcBMR(w){return Math.round(10*w+6.25*USER.heightCm-5*calcAge()+5);}
 // overshoot relative to lean mass at a higher body-fat%) and lands at a
 // defensible middle point without needing lean-mass-tracking infrastructure
 // this app doesn't have.
-function proteinTargetG(){return Math.round((latestWeightLog()||USER.weightKg)*1.8);}
+// Protein: 1.8 g per kg of the user's EVENTUAL goal weight, 80 kg (Oct 28:
+// "my goal weight eventually is 80 kg so it should be based on that"). Dosed
+// off current weight it was 256 g on 1,500 kcal (68% of the food); body fat
+// needs no protein, so the goal weight is the right base. Fixed: 144 g.
+const PROTEIN_GOAL_KG=80;
+function proteinTargetG(){return Math.round(PROTEIN_GOAL_KG*1.8);}
 // Rounded here too. Every renderer, prompt and export reads through this, so
 // one stale unrounded value cannot leak past it.
 function latestWeightLog(){const S=phaseStore();const ws=S.nutrition.weights||{};const keys=Object.keys(ws).sort();return keys.length?kg1(ws[keys[keys.length-1]]):null;}
@@ -5589,10 +5594,9 @@ function renderNutrition(){
   const sodium=items.reduce((s,i)=>s+(i.sodium||0),0);
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
-  // Protein target: shared proteinTargetG() (1.8g × current weight), +10% on
-  // days with training or logged active burn.
-  const trained=trainedOn(date)||active>0;
-  const pTarget=Math.round(proteinTargetG()*(trained?1.1:1));
+  // Protein target: shared proteinTargetG() (1.8 g x 80 kg goal), the same
+  // every day (Oct 28: one fixed number is simpler to hit).
+  const pTarget=proteinTargetG();
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
