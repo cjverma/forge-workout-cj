@@ -522,6 +522,11 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
     const c = mk(S0, { today: "2026-10-28", trained: ["2026-10-27"] })(P, "2026-10-26", "2026-10-28");
     ok("the plan's first week counts from Oct 27: Monday Oct 26 is not missed (1 of 1 days, workouts on schedule, 5 needed)",
       c.finishedDays === 1 && c.foodLogged === 1 && c.weighDays === 1 && c.activeLogged === 1 && c.trained === 1 && c.expected === 1 && c.need === 5, JSON.stringify(c));
+    // "1 of 1 makes no sense": today joins the count once it is logged, never as missed.
+    S0.nutrition.days["2026-10-28"] = day(600, 0); S0.nutrition.weights["2026-10-28"] = 129.2;
+    const c2 = mk(S0, { today: "2026-10-28", trained: ["2026-10-27"] })(P, "2026-10-26", "2026-10-28");
+    ok("logged counts include today once logged (food 2 of 2, weigh-ins 2 of 2) and never count an unlogged today as missed (active 1 of 1)",
+      c2.logged.food.n === 2 && c2.logged.food.of === 2 && c2.logged.weigh.n === 2 && c2.logged.weigh.of === 2 && c2.logged.active.n === 1 && c2.logged.active.of === 1, JSON.stringify(c2.logged));
   }
   ok("6 workouts is still 100 (never over), and an extra session on the rest day is not penalised",
     mk(allGood, { trained: [...wk, "2026-11-07"] })(P, "2026-11-02", "2026-11-07").workouts === 100);
