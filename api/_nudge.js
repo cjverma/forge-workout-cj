@@ -92,3 +92,20 @@ export async function runNudge({ state, q, now = new Date(), env = process.env, 
   }
   return { sent, dropped, slot: n.slot, title: n.title };
 }
+
+// Sent once to a phone the moment reminders are switched on (user, Oct 28:
+// "whenever I switch reminders on, send a test right then"), so it is clear
+// on the spot that this phone receives them. Failures are swallowed: the
+// subscription is already saved and the daily reminders still work.
+export const WELCOME = {
+  title: "Reminders on",
+  body: "You'll get a nudge only when something isn't done: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM.",
+  slot: "welcome",
+};
+export async function sendWelcome(sub, { env = process.env, send } = {}) {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY || !sub?.endpoint) return { sent: 0, skipped: "no keys or subscription" };
+  const subject = env.VAPID_SUBJECT || (env.VERCEL_PROJECT_PRODUCTION_URL ? "https://" + env.VERCEL_PROJECT_PRODUCTION_URL : "https://forge.app");
+  webpush.setVapidDetails(subject, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
+  try { await (send || ((s, b) => webpush.sendNotification(s, b)))(sub, JSON.stringify(WELCOME)); return { sent: 1 }; }
+  catch (e) { return { sent: 0, error: e.statusCode || e.message }; }
+}

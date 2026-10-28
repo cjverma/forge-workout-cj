@@ -1,4 +1,5 @@
 import { setCors, checkAuth } from "./_shared.js";
+import { sendWelcome } from "./_nudge.js";
 import { sql, ensureSchema } from "./_db.js";
 import { kg1 } from "../src/constants.js";
 import { dayMetaUpsertSql } from "./healthkit.js";
@@ -166,6 +167,8 @@ export default async function handler(req, res) {
         if (!sub || typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://")) break;
         await q`INSERT INTO push_subscriptions(endpoint, sub) VALUES (${sub.endpoint}, ${JSON.stringify(sub)})
                 ON CONFLICT (endpoint) DO UPDATE SET sub=EXCLUDED.sub`;
+        // Confirm on the spot that this phone receives reminders.
+        await sendWelcome(sub);
         break;
       }
       case "push_unsubscribe": {
