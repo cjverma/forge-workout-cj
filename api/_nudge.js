@@ -77,16 +77,10 @@ export function nudgeFor(state, now = new Date(), slot = "calories") {
 // service says are gone (404/410). `q` is the Neon tagged-template client.
 export async function runNudge({ state, q, now = new Date(), env = process.env, send, slot } = {}) {
   if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return { skipped: "no VAPID keys" };
-  let n;
-  // TEMPORARY (Oct 27): the Settings "Send a test reminder" button. Remove
-  // with the button once the user has confirmed reminders arrive.
-  if (slot === "test") n = { title: "Test reminder", body: "Reminders are working. You'll only get them when something isn't logged.", slot };
-  else {
-    if (!SLOTS[slot]) return { skipped: "unknown slot" };
-    if (torontoHour(now) !== SLOTS[slot].hour) return { skipped: "other daylight-saving twin" };
-    n = nudgeFor(state, now, slot);
-    if (!n) return { sent: 0, reason: "already logged" };
-  }
+  if (!SLOTS[slot]) return { skipped: "unknown slot" };
+  if (torontoHour(now) !== SLOTS[slot].hour) return { skipped: "other daylight-saving twin" };
+  const n = nudgeFor(state, now, slot);
+  if (!n) return { sent: 0, reason: "already logged" };
   const subject = env.VAPID_SUBJECT || (env.VERCEL_PROJECT_PRODUCTION_URL ? "https://" + env.VERCEL_PROJECT_PRODUCTION_URL : "https://forge.app");
   webpush.setVapidDetails(subject, env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY);
   const push = send || ((sub, body) => webpush.sendNotification(sub, body));

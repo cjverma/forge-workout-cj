@@ -6448,17 +6448,7 @@ async function toggleReminders(){
   }catch(e){showToast("Couldn't turn on reminders. Try again from the Home Screen app.");}
 }
 window.toggleReminders=toggleReminders;
-// TEMPORARY (Oct 27): remove with the server's slot=test once the user has
-// confirmed a test reminder arrives.
-async function sendTestReminder(){
-  try{
-    const r=await fetch(API_CFG.baseUrl+"/api/cron-weekly-plan?job=nudge&slot=test",{headers:{"Authorization":"Bearer "+API_CFG.token}});
-    const d=await r.json().catch(()=>({}));
-    if(!r.ok)throw new Error(d.error||r.status);
-    showToast(d.sent?"Test sent. It should arrive in a few seconds.":d.skipped==="no VAPID keys"?"The server has no reminder keys yet.":"No phone is subscribed yet. Turn reminders on first.");
-  }catch(e){showToast("Couldn't send the test. Try again.");}
-}
-window.sendTestReminder=sendTestReminder;
+
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
     <div class="st-pg-title">Settings</div>
@@ -6594,7 +6584,6 @@ function renderST(){
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
           <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("bell",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM, each only if it isn't done. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
-          ${remindersOn()?`<div class="st-row" onclick="sendTestReminder()"><div class="st-icon">${icon("bell",18)}</div><div class="st-info"><div class="st-ttl">Send Test Reminder</div><div class="st-sub">Temporary. Sends one now to check this phone receives them</div></div></div>`:""}
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""}, tap to view</div></div></summary>

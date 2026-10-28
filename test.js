@@ -1929,8 +1929,8 @@ ok("the longest streak is recomputed in weeks, not accumulated",
           r2.sent === 1 && r2.dropped === 1 && del2[0] === "https://gone", JSON.stringify(r2));
         const twin = await runNudge({ state: empty, q: fakeQ(subs, []), now: at("2026-11-03", 8), env, send, slot: "weight" });
         const test = await runNudge({ state: logged, q: fakeQ(subs, []), now: at("2026-11-03", 15), env, send, slot: "test" });
-        ok("reminders: the daylight-saving twin cron (wrong local hour) sends nothing; the test slot always sends",
-          twin.skipped === "other daylight-saving twin" && test.sent === 1 && test.title === "Test reminder");
+        ok("reminders: the daylight-saving twin cron (wrong local hour) sends nothing; the temporary test slot is gone",
+          twin.skipped === "other daylight-saving twin" && test.skipped === "unknown slot" && !/sendTestReminder/.test(readFileSync("src/settings.js", "utf8")));
         const nudgeCrons = VJ.crons.filter((c) => /job=nudge/.test(c.path));
         const bySlot = (sl) => nudgeCrons.filter((c) => c.path.endsWith("slot=" + sl)).map((c) => c.schedule).sort().join("|");
         ok("reminder crons: two per slot (EDT and EST) at 9:30 AM, 11 AM, 7 PM and 11:30 PM Toronto",
