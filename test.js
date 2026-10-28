@@ -2841,49 +2841,33 @@ section("Runtime (rendered DOM)");
     execSync("node -e \"import('playwright').then(()=>process.exit(0),()=>process.exit(1))\"", { stdio: "pipe" });
   } catch { haveBrowser = false; }
 
-  if (!haveBrowser) {
+  // --quick: static checks only, for checks while working. Never the gate
+  // before main: that always runs the browser suites.
+  const QUICK = process.argv.includes("--quick");
+  if (QUICK) {
+    console.log("  ~  skipped: --quick (static checks only; run the full suite before main)");
+  } else if (!haveBrowser) {
     console.log("  ~  skipped: playwright not available (static checks only)");
   } else {
-    try {
-      const out = execSync("node verify-runtime.mjs", { stdio: "pipe" }).toString();
+    // The three browser suites are independent (own server ports, own
+    // browsers), so they run at the same time: ~10 min in a row, ~2-3 at once.
+    //   verify-runtime.mjs  rendered DOM checks
+    //   e2e-flows.mjs       every user action driven in the built app
+    //   verify-layout.mjs   every screen and sheet on 4 iPhones, both themes,
+    //                       MEASURED for off-screen, clipped, overlapping and
+    //                       low-contrast text, text escaping its card or ring,
+    //                       tiny text, small tap targets, old-look leftovers.
+    const { exec } = await import("child_process");
+    const runChild = (file) => new Promise((res) => exec(`node ${file}`, { maxBuffer: 32 * 1024 * 1024 }, (err, stdout, stderr) => res({ err, out: (stdout || "") + (err ? stderr || "" : "") })));
+    const SUITES = [["verify-runtime.mjs", null, "runtime checks"], ["e2e-flows.mjs", "End-to-end user flows", "end-to-end flows"], ["verify-layout.mjs", "Layout audit (every screen, 4 iPhones, both themes)", "layout audit"]];
+    const results = await Promise.all(SUITES.map(([f]) => runChild(f)));
+    SUITES.forEach(([, title, label], i) => {
+      if (title) section(title);
+      const { err, out } = results[i];
       out.split("\n").filter(Boolean).forEach((l) => console.log(l));
-      // each ✓ line from the child counts as a passing check
-      const n = (out.match(/✓/g) || []).length;
-      for (let i = 0; i < n; i++) passed++;
-    } catch (e) {
-      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
-      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
-      ok("runtime checks", false, "see output above");
-    }
-    // End-to-end user flows (e2e-flows.mjs): every user action driven in the
-    // built app with a mocked server. Needs dist/ built (node build.mjs).
-    section("End-to-end user flows");
-    try {
-      const out = execSync("node e2e-flows.mjs", { stdio: "pipe" }).toString();
-      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
-      const n = (out.match(/✓/g) || []).length;
-      for (let i = 0; i < n; i++) passed++;
-    } catch (e) {
-      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
-      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
-      ok("end-to-end flows", false, "see output above");
-    }
-    // Layout audit (verify-layout.mjs): every screen and sheet at 375/390/430
-    // in both themes, MEASURED for off-screen, clipped, overlapping and
-    // low-contrast text, text escaping its card or ring, tiny text, small tap
-    // targets and old-look leftovers. Screenshots missed "1,500" touching its
-    // ring; this would not.
-    section("Layout audit (every screen, 3 widths, both themes)");
-    try {
-      const out = execSync("node verify-layout.mjs", { stdio: "pipe", maxBuffer: 32 * 1024 * 1024 }).toString();
-      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
-      const n = (out.match(/✓/g) || []).length;
-      for (let i = 0; i < n; i++) passed++;
-    } catch (e) {
-      const out = (e.stdout?.toString() || "") + (e.stderr?.toString() || "");
-      out.split("\n").filter(Boolean).forEach((l) => console.log(l));
-      ok("layout audit", false, "see output above");
-    }
+      if (err) ok(label, false, "see output above");
+      else { const n = (out.match(/✓/g) || []).length; for (let k = 0; k < n; k++) passed++; }
+    });
   }
 }
 

@@ -29,7 +29,7 @@ import express from "express";
 import { NOW, dayIso, fixture } from "./test-fixture.mjs";
 
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
-const PORT = 8794, BASE = `http://127.0.0.1:${PORT}/`;
+const PORT = 8795, BASE = `http://127.0.0.1:${PORT}/`;
 const OUT = process.env.LAYOUT_OUT || "";
 if (OUT) mkdirSync(OUT, { recursive: true });
 
@@ -341,7 +341,9 @@ const runs = [
   ...[DEVICES[0], DEVICES[2]].flatMap((d) => ["light", "dark"].map((t) => ({ d, t, state: empty, data: "empty" }))),
 ];
 let jsErrors = [];
-for (const run of runs) {
+// Runs are independent (own context, own storage), so a few go at once.
+const JOBS = Number(process.env.LAYOUT_JOBS) || 3;
+async function doRun(run) {
   const { ctx, page, errors } = await open(run.d, run.t, run.state);
   for (const sc of SCREENS) {
     if (run.data === "empty" && /unit review|swap/.test(sc.name)) continue;
@@ -365,6 +367,8 @@ for (const run of runs) {
   jsErrors.push(...errors);
   await ctx.close();
 }
+const queue = runs.slice();
+await Promise.all(Array.from({ length: JOBS }, async () => { while (queue.length) await doRun(queue.shift()); }));
 await browser.close();
 server.close();
 

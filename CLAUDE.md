@@ -907,6 +907,14 @@ deleted, and the badge never changed.
   **Add any new screen or sheet to its `SCREENS` list.** Exceptions go in
   `ALLOW` with a reason. `E2E_STATE=backup.json` runs it on real data
   (local only); `LAYOUT_OUT=dir` crops every finding.
+- **Test time (Oct 28, the user: "we need to improve overall time").**
+  `node test.js` runs the three browser suites (`verify-runtime.mjs`,
+  `e2e-flows.mjs`, `verify-layout.mjs`) AT THE SAME TIME (own ports: 8791-2,
+  8793-4, 8795), and the layout audit runs 3 of its 12 runs at once
+  (`LAYOUT_JOBS`): ~10 min became ~2 min, same 687 checks. `node test.js
+  --quick` is the static half only (~2 s) for checks while working; the
+  full run is the gate before main, always. A new browser suite needs its
+  own port.
 - `node test.js` runs BOTH the static suite and the runtime checks. The runtime
   half boots its own server, renders every tab in both themes with data seeded,
   and fails on: template placeholders reaching the DOM, a hero losing its
