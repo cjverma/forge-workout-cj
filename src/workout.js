@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { isoToday, isoDate, proteinTargetG } from "./phase.js";
+import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult } from "./phase.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
@@ -441,6 +441,17 @@ export function renderW(){
       <span class="notes-label">Session Notes${twinges?`<span class="notes-req${needNote?"":" met"}">${needNote?"required":"noted"}</span>`:""}</span>
       <textarea class="notes-area${needNote?" needed":""}" id="sessNotes" placeholder="${twinges?"What were you doing when the calf twinged? How did it feel?":"Notes"}" oninput="saveNotes(this.value)">${esc(savedNotes)}</textarea>
       ${needNote?`<div class="notes-hint">${icon("alert",15)}You logged ${twinges} calf twinge${twinges===1?"":"s"}. Describe it before stopping the workout.</div>`:""}
+    </div>`;
+  }
+
+  // "How was today?" (user, Oct 28): an AI review of today's session AND
+  // today's food. Only on today's own screen (current week, today's weekday):
+  // a past day is finished and a future one has nothing to review.
+  if(isTodayScreen()){
+    const rev=dayReviewGet();
+    h+=`<div class="day-review">
+      <button class="day-review-btn" id="dayReviewBtn" onclick="reviewToday()">${icon("spark",18)} ${rev?"Review today again":"How was today?"}</button>
+      <div class="day-review-out" id="dayReviewOut"${rev?"":" hidden"}>${rev?mdLite(rev.text)+`<div class="day-review-meta">Reviewed at ${new Date(rev.at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</div>`:""}</div>
     </div>`;
   }
 
@@ -1308,6 +1319,62 @@ async function aiRun(type){
     out.innerHTML=d.text?mdLite(d.text):"No response.";
   }catch(e){out.textContent="AI error: "+(e.message||"request failed");}
 }
+
+// ── "HOW WAS TODAY?" ────────────────────────────────────────────────────────
+// Today's screen only. The review is kept on this device for today (shown again
+// when you come back) and replaced by the next one; it is advice, not data.
+function isTodayScreen(){
+  return !ctx.isPast()&&!ctx.isFuture()&&ctx.cDay===DAYS[(new Date().getDay()+6)%7];
+}
+function dayReviewGet(){
+  try{const r=JSON.parse(localStorage.getItem("f5_dayreview")||"null");return r&&r.date===isoToday()?r:null;}catch(_){return null;}
+}
+// Everything the coach needs about today, as compact facts (no raw food log
+// text beyond item names). Exported for the test.
+export function buildDayReviewFacts(){
+  const S=ctx.getS(),t=isoToday(),prog=curProg(),sess=S.sessions[ctx.sk(ctx.cDay)]||{};
+  const fmtSet=(s,u)=>`${s.weight||"?"} ${u} x ${s.reps||"?"}${s.done?"":" (not ticked)"}`;
+  const exercises=(prog.exercises||[]).map(ex=>{
+    const ed=sess[ex.id]||{},u=ed.unit==="lbs"?"lbs":"kg";
+    const last=ex.cat==="gym"?lastSessionEx(ex.id):null;
+    return{name:ex.name.replace(/^Warm-Up · /,"Warm-up: "),type:ex.cat,planned:`${ex.sets} x ${ex.reps}`,
+      done:!!ed.done,skipped:!!ed.skipped,sets:(ed.sets||[]).filter(s=>s&&(s.weight||s.reps)).map(s=>fmtSet(s,u)),
+      lastTimeBest:last?.top?`${Math.round(last.top.kg*10)/10} kg x ${last.top.reps}`:null};
+  });
+  const prsToday=Object.entries(S.prs||{}).flatMap(([k,a])=>(a||[]).filter(p=>p.date===t).map(p=>`${(ctx.prName?ctx.prName(k):k)}: ${p.weight} kg x ${p.reps}`));
+  const nd=S.nutrition?.days?.[t]||{},items=nd.items||[];
+  const sum=f=>Math.round(items.reduce((a,i)=>a+(Number(i[f])||0),0));
+  const p=phaseFor(t),eaten=sum("kcal"),eatTarget=p?eatKcalFor(p,t):null;
+  const activeTarget=p?Math.round(phaseActiveTarget(p,t)+Math.max(0,eaten-eatTarget)/activeMult(t)):null;
+  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",
+    workout:{started:!!ctx.workoutOn||!!sess._stopped||exercises.some(e=>e.sets.length||e.done),minutes:sess._duration?Math.round(sess._duration/60):null,
+      exercises,prsToday,notes:(sess._notes||"").trim()||null,calfTwinges:(sess._calfTwinges||[]).length},
+    food:{items:items.map(i=>`${i.name} (${Math.round(i.kcal||0)} kcal, ${Math.round(i.protein||0)} g protein)`),
+      kcal:eaten,kcalTarget:eatTarget,proteinG:sum("protein"),proteinTargetG:proteinTargetG(),carbsG:sum("carbs"),fatG:sum("fat"),fibreG:sum("fibre"),sugarG:sum("sugar"),sodiumMg:sum("sodium")},
+    activity:{watchActive:Number(nd.active)||0,watchActiveTarget:activeTarget,weighedInToday:S.nutrition?.weights?.[t]!=null}};
+}
+async function reviewToday(){
+  const btn=document.getElementById("dayReviewBtn"),out=document.getElementById("dayReviewOut");
+  if(!btn||!out)return;
+  btn.disabled=true;out.hidden=false;out.innerHTML='<span class="spin"></span>Looking at today…';
+  const facts=buildDayReviewFacts();
+  const prompt=`Review the user's day so far as their coach. It is ${new Date().toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})} in their day; things not logged yet may still happen.
+Goal: 95 kg by Feb 28 2027, eating ${facts.food.kcalTarget??1500} kcal today, protein about ${facts.food.proteinTargetG} g, Watch active target ${facts.activity.watchActiveTarget??"n/a"}.
+Their rule: weights falling set to set mean the first set was too heavy. Each session aims to beat last time's best set.
+Facts: ${JSON.stringify(facts)}
+Write: one or two sentences on how the workout went (compare sets with lastTimeBest, call out PRs, skipped or unfinished work, calf twinges). One or two sentences on food so far (calories and protein against target, anything that stands out). Then "Before bed:" with one or two concrete things for the rest of today, with numbers (for example active calories still to burn, protein still to eat). Plain text, short, no headings, no em dashes.`;
+  try{
+    const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:facts.session}})},60000);
+    const d=await r.json();
+    if(!r.ok||!d.text)throw new Error(d.error||"failed");
+    const rev={date:facts.date,text:d.text,at:Date.now()};
+    try{localStorage.setItem("f5_dayreview",JSON.stringify(rev));}catch(_){}
+    out.innerHTML=mdLite(d.text)+`<div class="day-review-meta">Reviewed at ${new Date(rev.at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</div>`;
+    btn.innerHTML=`${icon("spark",18)} Review today again`;
+  }catch(e){out.textContent="Couldn't reach the coach. Try again in a moment.";}
+  btn.disabled=false;
+}
+window.reviewToday=reviewToday;
 
 function mondayOf(isoDateStr){
   const d=new Date(isoDateStr+"T12:00:00");

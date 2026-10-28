@@ -1221,6 +1221,15 @@ body[data-tab] .skip-btn{min-width:44px;justify-content:center;}
 body[data-tab] .wv .calf-badge{color:light-dark(#FFFFFF,#000000);}
 body[data-tab] .wv .calf-badge,body[data-tab] .calf-badge{font-size:11px;min-width:18px;height:18px;line-height:18px;}
 
+/* "How was today?": a tinted action under today's session, the coach's
+   review in an inset card below it. */
+.wv .day-review{margin:14px var(--sp-4) 4px;}
+.wv .day-review-btn{width:100%;min-height:44px;display:flex;align-items:center;justify-content:center;gap:8px;background:var(--s2);color:var(--accent-text);border:0;border-radius:var(--r-lg);padding:13px;font-family:var(--font-body);font-size:17px;font-weight:400;letter-spacing:-.4px;cursor:pointer;}
+.wv .day-review-btn:disabled{opacity:.6;}
+.wv .day-review-out{margin-top:10px;background:var(--s1);border-radius:var(--r-lg);padding:13px 16px;font-size:15px;line-height:1.45;color:var(--white);white-space:pre-wrap;}
+.wv .day-review-out[hidden]{display:none;}
+.wv .day-review-meta{margin-top:8px;font-size:13px;color:var(--mid);white-space:normal;}
+
 /* ══ WORKOUT TAB · iOS (Oct 2026 redesign) ══════════════════════════════════
    Everything here is scoped to .wv (renderW's root), so other tabs keep their
    styles until their own pass. Look, not behaviour: no id, handler or data

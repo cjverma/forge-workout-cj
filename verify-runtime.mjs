@@ -714,6 +714,28 @@ try {
     await page.close();
   }
 
+  // "How was today?" (Oct 28): only on today's screen; sends the day's
+  // workout and food to the coach and shows the reply.
+  {
+    const page = await browser.newPage({ viewport: { width: 402, height: 2000 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`dayreview: ${e.message}`));
+    let sent = null;
+    await page.route("**/api/coach", async (r) => { sent = JSON.parse(r.request().postData() || "{}"); await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ text: "Good session. Before bed: walk 30 minutes." }) }); });
+    await page.clock.install({ time: new Date("2026-11-03T19:00:00-05:00") });   // a Tuesday, training day
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ nutrition: { days: { "2026-11-03": { items: [{ name: "Chicken rice bowl", kcal: 650, protein: 55 }], active: 700 } }, weights: {} }, _v6MonDone1: true, _planMove41: true }); });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const onToday = await page.evaluate(() => !!document.getElementById("dayReviewBtn"));
+    await page.evaluate(() => window.reviewToday()); await page.waitForTimeout(500);
+    const out = await page.evaluate(() => document.getElementById("dayReviewOut")?.innerText || "");
+    await page.evaluate(() => document.getElementById("p-Monday")?.click()); await page.waitForTimeout(400);
+    const onPast = await page.evaluate(() => !!document.getElementById("dayReviewBtn"));
+    note("'How was today?' shows on today only, sends today's workout and food, and shows the coach's reply",
+      onToday && !onPast && /Good session/.test(out) && /Chicken rice bowl/.test(sent?.prompt || "") && /"workout"/.test(sent?.prompt || "") && /Before bed/.test(sent?.prompt || ""),
+      JSON.stringify({ onToday, onPast, out: out.slice(0, 80) }));
+    await page.close();
+  }
+
   // Simplified app (Oct 2026): every feature switched off in FEATURES must be
   // gone from the rendered UI, not just unused.
   {
