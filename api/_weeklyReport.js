@@ -14,7 +14,7 @@
 // Every number comes from the SAME engine the app uses (src/phase.js,
 // src/constants.js), so the email can never disagree with the screen.
 import { ctx } from "../src/runtime.js";
-import { PHASES, phaseFor, phaseCurveKg, eatKcalFor, dayDeficitCheck, phaseRequiredDeficit, phaseActiveTargets, restingFor, actualDeficit,
+import { PHASES, weekCountFrom, phaseFor, phaseCurveKg, eatKcalFor, dayDeficitCheck, phaseRequiredDeficit, phaseActiveTargets, restingFor, actualDeficit,
   weightVsCurve, projectedFinish, proteinTargetG, isRestDay, isoDate, addDaysIso, daysBetween, ACTIVE_MULT } from "../src/phase.js";
 import { programFor, weekKeyOf, DAYS, PR_ALIAS, prSlug, kg1, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7 } from "../src/constants.js";
 
@@ -91,7 +91,8 @@ function build(S, now) {
   const today = addDaysIso(isoDate(now), -1);
   const mon = mondayOf(today);
   const week = Array.from({ length: 7 }, (_, i) => addDaysIso(mon, i));
-  const elapsed = week.filter((d) => d <= today);
+  // The plan's first week starts on PLAN_START (Oct 27): earlier days are not missed.
+  const elapsed = week.filter((d) => d <= today && d >= weekCountFrom(mon));
   const lastWeek = week.map((d) => addDaysIso(d, -7));
   const goal = phaseFor(today) || PHASES[PHASES.length - 1];
   const ws = S.nutrition.weights;

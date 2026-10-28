@@ -44,6 +44,15 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   Clear All Data). The JS paints status inline, so one `!important` block at
   the end of `index.html`'s styles normalises it; prefer neutral colours in
   new render code rather than leaning on it.
+- **Gaps without colour** (Oct 28, from the design-canvas mockups the user
+  liked): status lists use `gapRow(state,label,value,sub)` in
+  `src/nutrition.js`: `open` (empty circle, value bold, said as the gap:
+  "4 to go", "1 missed", "506 short"), `done` (filled check, faded), `skip`
+  (dashed circle, not counted), `wait` (clock, not over yet); open rows sort
+  first (`gapSort`). One `gapNote(title, body)` "Needs attention" box sits at
+  the top of a card with the biggest gap. Used on the goal card, the weekly
+  deficit, Insights' Targets Hit This Week; the intake ring reads "+581 kcal
+  over", macro tiles say "129 g to go" / "17 g over" with a limit tick.
 - Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=3`).
 - `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
 
@@ -282,7 +291,10 @@ February end is still required". The ONE hard goal is `GOAL_CHECKPOINTS` in
 (`p5_1`..`p5_7`, built from one table), **18 days each**, Oct 27 -> Feb 28,
 every one **2,139 kcal/day** (5 x 7,700 / 18, ~1.94 kg/week), except phase 1:
 the user moved the start to **Oct 27** (Oct 28), ends unchanged, so phase 1
-is 17 days at ~2,265/day; the `goal` history covers Oct 20-26:
+is 17 days at ~2,265/day; the `goal` history covers Oct 20-26. In the week
+the plan starts, days before `PLAN_START` are not counted at all
+(`weekCountFrom(mon)` in `src/phase.js`: habits, the deficit tracker and the
+weekly email), so Mon Oct 26 is never a missed day:
 
 | phase | ends | kg |
 |---|---|---|
@@ -914,7 +926,10 @@ deleted, and the badge never changed.
   what makes Safari-only UI (the Home Screen hint) render at all. It fails on text off
   screen, clipped, overlapping, outside its card or ring, under 4.5:1 (3:1
   large), under 11px (tab bar exempt), controls under 44x44, and old-look
-  leftovers. It found what screenshots missed ("1,500" touching its ring,
+  leftovers, plus a `theme` check (Oct 28): text is label grey/white or
+  accent blue (red only on destructive actions), no old font, no gradients,
+  no shadows on in-page cards. Allowed: Stop Workout (red, as in Fitness),
+  the macro donut (a chart), input focus rings. It found what screenshots missed ("1,500" touching its ring,
   Apple's stock blue/grey/green failing contrast, 23 small tap targets).
   **Add any new screen or sheet to its `SCREENS` list.** Exceptions go in
   `ALLOW` with a reason. `E2E_STATE=backup.json` runs it on real data

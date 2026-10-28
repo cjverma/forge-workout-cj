@@ -687,7 +687,7 @@ try {
     await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
     const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
     note("the Insights drawer shows targets hit this week and the score (Nov 3 at 2,600 kcal is logged but not on target)",
-      /Targets Hit This Week/.test(dr) && /Food at or under target\s*2 of 3 days/.test(dr) && /Watch active target met\s*\d of 3 days/.test(dr) && /Score so far\s*\d+%/.test(dr), dr.slice(dr.indexOf("Targets"), dr.indexOf("Targets") + 200));
+      /Targets Hit This Week/.test(dr) && /Food at or under target\s*2 of 3 days/.test(dr) && /Watch active target met\s*\d of 3 days/.test(dr) && /\d+%\s*Score so far/.test(dr), dr.slice(dr.indexOf("Targets"), dr.indexOf("Targets") + 200));
     note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));
     await page.close();
   }
@@ -714,7 +714,7 @@ try {
     await page.waitForTimeout(900);
     const txt = await page.evaluate(() => [...document.querySelectorAll("details.st-acc")].find((x) => /Weekly deficit/.test(x.textContent))?.textContent || "");
     note("the weekly deficit tracker counts only complete days and names what is missing",
-      /2 of 3 days counted/.test(txt) && !/no resting/.test(txt) && /Not counted: no workout/.test(txt) && /Today, counted tomorrow/.test(txt) && /Watch check: counting 75%/.test(txt) &&
+      /2 of 3 days counted/.test(txt) && !/no resting/.test(txt) && /Not counted\s*No workout|No workout\s*Not counted/.test(txt) && /Counted tomorrow/.test(txt) && /Watch check: counting 75%/.test(txt) &&
       /The week needs 15,8\d\d kcal/.test(txt) && /Last 4 weeks/.test(txt) && !/undefined|NaN|null/.test(txt), txt.slice(0, 400));
     await page.close();
   }

@@ -1369,6 +1369,37 @@ body[data-tab] .danger-zone{border:0;margin:24px 0 0;border-radius:0;}
 body[data-tab] .danger-zone .st-sec{color:var(--mid);background:none;border:0;padding:0;margin:24px 16px 7px;}
 body[data-tab] .danger-zone .st-group{border-radius:var(--r-lg);}
 body[data-tab] #tc .danger-zone .st-ttl[style*="color:var(--red)"]{color:var(--red)!important;}
+/* Theme sweep (Oct 28): last off-look spots found by verify-layout's theme check. */
+.wv .ol-up,.wv .ol-down,.wv .ol-eq{background:var(--s2);color:var(--mid);}
+.wv .calf-btn{color:var(--accent-text);}
+body[data-tab] .edit-pill{box-shadow:none;}
+body[data-tab] .export-card{background:none;}
+/* Gaps without colour (Oct 28 mockups): empty circle = open, filled check =
+   done, dashed = not counted, clock = not over yet; open rows bold, done fade. */
+body[data-tab] .gap-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 0;border-top:.5px solid var(--b1);font-size:17px;letter-spacing:-.4px;color:var(--white);}
+body[data-tab] .gap-ic{width:22px;height:22px;flex:none;}
+body[data-tab] .gap-lbl{flex:1;min-width:0;}
+body[data-tab] .gap-sub{font-size:13px;letter-spacing:0;color:var(--mid);margin-top:1px;}
+body[data-tab] .gap-val{text-align:right;font-variant-numeric:tabular-nums;}
+body[data-tab] .gap-open .gap-val{font-weight:600;}
+body[data-tab] :is(.gap-done,.gap-skip,.gap-wait){color:var(--mid);}
+body[data-tab] :is(.gap-skip,.gap-wait) .gap-val{font-size:15px;}
+body[data-tab] .gap-note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:10px;padding:12px;margin:4px 0 12px;color:var(--white);}
+body[data-tab] .gap-note-t{font-size:15px;font-weight:600;}
+body[data-tab] .gap-note-b{font-size:15px;line-height:20px;color:var(--lt);margin-top:2px;}
+body[data-tab] .gap-group{padding:0 16px 4px;background:var(--s1);border-radius:var(--r-lg);}
+body[data-tab] .score-head{display:flex;align-items:center;gap:16px;padding:14px 0 10px;}
+body[data-tab] .score-big{font-family:var(--font-num);font-size:28px;font-weight:700;color:var(--white);font-variant-numeric:tabular-nums;}
+body[data-tab] .score-sub{font-size:15px;color:var(--mid);}
+body[data-tab] .act-line{font-size:15px;color:var(--lt);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;}
+body[data-tab] .act-line b{color:var(--white);font-weight:600;}
+body[data-tab] .act-line span{font-size:13px;color:var(--mid);}
+body[data-tab] .act-line.act-met{color:var(--mid);}
+body[data-tab] .macro-tr{position:relative;overflow:visible;}
+body[data-tab] .macro-tick{position:absolute;top:-3px;width:2px;height:10px;border-radius:1px;background:var(--white);margin-left:-1px;}
+body[data-tab] .macro-gap{font-size:13px;color:var(--mid);margin-top:5px;}
+body[data-tab] .macro-gap.open{color:var(--white);font-weight:600;}
+body[data-tab] .macro-plain .macro-v{color:var(--lt);}
 </style>
 </head>
 <body data-tab="workout">
@@ -2803,6 +2834,12 @@ const PHASES=[
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
     version:7,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500,eatKcalRest:1200,restingKcal:2700})),
 ];
+// The 5 kg plan's first day (Oct 27, user Oct 28: "plan didn't start from
+// Oct 26, so missing that shouldn't matter"). In the week it starts, days
+// before it are not counted by the habits or the deficit tracker.
+const PLAN_START=PHASES.find(p=>p.id==="p5_1").start;
+// First day a week's counts start from: Monday, or PLAN_START in its week.
+function weekCountFrom(monIso){return monIso<PLAN_START&&addDaysIso(monIso,6)>=PLAN_START?PLAN_START:monIso;}
 function phaseStore(){
   if(typeof S!=="undefined")return S;
   return ctx.getS();
@@ -5422,12 +5459,15 @@ function weekTargetsHtml(){
   const t=isoToday(),p=phaseFor(t);
   if(!p)return"";
   const c=weekCompliance(p,mondayOfIso(t),t);
-  const row=(l,v)=>`<div class="st-row" style="cursor:default"><div class="st-info"><div class="st-ttl">${l}</div></div><div style="font-variant-numeric:tabular-nums;color:var(--mid)">${v}</div></div>`;
-  const of=n=>c.finishedDays?`${n} of ${c.finishedDays} days`:"Starts tomorrow";
-  return`<div class="st-sec">Targets Hit This Week</div><div class="st-group">
-    ${row("Food at or under target",of(c.foodDays))}
-    ${row("Watch active target met",of(c.activeDays))}
-    ${row("Score so far",c.overall==null?"Starts after today":c.overall+"%")}
+  const f=c.finishedDays,of=n=>`${n} of ${f} days`;
+  const r=(lbl,n)=>!f?{state:"wait",lbl,val:"Starts tomorrow"}:n>=f?{state:"done",lbl,val:of(n)}:{state:"open",lbl,val:`${f-n} missed`,sub:of(n)};
+  const rows=[r("Food at or under target",c.foodDays),r("Watch active target met",c.activeDays),
+    c.behindKg==null?null:c.behindKg>0?{state:"open",lbl:"Weight vs line",val:`${c.behindKg.toFixed(1)} kg behind`}:{state:"done",lbl:"Weight vs line",val:`${Math.abs(c.behindKg).toFixed(1)} kg ahead`}].filter(Boolean);
+  const sc=c.overall,C=169.6;
+  const ring=`<svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Score ${sc??0} percent"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--s2)" stroke-width="7"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${((sc||0)/100*C).toFixed(1)} ${C}" transform="rotate(-90 32 32)"/></svg>`;
+  return`<div class="st-sec">Targets Hit This Week</div><div class="st-group gap-group">
+    <div class="score-head">${ring}<div><div class="score-big">${sc==null?"Starts after today":sc+"%"}</div><div class="score-sub">Score so far</div></div></div>
+    ${gapSort(rows).map(x=>gapRow(x.state,x.lbl,x.val,x.sub)).join("")}
   </div>`;
 }
 function renderDrawer(){
@@ -5597,8 +5637,8 @@ function renderNutrition(){
             transform="rotate(-90 64 64)" class="nut-ring-fill"/>
         </svg>
         <div class="nut-ring-text">
-          <div class="nut-ring-big">${remaining.toLocaleString()}</div>
-          <div class="nut-ring-small">kcal remaining</div>
+          <div class="nut-ring-big">${consumed>finalTarget?"+"+(consumed-finalTarget).toLocaleString():remaining.toLocaleString()}</div>
+          <div class="nut-ring-small">${consumed>finalTarget?"kcal over":"kcal remaining"}</div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten, ${finalTarget.toLocaleString()} target${shock?", shock day":""}</div>
@@ -5620,8 +5660,12 @@ function renderNutrition(){
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
         const remain=Math.max(0,aTgt-active);
-        return`<div style="font-size:11px;color:${met?"var(--hero-pos)":"var(--hero-fg-dim)"};margin-top:4px;text-align:left">${icon("bolt",18)} Active ${active.toLocaleString()} / ${aTgt.toLocaleString()}, ${aPct}%${remain>0?`, ${remain.toLocaleString()} kcal remaining`:""}, ${lbl}</div>`;
+        // Said as the gap, bold while open; faded once met (Oct 28).
+        return met?`<div class="act-line act-met">${icon("bolt",18)} Active target met: ${active.toLocaleString()} of ${aTgt.toLocaleString()} (${lbl})</div>`
+          :`<div class="act-line">${icon("bolt",18)} <b>Active: ${remain.toLocaleString()} to go</b> <span>${active.toLocaleString()} of ${aTgt.toLocaleString()}, ${aPct}% (${lbl})</span></div>`;
       })():""}
+      ${consumed>finalTarget&&items.length?(()=>{const big=items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0];const pl=Math.max(0,pTarget-Math.round(protein));
+        return gapNote(`${(consumed-finalTarget).toLocaleString()} kcal over`,`Biggest item: ${esc(big.name)}, ${Math.round(big.kcal).toLocaleString()} kcal.${pl>=20?` Protein ${pl} g short.`:""}`);})():""}
       ${macroPie(protein,carbs,fat,fibre)}
       ${(()=>{
         // Six identical bordered tiles replaced by a borderless typographic
@@ -5629,21 +5673,24 @@ function renderNutrition(){
         // layout threw away, so each of those now carries a 2px track: it fills
         // toward the target and turns amber past a limit. Carbs and fat have
         // neither, so they get no track rather than a decorative empty one.
-        const bar=(v,lim,isLimit)=>{
-          const pct=Math.min(100,Math.round((v/lim)*100));
-          const over=isLimit?v>lim:false;
-          const met=!isLimit&&v>=lim;
-          const col=over?"var(--amber)":met?"var(--hero-pos)":"var(--hero-accent)";
-          return`<div class="macro-tr"><span style="width:${pct}%;background:${col}"></span></div>`;
+        // Oct 28: no colour. Over a limit the bar runs full with a tick at the
+        // limit; the caption says the gap ("129 g to go", "17 g over").
+        const bar=(v,lim,isLimit,u)=>{
+          const over=isLimit&&v>lim;
+          const pct=over?100:Math.min(100,Math.round((v/lim)*100));
+          const tick=over?`<i class="macro-tick" style="left:${Math.round(lim/v*100)}%"></i>`:"";
+          const gap=isLimit?(over?`<div class="macro-gap open">${(v-lim).toLocaleString()} ${u} over</div>`:`<div class="macro-gap">${(lim-v).toLocaleString()} ${u} left</div>`)
+            :(v<lim?`<div class="macro-gap open">${(lim-v).toLocaleString()} ${u} to go</div>`:`<div class="macro-gap">Target met</div>`);
+          return`<div class="macro-tr">${tick}<span style="width:${pct}%;background:var(--hero-accent)"></span></div>${gap}`;
         };
-        const cell=(k,valHtml,track)=>`<div class="macro"><div class="macro-k">${k}</div><div class="macro-v">${valHtml}</div>${track||""}</div>`;
+        const cell=(k,valHtml,track)=>`<div class="macro${track?"":" macro-plain"}"><div class="macro-k">${k}</div><div class="macro-v">${valHtml}</div>${track||""}</div>`;
         return`<div class="macros">
-          ${cell("Protein",`${protein}<i>/${pTarget}g</i>`,bar(protein,pTarget,false))}
+          ${cell("Protein",`${protein}<i>/${pTarget}g</i>`,bar(protein,pTarget,false,"g"))}
           ${cell("Carbs",`${carbs}<i>g</i>`,"")}
           ${cell("Fat",`${fat}<i>g</i>`,"")}
-          ${cell("Fibre",`${fibre}<i>/${FIBRE_TARGET}g</i>`,bar(fibre,FIBRE_TARGET,false))}
-          ${cell("Sugar",`${sugar}<i>g</i>`,bar(sugar,SUGAR_LIMIT,true))}
-          ${cell("Sodium",`${sodium.toLocaleString()}<i>mg</i>`,bar(sodium,SODIUM_LIMIT,true))}
+          ${cell("Fibre",`${fibre}<i>/${FIBRE_TARGET}g</i>`,bar(fibre,FIBRE_TARGET,false,"g"))}
+          ${cell("Sugar",`${sugar}<i>g</i>`,bar(sugar,SUGAR_LIMIT,true,"g"))}
+          ${cell("Sodium",`${sodium.toLocaleString()}<i>mg</i>`,bar(sodium,SODIUM_LIMIT,true,"mg"))}
         </div>`;
       })()}
       ${ro?"":`<button class="shock-btn${shock?" active":""}" onclick="toggleShock('${date}')">${shock?`${icon("bolt",18)} Shock day active, tap to disable`:`${icon("bolt",18)} Shock day, 1,200 kcal`}</button>`}
@@ -5840,8 +5887,9 @@ function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addD
 function weekCompliance(p,weekStartIso,endIso){
   const t=isoToday();
   const days=[];
-  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;days.push(d);}
-  const week=[0,1,2,3,4,5,6].map(i=>addDaysIso(weekStartIso,i));
+  const from=weekCountFrom(weekStartIso);
+  for(let i=0;i<7;i++){const d=addDaysIso(weekStartIso,i);if(d>endIso)break;if(d>=from)days.push(d);}
+  const week=[0,1,2,3,4,5,6].map(i=>addDaysIso(weekStartIso,i)).filter(d=>d>=from);
   const finished=days.filter(d=>d<t);
   const nd=d=>S.nutrition?.days?.[d]||{};
   const kcalOf=d=>(nd(d).items||[]).reduce((s,it)=>s+(Number(it.kcal)||0),0);
@@ -6069,8 +6117,10 @@ async function aiPhaseReview(id){
 function weekDeficitSummary(monIso){
   const t=isoToday();
   const days=[];let total=0,need=0,counted=0,weekNeed=0;
+  const from=weekCountFrom(monIso);
   for(let i=0;i<7;i++){
     const d=addDaysIso(monIso,i);
+    if(d<from)continue;
     const c=dayDeficitCheck(d,trainedOn(d));
     weekNeed+=c.expected||0;
     const state=d>t?"future":d===t?"today":c.complete?"counted":"missing";
@@ -6081,9 +6131,27 @@ function weekDeficitSummary(monIso){
   // Days people skip logging tend to be the worse ones, so a week with gaps
   // gets no verdict: more than 2 finished days uncounted (this week), or
   // fewer than 5 of 7 counted (a finished week).
-  const thin=monIso<mondayOfIso(t)?counted<5:finished-counted>2;
+  const thin=monIso<mondayOfIso(t)?counted<Math.min(5,days.length):finished-counted>2;
   return{days,total,need,counted,finished,thin,weekNeed:Math.round(weekNeed),gap:total-need};
 }
+// Gaps without colour (Oct 28 mockups, the user: "you're on to something"):
+// an empty circle marks what is still open, a filled check what is done, a
+// dashed circle a day that does not count, a clock one that is not over yet.
+// The gap is said in words and open rows are bold; done rows fade.
+const GAP_ICON={
+  open:'<svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>',
+  done:'<svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="currentColor"/><path d="M7.5 12.3l3 3 6-6.3" fill="none" stroke="var(--s1)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  skip:'<svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-dasharray="3 3"/></svg>',
+  wait:'<svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M12 7v5l3 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>',
+};
+function gapRow(state,label,value,sub){
+  return`<div class="gap-row gap-${state}">${GAP_ICON[state]}<div class="gap-lbl"><div>${label}</div>${sub?`<div class="gap-sub">${sub}</div>`:""}</div><div class="gap-val">${value}</div></div>`;
+}
+function gapNote(title,body){
+  return`<div class="gap-note"><svg class="gap-ic" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="16.5" r="1" fill="currentColor"/></svg><div><div class="gap-note-t">${title}</div>${body?`<div class="gap-note-b">${body}</div>`:""}</div></div>`;
+}
+// Open rows first, done after; order within each kept.
+const gapSort=rows=>[...rows.filter(r=>r.state==="open"),...rows.filter(r=>r.state!=="open")];
 function weekDeficitHtml(){
   const t=isoToday();
   const thisMon=mondayOfIso(t);
@@ -6097,9 +6165,10 @@ function weekDeficitHtml(){
   const line=(lbl,val,col)=>`<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-top:1px solid var(--b1);font-size:15px"><span style="color:var(--lt);white-space:nowrap">${lbl}</span><span style="text-align:right;font-variant-numeric:tabular-nums;color:${col||"var(--white)"}">${val}</span></div>`;
   const rows=w.days.map(x=>{
     if(x.state==="future")return"";
-    if(x.state==="today")return line(dayLbl(x.d),"Today, counted tomorrow","var(--mid)");
-    if(x.state==="missing")return line(dayLbl(x.d),"Not counted: no "+x.missing.join(", no "),"var(--amber)");
-    return line(dayLbl(x.d),`${n(x.deficit)} of ${n(x.expected)}`,x.deficit>=x.expected?"var(--green)":"var(--red)");
+    if(x.state==="today")return gapRow("wait",dayLbl(x.d),"Counted tomorrow");
+    if(x.state==="missing")return gapRow("skip",dayLbl(x.d),"Not counted","No "+x.missing.join(", no "));
+    return x.deficit>=x.expected?gapRow("done",dayLbl(x.d),`${n(x.deficit)} of ${n(x.expected)}`)
+      :gapRow("open",dayLbl(x.d),`${n(x.expected-x.deficit)} short`,`${n(x.deficit)} of ${n(x.expected)}`);
   }).join("");
   const past=[1,2,3,4].map(k=>{const m=addDaysIso(thisMon,-7*k);if(!phaseFor(addDaysIso(m,6))&&!phaseFor(m))return"";const s=weekDeficitSummary(m),pv=verdict(s);
     return line("Week of "+fmtDate(m),s.counted?`${pv.txt}, ${s.counted} of 7 days counted`:"No complete days",s.counted?pv.col:"var(--mid)");}).join("");
@@ -6112,19 +6181,26 @@ function weekDeficitHtml(){
   if(w0k&&w1k&&w0k!==w1k&&pph){
     const act=Math.round((Number(ws[w1k])-Number(ws[w0k]))*10)/10;
     const plan=Math.round((phaseCurveKg(phaseFor(w1k)||pph,w1k)-phaseCurveKg(phaseFor(w0k)||pph,w0k))*10)/10;
-    weightLine=line("Weight this week",`${act>0?"+":""}${act.toFixed(1)} kg, plan ${plan.toFixed(1)} kg`,act<=plan+0.2?"var(--green)":"var(--red)");
+    weightLine=act<=plan+0.2?gapRow("done","Weight this week",`${act>0?"+":""}${act.toFixed(1)} kg`,`Plan ${plan.toFixed(1)} kg`)
+      :gapRow("open","Weight this week",`${(act-plan).toFixed(1)} kg over plan`,`${act>0?"+":""}${act.toFixed(1)} kg, plan ${plan.toFixed(1)} kg`);
   }
   const cal=activeCalibration(t);
   const calLine=cal.ready
     ?`Watch check: your weight trend says ${Math.round(cal.mult*100)}% of the Watch's active calories are real (${cal.lostKg} kg lost vs ${cal.predictedKg} kg predicted), so targets use ${Math.round(cal.mult*100)}%.`
     :`Watch check: counting 75% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend sets it.`;
+  // The one thing to fix this week, said once at the top.
+  const daysLeft=w.days.filter(x=>x.state==="today"||x.state==="future").length;
+  const note=w.counted&&w.thin?gapNote("Not enough data",`${w.finished-w.counted} day${w.finished-w.counted===1?"":"s"} not counted. Skipped days tend to be the bad ones.`)
+    :w.counted&&w.gap<-0.05*w.need?gapNote(`${n(w.gap)} kcal short so far`,daysLeft?`About ${n(-w.gap/daysLeft)} kcal a day, from less food or more activity, closes it by Sunday.`:"The week is over: carry it into next week.")
+    :"";
   const head=!w.counted?(w.finished?"No complete day yet":"Week starting"):w.thin?`Not enough data, ${w.finished-w.counted} days missing`:`${v.txt}`;
   return`<details class="st-acc" open>
     <summary><div><div>${icon("chart",20)} Weekly deficit</div><div class="st-acc-sub">${head}${w.counted?`, ${w.counted} of ${w.finished} days counted`:""}</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
+      ${note}
       <div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px">
         <span style="font-size:15px;color:var(--mid)">This week so far</span>
-        <span style="font-family:var(--font-num);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:${v?v.col:"var(--mid)"}">${w.counted?n(w.total):"0"} <span style="font-size:15px;font-weight:400;color:var(--mid)">of ${n(w.need)} kcal</span></span>
+        <span style="font-family:var(--font-num);font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--white)">${w.counted?n(w.total):"0"} <span style="font-size:15px;font-weight:400;color:var(--mid)">of ${n(w.need)} kcal</span></span>
       </div>
       <div style="font-size:13px;color:var(--mid);margin:4px 0 6px">${v?`${v.txt}. `:""}The week needs ${n(w.weekNeed)} kcal. A day counts once food, the workout and active calories are logged. Resting is the number you enter, or 2,700 until you do.</div>
       ${weightLine}
@@ -6238,8 +6314,8 @@ function phaseCardHtml(){
   let rangeRowHtml='<div style="font-size:12px;color:var(--dim);padding:4px 0">Log a weigh-in to compare against the plan</div>';
   if(wvc){
     const ok=wvc.diff>=0;
-    const chipBg=ok?'var(--green-lo)':'var(--red-lo)';
-    const chipCol=ok?'var(--green)':'var(--red)';
+    const chipBg='var(--s2)';
+    const chipCol='var(--white)';
     const chipTxt=wvc.diff===0?'✓ Exactly on plan':(ok?'Ahead ':'Behind ')+Math.abs(wvc.diff).toFixed(1)+' kg';
     rangeRowHtml=
       '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;gap:8px">'+
@@ -6259,19 +6335,30 @@ function phaseCardHtml(){
 
   // This week: five habit rows (user, Oct 26). Progress copy, not failure
   // copy: "3 of 5 done" on a Wednesday is on schedule, not 60%.
-  const scoreCol=v=>v==null?'var(--mid)':v>=80?'var(--green)':v>=50?'var(--amber)':'var(--red)';
-  const habit=(lbl,val,score)=>'<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--b1);font-size:14px"><span style="color:var(--lt)">'+lbl+'</span><span style="font-weight:600;font-variant-numeric:tabular-nums;color:'+scoreCol(score)+'">'+val+'</span></div>';
   const ofDays=n=>comp.finishedDays?n+' of '+comp.finishedDays+' days':'Starts tomorrow';
   const wLine=comp.behindKg==null?'No weigh-in yet'
     :(comp.behindKg<=0?Math.abs(comp.behindKg).toFixed(1)+' kg ahead':comp.behindKg.toFixed(1)+' kg behind')+(comp.carried?' (last weigh-in)':'');
   // Oct 28 (user): the card counts days LOGGED, not days a target was met;
   // targets hit and the score live in the Insights drawer (weekTargetsHtml).
-  const compHtml=
-    habit('Food logged',ofDays(comp.foodLogged),null)+
-    habit('Workouts',comp.trained+' of '+comp.need+' done'+(comp.trained<comp.need?', '+(comp.need-comp.trained)+' to go':''),null)+
-    habit('Weight vs line',wLine,null)+
-    habit('Weigh-ins',ofDays(comp.weighDays),null)+
-    habit('Watch active logged',ofDays(comp.activeLogged),null);
+  const fin=comp.finishedDays;
+  const logRow=(lbl,n)=>!fin?{state:"wait",lbl,val:"Starts tomorrow"}:n>=fin?{state:"done",lbl,val:ofDays(n)}:{state:"open",lbl,val:(fin-n)+" missed",sub:ofDays(n)};
+  const habitRows=[
+    comp.trained>=comp.need?{state:"done",lbl:"Workouts",val:comp.trained+" of "+comp.need+" done"}
+      :{state:"open",lbl:"Workouts",val:(comp.need-comp.trained)+" to go",sub:comp.trained+" of "+comp.need+" done"},
+    comp.behindKg==null?{state:"open",lbl:"Weight vs line",val:"No weigh-in yet"}
+      :comp.behindKg>0?{state:"open",lbl:"Weight vs line",val:wLine}:{state:"done",lbl:"Weight vs line",val:wLine},
+    logRow("Food logged",comp.foodLogged),
+    logRow("Weigh-ins",comp.weighDays),
+    logRow("Watch active logged",comp.activeLogged),
+  ];
+  // Needs attention: what is actually behind (workouts only once behind
+  // schedule, not merely "to go" on a Monday).
+  const behind=[];
+  if(comp.trained<comp.expected)behind.push(`Workouts: ${comp.need-comp.trained} to go this week`);
+  if(comp.behindKg>0)behind.push(`${comp.behindKg.toFixed(1)} kg behind the line`);
+  [["food log",comp.foodLogged],["weigh-in",comp.weighDays],["Watch active log",comp.activeLogged]].forEach(([k,n])=>{const m=fin-n;if(fin&&m>0)behind.push(`${m} ${k}${m===1?"":"s"} missed`);});
+  const compHtml=(behind.length?gapNote("Needs attention",behind.join(". ")+"."):"")+
+    gapSort(habitRows).map(r=>gapRow(r.state,r.lbl,r.val,r.sub)).join("");
 
   // Live status chip in the collapsed summary
   // Explicit states: never "Behind -0.8 kg", "null kg" or "null%".

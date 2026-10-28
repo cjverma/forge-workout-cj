@@ -88,6 +88,12 @@ export const PHASES=[
     name:`Phase ${i+1} of 7: ${targetKg} kg by ${new Date(plannedEnd+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"})}`,
     version:7,strategy:"fat_loss",curve:"linear",start,plannedEnd,startKg,targetKg,eatKcal:1500,eatKcalRest:1200,restingKcal:2700})),
 ];
+// The 5 kg plan's first day (Oct 27, user Oct 28: "plan didn't start from
+// Oct 26, so missing that shouldn't matter"). In the week it starts, days
+// before it are not counted by the habits or the deficit tracker.
+export const PLAN_START=PHASES.find(p=>p.id==="p5_1").start;
+// First day a week's counts start from: Monday, or PLAN_START in its week.
+export function weekCountFrom(monIso){return monIso<PLAN_START&&addDaysIso(monIso,6)>=PLAN_START?PLAN_START:monIso;}
 function phaseStore(){
   if(typeof S!=="undefined")return S;
   return ctx.getS();
