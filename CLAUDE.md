@@ -684,11 +684,17 @@ Four surfaces resolve those keys back to names, and all four must agree:
   none at all once over target.
 - **No rest timer.** Removed at the user's request; `ex.rest` stays on the
   program data but nothing reads it for a timer.
-- **The target is last session's best set.** The user aims for a PR every
-  session, so the card shows "Beat W × R" (best set by estimated 1RM from
-  `lastSessionEx().top`, in the box's unit) and pre-fills every set with that
-  weight; the program `hint` is only the fallback for an exercise with no
-  history. `lastSessionEx` matches by canonical exercise, not day id, so it
+- **The target is the WORKING weight, not the best set** (Oct 29, the user:
+  "I can do 40.8 kg incline one set and can't do anything afterwards").
+  `workingWeight(sets, targetReps)` in `src/plan.js`: the weight HELD last
+  session (most sets, 2+ and half the session, reps never under 70% of its
+  first set there; a weaker last set does not lower it), else the session's
+  average estimated 1RM turned back into a weight for the program's low rep
+  number, never above the heaviest weight lifted, rounded DOWN to a loadable
+  step. The card shows it as the row's target and pre-fills every set with it;
+  the weekly plan gets it per exercise as `working` and plans from it (it
+  overrides the PR anchor). The best set is still the PR and "Last best".
+  The program `hint` is only the fallback for an exercise with no history. `lastSessionEx` matches by canonical exercise, not day id, so it
   follows an exercise across program versions.
 - **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
   `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and

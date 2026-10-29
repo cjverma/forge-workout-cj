@@ -55,6 +55,32 @@ function planWeekLabel(weekKey) {
 // right". The opening weight was too heavy to hold for the programmed sets, so
 // it is NOT a working weight to progress from. Flagged as pattern:"descending"
 // with the weight you could hold the most reps at, so the AI starts lower.
+// The weight to start EVERY set at next time (Oct 29, the user: "I can do
+// 40.8 kg incline one set and can't do anything in that machine afterwards";
+// "what about average of weight and set"). The best single set made a bad
+// target: every set was pre-filled with a one-set max and the rest collapsed.
+// 1. HELD: the weight done for the most sets (heavier on a tie), at least 2
+//    sets and half the session, reps never below 70% of its first set there.
+//    54,54,54,54 then 36 on the last -> 54 (aim: every set at 54).
+// 2. Otherwise the session's AVERAGE estimated 1RM, turned back into a weight
+//    for the target reps, never above the heaviest weight lifted.
+//    40.8x12, 30.8x8, 30.8x7, 40.8x6 at 10 reps -> ~34 kg.
+// sets: [{kg, reps}] in kg. Returns {kg, reps, held} or null.
+export function workingWeight(sets, targetReps = 10) {
+  const ok = (sets || []).filter((s) => s.kg > 0 && s.reps > 0 && s.reps <= 30);
+  if (!ok.length) return null;
+  const by = {};
+  for (const s of ok) (by[s.kg] ??= []).push(s.reps);
+  const [w, reps] = Object.entries(by).sort((a, b) => b[1].length - a[1].length || Number(b[0]) - Number(a[0]))[0];
+  if (reps.length >= Math.max(2, Math.ceil(ok.length / 2)) && Math.min(...reps) >= 0.7 * reps[0])
+    return { kg: Number(w), reps: Math.max(...reps), held: true };
+  const avg = ok.reduce((a, s) => a + s.kg * (1 + s.reps / 30), 0) / ok.length;
+  const top = Math.max(...ok.map((s) => s.kg));
+  return { kg: Math.min(top, Math.round(avg / (1 + targetReps / 30) * 10) / 10), reps: targetReps, held: false };
+}
+// The low end of a program rep range ("10-12" -> 10, 12 -> 12); 10 if none.
+export function targetRepsOf(r) { const n = parseInt(String(r ?? ""), 10); return n > 0 && n <= 30 ? n : 10; }
+
 export function setFatigue(sets) {
   const kgs = sets.map((s) => Number(s.kg)), reps0 = sets.map((s) => Number(s.reps) || 0);
   if (sets.length >= 2 && kgs.every((k, i) => i === 0 || k < kgs[i - 1])) {
@@ -95,7 +121,7 @@ export function buildSessionHistory(S, now = new Date(), maxWeeks = 4) {
         // as 120 kg got "progressed" to a weight never lifted.
         const setsDone = (ed.sets || []).filter(s => s.done).map(s => ({ kg: planToKg(s.weight, ed.unit), reps: s.reps })).filter(s => s.kg != null);
         if (setsDone.length || ed.done || ed.skipped) {
-          exs.push({ id: ex.id, name: ex.name, target_sets: ex.sets, target_reps: ex.reps, current_hint: ex.hint, sets_logged: setsDone, fatigue: setFatigue(setsDone), completed: !!ed.done, skipped: !!ed.skipped });
+          exs.push({ id: ex.id, name: ex.name, target_sets: ex.sets, target_reps: ex.reps, current_hint: ex.hint, sets_logged: setsDone, fatigue: setFatigue(setsDone), working: workingWeight(setsDone.map((s) => ({ kg: s.kg, reps: Number(s.reps) })), targetRepsOf(ex.reps)), completed: !!ed.done, skipped: !!ed.skipped });
           hasData = true;
         }
       }

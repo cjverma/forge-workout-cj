@@ -877,6 +877,21 @@ ok("the DOM read is unconditional (no truthiness gate that would preserve stale 
 // ─────────────────────────────────────────────────────────────────────────────
 // 16b. One protein target formula, not five independently hardcoded numbers
 // ─────────────────────────────────────────────────────────────────────────────
+section("16a · working weight, not the best single set (Oct 29)");
+{
+  const ww = REAL_PLAN.workingWeight, k = (a) => a.map(([kg, reps]) => ({ kg, reps }));
+  const chest = ww(k([[54, 10], [54, 10], [54, 9], [54, 10], [36, 12]]), 10);
+  ok("held 54 kg for 4 sets, the 5th dropped to 36: the target stays 54 x 10 (held)", chest.kg === 54 && chest.reps === 10 && chest.held, JSON.stringify(chest));
+  const inc = ww(k([[40.8, 12], [30.8, 8], [30.8, 7], [40.8, 6]]), 10);
+  ok("incline 40.8 x 12 then a collapse: the target is the session average for 10 reps (~34 kg), not 40.8", !inc.held && inc.kg > 32 && inc.kg < 36, JSON.stringify(inc));
+  const inc2 = ww(k([[40.8, 12], [40.8, 7], [40.8, 7]]), 10);
+  ok("same weight but reps fell 12 -> 7: not held, the target drops below 40.8", !inc2.held && inc2.kg < 40.8, JSON.stringify(inc2));
+  const one = ww(k([[68, 15]]), 12);
+  ok("a single set never targets more than was lifted", one.kg <= 68, JSON.stringify(one));
+  ok("rep ranges read their low end (10-12 -> 10, 12 -> 12, '15 min' -> 15, none -> 10)",
+    REAL_PLAN.targetRepsOf("10-12") === 10 && REAL_PLAN.targetRepsOf(12) === 12 && REAL_PLAN.targetRepsOf(undefined) === 10);
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");
