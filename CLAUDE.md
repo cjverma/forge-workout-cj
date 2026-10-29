@@ -664,8 +664,9 @@ Four surfaces resolve those keys back to names, and all four must agree:
   `_duration` via `fmtWorkoutDur()` ("48 min"), never the stretch since the
   last resume (which read "0m 01s").
 - **"How was today?"** (Oct 28): a tinted button under today's session,
-  ONLY on today's own screen (`isTodayScreen`: current week, today's
-  weekday). It sends `buildDayReviewFacts()` (every exercise's logged sets vs
+  on today's own screen (`isTodayScreen`: current week, today's weekday) and,
+  as "How was yesterday?", on yesterday's (`reviewDate()`; Oct 29, "keep the
+  button"), which reviews the finished day with "Next" for today. It sends `buildDayReviewFacts()` (every exercise's logged sets vs
   last time's best, PRs, notes, calf twinges, duration, today's food items
   and macros vs targets, Watch active vs target, weigh-in) to `/api/coach`
   and shows the reply in a card; the last review is kept on this device for
