@@ -4,6 +4,8 @@ export const HARD_RULES = [
   // Medical context — always present in every AI call
   "This user has a lumbar spine condition (disc herniation with nerve impingement) causing left-leg sciatica and chronic left calf nerve pain.",
   "All recommendations must account for this condition at all times — safety over performance, always.",
+  // Return to training (user, Oct 29 2026)
+  "The user was bedridden with this injury from July to December 2025 and returned to the gym around July 2026: rebuild gradually, add reps before load, hold a weight until every set reaches the reps, and never test one-set maxes.",
   // Absolute exercise restrictions
   "Never prescribe overhead press or any overhead loaded movement.",
   "Never prescribe standard lat pulldown.",

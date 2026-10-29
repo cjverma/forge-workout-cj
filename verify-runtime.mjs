@@ -514,7 +514,7 @@ try {
       const wkOf = (d) => (()=>{const _d=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})();
       const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
       const prev = new Date(); prev.setDate(prev.getDate() - 7);
-      S.sessions = { [day + "_" + wkOf(prev)]: { [a]: { unit: "kg", done: true, sets: [{ weight: "40", reps: "12", done: true }, { weight: "45", reps: "10", done: true }] } } };
+      S.sessions = { [day + "_" + wkOf(prev)]: { [a]: { unit: "kg", done: true, sets: [{ weight: "45", reps: "10", done: true }, { weight: "45", reps: "10", done: true }, { weight: "45", reps: "9", done: true }, { weight: "30", reps: "12", done: true }] } } };
       S._v6MonDone1 = true; S._planMove41 = true;
       localStorage.f5 = JSON.stringify(S);
       try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
@@ -523,7 +523,7 @@ try {
     await page.waitForTimeout(800);
     // iOS redesign: the target is the row's trailing value, like a Settings value.
     const t = await page.evaluate((a) => ({ meta: document.querySelector(`#ex-${a} .ex-hint`)?.textContent || "", pre: document.getElementById(`wi-${a}-0`)?.value }), exId);
-    note("the suggested weight is last session's best set (45 kg × 10 as the row's target), pre-filled", /^45 kg × 10$/.test(t.meta) && t.pre === "45", JSON.stringify(t));
+    note("the suggested weight is the working weight held last session (45 kg × 10; the dropped 30 kg set does not lower it), pre-filled", /^45 kg × 10$/.test(t.meta) && t.pre === "45", JSON.stringify(t));
     await page.evaluate(() => window.startSess());
     await page.waitForTimeout(300);
     await page.reload({ waitUntil: "networkidle" });

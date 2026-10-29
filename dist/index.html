@@ -3209,6 +3209,32 @@ function planWeekLabel(weekKey) {
 // right". The opening weight was too heavy to hold for the programmed sets, so
 // it is NOT a working weight to progress from. Flagged as pattern:"descending"
 // with the weight you could hold the most reps at, so the AI starts lower.
+// The weight to start EVERY set at next time (Oct 29, the user: "I can do
+// 40.8 kg incline one set and can't do anything in that machine afterwards";
+// "what about average of weight and set"). The best single set made a bad
+// target: every set was pre-filled with a one-set max and the rest collapsed.
+// 1. HELD: the weight done for the most sets (heavier on a tie), at least 2
+//    sets and half the session, reps never below 70% of its first set there.
+//    54,54,54,54 then 36 on the last -> 54 (aim: every set at 54).
+// 2. Otherwise the session's AVERAGE estimated 1RM, turned back into a weight
+//    for the target reps, never above the heaviest weight lifted.
+//    40.8x12, 30.8x8, 30.8x7, 40.8x6 at 10 reps -> ~34 kg.
+// sets: [{kg, reps}] in kg. Returns {kg, reps, held} or null.
+function workingWeight(sets, targetReps = 10) {
+  const ok = (sets || []).filter((s) => s.kg > 0 && s.reps > 0 && s.reps <= 30);
+  if (!ok.length) return null;
+  const by = {};
+  for (const s of ok) (by[s.kg] ??= []).push(s.reps);
+  const [w, reps] = Object.entries(by).sort((a, b) => b[1].length - a[1].length || Number(b[0]) - Number(a[0]))[0];
+  if (reps.length >= Math.max(2, Math.ceil(ok.length / 2)) && Math.min(...reps) >= 0.7 * reps[0])
+    return { kg: Number(w), reps: Math.max(...reps), held: true };
+  const avg = ok.reduce((a, s) => a + s.kg * (1 + s.reps / 30), 0) / ok.length;
+  const top = Math.max(...ok.map((s) => s.kg));
+  return { kg: Math.min(top, Math.round(avg / (1 + targetReps / 30) * 10) / 10), reps: targetReps, held: false };
+}
+// The low end of a program rep range ("10-12" -> 10, 12 -> 12); 10 if none.
+function targetRepsOf(r) { const n = parseInt(String(r ?? ""), 10); return n > 0 && n <= 30 ? n : 10; }
+
 function setFatigue(sets) {
   const kgs = sets.map((s) => Number(s.kg)), reps0 = sets.map((s) => Number(s.reps) || 0);
   if (sets.length >= 2 && kgs.every((k, i) => i === 0 || k < kgs[i - 1])) {
@@ -3249,7 +3275,7 @@ function buildSessionHistory(S, now = new Date(), maxWeeks = 4) {
         // as 120 kg got "progressed" to a weight never lifted.
         const setsDone = (ed.sets || []).filter(s => s.done).map(s => ({ kg: planToKg(s.weight, ed.unit), reps: s.reps })).filter(s => s.kg != null);
         if (setsDone.length || ed.done || ed.skipped) {
-          exs.push({ id: ex.id, name: ex.name, target_sets: ex.sets, target_reps: ex.reps, current_hint: ex.hint, sets_logged: setsDone, fatigue: setFatigue(setsDone), completed: !!ed.done, skipped: !!ed.skipped });
+          exs.push({ id: ex.id, name: ex.name, target_sets: ex.sets, target_reps: ex.reps, current_hint: ex.hint, sets_logged: setsDone, fatigue: setFatigue(setsDone), working: workingWeight(setsDone.map((s) => ({ kg: s.kg, reps: Number(s.reps) })), targetRepsOf(ex.reps)), completed: !!ed.done, skipped: !!ed.skipped });
           hasData = true;
         }
       }
@@ -3656,6 +3682,7 @@ window.checkSyncNow = checkSyncNow;
 
 
 
+
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
@@ -3748,6 +3775,9 @@ function lastSessionEx(exId){
   return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
+// Rounded DOWN to a loadable step: a working target must never round up past
+// what was lifted.
+const inUnitFloor=(kg,unit)=>unit==="lbs"?Math.floor(kg/LB_TO_KG/2.5)*2.5:Math.floor(kg*2)/2;
 // A weight you can actually load: converting last session's kg to lbs gave
 // "145.1". Pre-filled boxes snap to the nearest 2.5 lbs / 0.5 kg.
 const inUnitLoadable=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG/2.5)*2.5:Math.round(kg*2)/2;
@@ -4217,9 +4247,13 @@ function card(ex,sess,key,rdOnly=false){
   // You train for a PR every session, so the suggested weight IS last
   // session's best set; the program's range is only a fallback for an exercise
   // with no history yet.
+  // Oct 29: the target is the WORKING weight (held for every set, else the
+  // session's average turned into the target reps), not the best single set,
+  // which pre-filled a one-set max into every set (workingWeight, plan.js).
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
-  const target=_last?.top?{w:inUnit(_last.top.kg,_tUnit),r:_last.top.reps}:null;
+  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps)):null;
+  const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
 
@@ -4249,8 +4283,9 @@ function card(ex,sess,key,rdOnly=false){
       // Carry-forward: pre-populate weight from last session if not yet set
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
-        // Every set starts at last session's best weight: the target is a PR.
-        if(lastSetsForCarry.top)weightVal=lastSetsForCarry.unit===exUnit?Number(lastSetsForCarry.top.raw):inUnitLoadable(lastSetsForCarry.top.kg,exUnit);
+        // Every set starts at the working weight (the target), never the
+        // one-set best: same number in the same unit as it was typed.
+        if(target){const held=lastSetsForCarry.kgSets.find(s=>s.kg===_work.kg);weightVal=held&&_work.held&&lastSetsForCarry.unit===exUnit?Number(held.raw):target.w;}
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>

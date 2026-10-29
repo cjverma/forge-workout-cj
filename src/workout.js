@@ -3,6 +3,7 @@ import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcal
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
+import { workingWeight, targetRepsOf } from "./plan.js";
 import { weekKeyOf, EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -97,6 +98,9 @@ function lastSessionEx(exId){
   return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
+// Rounded DOWN to a loadable step: a working target must never round up past
+// what was lifted.
+const inUnitFloor=(kg,unit)=>unit==="lbs"?Math.floor(kg/LB_TO_KG/2.5)*2.5:Math.floor(kg*2)/2;
 // A weight you can actually load: converting last session's kg to lbs gave
 // "145.1". Pre-filled boxes snap to the nearest 2.5 lbs / 0.5 kg.
 const inUnitLoadable=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG/2.5)*2.5:Math.round(kg*2)/2;
@@ -566,9 +570,13 @@ function card(ex,sess,key,rdOnly=false){
   // You train for a PR every session, so the suggested weight IS last
   // session's best set; the program's range is only a fallback for an exercise
   // with no history yet.
+  // Oct 29: the target is the WORKING weight (held for every set, else the
+  // session's average turned into the target reps), not the best single set,
+  // which pre-filled a one-set max into every set (workingWeight, plan.js).
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
-  const target=_last?.top?{w:inUnit(_last.top.kg,_tUnit),r:_last.top.reps}:null;
+  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps)):null;
+  const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
 
@@ -598,8 +606,9 @@ function card(ex,sess,key,rdOnly=false){
       // Carry-forward: pre-populate weight from last session if not yet set
       let weightVal=sd.weight;
       if(!weightVal&&lastSetsForCarry&&!rdOnly){
-        // Every set starts at last session's best weight: the target is a PR.
-        if(lastSetsForCarry.top)weightVal=lastSetsForCarry.unit===exUnit?Number(lastSetsForCarry.top.raw):inUnitLoadable(lastSetsForCarry.top.kg,exUnit);
+        // Every set starts at the working weight (the target), never the
+        // one-set best: same number in the same unit as it was typed.
+        if(target){const held=lastSetsForCarry.kgSets.find(s=>s.kg===_work.kg);weightVal=held&&_work.held&&lastSetsForCarry.unit===exUnit?Number(held.raw):target.w;}
       }
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
