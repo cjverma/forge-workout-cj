@@ -328,6 +328,12 @@ by Feb 20, cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Feb
 for an unlogged day outside these phases is `restingDefaultFor()` (last 5 logged, else 2,700).
 Phase names never use "·". Don't change the phases or add a goal unasked.
 
+**Protein is 144 g a day, every day** (Oct 28): 1.8 g x the user's EVENTUAL
+80 kg goal (`PROTEIN_GOAL_KG` in `src/phase.js`; "my goal weight eventually
+is 80 kg so it should be based on that"). Dosed off current weight it was
+256 g on training days, 68% of a 1,500 kcal day. No training-day bump.
+`api/cron-diet-review.js` GOALS mirrors 144.
+
 **Harder training from Mon Nov 2 2026** (dated, so earlier weeks show what
 they had): +1 working set on a main lift each day (Leg Press, Chest
 Supported Row, Seated Pulldown, Incline Chest Press, Saturday Leg Press,
@@ -908,6 +914,14 @@ exercise (`defaultUnit`, persisted by `ensure()`). "Usual" is the LOWER
 QUARTILE of logged sets so a run of mis-typed sets cannot redefine it. A
 confirmed set carries `unitOk` and is never asked about again. Entries with
 weights but no `unit` predate the field and must keep reading as kg.
+
+**PR audit (Oct 29, from the user's backup; `S._prAudit1` in `src/main.js`).**
+A set tagged `otherMachine` (the Jul 31 chest press at 133 lbs, "different
+machine so wrong number") stays in the log but never counts toward a PR
+(`bestFromSessions`, the audit). Warm-ups never create PRs (`checkAndStorePR`
+skips `warm_up_*`); old warm-up PRs and PRs that match no logged set were
+archived to `S._prPurged` / rebuilt from the log. The undated-unit Aug 3 custom
+leg extension (100/120) was lbs.
 
 **`delSet` must splice the set BEFORE dropping its PR.** `dropPRForSet` calls
 `recoverPRFromLog`, which recomputes the best remaining lift from the logged

@@ -215,10 +215,9 @@ export function renderNutrition(){
   const sodium=items.reduce((s,i)=>s+(i.sodium||0),0);
   const pct=finalTarget?Math.min(100,Math.round((consumed/finalTarget)*100)):0;
   const netDef=consumed-totalBurn;
-  // Protein target: shared proteinTargetG() (1.8g × current weight), +10% on
-  // days with training or logged active burn.
-  const trained=trainedOn(date)||active>0;
-  const pTarget=Math.round(proteinTargetG()*(trained?1.1:1));
+  // Protein target: shared proteinTargetG() (1.8 g x 80 kg goal), the same
+  // every day (Oct 28: one fixed number is simpler to hit).
+  const pTarget=proteinTargetG();
   const ratio=finalTarget?consumed/finalTarget:0;
   const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
   const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";

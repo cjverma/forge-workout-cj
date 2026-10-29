@@ -834,7 +834,9 @@ function bestFromSessions(cid){
       if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
       if(canonicalId(exId)!==cid)continue;
       for(const st of(ed.sets||[])){
-        if(!st||!st.done||!st.weight||!st.reps)continue;
+        // otherMachine: logged on a different machine (user, Oct 29); kept in
+        // the log but never a PR.
+        if(!st||!st.done||!st.weight||!st.reps||st.otherMachine)continue;
         const w=toKg(st.weight,ed.unit),r=Number(st.reps);
         if(!w||!r||r>30)continue;
         const est=epley1RM(w,r);
@@ -1441,6 +1443,8 @@ function checkAndStorePR(exId,weight,reps,unit){
   const kg=toKg(weight,unit);
   if(!kg||!reps||reps>30)return;
   const cid=canonicalId(exId);
+  // Warm-ups are not PRs (they were, until the Oct 29 audit).
+  if(/^warm_up_/.test(cid))return;
   weight=kg;
   const est=epley1RM(weight,reps);
   const prev=bestPR(cid);
