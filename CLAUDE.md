@@ -328,6 +328,11 @@ by Feb 20, cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Feb
 for an unlogged day outside these phases is `restingDefaultFor()` (last 5 logged, else 2,700).
 Phase names never use "·". Don't change the phases or add a goal unasked.
 
+**Injury context for every AI call** (`HARD_RULES` in `api/_shared.js`):
+lumbar disc herniation with left-leg sciatica and calf nerve pain, and (Oct 29)
+bedridden July to December 2025, back in the gym around July 2026: rebuild
+gradually, reps before load, never one-set maxes.
+
 **Protein is 144 g a day, every day** (Oct 28): 1.8 g x the user's EVENTUAL
 80 kg goal (`PROTEIN_GOAL_KG` in `src/phase.js`; "my goal weight eventually
 is 80 kg so it should be based on that"). Dosed off current weight it was
