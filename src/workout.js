@@ -451,10 +451,11 @@ export function renderW(){
   // "How was today?" (user, Oct 28): an AI review of today's session AND
   // today's food. Only on today's own screen (current week, today's weekday):
   // a past day is finished and a future one has nothing to review.
-  if(isTodayScreen()){
-    const rev=dayReviewGet();
+  const _rd=reviewDate();
+  if(_rd){
+    const rev=dayReviewGet(_rd),word=_rd===isoToday()?"today":"yesterday";
     h+=`<div class="day-review">
-      <button class="day-review-btn" id="dayReviewBtn" onclick="reviewToday()">${icon("spark",18)} ${rev?"Review today again":"How was today?"}</button>
+      <button class="day-review-btn" id="dayReviewBtn" onclick="reviewToday()">${icon("spark",18)} ${rev?`Review ${word} again`:`How was ${word}?`}</button>
       <div class="day-review-out" id="dayReviewOut"${rev?"":" hidden"}>${rev?mdLite(rev.text)+`<div class="day-review-meta">Reviewed at ${new Date(rev.at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</div>`:""}</div>
     </div>`;
   }
@@ -1337,13 +1338,25 @@ async function aiRun(type){
 function isTodayScreen(){
   return !ctx.isPast()&&!ctx.isFuture()&&ctx.cDay===DAYS[(new Date().getDay()+6)%7];
 }
-function dayReviewGet(){
-  try{const r=JSON.parse(localStorage.getItem("f5_dayreview")||"null");return r&&r.date===isoToday()?r:null;}catch(_){return null;}
+// TEMPORARY (Oct 29, the user: "temporarily add how was today to yesterday,
+// just need to review"): yesterday's screen gets "How was yesterday?" until
+// REVIEW_YESTERDAY_UNTIL, then it goes back to today only.
+const REVIEW_YESTERDAY_UNTIL="2026-11-01";
+function reviewDate(){
+  if(isTodayScreen())return isoToday();
+  const t=isoToday();
+  if(t>REVIEW_YESTERDAY_UNTIL||ctx.isFuture())return null;
+  const d=new Date(t+"T12:00:00Z");d.setUTCDate(d.getUTCDate()-1);
+  const y=d.toISOString().slice(0,10);
+  return sessionKeyToIso(ctx.sk(ctx.cDay))===y?y:null;
+}
+function dayReviewGet(date){
+  try{const r=JSON.parse(localStorage.getItem("f5_dayreview")||"null");return r&&r.date===(date||isoToday())?r:null;}catch(_){return null;}
 }
 // Everything the coach needs about today, as compact facts (no raw food log
 // text beyond item names). Exported for the test.
-export function buildDayReviewFacts(){
-  const S=ctx.getS(),t=isoToday(),prog=curProg(),sess=S.sessions[ctx.sk(ctx.cDay)]||{};
+export function buildDayReviewFacts(date){
+  const S=ctx.getS(),t=date||isoToday(),dayOver=t<isoToday(),prog=curProg(),sess=S.sessions[ctx.sk(ctx.cDay)]||{};
   const fmtSet=(s,u)=>`${s.weight||"?"} ${u} x ${s.reps||"?"}${s.done?"":" (not ticked)"}`;
   const exercises=(prog.exercises||[]).map(ex=>{
     const ed=sess[ex.id]||{},u=ed.unit==="lbs"?"lbs":"kg";
@@ -1364,7 +1377,7 @@ export function buildDayReviewFacts(){
   const wk=ctx.weekDeficitNow?.();
   const week=wk?{completeDaysCounted:wk.counted,deficitSoFar:Math.round(wk.total),neededSoFar:Math.round(wk.need),
     aheadBy:Math.round(wk.gap),weekNeeds:wk.weekNeed,notEnoughData:!!wk.thin}:null;
-  const status={localTime:now.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),late:hour>=21,
+  const status={localTime:dayOver?"the day is over":now.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"}),late:dayOver||hour>=21,dayOver,
     foodOver:kcalLeft!=null&&kcalLeft<0,kcalOverBy:kcalLeft!=null&&kcalLeft<0?-kcalLeft:0,kcalRoomLeft:kcalLeft!=null&&kcalLeft>0?kcalLeft:0,
     proteinLeftG:Math.max(0,proteinTargetG()-sum("protein")),
     activeLeft:activeTarget!=null?Math.max(0,activeTarget-(Number(nd.active)||0)):null,
@@ -1384,7 +1397,7 @@ async function reviewToday(){
   const btn=document.getElementById("dayReviewBtn"),out=document.getElementById("dayReviewOut");
   if(!btn||!out)return;
   btn.disabled=true;out.hidden=false;out.innerHTML='<span class="spin"></span>Looking at today…';
-  const facts=buildDayReviewFacts();
+  const facts=buildDayReviewFacts(reviewDate()||isoToday());
   const st=facts.status;
   // The rules come from the user (Oct 28): an over-target day happens; judge
   // it inside the week, never prescribe late-night catch-up cardio, never
@@ -1402,7 +1415,8 @@ Rules:
 Write three short parts, plain text, no headings, no em dashes:
 1) Workout, one or two sentences.
 2) Food, one or two sentences including what it means for the week.
-3) "Next:" one or two concrete actions with numbers, for tonight only if it is not late and not over, otherwise for tomorrow.`;
+3) "Next:" one or two concrete actions with numbers, for tonight only if it is not late and not over, otherwise for tomorrow.${st.dayOver?`
+This review is of a FINISHED day (${facts.date}), not today: say "yesterday", never suggest anything for that day, and make "Next:" about today.`:""}`;
   try{
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt,context:{day:ctx.cDay,program:facts.session}})},60000);
     const d=await r.json();
@@ -1410,7 +1424,7 @@ Write three short parts, plain text, no headings, no em dashes:
     const rev={date:facts.date,text:d.text,at:Date.now()};
     try{localStorage.setItem("f5_dayreview",JSON.stringify(rev));}catch(_){}
     out.innerHTML=mdLite(d.text)+`<div class="day-review-meta">Reviewed at ${new Date(rev.at).toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})}</div>`;
-    btn.innerHTML=`${icon("spark",18)} Review today again`;
+    btn.innerHTML=`${icon("spark",18)} Review ${facts.date===isoToday()?"today":"yesterday"} again`;
   }catch(e){out.textContent="Couldn't reach the coach. Try again in a moment.";}
   btn.disabled=false;
 }
