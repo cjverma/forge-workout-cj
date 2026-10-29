@@ -771,6 +771,28 @@ try {
     await p2.close();
   }
 
+  // PR audit (Oct 29): a different-machine set never counts, an unverifiable
+  // PR is rebuilt from the log, and warm-up PRs are archived, not kept.
+  {
+    const page = await browser.newPage({ viewport: { width: 402, height: 900 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`praudit: ${e.message}`));
+    await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ nutrition: { days: {}, weights: {} }, _v6MonDone1: true, _planMove41: true,
+        sessions: { Friday_2026W31: { f3_cp: { done: true, unit: "lbs", sets: [{ done: true, weight: "133", reps: "12" }] } },
+          Wednesday_2026W44: { w7_cp: { done: true, unit: "kg", sets: [{ done: true, weight: "54", reps: "10" }] } },
+          Thursday_2026W42: { th7_slc: { done: true, unit: "kg", sets: [{ done: true, weight: "70", reps: "18" }] } } },
+        prs: { chest_press_machine: [{ date: "2026-07-31", weight: 60.3, reps: 12, est: 84 }], seated_leg_curl: [{ date: "2026-10-17", weight: 72.6, reps: 18, est: 116 }],
+          warm_up_leg_press: [{ date: "2026-10-13", weight: 91, reps: 17, est: 143 }] } }); });
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+    const st = await page.evaluate(() => JSON.parse(localStorage.f5));
+    const best = (l) => (l || []).reduce((a, e) => (!a || e.est > a.est ? e : a), null);
+    const cp = best(st.prs.chest_press_machine), lc = best(st.prs.seated_leg_curl);
+    note("PR audit: the other-machine chest press set is tagged and no PR (54 x 10 wins), the unlogged 72.6 x 18 leg curl becomes 70 x 18, warm-up PRs are archived",
+      cp?.weight === 54 && cp?.reps === 10 && st.sessions.Friday_2026W31.f3_cp.sets[0].otherMachine === true && lc?.weight === 70 && lc?.reps === 18 &&
+      !st.prs.warm_up_leg_press && !!st._prPurged?.warm_up_leg_press, JSON.stringify({ cp, lc, w: st.prs.warm_up_leg_press }));
+    await page.close();
+  }
+
   // Simplified app (Oct 2026): every feature switched off in FEATURES must be
   // gone from the rendered UI, not just unused.
   {

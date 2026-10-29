@@ -915,6 +915,14 @@ QUARTILE of logged sets so a run of mis-typed sets cannot redefine it. A
 confirmed set carries `unitOk` and is never asked about again. Entries with
 weights but no `unit` predate the field and must keep reading as kg.
 
+**PR audit (Oct 29, from the user's backup; `S._prAudit1` in `src/main.js`).**
+A set tagged `otherMachine` (the Jul 31 chest press at 133 lbs, "different
+machine so wrong number") stays in the log but never counts toward a PR
+(`bestFromSessions`, the audit). Warm-ups never create PRs (`checkAndStorePR`
+skips `warm_up_*`); old warm-up PRs and PRs that match no logged set were
+archived to `S._prPurged` / rebuilt from the log. The undated-unit Aug 3 custom
+leg extension (100/120) was lbs.
+
 **`delSet` must splice the set BEFORE dropping its PR.** `dropPRForSet` calls
 `recoverPRFromLog`, which recomputes the best remaining lift from the logged
 sessions — with the set still present it recovered the very PR it had just

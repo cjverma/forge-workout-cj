@@ -4485,7 +4485,9 @@ function bestFromSessions(cid){
       if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
       if(canonicalId(exId)!==cid)continue;
       for(const st of(ed.sets||[])){
-        if(!st||!st.done||!st.weight||!st.reps)continue;
+        // otherMachine: logged on a different machine (user, Oct 29); kept in
+        // the log but never a PR.
+        if(!st||!st.done||!st.weight||!st.reps||st.otherMachine)continue;
         const w=toKg(st.weight,ed.unit),r=Number(st.reps);
         if(!w||!r||r>30)continue;
         const est=epley1RM(w,r);
@@ -5092,6 +5094,8 @@ function checkAndStorePR(exId,weight,reps,unit){
   const kg=toKg(weight,unit);
   if(!kg||!reps||reps>30)return;
   const cid=canonicalId(exId);
+  // Warm-ups are not PRs (they were, until the Oct 29 audit).
+  if(/^warm_up_/.test(cid))return;
   weight=kg;
   const est=epley1RM(weight,reps);
   const prev=bestPR(cid);
@@ -8265,6 +8269,62 @@ if(!S._wtBackfill1){
   for(const[d,kg]of Object.entries(seed))if(S.nutrition.weights[d]==null)S.nutrition.weights[d]=kg;
   S._wtBackfill1=true;
   localStorage.setItem("f5",JSON.stringify(S));
+}
+// PR audit (Oct 29, from the user's backup). Three kinds of wrong record:
+// - Jul 31 chest press at 133 lbs (60.3 kg) was a DIFFERENT machine (user:
+//   "different machine so wrong number"): its sets are tagged otherMachine and
+//   never count toward a PR or a target again (the log keeps them).
+// - The Aug 3 custom leg extension (100/120 x15) had no unit; the same session's
+//   pec fly was lbs, and 120 kg is ~1.8x the usual 68 kg: it was lbs.
+// - Warm-up sets were saved as PRs, and some PRs match no logged set at all
+//   (72.6 x 18 leg curl, 49.9 x 13 cable curl, 13.6 x 10 hammer curl).
+// Every PR is rebuilt from the log: unverifiable entries go, the best provable
+// lift is put back, warm-up and set-less PRs are archived to S._prPurged.
+// Idempotent: on clean data every step is a no-op.
+if(!S._prAudit1){
+  const LB=0.45359237;
+  const tag=(key,exId,fn)=>{const ed=S.sessions?.[key]?.[exId];if(ed&&fn(ed))queueSession(key,exId);};
+  tag("Friday_2026W31","f3_cp",ed=>{let ch=false;for(const st of ed.sets||[])if(ed.unit==="lbs"&&String(st.weight)==="133"&&!st.otherMachine){st.otherMachine=true;ch=true;}return ch;});
+  tag("Monday_2026W32","c_1785773891369",ed=>{if(ed.unit||!(ed.sets||[]).some(st=>String(st.weight)==="120"))return false;ed.unit="lbs";for(const st of ed.sets||[])st.unitOk=true;return true;});
+  const canon=exId=>{const c=_prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");return PR_ALIAS[c]||c;};
+  const setsFor=cid=>{
+    const out=[];
+    for(const[key,sess]of Object.entries(S.sessions||{})){
+      if(!sess||typeof sess!=="object")continue;
+      for(const[exId,ed]of Object.entries(sess)){
+        if(!ed||typeof ed!=="object"||exId.startsWith("_")||canon(exId)!==cid)continue;
+        for(const st of(ed.sets||[])){
+          if(!st||!st.done||!st.weight||!st.reps||st.otherMachine)continue;
+          const w=ed.unit==="lbs"?Math.round(Number(st.weight)*LB*10)/10:Number(st.weight),r=Number(st.reps);
+          if(!w||!r||r>30)continue;
+          out.push({key,weight:w,reps:r,est:r===1?w:Math.round(w*(1+r/30))});
+        }
+      }
+    }
+    return out;
+  };
+  let fixed=0;
+  for(const[cid,list]of Object.entries(S.prs||{})){
+    if(!Array.isArray(list)||!list.length)continue;
+    const sets=/^warm_up_/.test(cid)?[]:setsFor(cid);
+    const ok=e=>sets.some(s=>s.weight===Number(e.weight)&&s.reps===Number(e.reps));
+    const bad=list.filter(e=>!ok(e));
+    if(!bad.length)continue;
+    if(!sets.length)(S._prPurged=S._prPurged||{})[cid]=(S._prPurged[cid]||[]).concat(list);
+    for(const e of bad)queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
+    const kept=list.filter(ok);
+    const best=sets.reduce((b,s)=>!b||s.est>b.est?s:b,null),bestKept=kept.reduce((b,e)=>!b||e.est>b.est?e:b,null);
+    if(best&&(!bestKept||best.est>bestKept.est)){
+      const date=sessionKeyToIso(best.key)||isoToday();
+      kept.push({date,weight:best.weight,reps:best.reps,est:best.est});
+      queueMutation("pr",{exerciseId:cid,date,weight:best.weight,reps:best.reps,est:best.est});
+    }
+    if(kept.length)S.prs[cid]=kept;else delete S.prs[cid];
+    fixed+=bad.length;
+  }
+  S._prAudit1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+  if(fixed)setTimeout(()=>showToast(fixed+" PR record"+(fixed===1?"":"s")+" corrected from your logged sets"),4000);
 }
 // Remove May 25 outlier — 3-point trend (Jun 2, 7, 8) is more accurate without it.
 if(!S._wtBackfill2){
