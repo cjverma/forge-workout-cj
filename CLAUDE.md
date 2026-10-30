@@ -53,12 +53,13 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   the top of a card with the biggest gap. Used on the goal card, the weekly
   deficit, Insights' Targets Hit This Week; the intake ring reads "+581 kcal
   over", macro tiles say "129 g to go" / "17 g over" with a limit tick.
-- Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=4`).
-- **App icon (Oct 30)**: `icon.svg` is the source: black full-bleed square
-  (iOS rounds it; content inside the maskable safe circle), a system-blue
-  progress ring (`#0A84FF` on a `#1C1C1E` track, like the intake ring) and a
-  white F. `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` are renders
-  of it; re-render all three and bump the manifest `?v=` when it changes.
+- Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=5`).
+- **App icon (Oct 30, "Night steel", picked from six on the design canvas)**:
+  `icon.svg` is the source: a full-bleed graphite radial background (iOS
+  rounds it; the mark sits inside the maskable safe circle), the angular
+  forged F in brushed silver and its detached diagonal in glowing system
+  blue. `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` are renders of
+  it; re-render all three and bump the manifest `?v=` (now 5) when it changes.
 - `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
 
 ## Legacy: the "Premium Athletic / Volt" design system (fallback tokens only)

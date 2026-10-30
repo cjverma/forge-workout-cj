@@ -1,12 +1,12 @@
 // Cache version: bump this string on any asset/design change so every client
 // drops the old cache and installs the new one.
-const V = "forge-v138";
+const V = "forge-v139";
 
 // Offline-first PWA. build.mjs copies this file into dist/ (the only folder
 // Vercel serves) and fills DEMOS with every bundled demo image, so the app AND
 // its form demos load with no connection. In the repo copy DEMOS stays empty
 // (local dev: server.js serves the repo root).
-const CRITICAL = ["/", "/manifest.json?v=4", "/demos/map.json", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
+const CRITICAL = ["/", "/manifest.json?v=5", "/demos/map.json", "/icon-192.png", "/icon-512.png", "/apple-touch-icon.png"];
 const DEMOS = [/*__DEMOS__*/];
 
 // Install fails (and the browser retries on the next launch) if any critical
