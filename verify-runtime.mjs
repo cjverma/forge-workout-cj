@@ -736,11 +736,13 @@ try {
     await page.evaluate(() => window.reviewToday()); await page.waitForTimeout(500);
     const out = await page.evaluate(() => document.getElementById("dayReviewOut")?.innerText || "");
     await page.evaluate(() => document.getElementById("p-Monday")?.click()); await page.waitForTimeout(400);
-    const onPast = await page.evaluate(() => !!document.getElementById("dayReviewBtn"));
-    note("'How was today?' shows on today only, sends today's workout and food, and shows the coach's reply",
-      onToday && !onPast && /Good session/.test(out) && /Chicken rice bowl/.test(sent?.prompt || "") && /"workout"/.test(sent?.prompt || "") &&
+    const onPast = await page.evaluate(() => document.getElementById("dayReviewBtn")?.textContent.trim() || "");
+    await page.evaluate(() => document.getElementById("p-Wednesday")?.click()); await page.waitForTimeout(400);
+    const onFuture = await page.evaluate(() => !!document.getElementById("dayReviewBtn"));
+    note("'How was today?' shows on today (and 'How was yesterday?' on yesterday, never a future day), sends today's workout and food, and shows the coach's reply",
+      onToday && /How was yesterday\?/.test(onPast) && !onFuture && /Good session/.test(out) && /Chicken rice bowl/.test(sent?.prompt || "") && /"workout"/.test(sent?.prompt || "") &&
       /850 kcal of room left/.test(sent?.prompt || "") && /There is still time today/.test(sent?.prompt || ""),
-      JSON.stringify({ onToday, onPast, out: out.slice(0, 80) }));
+      JSON.stringify({ onToday, onPast, onFuture, out: out.slice(0, 80) }));
     // Past foods that fit what is left (Oct 28): the coach may only suggest
     // from them, and the Food tab offers them as one-tap adds.
     const sug = (sent?.prompt || "").match(/"suggestions":\[[^\]]*\]/)?.[0] || "";

@@ -1472,7 +1472,7 @@ ok("delete control is hidden on read-only days",
   ok("the Workout pop-ups (finish sheet, summary, swap, milestone) take the iOS look",
     /body\[data-tab\] :is\(#sum,#milestoneModal\) \.sum-title\{[^}]*text-transform:none/.test(IDX));
   ok("the status bar colour matches the iOS surfaces (#000 dark, #F2F2F7 light) and the manifest was re-busted",
-    readFileSync("src/ui.js", "utf8").includes('dark ? "#000000" : "#F2F2F7"') && IDX.includes("manifest.json?v=3"));
+    readFileSync("src/ui.js", "utf8").includes('dark ? "#000000" : "#F2F2F7"') && IDX.includes("manifest.json?v=4"));
   const SUM = IDX.slice(IDX.indexOf('<div class="summary" id="sum">'), IDX.indexOf('id="milestoneModal"'));
   ok("the workout summary has no emoji and no slogan, and says Done",
     SUM.length > 0 && !/[\u{1F300}-\u{1FAFF}]/u.test(SUM) && !/showed up/i.test(SUM) && SUM.includes(">Done</button>") && SUM.includes('id="sumEx"'));
