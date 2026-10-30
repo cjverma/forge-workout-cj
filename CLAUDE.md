@@ -53,7 +53,13 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   the top of a card with the biggest gap. Used on the goal card, the weekly
   deficit, Insights' Targets Hit This Week; the intake ring reads "+581 kcal
   over", macro tiles say "129 g to go" / "17 g over" with a limit tick.
-- Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=3`).
+- Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=5`).
+- **App icon (Oct 30, "Night steel", picked from six on the design canvas)**:
+  `icon.svg` is the source: a full-bleed graphite radial background (iOS
+  rounds it; the mark sits inside the maskable safe circle), the angular
+  forged F in brushed silver and its detached diagonal in glowing system
+  blue. `icon-512.png`, `icon-192.png`, `apple-touch-icon.png` are renders of
+  it; re-render all three and bump the manifest `?v=` (now 5) when it changes.
 - `verify-runtime.mjs` fails if any tab or the drawer falls back to volt.
 
 ## Legacy: the "Premium Athletic / Volt" design system (fallback tokens only)
@@ -664,8 +670,9 @@ Four surfaces resolve those keys back to names, and all four must agree:
   `_duration` via `fmtWorkoutDur()` ("48 min"), never the stretch since the
   last resume (which read "0m 01s").
 - **"How was today?"** (Oct 28): a tinted button under today's session,
-  ONLY on today's own screen (`isTodayScreen`: current week, today's
-  weekday). It sends `buildDayReviewFacts()` (every exercise's logged sets vs
+  on today's own screen (`isTodayScreen`: current week, today's weekday) and,
+  as "How was yesterday?", on yesterday's (`reviewDate()`; Oct 29, "keep the
+  button"), which reviews the finished day with "Next" for today. It sends `buildDayReviewFacts()` (every exercise's logged sets vs
   last time's best, PRs, notes, calf twinges, duration, today's food items
   and macros vs targets, Watch active vs target, weigh-in) to `/api/coach`
   and shows the reply in a card; the last review is kept on this device for
