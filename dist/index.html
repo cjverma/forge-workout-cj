@@ -2430,7 +2430,34 @@ function programFor(date){
     :date>=new Date(2026,8,11)?PROG_V5
     :date>=new Date(2026,7,3)?PROG_V4
     :date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
-  return _stage(date<new Date(2026,7,10)?_sp(base):base,date);
+  const staged=_stage(date<new Date(2026,7,10)?_sp(base):base,date);
+  return date>=REP_CAP_FROM?_repCap(staged):staged;
+}
+
+// Rep ceiling from Mon Nov 9 2026 (user, Nov 5: "never recommend more than 12
+// reps per set, with some exceptions"; then "weight increase accordingly").
+// Gym work tops out at 12 (n > 12 becomes "10-12"). Exceptions top out at 15
+// (n > 15 becomes "12-15"): the leg press, lighter on purpose for the lumbar
+// disc, and small-muscle isolation (laterals, rear delts, curls, wrist, calves,
+// thigh machines, kickbacks). Core, physio, cardio and warm-ups keep theirs.
+// The target weight goes up to match (workingWeight's maxReps in plan.js).
+const REP_CAP_FROM=new Date(2026,10,9);
+function repCapFor(ex){
+  if(!ex||ex.cat!=="gym"||/^Warm-Up/.test(ex.name)||/pallof/i.test(ex.name))return null;
+  return /leg press|lateral raise|rear delt|curl|calf|thigh|kickback/i.test(ex.name)&&!/leg curl/i.test(ex.name)?15:12;
+}
+function _capRepsVal(r,cap){
+  if(typeof r==="number")return r>cap?(cap===12?"10-12":"12-15"):r;
+  const m=/^(\d+)\s*-\s*(\d+)$/.exec(String(r||""));
+  if(m&&+m[2]>cap)return cap===12?"10-12":"12-15";
+  return r;
+}
+const _rcCache=new WeakMap();
+function _repCap(p){
+  if(_rcCache.has(p))return _rcCache.get(p);
+  const o={};
+  for(const[d,v]of Object.entries(p))o[d]={...v,exercises:(v.exercises||[]).map(e=>{const cap=repCapFor(e);if(!cap)return e;const r=_capRepsVal(e.reps,cap);return r===e.reps?e:{...e,reps:r};})};
+  _rcCache.set(p,o);return o;
 }
 
 const _pd=new Date();
@@ -3220,20 +3247,32 @@ function planWeekLabel(weekKey) {
 //    for the target reps, never above the heaviest weight lifted.
 //    40.8x12, 30.8x8, 30.8x7, 40.8x6 at 10 reps -> ~34 kg.
 // sets: [{kg, reps}] in kg. Returns {kg, reps, held} or null.
-function workingWeight(sets, targetReps = 10) {
+// maxReps (the program's rep ceiling, Nov 5): a HELD weight done for more reps
+// than the range allows is turned into the heavier weight for maxReps reps
+// (same estimated 1RM), at most +10% in one step for the back.
+function workingWeight(sets, targetReps = 10, maxReps = null) {
   const ok = (sets || []).filter((s) => s.kg > 0 && s.reps > 0 && s.reps <= 30);
   if (!ok.length) return null;
   const by = {};
   for (const s of ok) (by[s.kg] ??= []).push(s.reps);
   const [w, reps] = Object.entries(by).sort((a, b) => b[1].length - a[1].length || Number(b[0]) - Number(a[0]))[0];
-  if (reps.length >= Math.max(2, Math.ceil(ok.length / 2)) && Math.min(...reps) >= 0.7 * reps[0])
-    return { kg: Number(w), reps: Math.max(...reps), held: true };
+  if (reps.length >= Math.max(2, Math.ceil(ok.length / 2)) && Math.min(...reps) >= 0.7 * reps[0]) {
+    const best = Math.max(...reps);
+    if (maxReps && best > maxReps) {
+      const up = Math.min(Number(w) * (1 + best / 30) / (1 + maxReps / 30), Number(w) * 1.1);
+      return { kg: Math.round(up * 10) / 10, reps: maxReps, held: false, raised: true };
+    }
+    return { kg: Number(w), reps: best, held: true };
+  }
   const avg = ok.reduce((a, s) => a + s.kg * (1 + s.reps / 30), 0) / ok.length;
   const top = Math.max(...ok.map((s) => s.kg));
-  return { kg: Math.min(top, Math.round(avg / (1 + targetReps / 30) * 10) / 10), reps: targetReps, held: false };
+  const r = maxReps ? Math.min(targetReps, maxReps) : targetReps;
+  return { kg: Math.min(top, Math.round(avg / (1 + r / 30) * 10) / 10), reps: r, held: false };
 }
 // The low end of a program rep range ("10-12" -> 10, 12 -> 12); 10 if none.
 function targetRepsOf(r) { const n = parseInt(String(r ?? ""), 10); return n > 0 && n <= 30 ? n : 10; }
+// The top of a program rep range ("10-12" -> 12, 15 -> 15); null if none.
+function maxRepsOf(r) { const m = /(\d+)\s*$/.exec(String(r ?? "").replace(/\s*each side.*$|\s*\(.*$/i, "")); const n = m ? +m[1] : NaN; return n > 0 && n <= 30 ? n : null; }
 
 function setFatigue(sets) {
   const kgs = sets.map((s) => Number(s.kg)), reps0 = sets.map((s) => Number(s.reps) || 0);
@@ -3275,7 +3314,7 @@ function buildSessionHistory(S, now = new Date(), maxWeeks = 4) {
         // as 120 kg got "progressed" to a weight never lifted.
         const setsDone = (ed.sets || []).filter(s => s.done).map(s => ({ kg: planToKg(s.weight, ed.unit), reps: s.reps })).filter(s => s.kg != null);
         if (setsDone.length || ed.done || ed.skipped) {
-          exs.push({ id: ex.id, name: ex.name, target_sets: ex.sets, target_reps: ex.reps, current_hint: ex.hint, sets_logged: setsDone, fatigue: setFatigue(setsDone), working: workingWeight(setsDone.map((s) => ({ kg: s.kg, reps: Number(s.reps) })), targetRepsOf(ex.reps)), completed: !!ed.done, skipped: !!ed.skipped });
+          exs.push({ id: ex.id, name: ex.name, target_sets: ex.sets, target_reps: ex.reps, current_hint: ex.hint, sets_logged: setsDone, fatigue: setFatigue(setsDone), working: workingWeight(setsDone.map((s) => ({ kg: s.kg, reps: Number(s.reps) })), targetRepsOf(ex.reps), maxRepsOf(ex.reps)), completed: !!ed.done, skipped: !!ed.skipped });
           hasData = true;
         }
       }
@@ -4253,7 +4292,7 @@ function card(ex,sess,key,rdOnly=false){
   // which pre-filled a one-set max into every set (workingWeight, plan.js).
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
-  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps)):null;
+  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),maxRepsOf(ex.reps)):null;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
@@ -5308,6 +5347,24 @@ function usualKg(sets){
   const v=sets.map(s=>s.kg).sort((a,b)=>a-b);
   return v.length>=3?v[Math.floor((v.length-1)*0.25)]:null;
 }
+// "Usual" from the 3 sessions NEAREST in date to the one being checked, not
+// all history (Nov 5: the warm-up grew 45 -> 96 kg since August, so the
+// all-time lower quartile, 46 kg, called the app's own suggested 91 kg a
+// typo). Nearest either side, so a first session or a jump after a break is
+// judged against its neighbours. Still a lower quartile, so one mis-typed set
+// cannot redefine it. Falls back to everything with too little history.
+function recentUsualKg(sets,key,self){
+  const t=k=>{const d=sessionKeyToIso(k);return d?new Date(d+"T12:00:00Z").getTime():Date.now();};
+  const at=sessionKeyToIso(key)?t(key):Date.now();
+  const near=[...new Set(sets.filter(s=>s.key!==key).map(s=>s.key))].sort((a,b)=>Math.abs(t(a)-at)-Math.abs(t(b)-at)).slice(0,3);
+  // The same session's other sets count too; with too little history fall
+  // back to every set (the set itself last, as the old rule did).
+  const pool=sets.filter(s=>s!==self&&(s.key===key||near.includes(s.key)));
+  if(pool.length>=3)return usualKg(pool);
+  const rest=sets.filter(s=>s!==self);
+  return usualKg(rest.length>=3?rest:sets);
+}
+
 function hintMidKg(hint){
   const m=String(hint||"").match(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?\s*kg/);
   return m?(m[2]?(+m[1]+ +m[2])/2:+m[1]):null;
@@ -5324,10 +5381,10 @@ const r1=x=>Math.round(x*10)/10;
 function checkUnitOnLog(key,exId,i,sd,ex,wEl){
   const cid=canonicalId(exId),unit=getExUnit(key,exId),w=Number(sd.weight);
   const others=loggedSetsKg(cid).filter(s=>!(s.key===key&&s.exId===exId&&s.i===i));
-  const usual=usualKg(others)??hintMidKg(ex.hint);
+  const usual=recentUsualKg(others,key)??hintMidKg(ex.hint);
   const kg=toKg(w,unit),sus=unitSuspect(kg,unit,usual);
   if(!sus)return;
-  const name=ex.name||"this exercise";
+  const name=(ex.name||"this exercise").replace(/^Warm-Up · (.*)$/,"$1 warm-up");
   if(sus==="lbs"){
     const conv=r1(w*LB_TO_KG);
     if(confirm(`${w} kg is much heavier than your usual ~${Math.round(usual)} kg on ${name}.\n\nDid you mean ${w} lbs?\n\nOK: log it as ${conv} kg\nCancel: keep ${w} kg`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
@@ -5349,10 +5406,14 @@ function findUnitSuspects(){
   }
   const out=[];
   for(const cid of cids){
-    const sets=loggedSetsKg(cid),usual=usualKg(sets);
+    const sets=loggedSetsKg(cid);
     for(const s of sets){
       if(s.ok)continue;
-      const to=unitSuspect(s.kg,s.unit,usual);
+      const usual=recentUsualKg(sets,s.key,s);
+      let to=unitSuspect(s.kg,s.unit,usual);
+      // A light set with a clearly heavier one in the same session is a
+      // ramp-up, not kg typed in lbs mode.
+      if(to==="kg"&&sets.some(o=>o.key===s.key&&o.exId===s.exId&&o.i!==s.i&&o.kg>=1.4*s.kg))to=null;
       if(to)out.push({...s,cid,to,usual,name:ctx.prName?.(cid)||cid,date:sessionKeyToIso(s.key)});
     }
   }
@@ -6351,6 +6412,14 @@ function phaseCardHtml(){
   const latestKg=latestWeightLog();
   const latest=latestKg??p.startKg;
   const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);
+  // This week's goal (Nov 5, the user: "I need clarity of what weight goal is
+  // end of week"): the plan line on Sunday, against the latest weigh-in.
+  const wkSun=addDaysIso(mondayOfIso(t),6);
+  const wkGoal=Math.round(phaseCurveKg(phaseFor(wkSun)||p,wkSun)*10)/10;
+  const wkSunLbl=new Date(wkSun+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
+  const wkGap=latestKg==null?null:Math.round((latestKg-wkGoal)*10)/10;
+  const weekGoalHtml=gapRow(wkGap==null||wkGap>0?"open":"done","This week's goal",`${wkGoal.toFixed(1)} kg by Sun, ${wkSunLbl}`,
+    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`);
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
@@ -6433,6 +6502,7 @@ function phaseCardHtml(){
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
       <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      <div class="week-goal">${weekGoalHtml}</div>
       ${weightBlockHtml}
       ${rangeRowHtml}
       ${checkpointsHtml}

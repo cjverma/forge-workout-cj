@@ -92,7 +92,10 @@ const SCREENS = [
     after: async (p) => { await p.evaluate(() => window.closePlanModal?.()); } },
   { name: "drawer: insights", root: ["#drawer"], run: async (p) => { await p.evaluate(() => window.openDrawer()); },
     after: async (p) => { await p.evaluate(() => window.closeDrawer()); } },
-  { name: "chat: ask forge", root: ["#forgeChatModal"], run: async (p) => { await p.evaluate(() => window.openForgeChat()); },
+  // Waits for the slide-up transition to finish: under a loaded machine the
+  // 350 ms settle sometimes measured the sheet mid-slide (Send "off screen").
+  { name: "chat: ask forge", root: ["#forgeChatModal"], run: async (p) => { await p.evaluate(() => window.openForgeChat());
+    await p.waitForFunction(() => { const m = document.getElementById("forgeChatModal"); return m && getComputedStyle(m).transform.replace(/\s/g, "") .match(/^(none|matrix\(1,0,0,1,0,0\))$/); }, null, { timeout: 5000 }).catch(() => {}); },
     after: async (p) => { await p.evaluate(() => window.closeForgeChat()); } },
   { name: "toast", root: ["#toast"], run: async (p) => {
     await p.evaluate(() => document.getElementById("nav-workout").click());

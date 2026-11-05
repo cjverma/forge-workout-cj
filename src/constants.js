@@ -922,7 +922,34 @@ export function programFor(date){
     :date>=new Date(2026,8,11)?PROG_V5
     :date>=new Date(2026,7,3)?PROG_V4
     :date>=new Date(2026,6,28)?PROG_V3:date>=new Date(2026,5,1)?PROG_V2:PROG_V1;
-  return _stage(date<new Date(2026,7,10)?_sp(base):base,date);
+  const staged=_stage(date<new Date(2026,7,10)?_sp(base):base,date);
+  return date>=REP_CAP_FROM?_repCap(staged):staged;
+}
+
+// Rep ceiling from Mon Nov 9 2026 (user, Nov 5: "never recommend more than 12
+// reps per set, with some exceptions"; then "weight increase accordingly").
+// Gym work tops out at 12 (n > 12 becomes "10-12"). Exceptions top out at 15
+// (n > 15 becomes "12-15"): the leg press, lighter on purpose for the lumbar
+// disc, and small-muscle isolation (laterals, rear delts, curls, wrist, calves,
+// thigh machines, kickbacks). Core, physio, cardio and warm-ups keep theirs.
+// The target weight goes up to match (workingWeight's maxReps in plan.js).
+export const REP_CAP_FROM=new Date(2026,10,9);
+export function repCapFor(ex){
+  if(!ex||ex.cat!=="gym"||/^Warm-Up/.test(ex.name)||/pallof/i.test(ex.name))return null;
+  return /leg press|lateral raise|rear delt|curl|calf|thigh|kickback/i.test(ex.name)&&!/leg curl/i.test(ex.name)?15:12;
+}
+function _capRepsVal(r,cap){
+  if(typeof r==="number")return r>cap?(cap===12?"10-12":"12-15"):r;
+  const m=/^(\d+)\s*-\s*(\d+)$/.exec(String(r||""));
+  if(m&&+m[2]>cap)return cap===12?"10-12":"12-15";
+  return r;
+}
+const _rcCache=new WeakMap();
+function _repCap(p){
+  if(_rcCache.has(p))return _rcCache.get(p);
+  const o={};
+  for(const[d,v]of Object.entries(p))o[d]={...v,exercises:(v.exercises||[]).map(e=>{const cap=repCapFor(e);if(!cap)return e;const r=_capRepsVal(e.reps,cap);return r===e.reps?e:{...e,reps:r};})};
+  _rcCache.set(p,o);return o;
 }
 
 const _pd=new Date();

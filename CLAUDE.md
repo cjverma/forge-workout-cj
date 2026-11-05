@@ -420,7 +420,7 @@ deficit maths:
 - Weekly history is stored with `v:2`; older weeks only carry `overall`, and
   the AI review describes them that way.
 
-The goal card shows only: weight vs the plan line, the "This week" rows
+The goal card shows only: "This week's goal" (the plan line on this Sunday and the gap from the latest weigh-in; Nov 5, "I need clarity of what weight goal is end of week"), weight vs the plan line, the "This week" rows
 counting days LOGGED (food logged, workouts "3 of 5 done, 2 to go", weight vs
 line, weigh-ins, Watch active logged; user, Oct 28: "count days logged and not
 days goal met"); targets hit and the score are in the Insights drawer
@@ -708,6 +708,16 @@ Four surfaces resolve those keys back to names, and all four must agree:
   overrides the PR anchor). The best set is still the PR and "Last best".
   The program `hint` is only the fallback for an exercise with no history. `lastSessionEx` matches by canonical exercise, not day id, so it
   follows an exercise across program versions.
+- **Rep ceiling from Mon Nov 9 2026** (user, Nov 5: "never more than 12 reps
+  per set with some exceptions", "weight increase accordingly").
+  `repCapFor`/`_repCap` in `src/constants.js`, applied by `programFor` from
+  `REP_CAP_FROM`: gym work tops out at 12 (n > 12 becomes "10-12"); the leg
+  press (lighter on purpose for the lumbar disc) and small isolation (laterals,
+  rear delts, curls, wrist, calves, thigh machines, kickbacks) top out at 15
+  ("12-15"); core/physio/cardio/warm-ups keep theirs. `workingWeight(sets,
+  targetReps, maxReps)` turns a held weight done past the top into the
+  same-1RM weight for the top reps, at most +10% a step (`raised`). The weekly
+  plan prompt has the same ceiling: raise weight, never reps.
 - **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
   `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and
   the prompt says: big drop = hold load, add reps; little drop = step up.
@@ -929,7 +939,11 @@ survived all of them and blocked every real PR beneath it. Three layers now:
 per past set and `rebuildPRsFor()` the exercise; and the unit is printed in
 every weight box, with new entries defaulting to the unit last used on that
 exercise (`defaultUnit`, persisted by `ensure()`). "Usual" is the LOWER
-QUARTILE of logged sets so a run of mis-typed sets cannot redefine it. A
+QUARTILE of the sets from the 3 sessions NEAREST in date (`recentUsualKg`; Nov 5:
+against all history, a warm-up that grew 45 -> 96 kg had its own pre-filled
+91 kg called a typo), so a run of mis-typed sets cannot redefine it. A light
+set with a heavier one (>=1.4x) in the same session is a ramp-up, never a
+"kg meant" suspect. A
 confirmed set carries `unitOk` and is never asked about again. Entries with
 weights but no `unit` predate the field and must keep reading as kg.
 
