@@ -921,6 +921,14 @@ function phaseCardHtml(){
   const latestKg=latestWeightLog();
   const latest=latestKg??p.startKg;
   const remaining=Math.max(0,Math.round((latest-p.targetKg)*10)/10);
+  // This week's goal (Nov 5, the user: "I need clarity of what weight goal is
+  // end of week"): the plan line on Sunday, against the latest weigh-in.
+  const wkSun=addDaysIso(mondayOfIso(t),6);
+  const wkGoal=Math.round(phaseCurveKg(phaseFor(wkSun)||p,wkSun)*10)/10;
+  const wkSunLbl=new Date(wkSun+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
+  const wkGap=latestKg==null?null:Math.round((latestKg-wkGoal)*10)/10;
+  const weekGoalHtml=gapRow(wkGap==null||wkGap>0?"open":"done","This week's goal",`${wkGoal.toFixed(1)} kg by Sun, ${wkSunLbl}`,
+    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`);
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
@@ -1003,6 +1011,7 @@ function phaseCardHtml(){
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
       <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      <div class="week-goal">${weekGoalHtml}</div>
       ${weightBlockHtml}
       ${rangeRowHtml}
       ${checkpointsHtml}

@@ -420,7 +420,7 @@ deficit maths:
 - Weekly history is stored with `v:2`; older weeks only carry `overall`, and
   the AI review describes them that way.
 
-The goal card shows only: weight vs the plan line, the "This week" rows
+The goal card shows only: "This week's goal" (the plan line on this Sunday and the gap from the latest weigh-in; Nov 5, "I need clarity of what weight goal is end of week"), weight vs the plan line, the "This week" rows
 counting days LOGGED (food logged, workouts "3 of 5 done, 2 to go", weight vs
 line, weigh-ins, Watch active logged; user, Oct 28: "count days logged and not
 days goal met"); targets hit and the score are in the Insights drawer

@@ -688,6 +688,8 @@ try {
     const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
     note("the Insights drawer shows targets hit this week and the score (Nov 3 at 2,600 kcal is logged but not on target)",
       /Targets Hit This Week/.test(dr) && /Food at or under target\s*2 of 3 days/.test(dr) && /Watch active target met\s*\d of 3 days/.test(dr) && /\d+%\s*Score so far/.test(dr), dr.slice(dr.indexOf("Targets"), dr.indexOf("Targets") + 200));
+    note("the goal card says this week's goal: the plan line on Sunday (126.3 kg by Sun, Nov 8) and the gap from the latest weigh-in (128.9 kg, 2.6 to go)",
+      /This week's goal/.test(txt) && /126\.3 kg by Sun, Nov 8/.test(txt) && /2\.6 kg to go from 128\.9 kg/.test(txt), (txt.match(/This week's goal.{0,80}/) || [""])[0]);
     note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));
     await page.close();
   }
