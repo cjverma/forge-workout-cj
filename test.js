@@ -892,6 +892,23 @@ section("16a · working weight, not the best single set (Oct 29)");
     REAL_PLAN.targetRepsOf("10-12") === 10 && REAL_PLAN.targetRepsOf(12) === 12 && REAL_PLAN.targetRepsOf(undefined) === 10);
 }
 
+section("16a2 · rep ceiling from Nov 9 2026, weight goes up to match");
+{
+  const C = await import("./src/constants.js");
+  const find = (d, day, re) => C.programFor(new Date(d + "T12:00:00"))[day].exercises.find((e) => re.test(e.name));
+  ok("compounds top out at 12 reps from Nov 9 (leg curl 12-15 -> 10-12, pec fly 12-15 -> 10-12), earlier weeks unchanged",
+    find("2026-11-09", "Monday", /Seated Leg Curl/).reps === "10-12" && find("2026-11-11", "Wednesday", /Pec Fly/).reps === "10-12" &&
+    find("2026-11-02", "Monday", /Seated Leg Curl/).reps === "12-15");
+  ok("exceptions top out at 15: calf raise 15-20 -> 12-15, lateral raise stays 15, leg press 15 stays; Pallof and warm-ups untouched",
+    find("2026-11-09", "Monday", /Calf Raise/).reps === "12-15" && find("2026-11-09", "Monday", /Lateral Raise/).reps === 15 &&
+    find("2026-11-12", "Thursday", /^Leg Press/).reps === 15 && find("2026-11-09", "Monday", /Pallof/).reps === "12 each side" && find("2026-11-09", "Monday", /Warm-Up/).reps === 15);
+  const up = REAL_PLAN.workingWeight([{ kg: 123, reps: 21 }, { kg: 123, reps: 21 }, { kg: 123, reps: 21 }], 10, 12);
+  ok("a held weight done past the rep ceiling becomes a heavier target for 12 (123 x 21 -> 135.3, capped at +10%)", up.raised && up.reps === 12 && up.kg === 135.3, JSON.stringify(up));
+  const ok12 = REAL_PLAN.workingWeight([{ kg: 54, reps: 10 }, { kg: 54, reps: 10 }, { kg: 54, reps: 9 }], 8, 10);
+  ok("inside the range nothing changes (54 x 10 held)", ok12.held && ok12.kg === 54 && ok12.reps === 10);
+  ok("maxRepsOf reads range tops (10-12 -> 12, 15 -> 15, '12 each side' -> 12)", REAL_PLAN.maxRepsOf("10-12") === 12 && REAL_PLAN.maxRepsOf(15) === 15 && REAL_PLAN.maxRepsOf("12 each side") === 12);
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");

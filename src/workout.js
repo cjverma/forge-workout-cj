@@ -3,7 +3,7 @@ import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcal
 import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
-import { workingWeight, targetRepsOf } from "./plan.js";
+import { workingWeight, targetRepsOf, maxRepsOf } from "./plan.js";
 import { weekKeyOf, EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -576,7 +576,7 @@ function card(ex,sess,key,rdOnly=false){
   // which pre-filled a one-set max into every set (workingWeight, plan.js).
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
-  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps)):null;
+  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),maxRepsOf(ex.reps)):null;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);

@@ -708,6 +708,16 @@ Four surfaces resolve those keys back to names, and all four must agree:
   overrides the PR anchor). The best set is still the PR and "Last best".
   The program `hint` is only the fallback for an exercise with no history. `lastSessionEx` matches by canonical exercise, not day id, so it
   follows an exercise across program versions.
+- **Rep ceiling from Mon Nov 9 2026** (user, Nov 5: "never more than 12 reps
+  per set with some exceptions", "weight increase accordingly").
+  `repCapFor`/`_repCap` in `src/constants.js`, applied by `programFor` from
+  `REP_CAP_FROM`: gym work tops out at 12 (n > 12 becomes "10-12"); the leg
+  press (lighter on purpose for the lumbar disc) and small isolation (laterals,
+  rear delts, curls, wrist, calves, thigh machines, kickbacks) top out at 15
+  ("12-15"); core/physio/cardio/warm-ups keep theirs. `workingWeight(sets,
+  targetReps, maxReps)` turns a held weight done past the top into the
+  same-1RM weight for the top reps, at most +10% a step (`raised`). The weekly
+  plan prompt has the same ceiling: raise weight, never reps.
 - **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
   `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and
   the prompt says: big drop = hold load, add reps; little drop = step up.
