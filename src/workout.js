@@ -1631,6 +1631,24 @@ function usualKg(sets){
   const v=sets.map(s=>s.kg).sort((a,b)=>a-b);
   return v.length>=3?v[Math.floor((v.length-1)*0.25)]:null;
 }
+// "Usual" from the 3 sessions NEAREST in date to the one being checked, not
+// all history (Nov 5: the warm-up grew 45 -> 96 kg since August, so the
+// all-time lower quartile, 46 kg, called the app's own suggested 91 kg a
+// typo). Nearest either side, so a first session or a jump after a break is
+// judged against its neighbours. Still a lower quartile, so one mis-typed set
+// cannot redefine it. Falls back to everything with too little history.
+function recentUsualKg(sets,key,self){
+  const t=k=>{const d=sessionKeyToIso(k);return d?new Date(d+"T12:00:00Z").getTime():Date.now();};
+  const at=sessionKeyToIso(key)?t(key):Date.now();
+  const near=[...new Set(sets.filter(s=>s.key!==key).map(s=>s.key))].sort((a,b)=>Math.abs(t(a)-at)-Math.abs(t(b)-at)).slice(0,3);
+  // The same session's other sets count too; with too little history fall
+  // back to every set (the set itself last, as the old rule did).
+  const pool=sets.filter(s=>s!==self&&(s.key===key||near.includes(s.key)));
+  if(pool.length>=3)return usualKg(pool);
+  const rest=sets.filter(s=>s!==self);
+  return usualKg(rest.length>=3?rest:sets);
+}
+
 function hintMidKg(hint){
   const m=String(hint||"").match(/(\d+(?:\.\d+)?)(?:-(\d+(?:\.\d+)?))?\s*kg/);
   return m?(m[2]?(+m[1]+ +m[2])/2:+m[1]):null;
@@ -1647,10 +1665,10 @@ const r1=x=>Math.round(x*10)/10;
 function checkUnitOnLog(key,exId,i,sd,ex,wEl){
   const cid=canonicalId(exId),unit=getExUnit(key,exId),w=Number(sd.weight);
   const others=loggedSetsKg(cid).filter(s=>!(s.key===key&&s.exId===exId&&s.i===i));
-  const usual=usualKg(others)??hintMidKg(ex.hint);
+  const usual=recentUsualKg(others,key)??hintMidKg(ex.hint);
   const kg=toKg(w,unit),sus=unitSuspect(kg,unit,usual);
   if(!sus)return;
-  const name=ex.name||"this exercise";
+  const name=(ex.name||"this exercise").replace(/^Warm-Up · (.*)$/,"$1 warm-up");
   if(sus==="lbs"){
     const conv=r1(w*LB_TO_KG);
     if(confirm(`${w} kg is much heavier than your usual ~${Math.round(usual)} kg on ${name}.\n\nDid you mean ${w} lbs?\n\nOK: log it as ${conv} kg\nCancel: keep ${w} kg`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
@@ -1672,10 +1690,14 @@ export function findUnitSuspects(){
   }
   const out=[];
   for(const cid of cids){
-    const sets=loggedSetsKg(cid),usual=usualKg(sets);
+    const sets=loggedSetsKg(cid);
     for(const s of sets){
       if(s.ok)continue;
-      const to=unitSuspect(s.kg,s.unit,usual);
+      const usual=recentUsualKg(sets,s.key,s);
+      let to=unitSuspect(s.kg,s.unit,usual);
+      // A light set with a clearly heavier one in the same session is a
+      // ramp-up, not kg typed in lbs mode.
+      if(to==="kg"&&sets.some(o=>o.key===s.key&&o.exId===s.exId&&o.i!==s.i&&o.kg>=1.4*s.kg))to=null;
       if(to)out.push({...s,cid,to,usual,name:ctx.prName?.(cid)||cid,date:sessionKeyToIso(s.key)});
     }
   }

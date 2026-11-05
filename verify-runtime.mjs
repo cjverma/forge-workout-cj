@@ -380,6 +380,34 @@ try {
       note("Cancel keeps the weight as typed and marks it confirmed", !!r && r.unitOk === true, JSON.stringify(r));
       await page.close();
     }
+    // 2b. Nov 5: a weight that GREW over months (45 -> 82 -> 91 -> 96) is judged
+    // against the nearest sessions, so the 91 the app pre-fills is not a typo.
+    {
+      const page = await browser.newPage({ viewport: { width: 412, height: 1400 }, timezoneId: "America/Toronto" });
+      page.on("pageerror", (e) => jsErrors.push(`units-grow: ${e.message}`));
+      const asked = []; page.on("dialog", (d) => { asked.push(d.message().slice(0, 60)); d.dismiss(); });
+      await page.addInitScript(() => { window.FORGE_API_CFG = { baseUrl: "", token: "x" }; });
+      await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(800);
+      const exId = await page.evaluate(() => { const inp = [...document.querySelectorAll(".si")].find((i) => i.id.startsWith("wi-")); return inp ? inp.id.replace("wi-", "").replace(/-\d+$/, "") : null; });
+      const key = await page.evaluate((exId) => {
+        const S = JSON.parse(localStorage.f5);
+        const wkOf = (d) => (()=>{const _d=new Date(d.getFullYear(),d.getMonth(),d.getDate(),12);_d.setDate(_d.getDate()-((_d.getDay()+6)%7)+2);const _j=new Date(_d.getFullYear(),0,1);return _d.getFullYear()+"W"+Math.ceil(((_d-_j)/86400000+_j.getDay()+1)/7);})();
+        const day = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"][new Date().getDay()];
+        S.sessions = {};
+        [[12, "45"], [11, "45"], [10, "46"], [3, "82"], [2, "91"], [1, "96"]].forEach(([n, w]) => { const d = new Date(); d.setDate(d.getDate() - 7 * n); S.sessions[day + "_" + wkOf(d)] = { [exId]: { unit: "kg", done: true, sets: [{ weight: w, reps: "15", done: true }] } }; });
+        S.prs = {}; S._v6MonDone1 = true; S._planMove41 = true; localStorage.f5 = JSON.stringify(S);
+        try { localStorage.setItem("f5_unitreview_" + new Date().toLocaleDateString("en-CA", { timeZone: "America/Toronto" }), "1"); } catch {}
+        return day + "_" + wkOf(new Date());
+      }, exId);
+      await page.reload({ waitUntil: "networkidle" }); await page.waitForTimeout(800);
+      await page.evaluate((id) => window.expand(id), exId); await page.waitForTimeout(200);
+      await page.locator(`#wi-${exId}-0`).fill("91"); await page.locator(`#wi-${exId}-0`).dispatchEvent("change");
+      await page.locator(`#ri-${exId}-0`).fill("15"); await page.locator(`#ri-${exId}-0`).dispatchEvent("change");
+      await page.evaluate(([k, id]) => window.toggleSet(k, id, 0), [key, exId]); await page.waitForTimeout(400);
+      const rows = await page.evaluate(() => { window.openUnitReview?.(); return document.querySelectorAll("#planModal.show .pm-change").length; });
+      note("a weight that grew 45 -> 96 kg over months: logging 91 kg asks nothing and the review sheet lists nothing", asked.length === 0 && rows === 0, JSON.stringify({ asked, rows }));
+      await page.close();
+    }
     // 3. Review sheet: the past 120 kg set is listed; Convert fixes it and the PR.
     {
       const { page, exId } = await mk();

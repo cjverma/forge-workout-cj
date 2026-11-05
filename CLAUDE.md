@@ -939,7 +939,11 @@ survived all of them and blocked every real PR beneath it. Three layers now:
 per past set and `rebuildPRsFor()` the exercise; and the unit is printed in
 every weight box, with new entries defaulting to the unit last used on that
 exercise (`defaultUnit`, persisted by `ensure()`). "Usual" is the LOWER
-QUARTILE of logged sets so a run of mis-typed sets cannot redefine it. A
+QUARTILE of the sets from the 3 sessions NEAREST in date (`recentUsualKg`; Nov 5:
+against all history, a warm-up that grew 45 -> 96 kg had its own pre-filled
+91 kg called a typo), so a run of mis-typed sets cannot redefine it. A light
+set with a heavier one (>=1.4x) in the same session is a ramp-up, never a
+"kg meant" suspect. A
 confirmed set carries `unitOk` and is never asked about again. Entries with
 weights but no `unit` predate the field and must keep reading as kg.
 
