@@ -346,7 +346,8 @@ date; `app_settings.flare_since`, `toggleFlare`). From that date `curProg()`
 shows `flareDay()` (`src/constants.js`): `FLARE_SKIP` drops the leg press and
 its warm-up, glute bridge, kickbacks, seated cable row, straight-arm and rope
 pulldowns and anything standing; one set off each lift (min 1), bike 15 min
-easy. Targets are 75% of the working weight (`FLARE_LOAD`) with no rep-ceiling
+easy. The incline treadmill walk becomes at most 25 min at 0-3%, upright,
+hands off the rails (Nov 7: a long steep walk arches the low back). Targets are 75% of the working weight (`FLARE_LOAD`) with no rep-ceiling
 increases. A banner shows the stop rules and a morning check ("Worse": no gym
 today, walk/stretches/physio; kept on the device for the day). The weekly plan
 gets `profile.flare` and the lighter `currentPlan`; the day review gets

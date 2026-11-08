@@ -2456,6 +2456,11 @@ function flareDay(day){
   if(!day||!day.exercises)return day;
   return{...day,exercises:day.exercises.filter(e=>!FLARE_SKIP.test(e.name)).map(e=>{
     if(e.cat==="cardio"&&/bike/i.test(e.name))return{...e,reps:"15 min",cue:"Easy level. Let it settle your back before anything else."};
+    // Nov 7, the user: "does excessive walk on treadmill at high incline affect
+    // disc too?" A long steep walk arches the low back and keeps the psoas
+    // pulling on it, so in a flare: flat to 3%, at most 25 min, upright.
+    if(e.cat==="cardio"&&/treadmill/i.test(e.name)){const m=/^(\d+)/.exec(String(e.reps||""));
+      return{...e,reps:m&&+m[1]>25?"25 min":e.reps,hint:"Incline 0-3%",cue:"Flat to 3% while the back settles. Stand tall, hands off the rails. Stop if pain or tingling goes down the leg."};}
     if(e.cat==="gym"&&!/^Warm-Up/.test(e.name)&&!/pallof/i.test(e.name))return{...e,sets:Math.max(1,(e.sets||1)-1)};
     if(/pallof/i.test(e.name))return{...e,cue:"Gentle. No pushing into pain."};
     return e;})};

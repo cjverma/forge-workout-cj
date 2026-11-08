@@ -920,6 +920,9 @@ section("16a3 · flare mode (Nov 8)");
   const csr = w.Tuesday.exercises.find((e) => e.id === "t4_csr"), csrF = fd("Tuesday").find((e) => e.id === "t4_csr");
   ok("flare mode takes one set off each lift (never below 1), keeps warm-ups and Pallof, makes the bike 15 min easy",
     csrF.sets === csr.sets - 1 && fd("Tuesday").find((e) => /bike/i.test(e.name)).reps === "15 min" && fd("Monday").some((e) => /Pallof/.test(e.name)) && all.every((e) => !e.sets || e.sets >= 1));
+  const tmF = fd("Monday").find((e) => /Incline Treadmill/.test(e.name));
+  ok("flare mode turns the incline walk into 25 min at 0-3%, hands off the rails (Nov 7)",
+    tmF && tmF.reps === "25 min" && tmF.hint === "Incline 0-3%" && /rails/.test(tmF.cue) && w.Monday.exercises.find((e) => /Incline Treadmill/.test(e.name)).reps === "40 min");
   ok("flareActive is on from the day it was switched on, off without it", C.flareActive({ flareSince: "2026-11-08" }, "2026-11-09") && !C.flareActive({ flareSince: "2026-11-08" }, "2026-11-07") && !C.flareActive({}, "2026-11-09"));
   const PP = REAL_PLAN.buildPlanPayload({ flareSince: "2026-11-08", sessions: {}, prs: {}, nutrition: { weights: {} } }, { now: new Date("2026-11-08T20:00:00") });
   ok("the weekly plan payload carries the flare and plans from the lighter week (no leg press in currentPlan)",
