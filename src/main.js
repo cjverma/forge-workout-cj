@@ -529,6 +529,13 @@ if(!S._prAudit1){
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR record"+(fixed===1?"":"s")+" corrected from your logged sets"),4000);
 }
+// Flare mode on from Nov 8 (the user: "dial it down for now"). Once only: if
+// they switch it off later, this never turns it back on.
+if(!S._flareOn1){
+  if(!S.flareSince){S.flareSince="2026-11-08";queueSettings();}
+  S._flareOn1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
+}
 // Remove May 25 outlier — 3-point trend (Jun 2, 7, 8) is more accurate without it.
 if(!S._wtBackfill2){
   delete S.nutrition.weights["2026-05-25"];

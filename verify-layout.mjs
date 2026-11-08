@@ -62,6 +62,11 @@ const DEVICES = [
 const PAGE = [".hdr", "#dayNav", "#mainScroll", ".bot-nav"];
 const SCREENS = [
   { name: "workout: day", root: PAGE, run: async (p) => { await p.evaluate(() => document.getElementById("nav-workout")?.click()); } },
+  // Flare mode (Nov 8): the stop-rules banner and morning check on today.
+  { name: "workout: flare mode banner", root: PAGE, run: async (p) => {
+    await p.evaluate(() => { const S = JSON.parse(localStorage.f5); window.toggleFlare?.(); document.getElementById("nav-workout")?.click(); document.getElementById("p-Wednesday")?.click(); });
+    await p.waitForTimeout(150); await p.evaluate(() => document.querySelector(".flare-card")?.scrollIntoView({ block: "center" })); },
+    after: async (p) => { await p.evaluate(() => { window.toggleFlare?.(); document.getElementById("nav-workout")?.click(); }); } },
   { name: "workout: past day (locked)", root: PAGE, run: async (p) => { await p.evaluate(() => document.getElementById("p-Monday")?.click()); } },
   { name: "workout: exercise open", root: PAGE, run: async (p) => {
     await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });

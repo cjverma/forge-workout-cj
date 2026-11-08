@@ -148,4 +148,6 @@ export async function ensureSchema() {
   )`;
   await q`INSERT INTO milestones(id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
   await q`INSERT INTO app_settings(id) VALUES (1) ON CONFLICT (id) DO NOTHING`;
+  // Flare mode (Nov 8): the ISO date it was switched on, null when off.
+  await q`ALTER TABLE app_settings ADD COLUMN IF NOT EXISTS flare_since text`;
 }

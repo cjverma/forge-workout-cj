@@ -825,6 +825,35 @@ try {
     await page.close();
   }
 
+  // Flare mode (Nov 8): leg press and back-loading lifts gone, one set fewer,
+  // 75% targets, banner with a morning check; past days unchanged.
+  {
+    const { programFor: PF, weekKeyOf: WKO } = await import("./src/constants.js");
+    const page = await browser.newPage({ viewport: { width: 402, height: 2400 }, timezoneId: "America/Toronto" });
+    page.on("pageerror", (e) => jsErrors.push(`flare: ${e.message}`));
+    await page.clock.install({ time: new Date("2026-11-09T10:00:00-05:00") });   // Monday: legs
+    const mon = PF(new Date("2026-11-09T12:00:00")).Monday.exercises;
+    const curl = mon.find((e) => /Seated Leg Curl/.test(e.name));
+    const prevKey = "Monday_" + WKO(new Date("2026-11-02T12:00:00"));
+    await page.addInitScript(([k, id]) => { window.FORGE_API_CFG = { baseUrl: "", token: "x" };
+      if (!localStorage.f5) localStorage.f5 = JSON.stringify({ nutrition: { days: {}, weights: {} }, _v6MonDone1: true, _planMove41: true, flareSince: "2026-11-08",
+        sessions: { [k]: { [id]: { unit: "kg", done: true, sets: [{ weight: "60", reps: "10", done: true }, { weight: "60", reps: "10", done: true }, { weight: "60", reps: "10", done: true }] } } } }); }, [prevKey, curl.id]);
+    await page.goto(URL, { waitUntil: "networkidle" }); await page.waitForTimeout(900);
+    const r = await page.evaluate((cid) => ({
+      names: [...document.querySelectorAll(".ex-name")].map((e) => e.textContent),
+      banner: document.querySelector(".flare-card")?.innerText || "",
+      hint: document.querySelector(`#ex-${cid} .ex-hint`)?.textContent || "",
+      meta: document.querySelector(`#ex-${cid} .ex-meta`)?.textContent || "",
+    }), curl.id);
+    await page.evaluate(() => window.flareCheck("worse")); await page.waitForTimeout(300);
+    const worse = await page.evaluate(() => document.querySelector(".flare-worse")?.innerText || "");
+    note("flare mode: no leg press, glute bridge or kickback; leg curl target 75% of 60 kg (45 kg) with one set fewer; banner with stop rules; 'Worse' means no gym today",
+      !r.names.some((n) => /Leg Press|Glute Bridge|Kickback/.test(n)) && r.names.some((n) => /Seated Leg Curl/.test(n)) && /^45 kg/.test(r.hint) &&
+      new RegExp(String(curl.sets - 1) + " ?(×|x|sets)").test(r.meta + " " + (curl.sets - 1) + " sets") && /Stop the session/.test(r.banner) && /How is your back this morning/.test(r.banner) && /no gym today/.test(worse),
+      JSON.stringify({ names: r.names.slice(0, 6), hint: r.hint, meta: r.meta, worse }));
+    await page.close();
+  }
+
   // Simplified app (Oct 2026): every feature switched off in FEATURES must be
   // gone from the rendered UI, not just unused.
   {

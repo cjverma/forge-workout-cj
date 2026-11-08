@@ -223,7 +223,7 @@ export function queueDayMeta(date, fields) {
 
 export function queueSettings() {
   const S = ctx.getS();
-  queueMutation("settings", { theme: S.theme ?? null, aiDeficitModifier: S.nutrition?.aiDeficitModifier ?? 0, weeklySnapshots: S.nutrition?.weeklySnapshots || [], weeklyVerdict: S.nutrition?.weeklyVerdict || null, demoCache: S.demoCache || {}, demoCacheV: S.demoCacheV ?? null, lastBackup: S._lastBackup ?? null }, "settings");
+  queueMutation("settings", { theme: S.theme ?? null, aiDeficitModifier: S.nutrition?.aiDeficitModifier ?? 0, weeklySnapshots: S.nutrition?.weeklySnapshots || [], weeklyVerdict: S.nutrition?.weeklyVerdict || null, demoCache: S.demoCache || {}, demoCacheV: S.demoCacheV ?? null, lastBackup: S._lastBackup ?? null, flareSince: S.flareSince ?? null }, "settings");
 }
 
 export function queueMilestones() {

@@ -1400,6 +1400,14 @@ body[data-tab] .macro-tick{position:absolute;top:-3px;width:2px;height:10px;bord
 body[data-tab] .macro-gap{font-size:13px;color:var(--mid);margin-top:5px;}
 body[data-tab] .macro-gap.open{color:var(--white);font-weight:600;}
 body[data-tab] .macro-plain .macro-v{color:var(--lt);}
+/* Flare mode banner (Nov 8): stop rules + morning check on flare days. */
+body[data-tab] .flare-card{margin:12px var(--sp-4) 4px;background:var(--s1);border-radius:var(--r-lg);padding:14px 16px;color:var(--white);}
+body[data-tab] .flare-t{font-size:17px;font-weight:600;letter-spacing:-.4px;display:flex;align-items:center;gap:8px;}
+body[data-tab] .flare-b{font-size:15px;line-height:20px;color:var(--lt);margin-top:6px;}
+body[data-tab] .flare-q{font-size:15px;font-weight:600;margin-top:12px;}
+body[data-tab] .flare-btns{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;}
+body[data-tab] .flare-btn{min-height:44px;padding:0 16px;border:0;border-radius:var(--r-md);background:var(--s2);color:var(--accent-text);font-family:var(--font-body);font-size:15px;cursor:pointer;}
+body[data-tab] :is(.flare-ok,.flare-worse){font-size:15px;line-height:20px;margin-top:12px;color:var(--white);font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
 </style>
 </head>
 <body data-tab="workout">
@@ -2434,6 +2442,25 @@ function programFor(date){
   return date>=REP_CAP_FROM?_repCap(staged):staged;
 }
 
+// FLARE MODE (Nov 8, the user, after a mild back flare: "dial it down for
+// now, skip the leg press and anything that puts pressure on discs or back").
+// While S.flareSince is set the day's program drops every exercise that
+// loads the spine or the hips under load, takes one set off each lift (never
+// below 1), makes the bike a 15 min easy warm-up, and targets sit at 75% of
+// the working weight with no increases (workout.js). The physio's advice:
+// movement helps, seated supported machines are fine, stop if it worsens.
+const FLARE_SKIP=/leg press|glute bridge|glute kickback|seated cable row|straight arm pulldown|rope pullover|face pull|standing|deadlift|squat|good morning|hip thrust|back extension|hyperextension/i;
+const FLARE_LOAD=0.75;
+function flareActive(S,dateIso){return !!(S&&S.flareSince&&(!dateIso||dateIso>=S.flareSince));}
+function flareDay(day){
+  if(!day||!day.exercises)return day;
+  return{...day,exercises:day.exercises.filter(e=>!FLARE_SKIP.test(e.name)).map(e=>{
+    if(e.cat==="cardio"&&/bike/i.test(e.name))return{...e,reps:"15 min",cue:"Easy level. Let it settle your back before anything else."};
+    if(e.cat==="gym"&&!/^Warm-Up/.test(e.name)&&!/pallof/i.test(e.name))return{...e,sets:Math.max(1,(e.sets||1)-1)};
+    if(/pallof/i.test(e.name))return{...e,cue:"Gentle. No pushing into pain."};
+    return e;})};
+}
+
 // Rep ceiling from Mon Nov 9 2026 (user, Nov 5: "never recommend more than 12
 // reps per set, with some exceptions"; then "weight increase accordingly").
 // Gym work tops out at 12 (n > 12 becomes "10-12"). Exceptions top out at 15
@@ -3380,10 +3407,16 @@ function buildProgramMeta(planMon) {
 // The full request body for /api/weekly-plan (and the cron).
 function buildPlanPayload(S, { now = new Date(), canonicalId } = {}) {
   const planMon = planMonFor(now), todayIso = isoDate(now), ws = (S.nutrition || {}).weights || {};
+  // Flare mode: the AI plans from the lighter week (back-loading lifts gone,
+  // one set fewer) and is told to keep it light.
+  const flare = !!S.flareSince;
+  const snap = buildPlanSnapshot(planMon);
+  if (flare) for (const [d, v] of Object.entries(snap)) { const f = flareDay(v); snap[d] = { ...v, exercises: f.exercises.map((ex) => ({ id: ex.id, name: ex.name, cat: ex.cat, sets: ex.sets, reps: ex.reps, hint: ex.hint, muscles: ex.muscles || [] })) }; }
   return {
     sessionHistory: buildSessionHistory(S, now, 4),
     profile: {
-      equipment: GYM, program: buildProgramMeta(planMon), currentPlan: buildPlanSnapshot(planMon),
+      flare: flare ? { since: S.flareSince } : null,
+      equipment: GYM, program: buildProgramMeta(planMon), currentPlan: snap,
       prs: buildPRRecords(S, planMon, todayIso, canonicalId), approvedExercises: buildApprovedExercises(planMon),
       weightLog: Object.keys(ws).sort().slice(-8).map(d => ({ date: d, kg: ws[d] })),
       goal: { targetKg: USER.targetKg, byDate: isoDate(USER.goalDate) }
@@ -3698,7 +3731,7 @@ function queueDayMeta(date, fields) {
 
 function queueSettings() {
   const S = ctx.getS();
-  queueMutation("settings", { theme: S.theme ?? null, aiDeficitModifier: S.nutrition?.aiDeficitModifier ?? 0, weeklySnapshots: S.nutrition?.weeklySnapshots || [], weeklyVerdict: S.nutrition?.weeklyVerdict || null, demoCache: S.demoCache || {}, demoCacheV: S.demoCacheV ?? null, lastBackup: S._lastBackup ?? null }, "settings");
+  queueMutation("settings", { theme: S.theme ?? null, aiDeficitModifier: S.nutrition?.aiDeficitModifier ?? 0, weeklySnapshots: S.nutrition?.weeklySnapshots || [], weeklyVerdict: S.nutrition?.weeklyVerdict || null, demoCache: S.demoCache || {}, demoCacheV: S.demoCacheV ?? null, lastBackup: S._lastBackup ?? null, flareSince: S.flareSince ?? null }, "settings");
 }
 
 function queueMilestones() {
@@ -3712,6 +3745,7 @@ function checkSyncNow() { loadServerState(true); }
 window.restoreSnapshot = restoreSnapshot;
 window.listSnapshots = listSnapshots;
 window.checkSyncNow = checkSyncNow;
+
 
 
 
@@ -3977,8 +4011,12 @@ function saveNotes(val){
 // The program for the day being VIEWED, not for today. PROG is a snapshot
 // resolved at load time, so using it made next week render this week's plan:
 // browsing to Aug 3 still showed the V3 return block instead of Southpaw.
+// The calendar date of a weekday in the viewed week.
+function dayIso(d){const m=new Date(ctx.viewDate());const dow=(m.getDay()+6)%7;m.setDate(m.getDate()-dow+DAYS.indexOf(d||ctx.cDay));return isoDate(m);}
 function curProg(day){
-  const d=day||ctx.cDay,p=programFor(ctx.viewDate())[d];
+  const d=day||ctx.cDay,p0=programFor(ctx.viewDate())[d];
+  // Flare mode: today and later only; past days show what was planned then.
+  const p=flareActive(ctx.getS(),dayIso(d))?flareDay(p0):p0;
   // Another week: show the customs actually logged in THAT week, so history
   // stays visible now that customs no longer follow the weekday forever.
   if(!p||!ctx.isPast())return p;
@@ -4049,6 +4087,7 @@ function renderW(){
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
     h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">Next week preview. ${hasPlan?'Plan queued.':'Default program.'}</div>`;
   }
+  if(flareActive(S,dayIso())&&!ctx.isPastDay())h+=flareBannerHtml();
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc((()=>{const d=new Date(_vm);d.setDate(d.getDate()+DAYS.indexOf(cDay));return d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});})())}</div>
     <div class="hero-title">${esc(prog.label)}</div>${prog.tag?`<div class="hero-tag">${esc(prog.tag)} session</div>`:""}
@@ -4292,7 +4331,10 @@ function card(ex,sess,key,rdOnly=false){
   // which pre-filled a one-set max into every set (workingWeight, plan.js).
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
-  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),maxRepsOf(ex.reps)):null;
+  const _flare=flareActive(ctx.getS(),dayIso());
+  const _work0=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),_flare?null:maxRepsOf(ex.reps)):null;
+  // Flare mode: 75% of the working weight, never an increase.
+  const _work=_work0&&_flare?{kg:_work0.kg*FLARE_LOAD,reps:_work0.reps,held:false}:_work0;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
@@ -5048,6 +5090,25 @@ async function aiRun(type){
   }catch(e){out.textContent="AI error: "+(e.message||"request failed");}
 }
 
+// ── FLARE MODE BANNER ──
+// Stop rules on every flare-mode day, plus a morning check on today's screen:
+// "Worse" turns today into walk, stretches and physio only (kept on this
+// device for the day). The physio's rule: nerve irritation shows up late, so
+// how it feels the next morning decides.
+function flareCheckGet(){try{const r=JSON.parse(localStorage.getItem("f5_flarecheck")||"null");return r&&r.date===isoToday()?r.v:null;}catch(_){return null;}}
+function flareCheck(v){try{localStorage.setItem("f5_flarecheck",JSON.stringify({date:isoToday(),v}));}catch(_){}renderW();}
+window.flareCheck=flareCheck;
+function flareBannerHtml(){
+  const today=isTodayScreen(),v=today?flareCheckGet():null;
+  return`<div class="flare-card">
+    <div class="flare-t">${icon("alert",18)} Flare mode: lighter week</div>
+    <div class="flare-b">Leg press and anything that loads your back are off. One set fewer, about 75% of your usual weights. Stop the session if your back or left thigh gets stronger or it spreads down the leg. Three leg symptoms in a session: sit down and stop.</div>
+    ${today?(v==="worse"?`<div class="flare-worse">Worse this morning: no gym today. Walk, stretches and your physio sequence only. <button class="flare-btn" onclick="flareCheck(null)">Undo</button></div>`
+      :v==="ok"?`<div class="flare-ok">Same or better this morning. Train light and check again tomorrow morning.</div>`
+      :`<div class="flare-q">How is your back this morning?</div><div class="flare-btns"><button class="flare-btn" onclick="flareCheck('ok')">Same or better</button><button class="flare-btn" onclick="flareCheck('worse')">Worse</button></div>`):""}
+  </div>`;
+}
+
 // ── "HOW WAS TODAY?" ────────────────────────────────────────────────────────
 // Today's screen only. The review is kept on this device for today (shown again
 // when you come back) and replaced by the next one; it is advice, not data.
@@ -5100,7 +5161,7 @@ function buildDayReviewFacts(date){
   // suggest food from this list (familiar items, already sized to the room).
   status.suggestions=!status.foodOver&&status.kcalRoomLeft>=100&&ctx.foodSuggestions
     ?ctx.foodSuggestions(t,status.kcalRoomLeft,status.proteinLeftG).map(s=>`${s.name} (${s.kcal} kcal, ${s.protein} g protein)`):[];
-  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",status,
+  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",status,flareMode:flareActive(S,t)?"on: mild back flare, lighter week, no leg press or back-loading lifts; never suggest more load or volume":null,
     workout:{started:!!ctx.workoutOn||!!sess._stopped||exercises.some(e=>e.sets.length||e.done),minutes:sess._duration?Math.round(sess._duration/60):null,
       exercises,prsToday,notes:(sess._notes||"").trim()||null,calfTwinges:(sess._calfTwinges||[]).length},
     food:{items:items.map(i=>`${i.name} (${Math.round(i.kcal||0)} kcal, ${Math.round(i.protein||0)} g protein)`),
@@ -6864,6 +6925,15 @@ async function toggleReminders(){
   }catch(e){showToast("Couldn't turn on reminders. Try again from the Home Screen app.");}
 }
 window.toggleReminders=toggleReminders;
+// Flare mode (Nov 8): a synced switch, S.flareSince (ISO date) or null.
+function toggleFlare(){
+  const S=ctx.getS();
+  S.flareSince=S.flareSince?null:isoToday();
+  save();queueSettings();
+  showToast(S.flareSince?"Flare mode on: lighter sessions from today":"Flare mode off: back to the normal program");
+  renderST();
+}
+window.toggleFlare=toggleFlare;
 
 function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
@@ -7000,6 +7070,7 @@ function renderST(){
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
           <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("bell",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM, each only if it isn't done. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
+          <div class="st-row" onclick="toggleFlare()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Flare Mode</div><div class="st-sub">${S.flareSince?`On since ${fmtDate(S.flareSince)}: no leg press or back-loading exercises, one set fewer, about 75% weights. Tap to turn off`:"Off. Tap when your back flares: skips the leg press and anything that loads the back, lighter weights"}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""}, tap to view</div></div></summary>
@@ -8442,6 +8513,13 @@ if(!S._prAudit1){
   S._prAudit1=true;
   localStorage.setItem("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR record"+(fixed===1?"":"s")+" corrected from your logged sets"),4000);
+}
+// Flare mode on from Nov 8 (the user: "dial it down for now"). Once only: if
+// they switch it off later, this never turns it back on.
+if(!S._flareOn1){
+  if(!S.flareSince){S.flareSince="2026-11-08";queueSettings();}
+  S._flareOn1=true;
+  localStorage.setItem("f5",JSON.stringify(S));
 }
 // Remove May 25 outlier — 3-point trend (Jun 2, 7, 8) is more accurate without it.
 if(!S._wtBackfill2){

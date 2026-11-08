@@ -19,7 +19,7 @@ export async function assembleState() {
     q`SELECT week_key, day_name, update FROM week_plan_updates ORDER BY id`,
     q`SELECT shown_protein7, shown_weight5kg, shown_week6, longest_streak FROM milestones WHERE id=1`,
     q`SELECT role, content FROM ai_chat ORDER BY id`,
-    q`SELECT theme, ai_deficit_modifier, weekly_snapshots, weekly_verdict, demo_cache, demo_cache_v, last_backup FROM app_settings WHERE id=1`,
+    q`SELECT theme, ai_deficit_modifier, weekly_snapshots, weekly_verdict, demo_cache, demo_cache_v, last_backup, flare_since FROM app_settings WHERE id=1`,
     q`SELECT week_start, text, created_at FROM diet_reviews ORDER BY week_start DESC LIMIT 1`,
     q`SELECT quotes FROM weekly_quotes ORDER BY week_start DESC LIMIT 1`
   ]);
@@ -122,6 +122,7 @@ export async function assembleState() {
     demoCache: s.demo_cache || {},
     demoCacheV: s.demo_cache_v || undefined,
     _lastBackup: s.last_backup ? new Date(s.last_backup).getTime() : undefined,
+    flareSince: s.flare_since || null,
     // Explicitly null (never undefined) when no review exists yet, so the
     // client guard is a plain truthiness check.
     dietReview: dietReviewRows[0] ? {

@@ -339,6 +339,19 @@ lumbar disc herniation with left-leg sciatica and calf nerve pain, and (Oct 29)
 bedridden July to December 2025, back in the gym around July 2026: rebuild
 gradually, reps before load, never one-set maxes.
 
+**Flare mode** (Nov 8, after a mild back flare; the physio: keep moving,
+pain as the guide; the user: "skip the leg press and anything that puts
+pressure on discs or back"). A synced switch in Settings (`S.flareSince`, ISO
+date; `app_settings.flare_since`, `toggleFlare`). From that date `curProg()`
+shows `flareDay()` (`src/constants.js`): `FLARE_SKIP` drops the leg press and
+its warm-up, glute bridge, kickbacks, seated cable row, straight-arm and rope
+pulldowns and anything standing; one set off each lift (min 1), bike 15 min
+easy. Targets are 75% of the working weight (`FLARE_LOAD`) with no rep-ceiling
+increases. A banner shows the stop rules and a morning check ("Worse": no gym
+today, walk/stretches/physio; kept on the device for the day). The weekly plan
+gets `profile.flare` and the lighter `currentPlan`; the day review gets
+`flareMode`. Past days keep what was planned. It stays on until switched off.
+
 **Protein is 144 g a day, every day** (Oct 28): 1.8 g x the user's EVENTUAL
 80 kg goal (`PROTEIN_GOAL_KG` in `src/phase.js`; "my goal weight eventually
 is 80 kg so it should be based on that"). Dosed off current weight it was

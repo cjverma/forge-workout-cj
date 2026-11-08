@@ -4,6 +4,7 @@ import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } fr
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
 import { workingWeight, targetRepsOf, maxRepsOf } from "./plan.js";
+import { flareActive, flareDay, FLARE_LOAD } from "./constants.js";
 import { weekKeyOf, EX_DB, PROG, programFor, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, DAYS, GYM } from "./constants.js";
 
 function fetchT(url, opts, ms = 15000) {
@@ -261,8 +262,12 @@ function saveNotes(val){
 // The program for the day being VIEWED, not for today. PROG is a snapshot
 // resolved at load time, so using it made next week render this week's plan:
 // browsing to Aug 3 still showed the V3 return block instead of Southpaw.
+// The calendar date of a weekday in the viewed week.
+function dayIso(d){const m=new Date(ctx.viewDate());const dow=(m.getDay()+6)%7;m.setDate(m.getDate()-dow+DAYS.indexOf(d||ctx.cDay));return isoDate(m);}
 function curProg(day){
-  const d=day||ctx.cDay,p=programFor(ctx.viewDate())[d];
+  const d=day||ctx.cDay,p0=programFor(ctx.viewDate())[d];
+  // Flare mode: today and later only; past days show what was planned then.
+  const p=flareActive(ctx.getS(),dayIso(d))?flareDay(p0):p0;
   // Another week: show the customs actually logged in THAT week, so history
   // stays visible now that customs no longer follow the weekday forever.
   if(!p||!ctx.isPast())return p;
@@ -333,6 +338,7 @@ export function renderW(){
     const hasPlan=!!((S.weekPlans||{})[ctx.nextWk()]);
     h+=`<div class="past-banner" style="color:var(--amber);border-color:var(--amber)">Next week preview. ${hasPlan?'Plan queued.':'Default program.'}</div>`;
   }
+  if(flareActive(S,dayIso())&&!ctx.isPastDay())h+=flareBannerHtml();
   h+=`<div class="hero ${heroCls(prog.label)}"${heroStyleAttr(heroCls(prog.label))}>
     <div class="hero-kicker">${esc((()=>{const d=new Date(_vm);d.setDate(d.getDate()+DAYS.indexOf(cDay));return d.toLocaleDateString("en-US",{weekday:"long",month:"long",day:"numeric"});})())}</div>
     <div class="hero-title">${esc(prog.label)}</div>${prog.tag?`<div class="hero-tag">${esc(prog.tag)} session</div>`:""}
@@ -576,7 +582,10 @@ function card(ex,sess,key,rdOnly=false){
   // which pre-filled a one-set max into every set (workingWeight, plan.js).
   const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
-  const _work=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),maxRepsOf(ex.reps)):null;
+  const _flare=flareActive(ctx.getS(),dayIso());
+  const _work0=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),_flare?null:maxRepsOf(ex.reps)):null;
+  // Flare mode: 75% of the working weight, never an increase.
+  const _work=_work0&&_flare?{kg:_work0.kg*FLARE_LOAD,reps:_work0.reps,held:false}:_work0;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
@@ -1332,6 +1341,25 @@ async function aiRun(type){
   }catch(e){out.textContent="AI error: "+(e.message||"request failed");}
 }
 
+// ── FLARE MODE BANNER ──
+// Stop rules on every flare-mode day, plus a morning check on today's screen:
+// "Worse" turns today into walk, stretches and physio only (kept on this
+// device for the day). The physio's rule: nerve irritation shows up late, so
+// how it feels the next morning decides.
+function flareCheckGet(){try{const r=JSON.parse(localStorage.getItem("f5_flarecheck")||"null");return r&&r.date===isoToday()?r.v:null;}catch(_){return null;}}
+function flareCheck(v){try{localStorage.setItem("f5_flarecheck",JSON.stringify({date:isoToday(),v}));}catch(_){}renderW();}
+window.flareCheck=flareCheck;
+function flareBannerHtml(){
+  const today=isTodayScreen(),v=today?flareCheckGet():null;
+  return`<div class="flare-card">
+    <div class="flare-t">${icon("alert",18)} Flare mode: lighter week</div>
+    <div class="flare-b">Leg press and anything that loads your back are off. One set fewer, about 75% of your usual weights. Stop the session if your back or left thigh gets stronger or it spreads down the leg. Three leg symptoms in a session: sit down and stop.</div>
+    ${today?(v==="worse"?`<div class="flare-worse">Worse this morning: no gym today. Walk, stretches and your physio sequence only. <button class="flare-btn" onclick="flareCheck(null)">Undo</button></div>`
+      :v==="ok"?`<div class="flare-ok">Same or better this morning. Train light and check again tomorrow morning.</div>`
+      :`<div class="flare-q">How is your back this morning?</div><div class="flare-btns"><button class="flare-btn" onclick="flareCheck('ok')">Same or better</button><button class="flare-btn" onclick="flareCheck('worse')">Worse</button></div>`):""}
+  </div>`;
+}
+
 // ── "HOW WAS TODAY?" ────────────────────────────────────────────────────────
 // Today's screen only. The review is kept on this device for today (shown again
 // when you come back) and replaced by the next one; it is advice, not data.
@@ -1384,7 +1412,7 @@ export function buildDayReviewFacts(date){
   // suggest food from this list (familiar items, already sized to the room).
   status.suggestions=!status.foodOver&&status.kcalRoomLeft>=100&&ctx.foodSuggestions
     ?ctx.foodSuggestions(t,status.kcalRoomLeft,status.proteinLeftG).map(s=>`${s.name} (${s.kcal} kcal, ${s.protein} g protein)`):[];
-  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",status,
+  return{date:t,day:ctx.cDay,session:prog.label||"",sessionType:prog.tag||"",status,flareMode:flareActive(S,t)?"on: mild back flare, lighter week, no leg press or back-loading lifts; never suggest more load or volume":null,
     workout:{started:!!ctx.workoutOn||!!sess._stopped||exercises.some(e=>e.sets.length||e.done),minutes:sess._duration?Math.round(sess._duration/60):null,
       exercises,prsToday,notes:(sess._notes||"").trim()||null,calfTwinges:(sess._calfTwinges||[]).length},
     food:{items:items.map(i=>`${i.name} (${Math.round(i.kcal||0)} kcal, ${Math.round(i.protein||0)} g protein)`),

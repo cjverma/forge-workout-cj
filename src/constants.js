@@ -926,6 +926,25 @@ export function programFor(date){
   return date>=REP_CAP_FROM?_repCap(staged):staged;
 }
 
+// FLARE MODE (Nov 8, the user, after a mild back flare: "dial it down for
+// now, skip the leg press and anything that puts pressure on discs or back").
+// While S.flareSince is set the day's program drops every exercise that
+// loads the spine or the hips under load, takes one set off each lift (never
+// below 1), makes the bike a 15 min easy warm-up, and targets sit at 75% of
+// the working weight with no increases (workout.js). The physio's advice:
+// movement helps, seated supported machines are fine, stop if it worsens.
+export const FLARE_SKIP=/leg press|glute bridge|glute kickback|seated cable row|straight arm pulldown|rope pullover|face pull|standing|deadlift|squat|good morning|hip thrust|back extension|hyperextension/i;
+export const FLARE_LOAD=0.75;
+export function flareActive(S,dateIso){return !!(S&&S.flareSince&&(!dateIso||dateIso>=S.flareSince));}
+export function flareDay(day){
+  if(!day||!day.exercises)return day;
+  return{...day,exercises:day.exercises.filter(e=>!FLARE_SKIP.test(e.name)).map(e=>{
+    if(e.cat==="cardio"&&/bike/i.test(e.name))return{...e,reps:"15 min",cue:"Easy level. Let it settle your back before anything else."};
+    if(e.cat==="gym"&&!/^Warm-Up/.test(e.name)&&!/pallof/i.test(e.name))return{...e,sets:Math.max(1,(e.sets||1)-1)};
+    if(/pallof/i.test(e.name))return{...e,cue:"Gentle. No pushing into pain."};
+    return e;})};
+}
+
 // Rep ceiling from Mon Nov 9 2026 (user, Nov 5: "never recommend more than 12
 // reps per set, with some exceptions"; then "weight increase accordingly").
 // Gym work tops out at 12 (n > 12 becomes "10-12"). Exceptions top out at 15
