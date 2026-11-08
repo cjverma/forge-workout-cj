@@ -2,7 +2,7 @@
 // auto-plan) and the server cron (api/cron-weekly-plan.js) so the plan is
 // produced even when the app is never opened. Pure functions of the state S:
 // no ctx, no DOM, no localStorage, so they run in Node as well.
-import { programFor, programKeyFor, PROG_NAME, prSlug, PR_ALIAS, kg1, weekKeyOf, GYM, DAYS } from "./constants.js";
+import { programFor, programKeyFor, PROG_NAME, prSlug, PR_ALIAS, kg1, weekKeyOf, GYM, DAYS , flareDay } from "./constants.js";
 import { USER, isoDate } from "./phase.js";
 
 // Private names: every src file is inlined into ONE script, so these must not
@@ -199,10 +199,16 @@ export function buildProgramMeta(planMon) {
 // The full request body for /api/weekly-plan (and the cron).
 export function buildPlanPayload(S, { now = new Date(), canonicalId } = {}) {
   const planMon = planMonFor(now), todayIso = isoDate(now), ws = (S.nutrition || {}).weights || {};
+  // Flare mode: the AI plans from the lighter week (back-loading lifts gone,
+  // one set fewer) and is told to keep it light.
+  const flare = !!S.flareSince;
+  const snap = buildPlanSnapshot(planMon);
+  if (flare) for (const [d, v] of Object.entries(snap)) { const f = flareDay(v); snap[d] = { ...v, exercises: f.exercises.map((ex) => ({ id: ex.id, name: ex.name, cat: ex.cat, sets: ex.sets, reps: ex.reps, hint: ex.hint, muscles: ex.muscles || [] })) }; }
   return {
     sessionHistory: buildSessionHistory(S, now, 4),
     profile: {
-      equipment: GYM, program: buildProgramMeta(planMon), currentPlan: buildPlanSnapshot(planMon),
+      flare: flare ? { since: S.flareSince } : null,
+      equipment: GYM, program: buildProgramMeta(planMon), currentPlan: snap,
       prs: buildPRRecords(S, planMon, todayIso, canonicalId), approvedExercises: buildApprovedExercises(planMon),
       weightLog: Object.keys(ws).sort().slice(-8).map(d => ({ date: d, kg: ws[d] })),
       goal: { targetKg: USER.targetKg, byDate: isoDate(USER.goalDate) }

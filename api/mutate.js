@@ -176,7 +176,7 @@ export default async function handler(req, res) {
         break;
       }
       case "settings": {
-        const { theme, aiDeficitModifier, weeklySnapshots, weeklyVerdict, demoCache, demoCacheV, lastBackup } = payload;
+        const { theme, aiDeficitModifier, weeklySnapshots, weeklyVerdict, demoCache, demoCacheV, lastBackup, flareSince } = payload;
         await q`UPDATE app_settings SET
                   theme=${theme ?? null},
                   ai_deficit_modifier=${aiDeficitModifier ?? 0},
@@ -184,7 +184,8 @@ export default async function handler(req, res) {
                   weekly_verdict=${weeklyVerdict ? JSON.stringify(weeklyVerdict) : null},
                   demo_cache=${JSON.stringify(demoCache || {})},
                   demo_cache_v=${demoCacheV ?? null},
-                  last_backup=${lastBackup ? new Date(lastBackup).toISOString() : null}
+                  last_backup=${lastBackup ? new Date(lastBackup).toISOString() : null},
+                  flare_since=${typeof flareSince === "string" && /^\d{4}-\d{2}-\d{2}$/.test(flareSince) ? flareSince : null}
                 WHERE id=1`;
         break;
       }

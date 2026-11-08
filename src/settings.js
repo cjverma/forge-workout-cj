@@ -39,6 +39,15 @@ async function toggleReminders(){
   }catch(e){showToast("Couldn't turn on reminders. Try again from the Home Screen app.");}
 }
 window.toggleReminders=toggleReminders;
+// Flare mode (Nov 8): a synced switch, S.flareSince (ISO date) or null.
+function toggleFlare(){
+  const S=ctx.getS();
+  S.flareSince=S.flareSince?null:isoToday();
+  save();queueSettings();
+  showToast(S.flareSince?"Flare mode on: lighter sessions from today":"Flare mode off: back to the normal program");
+  renderST();
+}
+window.toggleFlare=toggleFlare;
 
 export function renderST(){
   document.getElementById("tc").innerHTML=`<div class="st-wrap">
@@ -175,6 +184,7 @@ export function renderST(){
         <div class="st-group">
           <div class="st-row" onclick="toggleTheme()"><div class="st-icon">${S.theme==="light"?icon("sun",18):S.theme==="dark"?icon("moon",18):icon("moonHalf",18)}</div><div class="st-info"><div class="st-ttl">Theme</div><div class="st-sub">${S.theme==="light"?"Light, tap for dark":S.theme==="dark"?"Dark, tap for auto":"Auto, follows your device, tap for light"}</div></div></div>
           <div class="st-row" onclick="toggleReminders()"><div class="st-icon">${icon("bell",18)}</div><div class="st-info"><div class="st-ttl">Reminders</div><div class="st-sub">${remindersOn()?"On: weigh-in 9:30 AM, food 11 AM, workout 7 PM, active 8:30 PM, calories 11:30 PM, each only if it isn't done. Tap to turn off":"Off. Tap for reminders when your weigh-in, food, workout or calories aren't logged"}</div></div></div>
+          <div class="st-row" onclick="toggleFlare()"><div class="st-icon">${icon("alert",18)}</div><div class="st-info"><div class="st-ttl">Flare Mode</div><div class="st-sub">${S.flareSince?`On since ${fmtDate(S.flareSince)}: no leg press or back-loading exercises, one set fewer, about 75% weights. Tap to turn off`:"Off. Tap when your back flares: skips the leg press and anything that loads the back, lighter weights"}</div></div></div>
         </div>
         ${(()=>{const snaps=listSnapshots();if(!snaps.length)return"";return `<details class="st-subacc">
           <summary><div><div>${icon("refresh",20)} Undo Sync</div><div class="st-subacc-note">${snaps.length} recent sync${snaps.length!==1?"s":""}, tap to view</div></div></summary>

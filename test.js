@@ -909,6 +909,26 @@ section("16a2 · rep ceiling from Nov 9 2026, weight goes up to match");
   ok("maxRepsOf reads range tops (10-12 -> 12, 15 -> 15, '12 each side' -> 12)", REAL_PLAN.maxRepsOf("10-12") === 12 && REAL_PLAN.maxRepsOf(15) === 15 && REAL_PLAN.maxRepsOf("12 each side") === 12);
 }
 
+section("16a3 · flare mode (Nov 8)");
+{
+  const C = await import("./src/constants.js");
+  const w = C.programFor(new Date("2026-11-09T12:00:00"));
+  const fd = (d) => C.flareDay(w[d]).exercises;
+  const all = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].flatMap(fd);
+  ok("flare mode drops the leg press (and its warm-up), glute bridge, kickback, seated cable row, straight-arm pulldown and rope pullover",
+    !all.some((e) => /leg press|glute bridge|kickback|seated cable row|straight arm|rope pullover/i.test(e.name)) && all.some((e) => /Seated Leg Curl/.test(e.name)) && all.some((e) => /Chest Supported Row/.test(e.name)));
+  const csr = w.Tuesday.exercises.find((e) => e.id === "t4_csr"), csrF = fd("Tuesday").find((e) => e.id === "t4_csr");
+  ok("flare mode takes one set off each lift (never below 1), keeps warm-ups and Pallof, makes the bike 15 min easy",
+    csrF.sets === csr.sets - 1 && fd("Tuesday").find((e) => /bike/i.test(e.name)).reps === "15 min" && fd("Monday").some((e) => /Pallof/.test(e.name)) && all.every((e) => !e.sets || e.sets >= 1));
+  const tmF = fd("Monday").find((e) => /Incline Treadmill/.test(e.name));
+  ok("flare mode turns the incline walk into 25 min at 0-3%, hands off the rails (Nov 7)",
+    tmF && tmF.reps === "25 min" && tmF.hint === "Incline 0-3%" && /rails/.test(tmF.cue) && w.Monday.exercises.find((e) => /Incline Treadmill/.test(e.name)).reps === "40 min");
+  ok("flareActive is on from the day it was switched on, off without it", C.flareActive({ flareSince: "2026-11-08" }, "2026-11-09") && !C.flareActive({ flareSince: "2026-11-08" }, "2026-11-07") && !C.flareActive({}, "2026-11-09"));
+  const PP = REAL_PLAN.buildPlanPayload({ flareSince: "2026-11-08", sessions: {}, prs: {}, nutrition: { weights: {} } }, { now: new Date("2026-11-08T20:00:00") });
+  ok("the weekly plan payload carries the flare and plans from the lighter week (no leg press in currentPlan)",
+    PP.profile.flare?.since === "2026-11-08" && !Object.values(PP.profile.currentPlan).some((d) => d.exercises.some((e) => /leg press/i.test(e.name))));
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");
