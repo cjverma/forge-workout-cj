@@ -33,6 +33,8 @@ export const BANNED_EX = [
 export function isBannedExercise(name) {
   const n = String(name || "");
   if (/lat\s*pulldown/i.test(n) && !/neutral|close/i.test(n)) return true;
+  // The one allowed press (Nov 9): seated, machine, back on the pad.
+  if (/^seated shoulder press machine \(back supported\)$/i.test(n.trim())) return false;
   return BANNED_EX.some(rx => rx.test(n));
 }
 
