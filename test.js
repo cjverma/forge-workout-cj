@@ -137,7 +137,7 @@ const exDbBlock = exDbMatch ? exDbMatch[1] : "";
 ok("EX_DB block found", exDbBlock.length > 0);
 ok("EX_DB does not contain Woodchop", !/woodchop/i.test(exDbBlock));
 ok("EX_DB does not contain overhead press entry", !/overhead press/i.test(exDbBlock));
-ok("EX_DB does not contain shoulder press machine", !/shoulder press machine/i.test(exDbBlock));
+ok("EX_DB has no shoulder press except the one back-supported seated machine (Nov 9)", (exDbBlock.match(/shoulder press/gi) || []).length === 1 && /Seated Shoulder Press Machine \(Back Supported\)/.test(exDbBlock));
 ok("EX_DB does not contain hack squat", !/hack squat/i.test(exDbBlock));
 ok("EX_DB does not contain seated cable crunch", !/seated cable crunch/i.test(exDbBlock));
 ok("EX_DB has Cable Pallof Press", /Cable Pallof Press/i.test(exDbBlock));
@@ -927,6 +927,15 @@ section("16a3 · flare mode (Nov 8)");
   const PP = REAL_PLAN.buildPlanPayload({ flareSince: "2026-11-08", sessions: {}, prs: {}, nutrition: { weights: {} } }, { now: new Date("2026-11-08T20:00:00") });
   ok("the weekly plan payload carries the flare and plans from the lighter week (no leg press in currentPlan)",
     PP.profile.flare?.since === "2026-11-08" && !Object.values(PP.profile.currentPlan).some((d) => d.exercises.some((e) => /leg press/i.test(e.name))));
+}
+
+section("16a4 · the one allowed shoulder press (Nov 9)");
+{
+  const C = await import("./src/constants.js");
+  ok("the back-supported seated shoulder press machine is in the library and allowed; every other press stays banned",
+    C.EX_DB.some((e) => e.name === "Seated Shoulder Press Machine (Back Supported)") &&
+    !REAL_PLAN.isBannedExercise("Seated Shoulder Press Machine (Back Supported)") &&
+    ["Shoulder Press", "Seated Shoulder Press", "Standing Shoulder Press Machine (Back Supported)", "Dumbbell Shoulder Press", "Overhead Press", "Military Press"].every((n) => REAL_PLAN.isBannedExercise(n)));
 }
 
 section("16b · proteinTargetG single source of truth");

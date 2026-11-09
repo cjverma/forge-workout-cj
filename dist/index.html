@@ -1639,6 +1639,10 @@ const EX_DB=[
   {name:"Chest Supported Reverse Fly",cat:"Gym",hint:"5-10 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=chest+supported+rear+delt+fly+dumbbell",cue:"Face down on the incline. Wide arc, thumbs up, light weight.",muscles:["rear delt","traps"],tags:["dumbbell","rear delt","fly","supported"]},
 
   // ── SHOULDERS ──
+  // Nov 9, the user had been doing this press for some time "and it
+  // doesn't hurt or cause a twinge" (20 kg x 15). The ONE pressing exception
+  // to the overhead ban, allowed by its exact name in isBannedExercise.
+  {name:"Seated Shoulder Press Machine (Back Supported)",cat:"Gym",hint:"15-25 kg",sets:3,reps:"10-12",url:"https://www.youtube.com/results?search_query=seated+shoulder+press+machine+form",cue:"Back flat on the pad the whole set. If your lower back lifts off the pad, the weight is too heavy.",muscles:["front delt","side delt","triceps"],tags:["machine","shoulder","press","delts"]},
   {name:"Machine Lateral Raise",cat:"Gym",hint:"15-25 kg",sets:3,reps:"12-15",url:"https://www.youtube.com/results?search_query=lateral+raise+machine+form",cue:"Pads on the forearms. Lead with the elbows, stop at shoulder height.",muscles:["side delt"],tags:["machine","lateral","delts"]},
   {name:"Single-Arm Cable Lateral Raise",cat:"Gym",hint:"4-8 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=seated+cable+lateral+raise+form",cue:"Cable behind the body for constant tension through the whole range.",muscles:["side delt"],tags:["cable","lateral","delts","unilateral"]},
   {name:"Seated Rear Delt Raise (Chest Supported)",cat:"Gym",hint:"4-8 kg",sets:3,reps:15,url:"https://www.youtube.com/results?search_query=chest+supported+rear+delt+raise",cue:"Chest on the incline pad so nothing loads the lower back.",muscles:["rear delt","traps"],tags:["dumbbell","rear delt","supported"]},
@@ -3246,6 +3250,8 @@ const BANNED_EX = [
 function isBannedExercise(name) {
   const n = String(name || "");
   if (/lat\s*pulldown/i.test(n) && !/neutral|close/i.test(n)) return true;
+  // The one allowed press (Nov 9): seated, machine, back on the pad.
+  if (/^seated shoulder press machine \(back supported\)$/i.test(n.trim())) return false;
   return BANNED_EX.some(rx => rx.test(n));
 }
 

@@ -548,6 +548,13 @@ Two exercises sharing an `ss` key are performed back to back and render a volt
 `.ss-chip` on the card. **They must come in pairs** — an orphaned key is a
 plan bug, and `node test.js` fails on one.
 
+### The one allowed press
+Overhead pressing is banned, with ONE exception by exact name (Nov 9, the user
+had been doing it pain-free at 20 kg x 15): `Seated Shoulder Press Machine
+(Back Supported)` in `EX_DB`, allowed by an exact-name check in
+`isBannedExercise`. Standing, dumbbell, barbell, military and any other
+"shoulder press" stay banned; renaming the entry re-bans it.
+
 ### Vertical pulling
 A standard lat pulldown is banned by the spine rules. The only pulldown in the
 plan is `Seated Pulldown (Neutral Grip)`, and the grip belongs **in the name**:
