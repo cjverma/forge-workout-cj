@@ -938,6 +938,14 @@ section("16a4 · the one allowed shoulder press (Nov 9)");
     ["Shoulder Press", "Seated Shoulder Press", "Standing Shoulder Press Machine (Back Supported)", "Dumbbell Shoulder Press", "Overhead Press", "Military Press"].every((n) => REAL_PLAN.isBannedExercise(n)));
 }
 
+section("16a5 · food over, burned off (Nov 10)");
+{
+  const N = readFileSync("src/nutrition.js", "utf8");
+  ok("food over the budget is netted against active beyond the day's planned target (same activeMult): covered -> 'On track', 'burned off', no Needs attention",
+    /const extraBurn=\(phase&&!shock\)\?Math\.max\(0,Math\.round\(\(active-phaseActiveTarget\(phase,date\)\)\*activeMult\(date\)\)\):0;/.test(N) &&
+    /const covered=overKcal>0&&netOver===0;/.test(N) && /covered\?"burned off"/.test(N) && /\$\{netOver>0&&items\.length\?/.test(N));
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");

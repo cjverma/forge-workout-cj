@@ -219,8 +219,17 @@ export function renderNutrition(){
   // every day (Oct 28: one fixed number is simpler to hit).
   const pTarget=proteinTargetG();
   const ratio=finalTarget?consumed/finalTarget:0;
-  const pillCls=ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
-  const pillTxt=ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
+  // Food over, but burned off (Nov 10, the user: "shouldn't the over number
+  // adjust? I still met the overall target"). Active beyond the day's planned
+  // target, at the same activeMult the targets use, pays for food over the
+  // budget: the deficit the plan needs is still met. Same test as the active
+  // line's re-solved target (aTgt), so the two never disagree.
+  const overKcal=Math.max(0,consumed-finalTarget);
+  const extraBurn=(phase&&!shock)?Math.max(0,Math.round((active-phaseActiveTarget(phase,date))*activeMult(date))):0;
+  const netOver=Math.max(0,overKcal-extraBurn);
+  const covered=overKcal>0&&netOver===0;
+  const pillCls=covered?"tpill-green":ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
+  const pillTxt=covered?"On track":ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g, C ${it.carbs||0}g, F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
@@ -263,7 +272,7 @@ export function renderNutrition(){
         </svg>
         <div class="nut-ring-text">
           <div class="nut-ring-big">${consumed>finalTarget?"+"+(consumed-finalTarget).toLocaleString():remaining.toLocaleString()}</div>
-          <div class="nut-ring-small">${consumed>finalTarget?"kcal over":"kcal remaining"}</div>
+          <div class="nut-ring-small">${covered?"burned off":consumed>finalTarget?"kcal over":"kcal remaining"}</div>
         </div>
       </div>
       <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten, ${finalTarget.toLocaleString()} target${shock?", shock day":""}</div>
@@ -289,8 +298,9 @@ export function renderNutrition(){
         return met?`<div class="act-line act-met">${icon("bolt",18)} Active target met: ${active.toLocaleString()} of ${aTgt.toLocaleString()} (${lbl})</div>`
           :`<div class="act-line">${icon("bolt",18)} <b>Active: ${remain.toLocaleString()} to go</b> <span>${active.toLocaleString()} of ${aTgt.toLocaleString()}, ${aPct}% (${lbl})</span></div>`;
       })():""}
-      ${consumed>finalTarget&&items.length?(()=>{const big=items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0];const pl=Math.max(0,pTarget-Math.round(protein));
-        return gapNote(`${(consumed-finalTarget).toLocaleString()} kcal over`,`Biggest item: ${esc(big.name)}, ${Math.round(big.kcal).toLocaleString()} kcal.${pl>=20?` Protein ${pl} g short.`:""}`);})():""}
+      ${covered?`<div class="cover-note">${overKcal.toLocaleString()} kcal over on food, burned off by extra activity. Today's deficit is on plan.</div>`:""}
+      ${netOver>0&&items.length?(()=>{const big=items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0];const pl=Math.max(0,pTarget-Math.round(protein));
+        return gapNote(extraBurn>0?`${netOver.toLocaleString()} kcal over after activity`:`${overKcal.toLocaleString()} kcal over`,`${extraBurn>0?`${overKcal.toLocaleString()} over on food, ${extraBurn.toLocaleString()} burned off by extra activity. `:""}Biggest item: ${esc(big.name)}, ${Math.round(big.kcal).toLocaleString()} kcal.${pl>=20?` Protein ${pl} g short.`:""}`);})():""}
       ${macroPie(protein,carbs,fat,fibre)}
       ${(()=>{
         // Six identical bordered tiles replaced by a borderless typographic
