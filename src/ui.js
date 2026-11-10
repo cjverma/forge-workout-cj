@@ -138,11 +138,48 @@ export function showMilestone(icon, title, sub) {
   document.getElementById("msIcon").textContent = icon;
   document.getElementById("msTitle").textContent = title;
   document.getElementById("msSub").textContent = sub;
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  if (st) st.style.display = "none"; if (w) w.style.display = "none";
   document.getElementById("milestoneModal").classList.add("show");
 }
 
+// A bigger moment than showMilestone: a phase reached (Nov 10, the user:
+// "there should be some celebration and kind words when I hit a milestone").
+// Check mark, title, the numbers, a few kind words, and a short confetti
+// burst (skipped under prefers-reduced-motion). Text only via textContent.
+export function showCelebration(title, sub, stats, words) {
+  document.getElementById("msIcon").innerHTML = '<svg class="sum-check" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle cx="28" cy="28" r="28"/><path d="M17 29.5l7.5 7.5L39.5 21"/></svg>';
+  document.getElementById("msTitle").textContent = title;
+  document.getElementById("msSub").textContent = sub;
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  st.innerHTML = ""; (stats || []).forEach(([l, v]) => { const r = document.createElement("div"); r.className = "ms-stat"; const a = document.createElement("span"); a.textContent = l; const b = document.createElement("b"); b.textContent = v; r.append(a, b); st.append(r); });
+  st.style.display = stats && stats.length ? "" : "none";
+  w.textContent = words || ""; w.style.display = words ? "" : "none";
+  document.getElementById("milestoneModal").classList.add("show", "celebrate");
+  confetti();
+}
+function confetti() {
+  try { if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; } catch (_) {}
+  const c = document.createElement("canvas"); c.className = "ms-confetti"; c.setAttribute("aria-hidden", "true");
+  const m = document.getElementById("milestoneModal"); m.append(c);
+  const W = c.width = innerWidth * 2, H = c.height = innerHeight * 2, g = c.getContext("2d");
+  const cs = getComputedStyle(document.body), cols = ["--accent", "--chart-p", "--chart-c", "--chart-f", "--green"].map(v => cs.getPropertyValue(v).trim()).filter(Boolean);
+  const bits = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 34, vy: -Math.random() * 46 - 14, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 10 + Math.random() * 12, c: cols[Math.floor(Math.random() * cols.length)] || "#0A84FF" }));
+  const t0 = performance.now();
+  (function f(now) {
+    const k = (now - t0) / 2600; g.clearRect(0, 0, W, H);
+    if (k >= 1 || !c.isConnected) { c.remove(); return; }
+    g.globalAlpha = Math.min(1, (1 - k) * 2.5);
+    bits.forEach(b => { b.vy += 1.5; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.r += b.vr; g.save(); g.translate(b.x, b.y); g.rotate(b.r); g.fillStyle = b.c; g.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); g.restore(); });
+    requestAnimationFrame(f);
+  })(t0);
+}
+
 export function closeMilestone() {
-  document.getElementById("milestoneModal").classList.remove("show");
+  const m = document.getElementById("milestoneModal");
+  m.classList.remove("show", "celebrate"); m.querySelector(".ms-confetti")?.remove();
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  if (st) { st.innerHTML = ""; st.style.display = "none"; } if (w) { w.textContent = ""; w.style.display = "none"; }
 }
 
 export function applyTheme() {
@@ -167,3 +204,4 @@ export function toggleTheme() {
 
 window.toggleTheme = toggleTheme;
 window.closeMilestone = closeMilestone;
+window.__showCelebration = showCelebration; // the layout audit opens it

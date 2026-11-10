@@ -106,6 +106,9 @@ const SCREENS = [
     await p.evaluate(() => document.getElementById("nav-workout").click());
     await p.evaluate(() => { const t = document.getElementById("toast"); t.textContent = "No recent backup. Export one from Settings."; t.classList.add("show"); }); },
     after: async (p) => { await p.evaluate(() => document.getElementById("toast").classList.remove("show")); } },
+  { name: "pop-up: phase celebration", root: ["#milestoneModal"], run: async (p) => {
+    await p.evaluate(() => { window.__showCelebration("Phase 1 complete", "125 kg reached, 2 days early.", [["Weight", "130 to 124.9 kg"], ["Took", "16 days, 1 day early"], ["Down since October", "5.1 kg"], ["Next", "120 kg by Nov 30"]], "Five kilos. A year ago your back had you in bed. Now you are training six days a week and the scale is moving on schedule. That is not luck: it is every meal you logged and every session you showed up for. You start the next phase 0.6 kg ahead of the line, a cushion for the weeks that don't go to plan."); document.querySelector("#milestoneModal .ms-confetti")?.remove(); }); },
+    after: async (p) => { await p.evaluate(() => window.closeMilestone()); } },
   { name: "pop-up: milestone", root: ["#milestoneModal"], run: async (p) => {
     await p.evaluate(() => { document.getElementById("msIcon").textContent = "💪"; document.getElementById("msTitle").textContent = "6 Workouts This Week"; document.getElementById("msSub").textContent = "Elite consistency."; document.getElementById("milestoneModal").classList.add("show"); }); },
     after: async (p) => { await p.evaluate(() => document.getElementById("milestoneModal").classList.remove("show")); } },

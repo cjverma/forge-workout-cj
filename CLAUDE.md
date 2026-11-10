@@ -347,6 +347,27 @@ by Feb 20, cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Feb
 for an unlogged day outside these phases is `restingDefaultFor()` (last 5 logged, else 2,700).
 Phase names never use "·". Don't change the phases or add a goal unasked.
 
+**Phase reached = the 3-day average** (Nov 10, the user hit 125.0 on day 15
+of 17; "your approach is right"). `phaseReached(p)` / `avg3()` in
+`src/phase.js`: the first day inside the phase where the average of that
+day's weigh-in and the two before (at least two, including that day) is at or
+under the target. **The calendar never moves**: the next phase still starts
+the day after the planned end, so reaching early banks the gap as "ahead of
+the line" (moving phase 2 forward was considered and declined). The card shows
+"Reached Nov 11, 1 day early. Next phase starts Nov 13." with a full bar; until
+then the bar is WEIGHT lost (3-day average, else latest), and a single reading
+at the target says it counts once the 3-day average gets there.
+**The celebration** (user: "some celebration and kind words when I hit a
+milestone"): `checkMilestones()` shows `showCelebration()` (`src/ui.js`) once
+per phase (`"phase:<id>"` in `shownWeight5kg`, synced): a check, "Phase 1
+complete", the numbers (weight, days and how early, kg down since October,
+next target), kind words per phase from `phaseCelebration()` in
+`src/workout.js` (the comeback from bed in 2025, the holidays, under 100), and
+a 2.6 s confetti burst in the app's chart colours (skipped under reduced
+motion). The 5 kg pop-up skips thresholds that are phase targets.
+`checkPhaseCelebration()` (only the phase check, not the other pop-ups) also
+runs after the first server pull: HealthKit weigh-ins arrive without a tap. The layout audit covers it ("pop-up: phase celebration").
+
 **Injury context for every AI call** (`HARD_RULES` in `api/_shared.js`):
 lumbar disc herniation with left-leg sciatica and calf nerve pain, and (Oct 29)
 bedridden July to December 2025, back in the gym around July 2026: rebuild

@@ -946,6 +946,27 @@ section("16a5 · food over, burned off (Nov 10)");
     !/"burned off"/.test(N) && /\$\{netOver>0&&items\.length\?/.test(N));
 }
 
+section("16a6 · phase reached on the 3-day average; the celebration (Nov 10)");
+{
+  const E2 = await import("./src/phase.js");
+  const RT2 = await import("./src/runtime.js");
+  const prevGetS = RT2.ctx.getS;
+  RT2.ctx.getS = () => ({ nutrition: { weights: {} }, phaseRun: {} });
+  const p1 = E2.PHASES.find((x) => x.id === "p5_1");
+  const w = { "2026-11-09": 125.6, "2026-11-10": 125.0 };
+  ok("one reading at the target is not 'reached' (3-day average 125.3)", E2.phaseReached(p1, "2026-11-10", w) === null);
+  const w2 = { ...w, "2026-11-11": 124.6, "2026-11-12": 124.8 };
+  const r = E2.phaseReached(p1, "2026-11-12", w2);
+  ok("reached on the first day the 3-day average is at or under the target (Nov 12, 124.8, on time)", r && r.date === "2026-11-12" && r.avg === 124.8 && r.daysEarly === 0 && r.days === 17, JSON.stringify(r));
+  ok("a lone weigh-in never counts (needs 2 of the 3 days)", E2.avg3("2026-11-11", { "2026-11-11": 120 }) === null);
+  ok("the calendar does not move: phase 2 still starts Nov 13", E2.phaseFor("2026-11-13")?.id === "p5_2" && E2.phaseFor("2026-11-12")?.id === "p5_1");
+  RT2.ctx.getS = prevGetS;
+  const WK = readFileSync("src/workout.js", "utf8");
+  ok("checkMilestones celebrates each 5 kg phase once (phase:<id>), and the 5 kg modal skips phase targets",
+    /const tag="phase:"\+p\.id;/.test(WK) && /showCelebration\(\.\.\.phaseCelebration\(p,r\)\)/.test(WK) && /if\(checkPhaseCelebration\(\)\)return;/.test(WK) && /ctx\.checkPhaseCelebration\?\.\(\)/.test(readFileSync("src/main.js", "utf8")) && /if\(phaseKg\.has\(t\)\)continue;/.test(WK));
+  ok("the celebration honours reduced motion and writes text with textContent", /prefers-reduced-motion: reduce/.test(readFileSync("src/ui.js", "utf8")) && /w\.textContent = words/.test(readFileSync("src/ui.js", "utf8")));
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");

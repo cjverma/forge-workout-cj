@@ -1386,6 +1386,13 @@ body[data-tab] :is(.gap-done,.gap-skip,.gap-wait){color:var(--mid);}
 body[data-tab] :is(.gap-skip,.gap-wait) .gap-val{font-size:15px;}
 body[data-tab] .gap-note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:10px;padding:12px;margin:4px 0 12px;color:var(--white);}
 body[data-tab] .gap-note-t{font-size:15px;font-weight:600;}
+body[data-tab] #milestoneModal .ms-stats{width:100%;box-sizing:border-box;align-self:stretch;background:var(--s1);border-radius:var(--r-lg);padding:4px 16px;margin:0 0 16px;text-align:left;}
+body[data-tab] #milestoneModal .ms-stat{display:flex;justify-content:space-between;gap:12px;padding:11px 0;font-size:17px;color:var(--mid);}
+body[data-tab] #milestoneModal .ms-stat+.ms-stat{border-top:.5px solid var(--b1);}
+body[data-tab] #milestoneModal .ms-stat b{color:var(--white);font-weight:600;font-variant-numeric:tabular-nums;}
+body[data-tab] #milestoneModal .ms-words{width:100%;align-self:stretch;font-size:17px;line-height:24px;color:var(--lt);margin:0 0 24px;text-align:left;}
+body[data-tab] #milestoneModal .ms-confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+body[data-tab] #milestoneModal .sum-inner{position:relative;z-index:2;}
 body[data-tab] .nut-ring-sub{font-size:13px;color:var(--mid);margin-top:2px;font-variant-numeric:tabular-nums;}
 body[data-tab] .food-line{font-size:15px;line-height:20px;color:var(--lt);margin:0 0 4px;}
 body[data-tab] .food-line b{color:var(--white);font-weight:600;}
@@ -1510,6 +1517,8 @@ body[data-tab] :is(.flare-ok,.flare-worse){font-size:15px;line-height:20px;margi
     <div class="sum-icon" id="msIcon"></div>
     <div class="sum-title" id="msTitle"></div>
     <div class="sum-sub" id="msSub"></div>
+    <div class="ms-stats" id="msStats" style="display:none"></div>
+    <div class="ms-words" id="msWords" style="display:none"></div>
     <button class="sum-close" onclick="closeMilestone()">Continue</button>
   </div>
 </div>
@@ -2780,11 +2789,48 @@ function showMilestone(icon, title, sub) {
   document.getElementById("msIcon").textContent = icon;
   document.getElementById("msTitle").textContent = title;
   document.getElementById("msSub").textContent = sub;
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  if (st) st.style.display = "none"; if (w) w.style.display = "none";
   document.getElementById("milestoneModal").classList.add("show");
 }
 
+// A bigger moment than showMilestone: a phase reached (Nov 10, the user:
+// "there should be some celebration and kind words when I hit a milestone").
+// Check mark, title, the numbers, a few kind words, and a short confetti
+// burst (skipped under prefers-reduced-motion). Text only via textContent.
+function showCelebration(title, sub, stats, words) {
+  document.getElementById("msIcon").innerHTML = '<svg class="sum-check" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle cx="28" cy="28" r="28"/><path d="M17 29.5l7.5 7.5L39.5 21"/></svg>';
+  document.getElementById("msTitle").textContent = title;
+  document.getElementById("msSub").textContent = sub;
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  st.innerHTML = ""; (stats || []).forEach(([l, v]) => { const r = document.createElement("div"); r.className = "ms-stat"; const a = document.createElement("span"); a.textContent = l; const b = document.createElement("b"); b.textContent = v; r.append(a, b); st.append(r); });
+  st.style.display = stats && stats.length ? "" : "none";
+  w.textContent = words || ""; w.style.display = words ? "" : "none";
+  document.getElementById("milestoneModal").classList.add("show", "celebrate");
+  confetti();
+}
+function confetti() {
+  try { if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; } catch (_) {}
+  const c = document.createElement("canvas"); c.className = "ms-confetti"; c.setAttribute("aria-hidden", "true");
+  const m = document.getElementById("milestoneModal"); m.append(c);
+  const W = c.width = innerWidth * 2, H = c.height = innerHeight * 2, g = c.getContext("2d");
+  const cs = getComputedStyle(document.body), cols = ["--accent", "--chart-p", "--chart-c", "--chart-f", "--green"].map(v => cs.getPropertyValue(v).trim()).filter(Boolean);
+  const bits = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 34, vy: -Math.random() * 46 - 14, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 10 + Math.random() * 12, c: cols[Math.floor(Math.random() * cols.length)] || "#0A84FF" }));
+  const t0 = performance.now();
+  (function f(now) {
+    const k = (now - t0) / 2600; g.clearRect(0, 0, W, H);
+    if (k >= 1 || !c.isConnected) { c.remove(); return; }
+    g.globalAlpha = Math.min(1, (1 - k) * 2.5);
+    bits.forEach(b => { b.vy += 1.5; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.r += b.vr; g.save(); g.translate(b.x, b.y); g.rotate(b.r); g.fillStyle = b.c; g.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); g.restore(); });
+    requestAnimationFrame(f);
+  })(t0);
+}
+
 function closeMilestone() {
-  document.getElementById("milestoneModal").classList.remove("show");
+  const m = document.getElementById("milestoneModal");
+  m.classList.remove("show", "celebrate"); m.querySelector(".ms-confetti")?.remove();
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  if (st) { st.innerHTML = ""; st.style.display = "none"; } if (w) { w.textContent = ""; w.style.display = "none"; }
 }
 
 function applyTheme() {
@@ -2809,6 +2855,7 @@ function toggleTheme() {
 
 window.toggleTheme = toggleTheme;
 window.closeMilestone = closeMilestone;
+window.__showCelebration = showCelebration; // the layout audit opens it
 
 
 
@@ -3128,6 +3175,28 @@ function actualDeficit(dateIso){
 //
 // Derived from the phase definition rather than typed in as a constant, so it
 // can never contradict that phase's own startKg/targetKg/dates.
+// A phase's weight target is REACHED on the first day, inside the phase, where
+// the average of the weigh-ins logged that day and the two before (at least
+// two, including that day's) is at or under the target (Nov 10, the user hit
+// 125.0 on day 15 of 17: "your approach is right", one reading is not enough,
+// weight swings 0.5-1 kg with water and salt). The calendar never moves: the
+// next phase still starts the day after this one's planned end, so reaching
+// early banks the gap as "ahead of the line".
+function avg3(dateIso,weights){
+  const ws=weights||phaseStore().nutrition?.weights||{};
+  if(ws[dateIso]==null||isNaN(Number(ws[dateIso])))return null;
+  const v=[0,1,2].map(i=>ws[addDaysIso(dateIso,-i)]).filter(x=>x!=null&&!isNaN(Number(x))).map(Number);
+  return v.length>=2?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null;
+}
+function phaseReached(p,todayIso,weights){
+  if(!p)return null;
+  const t=todayIso||isoToday(),end=effectiveEnd(p,t),last=t<end?t:end;
+  for(let d=p.start;d<=last;d=addDaysIso(d,1)){
+    const a=avg3(d,weights);
+    if(a!=null&&a<=p.targetKg)return{date:d,avg:a,daysEarly:Math.max(0,daysBetween(d,end)),days:daysBetween(p.start,d)+1};
+  }
+  return null;
+}
 function phaseRequiredDeficit(p){
   if(!p)return 0;
   const days=Math.max(1,daysBetween(p.start,p.plannedEnd)+1);
@@ -5320,6 +5389,25 @@ function longestWeekStreak(){
   for(let w=104;w>=0;w--){if(weekQualifies(shiftIso(mon,-7*w))){run++;if(run>best)best=run;}else if(w>0)run=0;}
   return best;
 }
+// ── A 5 kg phase reached: the celebration (Nov 10) ──
+// Once per phase ("phase:<id>" in shownWeight5kg, synced), on the rule the
+// card uses (phaseReached: 3-day average at or under the target). Also run on
+// its own after the first server pull, because weigh-ins arrive from
+// HealthKit without a tap; the other milestones stay tap-triggered.
+function checkPhaseCelebration(){
+  const S=ctx.getS(),today=isoToday();
+  if(!S.milestones)return false;
+  S.milestones.shownWeight5kg=S.milestones.shownWeight5kg||[];
+  for(const p of PHASES.filter(x=>/^p5_/.test(x.id))){
+    const tag="phase:"+p.id;
+    if(S.milestones.shownWeight5kg.includes(tag)||today<p.start)continue;
+    const r=phaseReached(p,today);if(!r)continue;
+    S.milestones.shownWeight5kg.push(tag);save();queueMilestones();
+    showCelebration(...phaseCelebration(p,r));
+    return true;
+  }
+  return false;
+}
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
@@ -5346,11 +5434,15 @@ function checkMilestones(){
     const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=pt;}).every(Boolean);
     if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩",`7 Days of ${pt}g+ Protein`,"Consistent fuelling = consistent results.");}
   }
+  if(checkPhaseCelebration())return; // one pop-up at a time
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
+  // Thresholds that are a 5 kg phase target get the celebration above instead.
+  const phaseKg=new Set(PHASES.filter(x=>/^p5_/.test(x.id)).map(x=>x.targetKg));
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
   if(wtEntries.length){
     const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
     for(const t of [90,95,100,105,110,115,120,125,130,135]){
+      if(phaseKg.has(t))continue;
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();queueMilestones();
         showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
@@ -5360,8 +5452,37 @@ function checkMilestones(){
   }
 }
 
+// The words for a reached phase: what was done, how early, what is next, and
+// something kind that is true (the comeback from six months in bed in 2025).
+function phaseCelebration(p,r){
+  const P5=PHASES.filter(x=>/^p5_/.test(x.id)),i=P5.indexOf(p),n=P5.length,next=P5[i+1];
+  const first=P5[0].startKg,total=Math.round((first-r.avg)*10)/10;
+  const early=r.daysEarly>0?`${r.daysEarly} day${r.daysEarly===1?"":"s"} early`:"right on time";
+  // "Ahead" from the latest weigh-in, as the card's "Ahead 0.9 kg" chip reads.
+  const latest=Number(Object.entries(ctx.getS().nutrition?.weights||{}).filter(([,v])=>!isNaN(Number(v))).sort(([a],[b])=>b.localeCompare(a))[0]?.[1]??r.avg);
+  const ahead=Math.round((phaseCurveKg(p,isoToday())-latest)*10)/10;
+  const stats=[["Weight",`${p.startKg} to ${r.avg} kg`],["Took",`${r.days} days, ${early}`],["Down since October",`${total} kg`]];
+  if(next)stats.push(["Next",`${next.targetKg} kg by ${fmtDate(next.plannedEnd)}`]);
+  const aheadTxt=ahead>0.05?` You start the next phase ${ahead.toFixed(1)} kg ahead of the line, a cushion for the weeks that don't go to plan.`:"";
+  const WORDS=[
+    `Five kilos. A year ago your back had you in bed. Now you are training six days a week and the scale is moving on schedule. That is not luck: it is every meal you logged and every session you showed up for.${aheadTxt}`,
+    `${total} kg down since October. The first five can come fast. The second five take consistency, and you just proved you have it.${aheadTxt}`,
+    `${total} kg down, and the holidays are next. You don't need to be perfect over them, just keep logging. A logged bad day is still a day you were in charge of.${aheadTxt}`,
+    `110 kg, straight through the holidays. ${total} kg down since October, and the hardest stretch of the year is behind you.${aheadTxt}`,
+    `${total} kg down. Your back now carries ${total} kg less into every session, every staircase, every morning. Keep going.${aheadTxt}`,
+    `100 kg. Two digits are next. ${total} kg down since October, and one phase left.${aheadTxt}`,
+    `95 kg. You set a hard goal in October, kept to the plan through a back flare and a winter, and hit it. ${total} kg down. Be proud of this one.`,
+  ];
+  const title=i===n-1?"Goal reached":`Phase ${i+1} complete`;
+  const sub=i===n-1?`95 kg, ${early}.`:`${p.targetKg} kg reached, ${early}.`;
+  return[title,sub,stats,WORDS[Math.min(i,WORDS.length-1)]];
+}
+
 // Expose to ctx for main.js to use
 ctx.renderW=renderW;
+// After the first server pull: weigh-ins usually arrive from HealthKit, not a
+// tap, so a phase reached overnight is celebrated on the next launch.
+ctx.checkPhaseCelebration=checkPhaseCelebration;
 
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
@@ -6442,7 +6563,15 @@ function phaseCardHtml(){
   // Days are inclusive: a phase from Oct 26 to Nov 15 has 21 of them.
   const spanDays=totalDays+1;
   const dayIn=Math.min(Math.max(daysBetween(p.start,t)+1,1),spanDays);
-  const pctDone=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  // The bar is WEIGHT lost toward the target (Nov 10), from the 3-day average
+  // (else the latest weigh-in), not the share of days gone; days without any
+  // weigh-in fall back to days.
+  const reachedP=phaseReached(p,t);
+  const wNow=avg3(t)??latestWeightLog();
+  const pctDone=reachedP?100:wNow!=null&&p.startKg>p.targetKg?Math.round(Math.min(100,Math.max(0,(p.startKg-wNow)/(p.startKg-p.targetKg)*100)))
+    :Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  const lostNow=wNow!=null?Math.round(Math.max(0,p.startKg-wNow)*10)/10:null;
+  const todayKg=S.nutrition?.weights?.[t]!=null?Number(S.nutrition.weights[t]):null;
   const avg=sevenDayAvg(t);
   const cor=phaseCorridor(p,t);
   const health=phaseHealth(p,t);
@@ -6462,7 +6591,7 @@ function phaseCardHtml(){
   const lostPct=lost!=null?Math.round(lost/p.startKg*1000)/10:null;
 
   // Milestones (5-kg thresholds, shared list with checkMilestones)
-  const reached=(S.milestones?.shownWeight5kg||[]).slice().sort((a,b)=>a-b)[0];
+  const reached=(S.milestones?.shownWeight5kg||[]).filter(x=>typeof x==="number").sort((a,b)=>a-b)[0];
   const nextMs=cur!=null?[135,130,125,120,115,110,105,100,95,90].find(m=>m<cur):null;
 
   // Verdict (due once past effective end, or via Accept)
@@ -6517,7 +6646,7 @@ function phaseCardHtml(){
   const wkSunLbl=new Date(wkSun+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
   const wkGap=latestKg==null?null:Math.round((latestKg-wkGoal)*10)/10;
   const weekGoalHtml=gapRow(wkGap==null||wkGap>0?"open":"done","This week's goal",`${wkGoal.toFixed(1)} kg by Sun, ${wkSunLbl}`,
-    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`);
+    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:(Math.abs(wkGap)<0.05?`Reached at ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`));
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
@@ -6596,10 +6725,12 @@ function phaseCardHtml(){
     <summary><div><div>${icon("target",20)} ${esc(p.name||p.id.replace("_"," ").replace(/^p/,"P"))}</div><div class="st-acc-sub">${chipText}</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-        <span style="${nMuted}">Day ${dayIn} of ${spanDays}, ${p.startKg} to ${p.targetKg} kg by ${fmtD(end)}</span>
+        <span style="${nMuted}">${reachedP?`${icon("trophy",16)} Reached ${fmtD(reachedP.date)}, ${reachedP.daysEarly>0?`${reachedP.daysEarly} day${reachedP.daysEarly===1?"":"s"} early`:"on time"}. Next phase starts ${fmtD(addDaysIso(end,1))}.`
+          :`Day ${dayIn} of ${spanDays}, ${lostNow!=null?`${lostNow} of ${Math.round((p.startKg-p.targetKg)*10)/10} kg lost`:`${p.startKg} to ${p.targetKg} kg`} by ${fmtD(end)}`}</span>
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
-      <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      <div class="prog-bar-wrap" style="margin-bottom:${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?6:14}px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      ${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?`<div style="${nMuted};margin-bottom:14px">${todayKg.toFixed(1)} kg today. It counts once your 3-day average is at ${p.targetKg} kg, so one good reading isn't a fluke.</div>`:""}
       <div class="week-goal">${weekGoalHtml}</div>
       ${weightBlockHtml}
       ${rangeRowHtml}
@@ -8796,7 +8927,7 @@ function initApp(){
   // pre-write data and clobber it the moment the outbox empties.
   // Auto-plan runs AFTER the pull, so it sees the server's plans (another
   // device may already have generated this week's) and is not overwritten.
-  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).then(()=>ctx.maybeUnitReview?.()).catch(()=>{});
+  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).then(()=>ctx.checkPhaseCelebration?.()).then(()=>ctx.maybeUnitReview?.()).catch(()=>{});
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;

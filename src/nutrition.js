@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase, weekCountFrom } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase, weekCountFrom, phaseReached, avg3 } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
@@ -875,7 +875,15 @@ function phaseCardHtml(){
   // Days are inclusive: a phase from Oct 26 to Nov 15 has 21 of them.
   const spanDays=totalDays+1;
   const dayIn=Math.min(Math.max(daysBetween(p.start,t)+1,1),spanDays);
-  const pctDone=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  // The bar is WEIGHT lost toward the target (Nov 10), from the 3-day average
+  // (else the latest weigh-in), not the share of days gone; days without any
+  // weigh-in fall back to days.
+  const reachedP=phaseReached(p,t);
+  const wNow=avg3(t)??latestWeightLog();
+  const pctDone=reachedP?100:wNow!=null&&p.startKg>p.targetKg?Math.round(Math.min(100,Math.max(0,(p.startKg-wNow)/(p.startKg-p.targetKg)*100)))
+    :Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  const lostNow=wNow!=null?Math.round(Math.max(0,p.startKg-wNow)*10)/10:null;
+  const todayKg=S.nutrition?.weights?.[t]!=null?Number(S.nutrition.weights[t]):null;
   const avg=sevenDayAvg(t);
   const cor=phaseCorridor(p,t);
   const health=phaseHealth(p,t);
@@ -895,7 +903,7 @@ function phaseCardHtml(){
   const lostPct=lost!=null?Math.round(lost/p.startKg*1000)/10:null;
 
   // Milestones (5-kg thresholds, shared list with checkMilestones)
-  const reached=(S.milestones?.shownWeight5kg||[]).slice().sort((a,b)=>a-b)[0];
+  const reached=(S.milestones?.shownWeight5kg||[]).filter(x=>typeof x==="number").sort((a,b)=>a-b)[0];
   const nextMs=cur!=null?[135,130,125,120,115,110,105,100,95,90].find(m=>m<cur):null;
 
   // Verdict (due once past effective end, or via Accept)
@@ -950,7 +958,7 @@ function phaseCardHtml(){
   const wkSunLbl=new Date(wkSun+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
   const wkGap=latestKg==null?null:Math.round((latestKg-wkGoal)*10)/10;
   const weekGoalHtml=gapRow(wkGap==null||wkGap>0?"open":"done","This week's goal",`${wkGoal.toFixed(1)} kg by Sun, ${wkSunLbl}`,
-    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`);
+    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:(Math.abs(wkGap)<0.05?`Reached at ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`));
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
@@ -1029,10 +1037,12 @@ function phaseCardHtml(){
     <summary><div><div>${icon("target",20)} ${esc(p.name||p.id.replace("_"," ").replace(/^p/,"P"))}</div><div class="st-acc-sub">${chipText}</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-        <span style="${nMuted}">Day ${dayIn} of ${spanDays}, ${p.startKg} to ${p.targetKg} kg by ${fmtD(end)}</span>
+        <span style="${nMuted}">${reachedP?`${icon("trophy",16)} Reached ${fmtD(reachedP.date)}, ${reachedP.daysEarly>0?`${reachedP.daysEarly} day${reachedP.daysEarly===1?"":"s"} early`:"on time"}. Next phase starts ${fmtD(addDaysIso(end,1))}.`
+          :`Day ${dayIn} of ${spanDays}, ${lostNow!=null?`${lostNow} of ${Math.round((p.startKg-p.targetKg)*10)/10} kg lost`:`${p.startKg} to ${p.targetKg} kg`} by ${fmtD(end)}`}</span>
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
-      <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      <div class="prog-bar-wrap" style="margin-bottom:${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?6:14}px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      ${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?`<div style="${nMuted};margin-bottom:14px">${todayKg.toFixed(1)} kg today. It counts once your 3-day average is at ${p.targetKg} kg, so one good reading isn't a fluke.</div>`:""}
       <div class="week-goal">${weekGoalHtml}</div>
       ${weightBlockHtml}
       ${rangeRowHtml}

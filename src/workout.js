@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
-import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult } from "./phase.js";
-import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
+import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult, PHASES, phaseReached, phaseCurveKg, addDaysIso } from "./phase.js";
+import { esc, fmtDate, showToast, showToastBig, showMilestone, showCelebration, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
 import { workingWeight, targetRepsOf, maxRepsOf } from "./plan.js";
@@ -1556,6 +1556,25 @@ function longestWeekStreak(){
   for(let w=104;w>=0;w--){if(weekQualifies(shiftIso(mon,-7*w))){run++;if(run>best)best=run;}else if(w>0)run=0;}
   return best;
 }
+// ── A 5 kg phase reached: the celebration (Nov 10) ──
+// Once per phase ("phase:<id>" in shownWeight5kg, synced), on the rule the
+// card uses (phaseReached: 3-day average at or under the target). Also run on
+// its own after the first server pull, because weigh-ins arrive from
+// HealthKit without a tap; the other milestones stay tap-triggered.
+function checkPhaseCelebration(){
+  const S=ctx.getS(),today=isoToday();
+  if(!S.milestones)return false;
+  S.milestones.shownWeight5kg=S.milestones.shownWeight5kg||[];
+  for(const p of PHASES.filter(x=>/^p5_/.test(x.id))){
+    const tag="phase:"+p.id;
+    if(S.milestones.shownWeight5kg.includes(tag)||today<p.start)continue;
+    const r=phaseReached(p,today);if(!r)continue;
+    S.milestones.shownWeight5kg.push(tag);save();queueMilestones();
+    showCelebration(...phaseCelebration(p,r));
+    return true;
+  }
+  return false;
+}
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
@@ -1582,11 +1601,15 @@ function checkMilestones(){
     const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=pt;}).every(Boolean);
     if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩",`7 Days of ${pt}g+ Protein`,"Consistent fuelling = consistent results.");}
   }
+  if(checkPhaseCelebration())return; // one pop-up at a time
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
+  // Thresholds that are a 5 kg phase target get the celebration above instead.
+  const phaseKg=new Set(PHASES.filter(x=>/^p5_/.test(x.id)).map(x=>x.targetKg));
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
   if(wtEntries.length){
     const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
     for(const t of [90,95,100,105,110,115,120,125,130,135]){
+      if(phaseKg.has(t))continue;
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();queueMilestones();
         showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
@@ -1596,8 +1619,37 @@ function checkMilestones(){
   }
 }
 
+// The words for a reached phase: what was done, how early, what is next, and
+// something kind that is true (the comeback from six months in bed in 2025).
+function phaseCelebration(p,r){
+  const P5=PHASES.filter(x=>/^p5_/.test(x.id)),i=P5.indexOf(p),n=P5.length,next=P5[i+1];
+  const first=P5[0].startKg,total=Math.round((first-r.avg)*10)/10;
+  const early=r.daysEarly>0?`${r.daysEarly} day${r.daysEarly===1?"":"s"} early`:"right on time";
+  // "Ahead" from the latest weigh-in, as the card's "Ahead 0.9 kg" chip reads.
+  const latest=Number(Object.entries(ctx.getS().nutrition?.weights||{}).filter(([,v])=>!isNaN(Number(v))).sort(([a],[b])=>b.localeCompare(a))[0]?.[1]??r.avg);
+  const ahead=Math.round((phaseCurveKg(p,isoToday())-latest)*10)/10;
+  const stats=[["Weight",`${p.startKg} to ${r.avg} kg`],["Took",`${r.days} days, ${early}`],["Down since October",`${total} kg`]];
+  if(next)stats.push(["Next",`${next.targetKg} kg by ${fmtDate(next.plannedEnd)}`]);
+  const aheadTxt=ahead>0.05?` You start the next phase ${ahead.toFixed(1)} kg ahead of the line, a cushion for the weeks that don't go to plan.`:"";
+  const WORDS=[
+    `Five kilos. A year ago your back had you in bed. Now you are training six days a week and the scale is moving on schedule. That is not luck: it is every meal you logged and every session you showed up for.${aheadTxt}`,
+    `${total} kg down since October. The first five can come fast. The second five take consistency, and you just proved you have it.${aheadTxt}`,
+    `${total} kg down, and the holidays are next. You don't need to be perfect over them, just keep logging. A logged bad day is still a day you were in charge of.${aheadTxt}`,
+    `110 kg, straight through the holidays. ${total} kg down since October, and the hardest stretch of the year is behind you.${aheadTxt}`,
+    `${total} kg down. Your back now carries ${total} kg less into every session, every staircase, every morning. Keep going.${aheadTxt}`,
+    `100 kg. Two digits are next. ${total} kg down since October, and one phase left.${aheadTxt}`,
+    `95 kg. You set a hard goal in October, kept to the plan through a back flare and a winter, and hit it. ${total} kg down. Be proud of this one.`,
+  ];
+  const title=i===n-1?"Goal reached":`Phase ${i+1} complete`;
+  const sub=i===n-1?`95 kg, ${early}.`:`${p.targetKg} kg reached, ${early}.`;
+  return[title,sub,stats,WORDS[Math.min(i,WORDS.length-1)]];
+}
+
 // Expose to ctx for main.js to use
 ctx.renderW=renderW;
+// After the first server pull: weigh-ins usually arrive from HealthKit, not a
+// tap, so a phase reached overnight is celebrated on the next launch.
+ctx.checkPhaseCelebration=checkPhaseCelebration;
 
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
