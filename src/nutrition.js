@@ -227,9 +227,18 @@ export function renderNutrition(){
   const overKcal=Math.max(0,consumed-finalTarget);
   const extraBurn=(phase&&!shock)?Math.max(0,Math.round((active-phaseActiveTarget(phase,date))*activeMult(date))):0;
   const netOver=Math.max(0,overKcal-extraBurn);
-  const covered=overKcal>0&&netOver===0;
-  const pillCls=covered?"tpill-green":ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
-  const pillTxt=covered?"On track":ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
+  // The ring shows the DAY'S DEFICIT against what the plan needs today (Nov 10,
+  // the user picked "deficit in ring" over food-only: "+209 burned off" was
+  // confusing). Deficit = burn (resting + counted active) minus food, as the
+  // line under it always said; the plan figure is phaseDayDeficit (fixed
+  // 2,700 resting, the day's active and food targets). Food moves to a line.
+  const defKcal=-netDef;
+  const planDef=(phase&&!shock)?phaseDayDeficit(phase,date):null;
+  const ringPct=planDef?Math.max(0,Math.min(100,Math.round(defKcal/planDef*100))):pct;
+  const onPlan=planDef!=null&&defKcal>=planDef;
+  const pillCls=onPlan||(planDef==null&&ratio<=1.1)?"tpill-green":netOver>0?"tpill-red":"tpill-amber";
+  const pillTxt=planDef==null?(ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target")
+    :onPlan?"On track":netOver>0?"Over target":date<isoToday()?"Short of plan":"In progress";
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g, C ${it.carbs||0}g, F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
@@ -267,16 +276,16 @@ export function renderNutrition(){
         <svg width="128" height="128" viewBox="0 0 128 128">
           <circle cx="64" cy="64" r="56" fill="none" stroke="var(--hero-line)" stroke-width="10"/>
           <circle cx="64" cy="64" r="56" fill="none" stroke="var(--hero-accent)" stroke-width="10" stroke-linecap="round"
-            stroke-dasharray="351.86" stroke-dashoffset="${(351.86*(1-Math.min(pct,100)/100)).toFixed(1)}"
+            stroke-dasharray="351.86" stroke-dashoffset="${(351.86*(1-Math.min(ringPct,100)/100)).toFixed(1)}"
             transform="rotate(-90 64 64)" class="nut-ring-fill"/>
         </svg>
         <div class="nut-ring-text">
-          <div class="nut-ring-big">${consumed>finalTarget?"+"+(consumed-finalTarget).toLocaleString():remaining.toLocaleString()}</div>
-          <div class="nut-ring-small">${covered?"burned off":consumed>finalTarget?"kcal over":"kcal remaining"}</div>
+          <div class="nut-ring-big">${defKcal>=0?defKcal.toLocaleString():"+"+(-defKcal).toLocaleString()}</div>
+          <div class="nut-ring-small">${defKcal>=0?"kcal deficit":"kcal surplus"}</div>
+          ${planDef!=null?`<div class="nut-ring-sub">plan: ${planDef.toLocaleString()}</div>`:""}
         </div>
       </div>
-      <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten, ${finalTarget.toLocaleString()} target${shock?", shock day":""}</div>
-      <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
+      <div class="food-line"><b>Food:</b> ${consumed.toLocaleString()} of ${finalTarget.toLocaleString()}, ${overKcal>0?`${overKcal.toLocaleString()} kcal over`:`${remaining.toLocaleString()} kcal remaining`}${shock?", shock day":""}</div>
       ${phase?(()=>{
         // Active compliance: how much active is ACTUALLY still needed today,
         // not the planned target assuming you eat the full budget. The
@@ -298,7 +307,6 @@ export function renderNutrition(){
         return met?`<div class="act-line act-met">${icon("bolt",18)} Active target met: ${active.toLocaleString()} of ${aTgt.toLocaleString()} (${lbl})</div>`
           :`<div class="act-line">${icon("bolt",18)} <b>Active: ${remain.toLocaleString()} to go</b> <span>${active.toLocaleString()} of ${aTgt.toLocaleString()}, ${aPct}% (${lbl})</span></div>`;
       })():""}
-      ${covered?`<div class="cover-note">${overKcal.toLocaleString()} kcal over on food, burned off by extra activity. Today's deficit is on plan.</div>`:""}
       ${netOver>0&&items.length?(()=>{const big=items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0];const pl=Math.max(0,pTarget-Math.round(protein));
         return gapNote(extraBurn>0?`${netOver.toLocaleString()} kcal over after activity`:`${overKcal.toLocaleString()} kcal over`,`${extraBurn>0?`${overKcal.toLocaleString()} over on food, ${extraBurn.toLocaleString()} burned off by extra activity. `:""}Biggest item: ${esc(big.name)}, ${Math.round(big.kcal).toLocaleString()} kcal.${pl>=20?` Protein ${pl} g short.`:""}`);})():""}
       ${macroPie(protein,carbs,fat,fibre)}

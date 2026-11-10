@@ -564,8 +564,8 @@ ok("compliance is null-safe: no score shows 'Starts after today', never NaN",
 
 // Dashboard psychology: behaviours, not deficits
 const rnBody = fnBody("renderNutrition");
-ok("required deficit is NOT rendered on the Nutrition dashboard",
-  !rnBody.includes("phaseDayDeficit") && !HTML.includes("Move target"));
+ok("the intake ring shows the day's deficit vs the plan's (Nov 10, the user's pick), food on its own line",
+  rnBody.includes("phaseDayDeficit(phase,date)") && rnBody.includes("kcal deficit") && rnBody.includes("plan: ") && rnBody.includes("<b>Food:</b>") && !HTML.includes("Move target"));
 ok("intakeFloor/moveGap fully removed", !HTML.includes("intakeFloor") && !HTML.includes("moveGap"));
 ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
@@ -941,9 +941,9 @@ section("16a4 · the one allowed shoulder press (Nov 9)");
 section("16a5 · food over, burned off (Nov 10)");
 {
   const N = readFileSync("src/nutrition.js", "utf8");
-  ok("food over the budget is netted against active beyond the day's planned target (same activeMult): covered -> 'On track', 'burned off', no Needs attention",
+  ok("food over the budget is netted against active beyond the day's planned target (same activeMult): covered -> no Needs attention",
     /const extraBurn=\(phase&&!shock\)\?Math\.max\(0,Math\.round\(\(active-phaseActiveTarget\(phase,date\)\)\*activeMult\(date\)\)\):0;/.test(N) &&
-    /const covered=overKcal>0&&netOver===0;/.test(N) && /covered\?"burned off"/.test(N) && /\$\{netOver>0&&items\.length\?/.test(N));
+    !/"burned off"/.test(N) && /\$\{netOver>0&&items\.length\?/.test(N));
 }
 
 section("16b · proteinTargetG single source of truth");

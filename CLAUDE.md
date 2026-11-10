@@ -53,6 +53,15 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   the top of a card with the biggest gap. Used on the goal card, the weekly
   deficit, Insights' Targets Hit This Week; the intake ring reads "+581 kcal
   over", macro tiles say "129 g to go" / "17 g over" with a limit tick.
+- **The intake ring shows the day's DEFICIT** (Nov 10, the user's pick from
+  three mockups after "+209 burned off" read as confusing): big number = burn
+  (resting + counted active) minus food, "kcal deficit"/"kcal surplus", with
+  "plan: N" (`phaseDayDeficit`) under it and the ring filled to deficit/plan.
+  Pill: On track (deficit >= plan), Over target (food over and not burned off),
+  In progress (today) / Short of plan (past). Food is its own line ("Food: 1,709
+  of 1,500, 209 kcal over"); the Needs attention box shows only food left over
+  after extra activity (`extraBurn`, `netOver`). The weekly food habit still
+  scores food against the budget.
 - Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=5`).
 - **App icon (Oct 30, "Night steel", picked from six on the design canvas)**:
   `icon.svg` is the source: a full-bleed graphite radial background (iOS
