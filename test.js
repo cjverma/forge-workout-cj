@@ -565,7 +565,7 @@ ok("compliance is null-safe: no score shows 'Starts after today', never NaN",
 // Dashboard psychology: behaviours, not deficits
 const rnBody = fnBody("renderNutrition");
 ok("the intake ring shows the day's deficit vs the plan's (Nov 10, the user's pick), food on its own line",
-  rnBody.includes("phaseDayDeficit(phase,date)") && rnBody.includes("kcal deficit") && rnBody.includes("plan: ") && rnBody.includes("<b>Food:</b>") && !HTML.includes("Move target"));
+  rnBody.includes("phaseDayDeficit(phase,date)") && rnBody.includes("const projected=date===isoToday()&&consumed<finalTarget;") && rnBody.includes("kcal deficit") && rnBody.includes("plan: ") && rnBody.includes("<b>Food:</b>") && !HTML.includes("Move target"));
 ok("intakeFloor/moveGap fully removed", !HTML.includes("intakeFloor") && !HTML.includes("moveGap"));
 ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
@@ -786,9 +786,9 @@ section("15b · Active target reflects real intake, not assumed budget");
 // which kind of day (workout/rest) it is.
 {
   const NUT2 = readFileSync("src/nutrition.js", "utf8");
-  ok("Active target is re-solved from actual consumed against the DAY's food target (1,200 on Sunday)",
+  ok("Active target is re-solved from consumed (projected to the budget today, Nov 10) against the DAY's food target (1,200 on Sunday)",
     /const plannedTgt=phaseActiveTarget\(phase,date\);/.test(NUT2) &&
-    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-eatKcalFor\(phase,date\)\)\/activeMult\(date\)\)\);/.test(NUT2));
+    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(\(projected\?finalTarget:consumed\)-eatKcalFor\(phase,date\)\)\/activeMult\(date\)\)\);/.test(NUT2));
   ok("aTgt===0 (nothing further needed) reads as fully met, not a failing 0%",
     /const aPct=aTgt\?Math\.round\(active\/aTgt\*100\):100;/.test(NUT2));
 }

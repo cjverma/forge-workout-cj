@@ -232,7 +232,11 @@ export function renderNutrition(){
   // confusing). Deficit = burn (resting + counted active) minus food, as the
   // line under it always said; the plan figure is phaseDayDeficit (fixed
   // 2,700 resting, the day's active and food targets). Food moves to a line.
-  const defKcal=-netDef;
+  // Today, before the budget is eaten, project the rest of it: counting the
+  // whole day's resting burn against only the food eaten so far read "On
+  // track" at 1 PM. Past days (and today once over budget) use what was eaten.
+  const projected=date===isoToday()&&consumed<finalTarget;
+  const defKcal=totalBurn-(projected?finalTarget:consumed);
   const planDef=(phase&&!shock)?phaseDayDeficit(phase,date):null;
   const ringPct=planDef?Math.max(0,Math.min(100,Math.round(defKcal/planDef*100))):pct;
   const onPlan=planDef!=null&&defKcal>=planDef;
@@ -281,7 +285,7 @@ export function renderNutrition(){
         </svg>
         <div class="nut-ring-text">
           <div class="nut-ring-big">${defKcal>=0?defKcal.toLocaleString():"+"+(-defKcal).toLocaleString()}</div>
-          <div class="nut-ring-small">${defKcal>=0?"kcal deficit":"kcal surplus"}</div>
+          <div class="nut-ring-small">${projected?(defKcal>=0?"projected deficit":"projected surplus"):defKcal>=0?"kcal deficit":"kcal surplus"}</div>
           ${planDef!=null?`<div class="nut-ring-sub">plan: ${planDef.toLocaleString()}</div>`:""}
         </div>
       </div>
@@ -298,7 +302,7 @@ export function renderNutrition(){
         // the workout/rest split stays intact since plannedTgt already
         // reflects which kind of day this is.
         const plannedTgt=phaseActiveTarget(phase,date);
-        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-eatKcalFor(phase,date))/activeMult(date)));
+        const aTgt=Math.max(0,Math.round(plannedTgt+((projected?finalTarget:consumed)-eatKcalFor(phase,date))/activeMult(date)));
         const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;

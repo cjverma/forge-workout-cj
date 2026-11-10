@@ -58,7 +58,11 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   (resting + counted active) minus food, "kcal deficit"/"kcal surplus", with
   "plan: N" (`phaseDayDeficit`) under it and the ring filled to deficit/plan.
   Pill: On track (deficit >= plan), Over target (food over and not burned off),
-  In progress (today) / Short of plan (past). Food is its own line ("Food: 1,709
+  In progress (today) / Short of plan (past). TODAY, until the food budget
+  is eaten, the deficit and the active target are PROJECTED as if the rest
+  of the budget gets eaten ("projected deficit"): counting the whole day's
+  resting burn against only food so far read "On track" at 1 PM and "420 of
+  177" active. Food is its own line ("Food: 1,709
   of 1,500, 209 kcal over"); the Needs attention box shows only food left over
   after extra activity (`extraBurn`, `netOver`). The weekly food habit still
   scores food against the budget.
