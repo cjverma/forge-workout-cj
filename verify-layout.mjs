@@ -356,7 +356,6 @@ async function open(dev, theme, state) {
   await page.route("**/api/**", async (r) => {
     const path = new URL(r.request().url()).pathname;
     const json = (status, body) => r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
-    if (path === "/api/state" && new URL(r.request().url()).searchParams.get("hoist")) return json(200, { levels: [28, 41, 53, 70, 87, 104, 122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279].map((lb, i) => ({ level: i + 1, lb })) });
     if (path === "/api/state") return json(501, {});
     if (path === "/api/mutate") return json(200, { ok: true });
     if (path === "/api/coach") return json(200, { text: "**Solid week.** Protein hit target on 5 of 7 days.\n\n### Next week\n- Keep food at 1,500 on 6 of 7 days\n- Weigh in every morning" });

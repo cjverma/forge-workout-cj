@@ -594,23 +594,23 @@ On ROC-IT machines the seat moves the user's body with the stack, so the
 weight lifted at a level depends on body weight (hoistfitness.com has a
 calculator per machine). The unit chip cycles kg -> lbs -> **Level** (gym
 exercises). In Level mode the card shows a machine picker (`HOIST_MACHINES`
-in `src/hoist.js`: the 30 RS-1000/RS-2000 models with a calculator, from the
-site's sitemap; `suggestHoist` pre-picks by exercise name), the box takes the
+in `src/hoist.js`: the 30 RS-1000/RS-2000 models with a calculator;
+`suggestHoist` pre-picks by exercise name), a "5 lb add-on weight fitted"
+switch on RS-2000 machines (`f5_hoist_addon`, per device), the box takes the
 level, and a "Level 9 = 154 lb (70 kg)" line shows the real weight. The SET
 stores `weight` = the real lb (so PRs, working weight, the unit check, the
-weekly plan and the email are unchanged) plus `level`, `hoist`, `bwLb`;
-`ed.unit` is "lbs". No table yet means no weight, so the set can't be
-ticked on a guess. Targets read "Level 8 × 10" (`hoistLevelFor`: heaviest
-level at or under the working weight). Tables come from Hoist's own
-calculator service via `GET /api/state?hoist=RS-1402&bw=<lb>` (folded into
-state.js, 12/12; model must match `RS-\d{4}`, bw 60-700 lb), cached per
-device in `f5_hoist_tables`, prefetched after the first server pull
-(`hoistPrefetch`, gyms have no signal), and recomputed only when body weight
-moves 2 kg (`hoistBodyKg`, `f5_hoist_bw`; the user: "recalculated post 2 kg
-weight loss"). Body weight goes to Hoist in lb (the page's legacy field was
-`weight_lbs`; Hoist is a US company), output is lb. The machine for an
-exercise lives on its logged sets and in `f5_hoist_map`.
-`data/hoist-machines.json` (branch `claude/hoist-data`) has the research.
+weekly plan and the email are unchanged) plus `level`, `hoist`, `bwLb`,
+`addOn`; `ed.unit` is "lbs". A ticked set keeps the weight it was lifted at.
+Targets read "Level 8 × 10" (`hoistLevelFor`: heaviest level at or under the
+working weight). **Computed on the device, no network**: `hoistActual()`
+reproduces Hoist's calculator server, `round(a + b * floor(bodyWeightLb))`
+per level with `overrides` at known .5 ties, 18 levels, lb in and out
+(research and fit on branch `claude/hoist-data`, `data/hoist-machines.json`
+and `.md`: ~2,500 responses, 357/360 held-out values exact, never more than
+1 lb off). Body weight is the 7-day average (else latest), recomputed only
+when it moves 2 kg (`hoistBodyKg`, `f5_hoist_bw`; the user: "recalculated
+post 2 kg weight loss"). The machine for an exercise lives on its logged sets
+and in `f5_hoist_map`.
 
 ### Vertical pulling
 A standard lat pulldown is banned by the spine rules. The only pulldown in the

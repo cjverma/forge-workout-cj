@@ -1,6 +1,6 @@
 import { ctx } from "./runtime.js";
 import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult, PHASES, phaseReached, phaseCurveKg, addDaysIso, sevenDayAvg, latestWeightLog } from "./phase.js";
-import { HOIST_MACHINES, HOIST_LB, suggestHoist, hoistName, hoistLb, hoistLevelFor, hoistBodyKg } from "./hoist.js";
+import { HOIST_MACHINES, HOIST_LB, suggestHoist, hoistLb, hoistLevelFor, hoistBodyKg, hoistTableFor, hoistHasAddOn } from "./hoist.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, showCelebration, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
@@ -85,47 +85,40 @@ function hoistBodyNow(){
   if(kg&&kg!==st)hoistLSSet("f5_hoist_bw",kg);
   return kg;
 }
-const _hoistBusy={};
-// Cached table for a machine at the current body weight; fetches (once) when
-// missing and re-renders the card. Offline, the last table for the machine.
+// RS-2000 machines can have Hoist's 5 lb add-on weight fitted (a different
+// table). Per machine, per device: it is a property of the gym's machine.
+function hoistAddOn(model){return hoistHasAddOn(model)&&!!hoistLS("f5_hoist_addon",{})[model];}
+// The table for a machine at the current body weight, computed on the device
+// from Hoist's constants (src/hoist.js): no network, so it works at the gym.
 function hoistTable(model){
   const kg=hoistBodyNow();if(!model||!kg)return null;
-  const bwLb=Math.round(kg*HOIST_LB),all=hoistLS("f5_hoist_tables",{}),t=all[model];
-  if(t&&t.bwLb===bwLb)return t.levels;
-  if(!_hoistBusy[model]&&navigator.onLine!==false){
-    _hoistBusy[model]=true;
-    fetchT(`${API_CFG.baseUrl}/api/state?hoist=${encodeURIComponent(model)}&bw=${bwLb}`,{headers:{Authorization:"Bearer "+API_CFG.token}},12000)
-      .then(r=>r.ok?r.json():Promise.reject(new Error(r.status)))
-      .then(d=>{if(d&&d.levels&&d.levels.length){const a=hoistLS("f5_hoist_tables",{});a[model]={bwLb,levels:d.levels,at:Date.now()};hoistLSSet("f5_hoist_tables",a);if(ctx.renderW)ctx.renderW();}})
-      .catch(()=>{}).finally(()=>{setTimeout(()=>{_hoistBusy[model]=false;},60000);});
-  }
-  return t?t.levels:null;
+  return hoistTableFor(model,Math.round(kg*HOIST_LB),hoistAddOn(model));
 }
-// After the first server pull: load the tables for every machine in use, so
-// they are cached before the gym (often no signal there).
-function hoistPrefetch(){Object.values(hoistLS("f5_hoist_map",{})).forEach(m=>hoistTable(m));}
-ctx.hoistPrefetch=hoistPrefetch;
+function setHoistAddOn(key,exId,model,on){
+  const a=hoistLS("f5_hoist_addon",{});if(on)a[model]=true;else delete a[model];hoistLSSet("f5_hoist_addon",a);
+  setHoistModel(key,exId,model);
+}
 function setHoistModel(key,exId,model){
   const S=ctx.getS();if(ctx.isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   const ed=S.sessions[key][exId];ed.hoist=model;ed.unit="lbs";hoistMapSet(exId,model);
   const tbl=hoistTable(model);
-  (ed.sets||[]).forEach(sd=>{if(sd&&sd.level!=null&&sd.level!==""){sd.hoist=model;const lb=hoistLb(tbl,sd.level);sd.weight=lb!=null?String(lb):"";}});
+  (ed.sets||[]).forEach(sd=>{if(sd&&sd.level!=null&&sd.level!==""&&!sd.done){sd.hoist=model;sd.addOn=hoistAddOn(model)||undefined;const lb=hoistLb(tbl,sd.level);sd.weight=lb!=null?String(lb):"";}});
   save();queueSession(key,exId);reCard(key,exId);
 }
 // A typed level -> the set's real weight. Without a table yet the weight stays
 // empty, so the set cannot be ticked with a made-up number.
 function hoistApply(key,exId,sd,level){
   const model=getHoist(key,exId),tbl=hoistTable(model),kg=hoistBodyNow();
-  sd.level=String(level||"").trim();sd.hoist=model;sd.bwLb=kg?Math.round(kg*HOIST_LB):null;
+  sd.level=String(level||"").trim();sd.hoist=model;sd.bwLb=kg?Math.round(kg*HOIST_LB):null;sd.addOn=hoistAddOn(model)||undefined;
   const lb=sd.level?hoistLb(tbl,sd.level):null;
   sd.weight=lb!=null?String(lb):"";
   return lb;
 }
 function hoistEqText(model,tbl,level){
   if(level==null||level==="")return"";
-  if(!tbl)return navigator.onLine===false?"Offline: open once online to load this machine":"Loading this machine's weights";
+  if(!tbl)return"Log a weigh-in to work out the weight";
   const lb=hoistLb(tbl,level);
   return lb!=null?`Level ${level} = ${lb} lb (${Math.round(lb*LB_TO_KG)} kg)`:`No level ${level} on this machine`;
 }
@@ -692,7 +685,7 @@ function card(ex,sess,key,rdOnly=false){
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
     const _bwKg=_hModel?hoistBodyNow():null;
-    let rows=(_hModel?`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Hoist machine</label><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setHoistModel('${key}','${ex.id}',this.value)">${HOIST_MACHINES.map(m=>`<option value="${m.model}"${m.model===_hModel?" selected":""}>${esc(m.model+" "+m.name)}</option>`).join("")}</select><div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div></div>`:"")+
+    let rows=(_hModel?`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Hoist machine</label><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setHoistModel('${key}','${ex.id}',this.value)">${HOIST_MACHINES.map(m=>`<option value="${m.model}"${m.model===_hModel?" selected":""}>${esc(m.model+" "+m.name)}</option>`).join("")}</select>${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div></div>`:"")+
       `<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${_hModel?"Level":exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
@@ -1753,6 +1746,7 @@ ctx.checkPhaseCelebration=checkPhaseCelebration;
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
 window.setHoistModel=setHoistModel;
+window.setHoistAddOn=setHoistAddOn;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;
 window.expand=expand;

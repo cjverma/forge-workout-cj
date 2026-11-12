@@ -970,18 +970,21 @@ section("16a6 · phase reached on the 3-day average; the celebration (Nov 10)");
 section("16a7 · Hoist ROC-IT levels (Nov 12)");
 {
   const H = await import("./src/hoist.js");
-  const LEG = [28, 41, 53, 70, 87, 104, 122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279].map((lb, i) => ({ level: i + 1, lb }));
-  const html = "<table><tr><th>LEVEL</th><th>ACTUAL WEIGHT LIFTED</th></tr>" + LEG.map((r) => `<tr><td>${r.level}</td><td>${r.lb}</td></tr>`).join("") + "</table>";
-  ok("the Hoist calculator's HTML table parses to levels (the user's RS-1402 example)", JSON.stringify(H.parseHoistTable(html)) === JSON.stringify(LEG));
-  ok("30 machines with a calculator; a leg curl suggests RS-1402/RS-2402", H.HOIST_MACHINES.length === 30 && H.suggestHoist("Seated Leg Curl").map((m) => m.model).join() === "RS-1402,RS-2402");
+  const SITE = [28, 41, 53, 70, 87, 104, 122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279, 295];
+  ok("RS-1402 at 125 reproduces hoistfitness.com's table exactly, 18 levels (the user's example + level 18)", H.hoistTableFor("RS-1402", 125).map((r) => r.lb).join() === SITE.join());
+  ok("known .5 ties come from overrides (RS-1402 level 1 at 240 lb = 50, 60 lb = 17)", H.hoistActual("RS-1402", 1, 240) === 50 && H.hoistActual("RS-1402", 1, 60) === 17);
+  ok("body weight is truncated to a whole lb like the site (183.99 = 183)", H.hoistActual("RS-2403", 9, 183.99) === H.hoistActual("RS-2403", 9, 183));
+  ok("the add-on table exists only on RS-2000 machines and is heavier", H.hoistHasAddOn("RS-2402") && !H.hoistHasAddOn("RS-1402") && H.hoistActual("RS-2402", 10, 276, true) > H.hoistActual("RS-2402", 10, 276));
+  ok("out-of-range levels and unknown machines give null, never a made-up weight", H.hoistActual("RS-1402", 19, 276) === null && H.hoistActual("RS-1402", 0, 276) === null && H.hoistActual("RS-9999", 3, 276) === null);
+  ok("30 machines, all with 18 [a,b] pairs; a leg curl suggests RS-1402/RS-2402", H.HOIST_MACHINES.length === 30 && H.HOIST_MACHINES.every((m) => m.coef.length === 18 && m.coef.every((c) => c.length === 2)) && H.suggestHoist("Seated Leg Curl").map((m) => m.model).join() === "RS-1402,RS-2402");
+  const LEG = H.hoistTableFor("RS-1402", 125);
   ok("level for a target: heaviest at or under it (+2 lb slack); never below 1", H.hoistLevelFor(LEG, 145) === 8 && H.hoistLevelFor(LEG, 141.5) === 8 && H.hoistLevelFor(LEG, 10) === 1 && H.hoistLb(LEG, 8) === 140);
   ok("body weight for the tables moves only in 2 kg steps (the user: recalculate after 2 kg)", H.hoistBodyKg(123.4, 125) === 125 && H.hoistBodyKg(122.9, 125) === 123 && H.hoistBodyKg(125.2, null) === 125);
-  const ST = readFileSync("api/state.js", "utf8");
-  ok("the server asks Hoist's calculator with a validated model + body weight (lb), folded into /api/state (12-function limit)",
-    /if \(req\.query && req\.query\.hoist != null\) return hoistTable\(req, res\);/.test(ST) && /\^RS-\\d\{4\}\$/.test(ST) && /bw >= 60 && bw <= 700/.test(ST));
   const W = readFileSync("src/workout.js", "utf8");
+  ok("tables are computed on the device (no server call, works offline at the gym)", /return hoistTableFor\(model,Math\.round\(kg\*HOIST_LB\),hoistAddOn\(model\)\);/.test(W) && !/api\/state\?hoist/.test(W) && !/hoist/i.test(readFileSync("api/state.js", "utf8")));
   ok("a level is stored with its real weight; no table means no weight, so the set cannot be ticked on a guess",
     /sd\.weight=lb!=null\?String\(lb\):"";/.test(W) && /if\(_hm&&sd\.level&&!sd\.weight\)/.test(W));
+  ok("a ticked set keeps the weight it was lifted at when the machine or add-on changes", /&&!sd\.done\)\{sd\.hoist=model;/.test(W));
 }
 
 section("16b · proteinTargetG single source of truth");
