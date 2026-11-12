@@ -796,6 +796,12 @@ Four surfaces resolve those keys back to names, and all four must agree:
   targetReps, maxReps)` turns a held weight done past the top into the
   same-1RM weight for the top reps, at most +10% a step (`raised`). The weekly
   plan prompt has the same ceiling: raise weight, never reps.
+- **"Beat last time", not an arrow** (Nov 12, the user read the bare up arrow
+  as a new PR). `olBadgeHtml` says "Beat last time" / "Below last time" /
+  "Same as last time" on its own line (`.ex-cmp`, id `ol-<exId>`) under the
+  sets and reps: this session's best set vs LAST session's, not the PR. The
+  live hint under a set ("Est. max 113 lb, your best 191 lb" / "New best") and
+  the Best line are in the box's unit, not always kg.
 - **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
   `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and
   the prompt says: big drop = hold load, add reps; little drop = step up.

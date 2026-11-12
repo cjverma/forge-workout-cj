@@ -1370,7 +1370,10 @@ body[data-tab] .danger-zone .st-sec{color:var(--mid);background:none;border:0;pa
 body[data-tab] .danger-zone .st-group{border-radius:var(--r-lg);}
 body[data-tab] #tc .danger-zone .st-ttl[style*="color:var(--red)"]{color:var(--red)!important;}
 /* Theme sweep (Oct 28): last off-look spots found by verify-layout's theme check. */
-.wv .ol-up,.wv .ol-down,.wv .ol-eq{background:var(--s2);color:var(--mid);}
+.wv .ol-up,.wv .ol-down,.wv .ol-eq{background:none;color:inherit;padding:0;margin:0;font:inherit;border:0;}
+.wv .ol-up{color:var(--white);font-weight:600;}
+.wv .ex-cmp{font-size:13px;line-height:18px;color:var(--mid);}
+.wv .ex-cmp:empty{display:none;}
 .wv .calf-btn{color:var(--accent-text);}
 body[data-tab] .edit-pill{box-shadow:none;}
 body[data-tab] .export-card{background:none;}

@@ -680,7 +680,7 @@ function card(ex,sess,key,rdOnly=false){
   const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
   // Overload badge, in its own span so it can be refreshed in place.
-  const olBadge=ex.sets>1?`<span id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</span>`:"";
+  const olBadge=ex.sets>1?`<div class="ex-cmp" id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</div>`:"";
 
   let body="";
   if(ex.cat==="cardio"){
@@ -724,7 +724,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
+      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}</div>`;})()}</div>
       <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -1022,7 +1022,9 @@ function delSet(key,exId,i){
 
 function olBadgeHtml(exId,sess){
   const dir=overloadDir(exId,sess);
-  return dir==="up"?`<span class="ol-up">↑</span>`:dir==="down"?`<span class="ol-down">↓</span>`:dir==="eq"?`<span class="ol-eq">=</span>`:"";
+  // Said in words (Nov 12, the user read the bare up arrow as "new PR"): it
+  // compares this session's best set with LAST session's, nothing more.
+  return dir==="up"?`<span class="ol-up">Beat last time</span>`:dir==="down"?`<span class="ol-down">Below last time</span>`:dir==="eq"?`<span class="ol-eq">Same as last time</span>`:"";
 }
 // Refresh just the up/down/equal arrow. reCard() skips the whole card while an
 // input inside it has focus (so the iOS keyboard is not dismissed mid-entry),
@@ -1578,7 +1580,10 @@ function prHint(exId,i){
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>Est. 1RM: '+est+'kg · new PR!</span>':"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  // Shown in the box's unit (Nov 12: "51kg (PR: 87kg)" beside a box in lbs
+  // read as nonsense); the comparison itself stays in kg.
+  const u=_hm||getExUnit(_k,exId)==="lbs"?"lbs":"kg",lu=u==="lbs"?"lb":"kg",show=x=>Math.round(inUnit(x,u));
+  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>New best: est. max '+show(est)+' '+lu+'</span>':"Est. max "+show(est)+" "+lu+", your best "+show(prev.est)+" "+lu):"Est. max "+show(est)+" "+lu;
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps,unit){
