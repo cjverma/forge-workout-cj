@@ -1,81 +1,109 @@
 # Hoist weight-ratio data: research notes (Nov 12 2026)
 
-## Status: formula NOT derived
+`hoist-machines.json` lists every ROC-IT machine page on hoistfitness.com and,
+for the 30 that have the "Weight Ratio Calculation", the constants to compute
+the site's table at any body weight.
 
-The calculator could not be reproduced from this research session. The
-formula lives on a server, and that server's host was refused by this cloud
-environment's network policy (proxy answered `CONNECT tunnel failed, response
-403`). Nothing in `hoist-machines.json` is guessed: every formula field is
-`null` until the API can be queried.
+## How the site's calculator works
 
-## How the calculator works (from the page source)
+Each ROC-IT page (`/pages/rs-XXXX-...`) has an inline `getTable()` that sends
+the model number and the typed weight to Hoist's own server and shows the
+HTML it returns:
 
-Every ROC-IT product page (`/pages/rs-XXXX-...`, Shopify template
-`page.roc-it-product`) has a "Weight Ratio Calculation" accordion with one
-number input and a CALCULATE button. The button runs `getTable()`, inline in
-the page:
-
-```js
-var userWeight = Number(document.getElementById('user__weight__input__box').value);
-var modelName = "RS-1402 Leg Curl";
-modelName = modelName.substring(0, modelName.indexOf(' '));   // "RS-1402"
-axios.get(`https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/${modelName}/${userWeight}`)
-  .then(r => tableDiv.innerHTML = r.data.data.actualWeightLiftedHtml);
+```
+GET https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1402/125
+-> { data: { actualWeightLiftedList: [ {level, weightLifted, weightLiftedAddOn}, ... ],
+             actualWeightLiftedHtml: "<table>..." } }
 ```
 
-So:
+There are no constants in the page itself. What the server does, worked out
+from about 2,500 responses:
 
-- The table is computed **server-side** (a Google Cloud Run service), and the
-  response is ready-made HTML (`data.data.actualWeightLiftedHtml`). There are
-  no per-level constants, ratios or stack tables anywhere in the page, its
-  Shopify assets, or the product JSON (`/products/<handle>.json`).
-- The model key sent is the part of the title before the first space
-  (`RS-1101 : Seated Dip` -> `RS-1101`), so every machine is addressed by its
-  bare model number.
-- The input is a bare number with no unit label. The label says only "ENTER
-  YOUR WEIGHT:". Hoist is a US company (Poway, CA) and lists stacks in lb
-  first, so lb in and lb out is likely, but it is **unverified**.
-- Each page also carries a leftover legacy script that POSTs
-  `action=calculate_weight_ratio&weight_lbs=...&modal_number=` to
-  `apps.shopifyrepublic.com/hoistfitness-republic/controller.php`; it targets
-  elements (`weight_lbs`, `weight_ratio_table_div`) that no longer exist on the
-  page, so it is dead code. Its parameter name `weight_lbs` is the one hint
-  that body weight is entered in pounds. Not queried.
+- **Body weight is truncated to a whole number** before use (183.99 gives the
+  same table as 183). Negative values and 0 are accepted, and text returns
+  nulls.
+- **Every machine has 18 levels**, even though the site's table for RS-1402
+  at 125 was read as 17: level 18 is 295 there.
+- **For each level the result is a straight line in body weight**, rounded to a
+  whole number: `actual = round(a + b * floor(bodyWeight))`, with its own `a`
+  and `b` per level. `b` grows with the level (RS-1402: 0.18 at level 1 and
+  0.61 at level 18), because more of the body rides with the moving seat at
+  heavier settings.
+- **RS-2000 models also return `weightLiftedAddOn`**: the same table with the
+  optional 5 lb weight upgrade (`RS-CAGE-NG-OPT1`) fitted. These are stored as
+  `coefAddOn`. RS-1000 models return 0 there.
+- **Units are lb in and lb out (inferred).** The page labels no unit. The
+  pointers: the old controller script on the page calls the field
+  `weight_lbs`, Hoist lists every stack in lb first, and the outputs scale
+  with the lb stack sizes (RS-2402, 270 lb stack, 18 levels of about 15 lb).
 
-## The known data point
+## The file
 
-RS-1402 Leg Curl, body weight 125.0: levels 1-17 -> 28, 41, 53, 70, 87, 104,
-122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279 (user-supplied, stored
-under `observed` for RS-1402). Level 17 (279) is above the RS-2402's listed
-270 lb stack, so the output already includes the machine's leverage/body
-movement and is most likely in lb. One body weight cannot separate the stack
-term from the body-weight term, so no formula was fitted.
+Per machine: `model`, `name`, `url`, `series`, `hasCalculator`, `levels`,
+`bodyWeightUnit` / `outputUnit` (`"lb"`), `kind: "linear"`, `apiUrl`,
+`coef` (18 `[a, b]` pairs), `coefAddOn` (RS-2000 only), `overrides` /
+`overridesAddOn` where needed, plus `stackLb` / `stackKg` /
+`stackWithAddOnLb` from the store's product JSON.
 
-## Machines found (42 ROC-IT pages, from `sitemap_pages_1.xml`)
+```js
+function actual(machine, level, bodyWeight, addOn = false) {
+  const bw = Math.floor(bodyWeight);
+  const ov = (addOn ? machine.overridesAddOn : machine.overrides)?.[level]?.[bw];
+  if (ov != null) return ov;
+  const [a, b] = (addOn ? machine.coefAddOn : machine.coef)[level - 1];
+  return Math.round(a + b * bw);
+}
+```
 
-- **30 have the calculator**: RS-1101, 1102, 1201, 1203, 1204, 1301, 1302,
-  1401, 1402, 1403, 1406, 1407, 1415, 1501, 1601 and the RS-2000 twins
-  (2101 ... 2601), `hasCalculator: true`, `apiUrlTemplate` filled in.
-- **12 have no calculator on their page** (`hasCalculator: false`):
-  RS-1103/2103 Triceps Extension, RS-1408/2408 Prone Leg Curl, RS-1412/2412
-  Glute Master, RS-1502/2502 Lateral Raise, RS-1602/2602 Rotary Torso,
-  RS-1700/2700 Chin-Dip Assist. Whether the API still answers for them is
-  unknown.
-- **HD Dual series** (HD-3000 ... HD-3900) pages: no calculator (fixed-path
-  machines, nothing moves with the body). Not included.
-- **RPL plate-loaded** products: no calculator, not included.
+## How it was verified
 
-`stackLb` / `stackKg` / `stackWithAddOnLb` come from the store's product JSON
-("Weight Stack: 270 lbs. (123 kg)", plus the optional 5 lb add-on). Several
-RS-1000 models have no product listing of their own, so they are `null`
-rather than copied from their RS-2000 twin.
+- **Your data point**: RS-1402 at 125 returns 28, 41, 53, 70, 87, 104, 122,
+  140, 154, 170, 186, 200, 216, 232, 247, 263, 279 for levels 1-17, exactly
+  as you read it (plus 295 at level 18).
+- **Fit**: for each of 810 level series (30 machines, 18 levels, with and
+  without the add-on), the best straight line was fitted over body weights 0,
+  60-400 (every 5-10 lb) and 1000; RS-2601 every 1 lb from 40 to 420. The
+  formula plus overrides reproduces all 67,968 sampled values exactly.
+- **Held-out check**: 5 machines at 4 body weights the fit never saw (133, 177,
+  211.7 and 262 lb):
 
-## Not verified (needed to finish)
+| machine | 133 | 177 | 211.7 | 262 |
+|---|---|---|---|---|
+| RS-1301 Chest Press | exact | exact | exact | exact |
+| RS-1402 Leg Curl | exact | level 2 off by 1 | exact | exact |
+| RS-1601 Abdominals | level 3 off by 1 | exact | exact | exact |
+| RS-2101 Seated Dip | exact | exact | exact | exact |
+| RS-2403 Leg Press | exact | exact | exact | level 14 off by 1 |
 
-The required check (site output vs formula for 3+ machines at 2 body weights)
-was not possible. To finish, allow the host
-`hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app` in the environment's
-network settings, then for each `apiUrlTemplate` fetch e.g. body weights 100,
-150, 200, 250 and fit per level `actual = a_level + b_level * bodyWeight`
-(or check for a simpler shared ratio), filling `levels`, `bodyWeightUnit`,
-`outputUnit`, `kind`, `formula` and the constants.
+  That is 357 of 360 values exact. All three misses had a raw value within
+  0.03 of a .5 tie (53.497 vs the site's 54, 36.497 vs 37, 303.53 vs 303).
+
+## Known limitation: 1 lb at near-ties
+
+The server's exact arithmetic is hidden, so `a` and `b` are only pinned to a
+narrow range. When the true value sits almost exactly on .5, the formula can
+round the other way. It is **never off by more than 1 lb**, and that happens
+on roughly 1 value in 100 at body weights that were not sampled. Eight series
+have exact .5 ties inside the samples (RS-1402/2402 level 1, RS-1403/2403
+level 5, RS-2402 level 18, RS-2101 add-on level 4, RS-2102 add-on levels 8 and
+14), and those sampled points are stored in `overrides`.
+
+To make it exact for every whole body weight in a range, sample each machine
+at every whole pound in that range (about 9,000 requests for 80-450 lb across
+30 machines) and add the disagreements to `overrides`. That bulk fetch was
+not run because of the load it puts on Hoist's server.
+
+## Machines without a calculator
+
+12 ROC-IT models have no calculator on their page, and the API answers 400
+for them: RS-1103/2103 Triceps Extension, RS-1408/2408 Prone Leg Curl,
+RS-1412/2412 Glute Master, RS-1502/2502 Lateral Raise, RS-1602/2602 Rotary
+Torso, RS-1700/2700 Chin-Dip Assist. They are in the file with
+`hasCalculator: false` and stack sizes where the store lists them. The HD
+Dual series (fixed path, nothing moves with the body) and the RPL
+plate-loaded line have no calculator and are not included.
+
+## Access
+
+The calculator host needed adding to this cloud environment's allowed
+domains (done Nov 12, with your approval).

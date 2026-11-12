@@ -1,824 +1,4147 @@
 [
-  {
-    "model": "RS-1101",
-    "name": "Seated Dip",
-    "url": "https://www.hoistfitness.com/pages/rs-1101-seated-dip",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1101/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
+ {
+  "model": "RS-1101",
+  "name": "Seated Dip",
+  "url": "https://www.hoistfitness.com/pages/rs-1101-seated-dip",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1101/{bodyWeight}",
+  "coef": [
+   [
+    3.272727,
+    0.21818182
+   ],
+   [
+    7.847222,
+    0.26111111
+   ],
+   [
+    13.384615,
+    0.2974359
+   ],
+   [
+    22.674419,
+    0.34883721
+   ],
+   [
+    32.914894,
+    0.38723404
+   ],
+   [
+    43.618421,
+    0.41578947
+   ],
+   [
+    55.04,
+    0.44
+   ],
+   [
+    67.338983,
+    0.46440678
+   ],
+   [
+    79.15625,
+    0.47916667
+   ],
+   [
+    91.101852,
+    0.49259259
+   ],
+   [
+    103.953488,
+    0.50697674
+   ],
+   [
+    117.0,
+    0.52
+   ],
+   [
+    129.645161,
+    0.52903226
+   ],
+   [
+    142.411765,
+    0.5372549
+   ],
+   [
+    155.275862,
+    0.54482759
+   ],
+   [
+    168.241379,
+    0.55172414
+   ],
+   [
+    181.315789,
+    0.55789474
+   ],
+   [
+    194.454545,
+    0.56363636
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1102",
+  "name": "Biceps Curl",
+  "url": "https://www.hoistfitness.com/pages/rs-1102-biceps-curl",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/biceps-curl",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1102/{bodyWeight}",
+  "coef": [
+   [
+    3.181818,
+    0.21212121
+   ],
+   [
+    6.666667,
+    0.22222222
+   ],
+   [
+    10.384615,
+    0.23076923
+   ],
+   [
+    16.325581,
+    0.25116279
+   ],
+   [
+    22.425532,
+    0.26382979
+   ],
+   [
+    28.823529,
+    0.2745098
+   ],
+   [
+    35.0,
+    0.28
+   ],
+   [
+    41.779661,
+    0.28813559
+   ],
+   [
+    46.15625,
+    0.27916667
+   ],
+   [
+    51.367347,
+    0.27755102
+   ],
+   [
+    55.983333,
+    0.27333333
+   ],
+   [
+    60.580311,
+    0.26943005
+   ],
+   [
+    65.756098,
+    0.26829268
+   ],
+   [
+    70.297297,
+    0.26486486
+   ],
+   [
+    74.689655,
+    0.26206897
+   ],
+   [
+    79.111111,
+    0.25925926
+   ],
+   [
+    83.429009,
+    0.25703794
+   ],
+   [
+    87.818182,
+    0.25454545
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1103",
+  "name": "Triceps Extension",
+  "url": "https://www.hoistfitness.com/pages/rs-1103-triceps-extension",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": false,
+  "stackLb": 180,
+  "stackKg": 82,
+  "stackWithAddOnLb": null,
+  "specSource": "https://www.hoistfitness.com/products/rs-1103-triceps-extension",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-1201",
+  "name": "Lat Pulldown",
+  "url": "https://www.hoistfitness.com/pages/rs-1201-lat-pulldown",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1201/{bodyWeight}",
+  "coef": [
+   [
+    3.454545,
+    0.23030303
+   ],
+   [
+    8.066667,
+    0.26666667
+   ],
+   [
+    13.153846,
+    0.29230769
+   ],
+   [
+    21.702703,
+    0.33513514
+   ],
+   [
+    31.106383,
+    0.36595745
+   ],
+   [
+    40.764706,
+    0.38823529
+   ],
+   [
+    51.363636,
+    0.41090909
+   ],
+   [
+    61.932203,
+    0.42711864
+   ],
+   [
+    71.215909,
+    0.43181818
+   ],
+   [
+    80.619565,
+    0.43586957
+   ],
+   [
+    90.093635,
+    0.43941248
+   ],
+   [
+    100.20442,
+    0.44530387
+   ],
+   [
+    109.8,
+    0.448
+   ],
+   [
+    120.702128,
+    0.45531915
+   ],
+   [
+    131.689655,
+    0.46206897
+   ],
+   [
+    142.697368,
+    0.46842105
+   ],
+   [
+    153.947368,
+    0.47368421
+   ],
+   [
+    165.181818,
+    0.47878788
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1203",
+  "name": "Seated Mid Row",
+  "url": "https://www.hoistfitness.com/pages/rs-1203-seated-mid-row",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/seated-mid-row",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1203/{bodyWeight}",
+  "coef": [
+   [
+    6.181818,
+    0.41212121
+   ],
+   [
+    12.847222,
+    0.42777778
+   ],
+   [
+    19.615385,
+    0.43589744
+   ],
+   [
+    30.837209,
+    0.4744186
+   ],
+   [
+    42.319149,
+    0.49787234
+   ],
+   [
+    53.529412,
+    0.50980392
+   ],
+   [
+    65.0,
+    0.52
+   ],
+   [
+    76.176471,
+    0.5254902
+   ],
+   [
+    85.84375,
+    0.52083333
+   ],
+   [
+    95.545455,
+    0.51636364
+   ],
+   [
+    105.666667,
+    0.51555556
+   ],
+   [
+    116.413793,
+    0.51724138
+   ],
+   [
+    126.545455,
+    0.51636364
+   ],
+   [
+    137.295082,
+    0.51803279
+   ],
+   [
+    148.127907,
+    0.51937984
+   ],
+   [
+    158.828947,
+    0.52105263
+   ],
+   [
+    169.694915,
+    0.5220339
+   ],
+   [
+    180.538462,
+    0.52307692
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1204",
+  "name": "Low Back",
+  "url": "https://www.hoistfitness.com/pages/rs-1204-low-back",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/low-back",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1204/{bodyWeight}",
+  "coef": [
+   [
+    2.181818,
+    0.14545455
+   ],
+   [
+    8.361111,
+    0.27777778
+   ],
+   [
+    17.538462,
+    0.38974359
+   ],
+   [
+    30.297297,
+    0.46486486
+   ],
+   [
+    44.851064,
+    0.52765957
+   ],
+   [
+    61.764706,
+    0.58823529
+   ],
+   [
+    79.102041,
+    0.63265306
+   ],
+   [
+    98.305085,
+    0.6779661
+   ],
+   [
+    117.322222,
+    0.71111111
+   ],
+   [
+    138.04878,
+    0.74634146
+   ],
+   [
+    158.192982,
+    0.77192982
+   ],
+   [
+    180.07416,
+    0.7995365
+   ],
+   [
+    200.938776,
+    0.82040816
+   ],
+   [
+    223.478261,
+    0.84347826
+   ],
+   [
+    245.06383,
+    0.85957447
+   ],
+   [
+    268.171053,
+    0.87894737
+   ],
+   [
+    290.097561,
+    0.89268293
+   ],
+   [
+    313.636364,
+    0.90909091
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1301",
+  "name": "Chest Press",
+  "url": "https://www.hoistfitness.com/pages/rs-1301-chest-press",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1301/{bodyWeight}",
+  "coef": [
+   [
+    4.545455,
+    0.3030303
+   ],
+   [
+    10.847222,
+    0.36111111
+   ],
+   [
+    17.307692,
+    0.38461538
+   ],
+   [
+    30.297297,
+    0.46486486
+   ],
+   [
+    41.565789,
+    0.48947368
+   ],
+   [
+    55.588235,
+    0.52941176
+   ],
+   [
+    65.909091,
+    0.52727273
+   ],
+   [
+    78.688889,
+    0.54222222
+   ],
+   [
+    91.666667,
+    0.55555556
+   ],
+   [
+    104.897959,
+    0.56734694
+   ],
+   [
+    118.380282,
+    0.57746479
+   ],
+   [
+    132.0,
+    0.58666667
+   ],
+   [
+    145.802632,
+    0.59473684
+   ],
+   [
+    159.391473,
+    0.60310078
+   ],
+   [
+    173.604651,
+    0.60930233
+   ],
+   [
+    187.692308,
+    0.61538462
+   ],
+   [
+    201.831579,
+    0.62105263
+   ],
+   [
+    216.039474,
+    0.62631579
+   ]
+  ],
+  "overrides": {
+   "14": {
+    "0": 160
+   }
   },
-  {
-    "model": "RS-1102",
-    "name": "Biceps Curl",
-    "url": "https://www.hoistfitness.com/pages/rs-1102-biceps-curl",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1102/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/biceps-curl",
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1302",
+  "name": "Pec Fly",
+  "url": "https://www.hoistfitness.com/pages/rs-1302-pec-fly",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/pec-fly",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1302/{bodyWeight}",
+  "coef": [
+   [
+    0.636364,
+    0.04242424
+   ],
+   [
+    2.0,
+    0.06666667
+   ],
+   [
+    4.153846,
+    0.09230769
+   ],
+   [
+    7.55814,
+    0.11627907
+   ],
+   [
+    11.57234,
+    0.13617021
+   ],
+   [
+    16.058824,
+    0.15294118
+   ],
+   [
+    20.897959,
+    0.16734694
+   ],
+   [
+    26.061224,
+    0.17959184
+   ],
+   [
+    31.428571,
+    0.19047619
+   ],
+   [
+    36.92584,
+    0.2004635
+   ],
+   [
+    42.723404,
+    0.20851064
+   ],
+   [
+    48.6,
+    0.216
+   ],
+   [
+    54.571429,
+    0.22285714
+   ],
+   [
+    60.6,
+    0.22909091
+   ],
+   [
+    66.827586,
+    0.23448276
+   ],
+   [
+    73.128788,
+    0.23939394
+   ],
+   [
+    79.333333,
+    0.24444444
+   ],
+   [
+    85.727273,
+    0.24848485
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1401",
+  "name": "Leg Extension",
+  "url": "https://www.hoistfitness.com/pages/rs-1401-leg-extension",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1401/{bodyWeight}",
+  "coef": [
+   [
+    3.272727,
+    0.21818182
+   ],
+   [
+    7.333333,
+    0.24444444
+   ],
+   [
+    12.066667,
+    0.26666667
+   ],
+   [
+    19.953488,
+    0.30697674
+   ],
+   [
+    28.302632,
+    0.33157895
+   ],
+   [
+    37.470588,
+    0.35686275
+   ],
+   [
+    46.414634,
+    0.37073171
+   ],
+   [
+    56.525424,
+    0.38983051
+   ],
+   [
+    66.03708,
+    0.39976825
+   ],
+   [
+    76.19,
+    0.412
+   ],
+   [
+    86.058824,
+    0.41960784
+   ],
+   [
+    96.573529,
+    0.42941176
+   ],
+   [
+    107.318966,
+    0.43793103
+   ],
+   [
+    117.478261,
+    0.44347826
+   ],
+   [
+    127.758621,
+    0.44827586
+   ],
+   [
+    138.105263,
+    0.45263158
+   ],
+   [
+    148.46648,
+    0.45698324
+   ],
+   [
+    158.909091,
+    0.46060606
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1402",
+  "name": "Leg Curl",
+  "url": "https://www.hoistfitness.com/pages/rs-1402-leg-curl",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1402/{bodyWeight}",
+  "coef": [
+   [
+    5.5,
+    0.18333333
+   ],
+   [
+    10.808824,
+    0.24117647
+   ],
+   [
+    17.142857,
+    0.28571429
+   ],
+   [
+    27.421875,
+    0.34375
+   ],
+   [
+    38.81,
+    0.388
+   ],
+   [
+    51.12037,
+    0.42592593
+   ],
+   [
+    64.215517,
+    0.45862069
+   ],
+   [
+    78.451613,
+    0.49032258
+   ],
+   [
+    91.046875,
+    0.50625
+   ],
+   [
+    104.596491,
+    0.52280702
+   ],
+   [
+    118.333333,
+    0.53777778
+   ],
+   [
+    131.692308,
+    0.54871795
+   ],
+   [
+    145.853659,
+    0.56097561
+   ],
+   [
+    160.186047,
+    0.57209302
+   ],
+   [
+    174.632353,
+    0.58235294
+   ],
+   [
+    189.276596,
+    0.59148936
+   ],
+   [
+    203.96292,
+    0.60023175
+   ],
+   [
+    218.823529,
+    0.60784314
+   ]
+  ],
+  "overrides": {
+   "1": {
+    "240": 50,
+    "180": 39,
+    "360": 72,
+    "60": 17
+   }
   },
-  {
-    "model": "RS-1103",
-    "name": "Triceps Extension",
-    "url": "https://www.hoistfitness.com/pages/rs-1103-triceps-extension",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 180,
-    "stackKg": 82,
-    "stackWithAddOnLb": null,
-    "specSource": "https://www.hoistfitness.com/products/rs-1103-triceps-extension",
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1403",
+  "name": "Leg Press",
+  "url": "https://www.hoistfitness.com/pages/rs-1403-leg-press",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1403/{bodyWeight}",
+  "coef": [
+   [
+    7.381579,
+    0.18421053
+   ],
+   [
+    14.607143,
+    0.24285714
+   ],
+   [
+    23.285714,
+    0.29142857
+   ],
+   [
+    33.292683,
+    0.33170732
+   ],
+   [
+    44.0,
+    0.36666667
+   ],
+   [
+    55.739583,
+    0.39583333
+   ],
+   [
+    67.610119,
+    0.42261905
+   ],
+   [
+    80.204545,
+    0.44545455
+   ],
+   [
+    93.259615,
+    0.46538462
+   ],
+   [
+    106.419355,
+    0.48387097
+   ],
+   [
+    120.25,
+    0.5
+   ],
+   [
+    133.786765,
+    0.51470588
+   ],
+   [
+    147.8,
+    0.528
+   ],
+   [
+    162.05,
+    0.54
+   ],
+   [
+    176.333333,
+    0.55111111
+   ],
+   [
+    190.820896,
+    0.56119403
+   ],
+   [
+    205.426471,
+    0.57058824
+   ],
+   [
+    220.103448,
+    0.57931034
+   ]
+  ],
+  "overrides": {
+   "5": {
+    "195": 115,
+    "225": 126,
+    "165": 104
+   }
   },
-  {
-    "model": "RS-1201",
-    "name": "Lat Pulldown",
-    "url": "https://www.hoistfitness.com/pages/rs-1201-lat-pulldown",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1201/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1406",
+  "name": "Inner Thigh",
+  "url": "https://www.hoistfitness.com/pages/rs-1406-inner-thigh",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 190,
+  "stackKg": 86,
+  "stackWithAddOnLb": 195,
+  "specSource": "https://www.hoistfitness.com/products/inner-thigh",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1406/{bodyWeight}",
+  "coef": [
+   [
+    1.169444,
+    0.03888889
+   ],
+   [
+    3.305085,
+    0.0779661
+   ],
+   [
+    5.902439,
+    0.10731707
+   ],
+   [
+    9.310345,
+    0.13793103
+   ],
+   [
+    12.858696,
+    0.16086957
+   ],
+   [
+    17.181818,
+    0.18545455
+   ],
+   [
+    21.351724,
+    0.20413793
+   ],
+   [
+    26.363636,
+    0.22424242
+   ],
+   [
+    31.137255,
+    0.23921569
+   ],
+   [
+    36.578125,
+    0.25625
+   ],
+   [
+    41.679606,
+    0.26882966
+   ],
+   [
+    47.454545,
+    0.28363636
+   ],
+   [
+    52.938776,
+    0.29387755
+   ],
+   [
+    59.0,
+    0.30666667
+   ],
+   [
+    64.666667,
+    0.31555556
+   ],
+   [
+    70.983333,
+    0.32666667
+   ],
+   [
+    76.740385,
+    0.33461538
+   ],
+   [
+    83.4,
+    0.344
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1407",
+  "name": "Outer Thigh",
+  "url": "https://www.hoistfitness.com/pages/rs-1407-outer-thigh",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 190,
+  "stackKg": 86,
+  "stackWithAddOnLb": 195,
+  "specSource": "https://www.hoistfitness.com/products/outer-thigh",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1407/{bodyWeight}",
+  "coef": [
+   [
+    0.847222,
+    0.02777778
+   ],
+   [
+    2.428571,
+    0.05714286
+   ],
+   [
+    4.560976,
+    0.08292683
+   ],
+   [
+    6.736842,
+    0.10175439
+   ],
+   [
+    9.73913,
+    0.12173913
+   ],
+   [
+    12.93617,
+    0.14042553
+   ],
+   [
+    16.058824,
+    0.15294118
+   ],
+   [
+    19.784091,
+    0.16818182
+   ],
+   [
+    23.232143,
+    0.17857143
+   ],
+   [
+    27.276596,
+    0.19148936
+   ],
+   [
+    31.265306,
+    0.20408163
+   ],
+   [
+    35.363636,
+    0.21090909
+   ],
+   [
+    39.808511,
+    0.2212766
+   ],
+   [
+    44.384615,
+    0.23076923
+   ],
+   [
+    48.469388,
+    0.23673469
+   ],
+   [
+    53.2375,
+    0.245
+   ],
+   [
+    57.625,
+    0.25
+   ],
+   [
+    62.4,
+    0.25714286
+   ]
+  ],
+  "overrides": {
+   "11": {
+    "0": 32
+   },
+   "15": {
+    "0": 49
+   }
   },
-  {
-    "model": "RS-1203",
-    "name": "Seated Mid Row",
-    "url": "https://www.hoistfitness.com/pages/rs-1203-seated-mid-row",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1203/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/seated-mid-row",
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1408",
+  "name": "Prone Leg Curl",
+  "url": "https://www.hoistfitness.com/pages/rs-1408-prone-leg-curl",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": false,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-1412",
+  "name": "Glute Master",
+  "url": "https://www.hoistfitness.com/pages/rs-1412-glute-master-qr-code-instructions",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": false,
+  "stackLb": 180,
+  "stackKg": 82,
+  "stackWithAddOnLb": 185,
+  "specSource": "https://www.hoistfitness.com/products/glute-master",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-1415",
+  "name": "Rotary Calf",
+  "url": "https://www.hoistfitness.com/pages/rs-1415-rotary-calf",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/rotary-calf",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1415/{bodyWeight}",
+  "coef": [
+   [
+    6.363636,
+    0.42424242
+   ],
+   [
+    17.311111,
+    0.57777778
+   ],
+   [
+    31.846154,
+    0.70769231
+   ],
+   [
+    52.07416,
+    0.7995365
+   ],
+   [
+    74.544118,
+    0.87647059
+   ],
+   [
+    98.823529,
+    0.94117647
+   ],
+   [
+    124.706294,
+    0.9958042
+   ],
+   [
+    151.439024,
+    1.04390244
+   ],
+   [
+    179.142857,
+    1.08571429
+   ],
+   [
+    207.632653,
+    1.12244898
+   ],
+   [
+    236.774194,
+    1.15483871
+   ],
+   [
+    266.4,
+    1.184
+   ],
+   [
+    296.474576,
+    1.21016949
+   ],
+   [
+    326.90566,
+    1.23396226
+   ],
+   [
+    357.724138,
+    1.25517241
+   ],
+   [
+    388.793103,
+    1.27471264
+   ],
+   [
+    420.097561,
+    1.29268293
+   ],
+   [
+    451.636364,
+    1.30909091
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1501",
+  "name": "Shoulder Press",
+  "url": "https://www.hoistfitness.com/pages/rs-1501-shoulder-press",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/shoulder-press",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1501/{bodyWeight}",
+  "coef": [
+   [
+    2.272727,
+    0.28484848
+   ],
+   [
+    6.54717,
+    0.28301887
+   ],
+   [
+    11.101852,
+    0.29259259
+   ],
+   [
+    17.294118,
+    0.29803922
+   ],
+   [
+    23.594595,
+    0.3027027
+   ],
+   [
+    30.06383,
+    0.30638298
+   ],
+   [
+    36.548387,
+    0.30967742
+   ],
+   [
+    43.15625,
+    0.3125
+   ],
+   [
+    49.7375,
+    0.315
+   ],
+   [
+    56.439024,
+    0.31707317
+   ],
+   [
+    63.203125,
+    0.31875
+   ],
+   [
+    69.84375,
+    0.32083333
+   ],
+   [
+    76.694915,
+    0.3220339
+   ],
+   [
+    83.485294,
+    0.32352941
+   ],
+   [
+    90.320755,
+    0.3245283
+   ],
+   [
+    97.111111,
+    0.32592593
+   ],
+   [
+    104.0,
+    0.32682927
+   ],
+   [
+    110.819672,
+    0.32786885
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1502",
+  "name": "Lateral Raise",
+  "url": "https://www.hoistfitness.com/pages/rs-1502-lateral-raise",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": false,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": null,
+  "specSource": "https://www.hoistfitness.com/products/rs-1502-lateral-raise",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-1601",
+  "name": "Abdominals",
+  "url": "https://www.hoistfitness.com/pages/rs-1601-abdominals",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": true,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1601/{bodyWeight}",
+  "coef": [
+   [
+    2.272727,
+    0.15151515
+   ],
+   [
+    5.333333,
+    0.17777778
+   ],
+   [
+    9.197368,
+    0.20526316
+   ],
+   [
+    15.116279,
+    0.23255814
+   ],
+   [
+    21.702128,
+    0.25531915
+   ],
+   [
+    28.823529,
+    0.2745098
+   ],
+   [
+    36.363636,
+    0.29090909
+   ],
+   [
+    44.2625,
+    0.305
+   ],
+   [
+    52.402174,
+    0.3173913
+   ],
+   [
+    60.754717,
+    0.32830189
+   ],
+   [
+    69.27381,
+    0.33809524
+   ],
+   [
+    77.971774,
+    0.34677419
+   ],
+   [
+    86.842105,
+    0.35438596
+   ],
+   [
+    95.789474,
+    0.36140351
+   ],
+   [
+    104.83871,
+    0.36774194
+   ],
+   [
+    113.934211,
+    0.37368421
+   ],
+   [
+    123.168421,
+    0.37894737
+   ],
+   [
+    132.432432,
+    0.38378378
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-1602",
+  "name": "Rotary Torso",
+  "url": "https://www.hoistfitness.com/pages/rs-1602-rotary-torso",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": false,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-1700",
+  "name": "Chin-Dip Assist",
+  "url": "https://www.hoistfitness.com/pages/rs-1700-chin-dip-assist",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-1000",
+  "hasCalculator": false,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-2101",
+  "name": "Seated Dip",
+  "url": "https://www.hoistfitness.com/pages/rs-2101-seated-dip",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": null,
+  "specSource": "https://www.hoistfitness.com/products/seated-dip",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2101/{bodyWeight}",
+  "coef": [
+   [
+    3.272727,
+    0.21818182
+   ],
+   [
+    6.571429,
+    0.26285714
+   ],
+   [
+    10.405405,
+    0.2972973
+   ],
+   [
+    15.694872,
+    0.34871795
+   ],
+   [
+    21.195122,
+    0.38536585
+   ],
+   [
+    26.906977,
+    0.41395349
+   ],
+   [
+    33.04,
+    0.44
+   ],
+   [
+    39.425532,
+    0.46382979
+   ],
+   [
+    45.367347,
+    0.47755102
+   ],
+   [
+    51.882353,
+    0.49411765
+   ],
+   [
+    58.150943,
+    0.50566038
+   ],
+   [
+    70.178571,
+    0.51904762
+   ],
+   [
+    81.819672,
+    0.52786885
+   ],
+   [
+    94.230769,
+    0.53846154
+   ],
+   [
+    106.2375,
+    0.545
+   ],
+   [
+    118.346939,
+    0.55102041
+   ],
+   [
+    131.226415,
+    0.55849057
+   ],
+   [
+    143.555556,
+    0.56296296
+   ]
+  ],
+  "coefAddOn": [
+   [
+    4.367647,
+    0.21764706
+   ],
+   [
+    7.847222,
+    0.26111111
+   ],
+   [
+    12.2,
+    0.3
+   ],
+   [
+    17.5,
+    0.35
+   ],
+   [
+    23.178571,
+    0.38571429
+   ],
+   [
+    28.931034,
+    0.4137931
+   ],
+   [
+    35.107477,
+    0.43925234
+   ],
+   [
+    41.65625,
+    0.4625
+   ],
+   [
+    48.0,
+    0.48
+   ],
+   [
+    54.153846,
+    0.49230769
+   ],
+   [
+    60.898148,
+    0.50740741
+   ],
+   [
+    72.837209,
+    0.52093023
+   ],
+   [
+    84.645161,
+    0.52903226
+   ],
+   [
+    96.568182,
+    0.53636364
+   ],
+   [
+    109.114583,
+    0.54583333
+   ],
+   [
+    121.297297,
+    0.55135135
+   ],
+   [
+    134.191176,
+    0.55882353
+   ],
+   [
+    146.530612,
+    0.56326531
+   ]
+  ],
+  "overridesAddOn": {
+   "4": {
+    "280": 115,
+    "120": 59,
+    "300": 122
+   },
+   "18": {
+    "0": 146
+   }
   },
-  {
-    "model": "RS-1204",
-    "name": "Low Back",
-    "url": "https://www.hoistfitness.com/pages/rs-1204-low-back",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1204/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/low-back",
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2102",
+  "name": "Biceps Curl",
+  "url": "https://www.hoistfitness.com/pages/rs-2102-biceps-curl",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/biceps-curl",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2102/{bodyWeight}",
+  "coef": [
+   [
+    3.181818,
+    0.21212121
+   ],
+   [
+    5.571429,
+    0.22285714
+   ],
+   [
+    8.135135,
+    0.23243243
+   ],
+   [
+    11.307692,
+    0.25128205
+   ],
+   [
+    14.487805,
+    0.26341463
+   ],
+   [
+    17.837209,
+    0.2744186
+   ],
+   [
+    21.0,
+    0.28
+   ],
+   [
+    24.565789,
+    0.28947368
+   ],
+   [
+    26.367347,
+    0.27755102
+   ],
+   [
+    29.235294,
+    0.27843137
+   ],
+   [
+    31.245283,
+    0.27169811
+   ],
+   [
+    36.473684,
+    0.27017544
+   ],
+   [
+    41.679606,
+    0.26882966
+   ],
+   [
+    46.279412,
+    0.26470588
+   ],
+   [
+    50.869565,
+    0.26086957
+   ],
+   [
+    55.943396,
+    0.26037736
+   ],
+   [
+    60.4,
+    0.25714286
+   ],
+   [
+    64.881356,
+    0.25423729
+   ]
+  ],
+  "coefAddOn": [
+   [
+    4.235294,
+    0.21176471
+   ],
+   [
+    6.666667,
+    0.22222222
+   ],
+   [
+    9.263158,
+    0.23157895
+   ],
+   [
+    12.625,
+    0.25
+   ],
+   [
+    15.72619,
+    0.26190476
+   ],
+   [
+    19.090909,
+    0.27272727
+   ],
+   [
+    22.26087,
+    0.27826087
+   ],
+   [
+    25.875,
+    0.2875
+   ],
+   [
+    28.0,
+    0.28
+   ],
+   [
+    30.461538,
+    0.27692308
+   ],
+   [
+    32.888889,
+    0.27407407
+   ],
+   [
+    37.672269,
+    0.26890756
+   ],
+   [
+    42.8125,
+    0.26785714
+   ],
+   [
+    47.454545,
+    0.26363636
+   ],
+   [
+    52.571429,
+    0.26285714
+   ],
+   [
+    57.081081,
+    0.25945946
+   ],
+   [
+    61.578125,
+    0.25625
+   ],
+   [
+    65.95122,
+    0.25365854
+   ]
+  ],
+  "overridesAddOn": {
+   "8": {
+    "270": 103,
+    "110": 57
+   },
+   "14": {
+    "95": 73,
+    "315": 131
+   }
   },
-  {
-    "model": "RS-1301",
-    "name": "Chest Press",
-    "url": "https://www.hoistfitness.com/pages/rs-1301-chest-press",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1301/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2103",
+  "name": "Triceps Extension",
+  "url": "https://www.hoistfitness.com/pages/rs-2103-triceps-extension",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": false,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-2201",
+  "name": "Lat Pulldown",
+  "url": "https://www.hoistfitness.com/pages/rs-2201-lat-pulldown",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/rs-2201-lat-pulldown",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2201/{bodyWeight}",
+  "coef": [
+   [
+    3.454545,
+    0.23030303
+   ],
+   [
+    6.726852,
+    0.26851852
+   ],
+   [
+    10.216216,
+    0.29189189
+   ],
+   [
+    18.512195,
+    0.33658537
+   ],
+   [
+    27.333333,
+    0.36444444
+   ],
+   [
+    36.836735,
+    0.3877551
+   ],
+   [
+    47.301887,
+    0.41132075
+   ],
+   [
+    57.81,
+    0.428
+   ],
+   [
+    67.102041,
+    0.43265306
+   ],
+   [
+    76.486842,
+    0.43684211
+   ],
+   [
+    85.913043,
+    0.44057971
+   ],
+   [
+    95.983333,
+    0.44666667
+   ],
+   [
+    105.653061,
+    0.44897959
+   ],
+   [
+    115.881356,
+    0.45423729
+   ],
+   [
+    126.816327,
+    0.46122449
+   ],
+   [
+    137.775591,
+    0.46771654
+   ],
+   [
+    148.983333,
+    0.47333333
+   ],
+   [
+    160.26087,
+    0.47826087
+   ]
+  ],
+  "coefAddOn": [
+   [
+    4.602941,
+    0.22941176
+   ],
+   [
+    8.066667,
+    0.26666667
+   ],
+   [
+    11.789474,
+    0.29473684
+   ],
+   [
+    20.0,
+    0.33333333
+   ],
+   [
+    29.217391,
+    0.36521739
+   ],
+   [
+    38.81,
+    0.388
+   ],
+   [
+    49.361111,
+    0.41111111
+   ],
+   [
+    59.862069,
+    0.42758621
+   ],
+   [
+    69.16129,
+    0.43225806
+   ],
+   [
+    78.545455,
+    0.43636364
+   ],
+   [
+    88.04,
+    0.44
+   ],
+   [
+    98.131148,
+    0.44590164
+   ],
+   [
+    107.682927,
+    0.44878049
+   ],
+   [
+    118.546875,
+    0.45625
+   ],
+   [
+    129.571429,
+    0.46285714
+   ],
+   [
+    140.655172,
+    0.46896552
+   ],
+   [
+    151.823529,
+    0.4745098
+   ],
+   [
+    163.0,
+    0.48
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2203",
+  "name": "Seated Mid Row",
+  "url": "https://www.hoistfitness.com/pages/rs-2203-seated-mid-row",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/seated-mid-row",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2203/{bodyWeight}",
+  "coef": [
+   [
+    6.181818,
+    0.41212121
+   ],
+   [
+    10.714286,
+    0.42857143
+   ],
+   [
+    15.324324,
+    0.43783784
+   ],
+   [
+    25.983333,
+    0.47333333
+   ],
+   [
+    37.333333,
+    0.49777778
+   ],
+   [
+    48.469388,
+    0.51020408
+   ],
+   [
+    59.837209,
+    0.52093023
+   ],
+   [
+    71.052632,
+    0.52631579
+   ],
+   [
+    80.803279,
+    0.52131148
+   ],
+   [
+    90.45283,
+    0.51698113
+   ],
+   [
+    100.59,
+    0.516
+   ],
+   [
+    111.3125,
+    0.51785714
+   ],
+   [
+    121.45283,
+    0.51698113
+   ],
+   [
+    132.222222,
+    0.51851852
+   ],
+   [
+    143.0,
+    0.52
+   ],
+   [
+    153.803279,
+    0.52131148
+   ],
+   [
+    164.612903,
+    0.52258065
+   ],
+   [
+    175.428571,
+    0.52380952
+   ]
+  ],
+  "coefAddOn": [
+   [
+    8.235294,
+    0.41176471
+   ],
+   [
+    12.847222,
+    0.42777778
+   ],
+   [
+    17.486842,
+    0.43684211
+   ],
+   [
+    28.571429,
+    0.47619048
+   ],
+   [
+    40.25,
+    0.5
+   ],
+   [
+    50.783784,
+    0.50810811
+   ],
+   [
+    62.222222,
+    0.51851852
+   ],
+   [
+    73.37931,
+    0.52413793
+   ],
+   [
+    83.170213,
+    0.51914894
+   ],
+   [
+    92.727273,
+    0.51515152
+   ],
+   [
+    102.857143,
+    0.51428571
+   ],
+   [
+    113.580645,
+    0.51612903
+   ],
+   [
+    123.673077,
+    0.51538462
+   ],
+   [
+    134.439024,
+    0.51707317
+   ],
+   [
+    145.171875,
+    0.51875
+   ],
+   [
+    156.0,
+    0.52
+   ],
+   [
+    166.803279,
+    0.52131148
+   ],
+   [
+    177.632653,
+    0.52244898
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2204",
+  "name": "Low Back",
+  "url": "https://www.hoistfitness.com/pages/rs-2204-low-back",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/low-back",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2204/{bodyWeight}",
+  "coef": [
+   [
+    2.181818,
+    0.14545455
+   ],
+   [
+    7.0,
+    0.28
+   ],
+   [
+    13.621622,
+    0.38918919
+   ],
+   [
+    20.966667,
+    0.46666667
+   ],
+   [
+    29.016667,
+    0.52666667
+   ],
+   [
+    38.093023,
+    0.58604651
+   ],
+   [
+    47.318182,
+    0.63116883
+   ],
+   [
+    57.544118,
+    0.67647059
+   ],
+   [
+    67.469388,
+    0.71020408
+   ],
+   [
+    78.2625,
+    0.745
+   ],
+   [
+    88.934211,
+    0.77368421
+   ],
+   [
+    108.07416,
+    0.7995365
+   ],
+   [
+    127.058824,
+    0.81960784
+   ],
+   [
+    147.529412,
+    0.84313725
+   ],
+   [
+    167.869565,
+    0.86086957
+   ],
+   [
+    189.095588,
+    0.87941176
+   ],
+   [
+    209.967626,
+    0.89352518
+   ],
+   [
+    231.714286,
+    0.90857143
+   ]
+  ],
+  "coefAddOn": [
+   [
+    2.955882,
+    0.14705882
+   ],
+   [
+    8.361111,
+    0.27777778
+   ],
+   [
+    15.578947,
+    0.38947368
+   ],
+   [
+    23.297297,
+    0.46486486
+   ],
+   [
+    31.742857,
+    0.52857143
+   ],
+   [
+    41.068966,
+    0.5862069
+   ],
+   [
+    50.782609,
+    0.63478261
+   ],
+   [
+    61.162791,
+    0.67906977
+   ],
+   [
+    71.192,
+    0.712
+   ],
+   [
+    82.096154,
+    0.74615385
+   ],
+   [
+    92.444444,
+    0.77037037
+   ],
+   [
+    112.07416,
+    0.7995365
+   ],
+   [
+    131.096774,
+    0.81935484
+   ],
+   [
+    151.636364,
+    0.84242424
+   ],
+   [
+    172.05,
+    0.86
+   ],
+   [
+    193.235294,
+    0.87843137
+   ],
+   [
+    214.153846,
+    0.89230769
+   ],
+   [
+    236.529412,
+    0.90980392
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2301",
+  "name": "Chest Press",
+  "url": "https://www.hoistfitness.com/pages/rs-2301-chest-press",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/rs-2301-chest-press",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2301/{bodyWeight}",
+  "coef": [
+   [
+    4.545455,
+    0.3030303
+   ],
+   [
+    9.0,
+    0.36
+   ],
+   [
+    13.432432,
+    0.38378378
+   ],
+   [
+    25.487805,
+    0.46341463
+   ],
+   [
+    36.666667,
+    0.48888889
+   ],
+   [
+    50.408163,
+    0.53061224
+   ],
+   [
+    60.754717,
+    0.52830189
+   ],
+   [
+    73.453125,
+    0.54375
+   ],
+   [
+    85.864583,
+    0.55416667
+   ],
+   [
+    99.09434,
+    0.56603774
+   ],
+   [
+    112.503067,
+    0.57668712
+   ],
+   [
+    126.068966,
+    0.5862069
+   ],
+   [
+    139.802632,
+    0.59473684
+   ],
+   [
+    153.415385,
+    0.60307692
+   ],
+   [
+    167.571429,
+    0.60952381
+   ],
+   [
+    181.618421,
+    0.61578947
+   ],
+   [
+    195.756757,
+    0.62162162
+   ],
+   [
+    210.0,
+    0.62666667
+   ]
+  ],
+  "overrides": {
+   "11": {
+    "0": 112
+   },
+   "14": {
+    "0": 154
+   }
   },
-  {
-    "model": "RS-1302",
-    "name": "Pec Fly",
-    "url": "https://www.hoistfitness.com/pages/rs-1302-pec-fly",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1302/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/pec-fly",
-    "observed": []
+  "coefAddOn": [
+   [
+    6.117647,
+    0.30588235
+   ],
+   [
+    10.847222,
+    0.36111111
+   ],
+   [
+    15.355263,
+    0.38421053
+   ],
+   [
+    27.966667,
+    0.46666667
+   ],
+   [
+    39.285714,
+    0.49142857
+   ],
+   [
+    52.8,
+    0.528
+   ],
+   [
+    63.111111,
+    0.52592593
+   ],
+   [
+    75.780488,
+    0.54146341
+   ],
+   [
+    88.774194,
+    0.55483871
+   ],
+   [
+    102.083333,
+    0.56666667
+   ],
+   [
+    115.406504,
+    0.57723577
+   ],
+   [
+    129.0,
+    0.58666667
+   ],
+   [
+    142.802632,
+    0.59473684
+   ],
+   [
+    156.415385,
+    0.60307692
+   ],
+   [
+    170.604651,
+    0.60930233
+   ],
+   [
+    184.627451,
+    0.61568627
+   ],
+   [
+    198.825758,
+    0.62121212
+   ],
+   [
+    213.0,
+    0.62666667
+   ]
+  ],
+  "overridesAddOn": {
+   "14": {
+    "0": 157
+   }
   },
-  {
-    "model": "RS-1401",
-    "name": "Leg Extension",
-    "url": "https://www.hoistfitness.com/pages/rs-1401-leg-extension",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1401/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2302",
+  "name": "Pec Fly",
+  "url": "https://www.hoistfitness.com/pages/rs-2302-pec-fly",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/pec-fly",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2302/{bodyWeight}",
+  "coef": [
+   [
+    0.636364,
+    0.04242424
+   ],
+   [
+    1.671875,
+    0.06875
+   ],
+   [
+    3.216216,
+    0.09189189
+   ],
+   [
+    5.307692,
+    0.11794872
+   ],
+   [
+    7.514634,
+    0.13658537
+   ],
+   [
+    10.016667,
+    0.15333333
+   ],
+   [
+    12.681818,
+    0.16883117
+   ],
+   [
+    15.191489,
+    0.1787234
+   ],
+   [
+    18.226531,
+    0.19183673
+   ],
+   [
+    20.92584,
+    0.2004635
+   ],
+   [
+    23.867925,
+    0.20754717
+   ],
+   [
+    29.338235,
+    0.21764706
+   ],
+   [
+    34.557377,
+    0.22295082
+   ],
+   [
+    39.846154,
+    0.22769231
+   ],
+   [
+    45.782609,
+    0.23478261
+   ],
+   [
+    51.255319,
+    0.23829787
+   ],
+   [
+    57.389706,
+    0.24411765
+   ],
+   [
+    63.653061,
+    0.24897959
+   ]
+  ],
+  "coefAddOn": [
+   [
+    0.838235,
+    0.04117647
+   ],
+   [
+    2.0,
+    0.06666667
+   ],
+   [
+    3.789474,
+    0.09473684
+   ],
+   [
+    5.752212,
+    0.11504425
+   ],
+   [
+    8.297619,
+    0.13809524
+   ],
+   [
+    10.840909,
+    0.15454545
+   ],
+   [
+    13.217391,
+    0.16521739
+   ],
+   [
+    16.103448,
+    0.17931034
+   ],
+   [
+    19.208,
+    0.192
+   ],
+   [
+    21.92584,
+    0.2004635
+   ],
+   [
+    24.888889,
+    0.20740741
+   ],
+   [
+    30.391304,
+    0.2173913
+   ],
+   [
+    35.579545,
+    0.22272727
+   ],
+   [
+    41.454545,
+    0.23030303
+   ],
+   [
+    46.857143,
+    0.23428571
+   ],
+   [
+    52.913043,
+    0.24057971
+   ],
+   [
+    58.421875,
+    0.24375
+   ],
+   [
+    64.682927,
+    0.24878049
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2401",
+  "name": "Leg Extension",
+  "url": "https://www.hoistfitness.com/pages/rs-2401-leg-extension",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 270,
+  "stackKg": 123,
+  "stackWithAddOnLb": 275,
+  "specSource": "https://www.hoistfitness.com/products/rs-2401-leg-extension",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2401/{bodyWeight}",
+  "coef": [
+   [
+    6.541667,
+    0.21666667
+   ],
+   [
+    9.684211,
+    0.24210526
+   ],
+   [
+    13.297297,
+    0.26486486
+   ],
+   [
+    18.285714,
+    0.3047619
+   ],
+   [
+    23.302632,
+    0.33157895
+   ],
+   [
+    28.521739,
+    0.35652174
+   ],
+   [
+    33.414634,
+    0.37073171
+   ],
+   [
+    38.81,
+    0.388
+   ],
+   [
+    44.03708,
+    0.39976825
+   ],
+   [
+    49.361111,
+    0.41111111
+   ],
+   [
+    54.803571,
+    0.42142857
+   ],
+   [
+    64.525,
+    0.43
+   ],
+   [
+    74.40625,
+    0.4375
+   ],
+   [
+    84.389706,
+    0.44411765
+   ],
+   [
+    93.881579,
+    0.44736842
+   ],
+   [
+    104.105263,
+    0.45263158
+   ],
+   [
+    114.317308,
+    0.45769231
+   ],
+   [
+    124.06383,
+    0.45957447
+   ]
+  ],
+  "coefAddOn": [
+   [
+    7.567568,
+    0.21621622
+   ],
+   [
+    11.076923,
+    0.24615385
+   ],
+   [
+    14.756098,
+    0.26829268
+   ],
+   [
+    19.953488,
+    0.30697674
+   ],
+   [
+    25.0,
+    0.33333333
+   ],
+   [
+    30.382979,
+    0.35744681
+   ],
+   [
+    35.285714,
+    0.37142857
+   ],
+   [
+    40.764706,
+    0.38823529
+   ],
+   [
+    46.03708,
+    0.39976825
+   ],
+   [
+    51.363636,
+    0.41090909
+   ],
+   [
+    56.842105,
+    0.42105263
+   ],
+   [
+    66.602941,
+    0.42941176
+   ],
+   [
+    76.486842,
+    0.43684211
+   ],
+   [
+    86.478261,
+    0.44347826
+   ],
+   [
+    96.653061,
+    0.44897959
+   ],
+   [
+    106.222222,
+    0.45185185
+   ],
+   [
+    116.54717,
+    0.45660377
+   ],
+   [
+    126.816327,
+    0.46122449
+   ]
+  ],
+  "overridesAddOn": {
+   "17": {
+    "0": 116
+   }
   },
-  {
-    "model": "RS-1402",
-    "name": "Leg Curl",
-    "url": "https://www.hoistfitness.com/pages/rs-1402-leg-curl",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1402/{bodyWeight}",
-    "levels": 17,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": [
-      {
-        "bodyWeight": 125.0,
-        "source": "user-supplied reading of the site calculator (not re-fetched)",
-        "table": [
-          28,
-          41,
-          53,
-          70,
-          87,
-          104,
-          122,
-          140,
-          154,
-          170,
-          186,
-          200,
-          216,
-          232,
-          247,
-          263,
-          279
-        ]
-      }
-    ]
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2402",
+  "name": "Leg Curl",
+  "url": "https://www.hoistfitness.com/pages/rs-2402-leg-curl",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 270,
+  "stackKg": 123,
+  "stackWithAddOnLb": 275,
+  "specSource": "https://www.hoistfitness.com/products/rs-2402-leg-curl",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2402/{bodyWeight}",
+  "coef": [
+   [
+    5.5,
+    0.18333333
+   ],
+   [
+    9.684211,
+    0.24210526
+   ],
+   [
+    14.272727,
+    0.28484848
+   ],
+   [
+    20.585714,
+    0.34285714
+   ],
+   [
+    27.056818,
+    0.38636364
+   ],
+   [
+    34.086957,
+    0.42608696
+   ],
+   [
+    41.270833,
+    0.45833333
+   ],
+   [
+    49.21,
+    0.492
+   ],
+   [
+    55.846154,
+    0.50769231
+   ],
+   [
+    62.694444,
+    0.52222222
+   ],
+   [
+    70.090909,
+    0.53939394
+   ],
+   [
+    82.625,
+    0.55
+   ],
+   [
+    95.65625,
+    0.5625
+   ],
+   [
+    108.934211,
+    0.57368421
+   ],
+   [
+    122.541667,
+    0.58333333
+   ],
+   [
+    136.176471,
+    0.59215686
+   ],
+   [
+    149.96292,
+    0.60023175
+   ],
+   [
+    163.928571,
+    0.60714286
+   ]
+  ],
+  "overrides": {
+   "1": {
+    "360": 72,
+    "60": 17,
+    "180": 39,
+    "240": 50
+   },
+   "18": {
+    "360": 382
+   }
   },
-  {
-    "model": "RS-1403",
-    "name": "Leg Press",
-    "url": "https://www.hoistfitness.com/pages/rs-1403-leg-press",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1403/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
+  "coefAddOn": [
+   [
+    6.432432,
+    0.18378378
+   ],
+   [
+    10.808824,
+    0.24117647
+   ],
+   [
+    15.810606,
+    0.28787879
+   ],
+   [
+    22.372093,
+    0.34418605
+   ],
+   [
+    29.0,
+    0.38666667
+   ],
+   [
+    36.170213,
+    0.42553191
+   ],
+   [
+    43.428571,
+    0.45714286
+   ],
+   [
+    51.470588,
+    0.49019608
+   ],
+   [
+    58.150943,
+    0.50566038
+   ],
+   [
+    65.485294,
+    0.52352941
+   ],
+   [
+    72.473684,
+    0.53684211
+   ],
+   [
+    84.845238,
+    0.54761905
+   ],
+   [
+    97.96,
+    0.56
+   ],
+   [
+    111.40625,
+    0.57083333
+   ],
+   [
+    125.44898,
+    0.58367347
+   ],
+   [
+    139.176471,
+    0.59215686
+   ],
+   [
+    152.96292,
+    0.60023175
+   ],
+   [
+    166.947368,
+    0.60701754
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2403",
+  "name": "Leg Press",
+  "url": "https://www.hoistfitness.com/pages/rs-2403-leg-press",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 380,
+  "stackKg": 172,
+  "stackWithAddOnLb": 390,
+  "specSource": "https://www.hoistfitness.com/products/rs-2403-leg-press",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2403/{bodyWeight}",
+  "coef": [
+   [
+    7.381579,
+    0.18421053
+   ],
+   [
+    14.607143,
+    0.24285714
+   ],
+   [
+    23.285714,
+    0.29142857
+   ],
+   [
+    33.292683,
+    0.33170732
+   ],
+   [
+    44.0,
+    0.36666667
+   ],
+   [
+    55.739583,
+    0.39583333
+   ],
+   [
+    67.610119,
+    0.42261905
+   ],
+   [
+    80.204545,
+    0.44545455
+   ],
+   [
+    93.259615,
+    0.46538462
+   ],
+   [
+    106.419355,
+    0.48387097
+   ],
+   [
+    120.25,
+    0.5
+   ],
+   [
+    133.786765,
+    0.51470588
+   ],
+   [
+    147.8,
+    0.528
+   ],
+   [
+    162.05,
+    0.54
+   ],
+   [
+    176.333333,
+    0.55111111
+   ],
+   [
+    190.820896,
+    0.56119403
+   ],
+   [
+    205.426471,
+    0.57058824
+   ],
+   [
+    220.103448,
+    0.57931034
+   ]
+  ],
+  "overrides": {
+   "5": {
+    "165": 104,
+    "195": 115,
+    "225": 126
+   }
   },
-  {
-    "model": "RS-1406",
-    "name": "Inner Thigh",
-    "url": "https://www.hoistfitness.com/pages/rs-1406-inner-thigh",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1406/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 190,
-    "stackKg": 86,
-    "stackWithAddOnLb": 195,
-    "specSource": "https://www.hoistfitness.com/products/inner-thigh",
-    "observed": []
+  "coefAddOn": [
+   [
+    8.538462,
+    0.18974359
+   ],
+   [
+    15.983333,
+    0.24666667
+   ],
+   [
+    25.319149,
+    0.29787234
+   ],
+   [
+    35.411765,
+    0.3372549
+   ],
+   [
+    46.829787,
+    0.37446809
+   ],
+   [
+    58.260417,
+    0.40416667
+   ],
+   [
+    70.714286,
+    0.42857143
+   ],
+   [
+    83.352941,
+    0.45098039
+   ],
+   [
+    96.983333,
+    0.47333333
+   ],
+   [
+    110.433962,
+    0.49056604
+   ],
+   [
+    124.078125,
+    0.50625
+   ],
+   [
+    137.881679,
+    0.52061069
+   ],
+   [
+    152.033333,
+    0.53333333
+   ],
+   [
+    166.2625,
+    0.545
+   ],
+   [
+    181.315789,
+    0.55789474
+   ],
+   [
+    195.83871,
+    0.56774194
+   ],
+   [
+    210.503067,
+    0.57668712
+   ],
+   [
+    225.2625,
+    0.585
+   ]
+  ],
+  "overridesAddOn": {
+   "17": {
+    "0": 210
+   }
   },
-  {
-    "model": "RS-1407",
-    "name": "Outer Thigh",
-    "url": "https://www.hoistfitness.com/pages/rs-1407-outer-thigh",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1407/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 190,
-    "stackKg": 86,
-    "stackWithAddOnLb": 195,
-    "specSource": "https://www.hoistfitness.com/products/outer-thigh",
-    "observed": []
-  },
-  {
-    "model": "RS-1408",
-    "name": "Prone Leg Curl",
-    "url": "https://www.hoistfitness.com/pages/rs-1408-prone-leg-curl",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
-  },
-  {
-    "model": "RS-1412",
-    "name": "Glute Master",
-    "url": "https://www.hoistfitness.com/pages/rs-1412-glute-master-qr-code-instructions",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 180,
-    "stackKg": 82,
-    "stackWithAddOnLb": 185,
-    "specSource": "https://www.hoistfitness.com/products/glute-master",
-    "observed": []
-  },
-  {
-    "model": "RS-1415",
-    "name": "Rotary Calf",
-    "url": "https://www.hoistfitness.com/pages/rs-1415-rotary-calf",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1415/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/rotary-calf",
-    "observed": []
-  },
-  {
-    "model": "RS-1501",
-    "name": "Shoulder Press",
-    "url": "https://www.hoistfitness.com/pages/rs-1501-shoulder-press",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1501/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/shoulder-press",
-    "observed": []
-  },
-  {
-    "model": "RS-1502",
-    "name": "Lateral Raise",
-    "url": "https://www.hoistfitness.com/pages/rs-1502-lateral-raise",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": null,
-    "specSource": "https://www.hoistfitness.com/products/rs-1502-lateral-raise",
-    "observed": []
-  },
-  {
-    "model": "RS-1601",
-    "name": "Abdominals",
-    "url": "https://www.hoistfitness.com/pages/rs-1601-abdominals",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-1601/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
-  },
-  {
-    "model": "RS-1602",
-    "name": "Rotary Torso",
-    "url": "https://www.hoistfitness.com/pages/rs-1602-rotary-torso",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
-  },
-  {
-    "model": "RS-1700",
-    "name": "Chin-Dip Assist",
-    "url": "https://www.hoistfitness.com/pages/rs-1700-chin-dip-assist",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-1000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
-  },
-  {
-    "model": "RS-2101",
-    "name": "Seated Dip",
-    "url": "https://www.hoistfitness.com/pages/rs-2101-seated-dip",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2101/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": null,
-    "specSource": "https://www.hoistfitness.com/products/seated-dip",
-    "observed": []
-  },
-  {
-    "model": "RS-2102",
-    "name": "Biceps Curl",
-    "url": "https://www.hoistfitness.com/pages/rs-2102-biceps-curl",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2102/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/biceps-curl",
-    "observed": []
-  },
-  {
-    "model": "RS-2103",
-    "name": "Triceps Extension",
-    "url": "https://www.hoistfitness.com/pages/rs-2103-triceps-extension",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
-  },
-  {
-    "model": "RS-2201",
-    "name": "Lat Pulldown",
-    "url": "https://www.hoistfitness.com/pages/rs-2201-lat-pulldown",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2201/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/rs-2201-lat-pulldown",
-    "observed": []
-  },
-  {
-    "model": "RS-2203",
-    "name": "Seated Mid Row",
-    "url": "https://www.hoistfitness.com/pages/rs-2203-seated-mid-row",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2203/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/seated-mid-row",
-    "observed": []
-  },
-  {
-    "model": "RS-2204",
-    "name": "Low Back",
-    "url": "https://www.hoistfitness.com/pages/rs-2204-low-back",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2204/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/low-back",
-    "observed": []
-  },
-  {
-    "model": "RS-2301",
-    "name": "Chest Press",
-    "url": "https://www.hoistfitness.com/pages/rs-2301-chest-press",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2301/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/rs-2301-chest-press",
-    "observed": []
-  },
-  {
-    "model": "RS-2302",
-    "name": "Pec Fly",
-    "url": "https://www.hoistfitness.com/pages/rs-2302-pec-fly",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2302/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/pec-fly",
-    "observed": []
-  },
-  {
-    "model": "RS-2401",
-    "name": "Leg Extension",
-    "url": "https://www.hoistfitness.com/pages/rs-2401-leg-extension",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2401/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 270,
-    "stackKg": 123,
-    "stackWithAddOnLb": 275,
-    "specSource": "https://www.hoistfitness.com/products/rs-2401-leg-extension",
-    "observed": []
-  },
-  {
-    "model": "RS-2402",
-    "name": "Leg Curl",
-    "url": "https://www.hoistfitness.com/pages/rs-2402-leg-curl",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2402/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 270,
-    "stackKg": 123,
-    "stackWithAddOnLb": 275,
-    "specSource": "https://www.hoistfitness.com/products/rs-2402-leg-curl",
-    "observed": []
-  },
-  {
-    "model": "RS-2403",
-    "name": "Leg Press",
-    "url": "https://www.hoistfitness.com/pages/rs-2403-leg-press",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2403/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 380,
-    "stackKg": 172,
-    "stackWithAddOnLb": 390,
-    "specSource": "https://www.hoistfitness.com/products/rs-2403-leg-press",
-    "observed": []
-  },
-  {
-    "model": "RS-2406",
-    "name": "Inner Thigh",
-    "url": "https://www.hoistfitness.com/pages/rs-2406-inner-thigh",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2406/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 190,
-    "stackKg": 86,
-    "stackWithAddOnLb": 195,
-    "specSource": "https://www.hoistfitness.com/products/inner-thigh",
-    "observed": []
-  },
-  {
-    "model": "RS-2407",
-    "name": "Outer Thigh",
-    "url": "https://www.hoistfitness.com/pages/rs-2407-outer-thigh",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2407/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 190,
-    "stackKg": 86,
-    "stackWithAddOnLb": 195,
-    "specSource": "https://www.hoistfitness.com/products/outer-thigh",
-    "observed": []
-  },
-  {
-    "model": "RS-2408",
-    "name": "Prone Leg Curl",
-    "url": "https://www.hoistfitness.com/pages/rs-2408-prone-leg-curl",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 180,
-    "stackKg": 82,
-    "stackWithAddOnLb": 185,
-    "specSource": "https://www.hoistfitness.com/products/rs-2408-prone-leg-curl",
-    "observed": []
-  },
-  {
-    "model": "RS-2412",
-    "name": "Glute Master",
-    "url": "https://www.hoistfitness.com/pages/rs-2412-glute-master",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 180,
-    "stackKg": 82,
-    "stackWithAddOnLb": 185,
-    "specSource": "https://www.hoistfitness.com/products/glute-master",
-    "observed": []
-  },
-  {
-    "model": "RS-2415",
-    "name": "Rotary Calf",
-    "url": "https://www.hoistfitness.com/pages/rs-2415-rotary-calf",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2415/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/rotary-calf",
-    "observed": []
-  },
-  {
-    "model": "RS-2501",
-    "name": "Shoulder Press",
-    "url": "https://www.hoistfitness.com/pages/rs-2501-shoulder-press",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2501/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 255,
-    "stackKg": 116,
-    "stackWithAddOnLb": 260,
-    "specSource": "https://www.hoistfitness.com/products/shoulder-press",
-    "observed": []
-  },
-  {
-    "model": "RS-2502",
-    "name": "Lateral Raise",
-    "url": "https://www.hoistfitness.com/pages/rs-2502-lateral-raise",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": null,
-    "stackKg": null,
-    "stackWithAddOnLb": null,
-    "specSource": null,
-    "observed": []
-  },
-  {
-    "model": "RS-2601",
-    "name": "Abdominals",
-    "url": "https://www.hoistfitness.com/pages/rs-2601-abdominals",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": true,
-    "apiUrlTemplate": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2601/{bodyWeight}",
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 335,
-    "stackKg": 152,
-    "stackWithAddOnLb": 340,
-    "specSource": "https://www.hoistfitness.com/products/rs-2601-abdominals",
-    "observed": []
-  },
-  {
-    "model": "RS-2602",
-    "name": "Rotary Torso",
-    "url": "https://www.hoistfitness.com/pages/rs-2602-rotary-torso",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 130,
-    "stackKg": 59,
-    "stackWithAddOnLb": 135,
-    "specSource": "https://www.hoistfitness.com/products/rs-2602-rotary-torso",
-    "observed": []
-  },
-  {
-    "model": "RS-2700",
-    "name": "Chin-Dip Assist",
-    "url": "https://www.hoistfitness.com/pages/rs-2700-chin-dip-assist",
-    "line": "ROC-IT Selectorized",
-    "series": "RS-2000",
-    "hasCalculator": false,
-    "apiUrlTemplate": null,
-    "levels": null,
-    "bodyWeightUnit": null,
-    "outputUnit": null,
-    "kind": null,
-    "formula": null,
-    "stackLb": 380,
-    "stackKg": 172,
-    "stackWithAddOnLb": null,
-    "specSource": "https://www.hoistfitness.com/products/rs-2700-chin-dip-assist",
-    "observed": []
-  }
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2406",
+  "name": "Inner Thigh",
+  "url": "https://www.hoistfitness.com/pages/rs-2406-inner-thigh",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 190,
+  "stackKg": 86,
+  "stackWithAddOnLb": 195,
+  "specSource": "https://www.hoistfitness.com/products/inner-thigh",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2406/{bodyWeight}",
+  "coef": [
+   [
+    0.838235,
+    0.04117647
+   ],
+   [
+    2.361111,
+    0.07777778
+   ],
+   [
+    4.210526,
+    0.10526316
+   ],
+   [
+    7.05,
+    0.14
+   ],
+   [
+    9.714286,
+    0.16190476
+   ],
+   [
+    13.056818,
+    0.18636364
+   ],
+   [
+    16.219512,
+    0.20487805
+   ],
+   [
+    20.2875,
+    0.225
+   ],
+   [
+    24.0,
+    0.24
+   ],
+   [
+    28.371212,
+    0.25757576
+   ],
+   [
+    32.448498,
+    0.27038627
+   ],
+   [
+    36.6875,
+    0.28214286
+   ],
+   [
+    41.046512,
+    0.29302326
+   ],
+   [
+    46.0,
+    0.30666667
+   ],
+   [
+    50.580645,
+    0.31612903
+   ],
+   [
+    55.3125,
+    0.325
+   ],
+   [
+    60.0,
+    0.33333333
+   ],
+   [
+    65.372093,
+    0.34418605
+   ]
+  ],
+  "coefAddOn": [
+   [
+    0.96,
+    0.04
+   ],
+   [
+    2.643243,
+    0.07567568
+   ],
+   [
+    4.846154,
+    0.10769231
+   ],
+   [
+    7.514634,
+    0.13658537
+   ],
+   [
+    10.581395,
+    0.1627907
+   ],
+   [
+    14.0,
+    0.18666667
+   ],
+   [
+    17.22619,
+    0.2047619
+   ],
+   [
+    21.326531,
+    0.2244898
+   ],
+   [
+    25.141304,
+    0.23913043
+   ],
+   [
+    29.564103,
+    0.25641026
+   ],
+   [
+    33.64574,
+    0.2690583
+   ],
+   [
+    38.368421,
+    0.28421053
+   ],
+   [
+    42.7375,
+    0.295
+   ],
+   [
+    47.770492,
+    0.30819672
+   ],
+   [
+    51.857143,
+    0.31428571
+   ],
+   [
+    57.097826,
+    0.32608696
+   ],
+   [
+    61.734694,
+    0.33469388
+   ],
+   [
+    67.25,
+    0.34496124
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2407",
+  "name": "Outer Thigh",
+  "url": "https://www.hoistfitness.com/pages/rs-2407-outer-thigh",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 190,
+  "stackKg": 86,
+  "stackWithAddOnLb": 195,
+  "specSource": "https://www.hoistfitness.com/products/outer-thigh",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2407/{bodyWeight}",
+  "coef": [
+   [
+    0.602941,
+    0.02941176
+   ],
+   [
+    1.694444,
+    0.05555556
+   ],
+   [
+    3.368421,
+    0.08421053
+   ],
+   [
+    5.1,
+    0.1
+   ],
+   [
+    7.428571,
+    0.12380952
+   ],
+   [
+    9.875,
+    0.14090909
+   ],
+   [
+    12.184783,
+    0.15217391
+   ],
+   [
+    15.083333,
+    0.16666667
+   ],
+   [
+    18.05,
+    0.18
+   ],
+   [
+    21.173077,
+    0.19230769
+   ],
+   [
+    24.322917,
+    0.20416667
+   ],
+   [
+    27.378378,
+    0.21081081
+   ],
+   [
+    30.896552,
+    0.22068966
+   ],
+   [
+    34.525,
+    0.23
+   ],
+   [
+    37.666667,
+    0.23555556
+   ],
+   [
+    41.453125,
+    0.24375
+   ],
+   [
+    45.258065,
+    0.2516129
+   ],
+   [
+    48.6,
+    0.256
+   ]
+  ],
+  "coefAddOn": [
+   [
+    0.714286,
+    0.02857143
+   ],
+   [
+    2.081081,
+    0.05945946
+   ],
+   [
+    3.692308,
+    0.08205128
+   ],
+   [
+    5.634146,
+    0.10243902
+   ],
+   [
+    7.828947,
+    0.12105263
+   ],
+   [
+    10.697368,
+    0.14210526
+   ],
+   [
+    12.983333,
+    0.15333333
+   ],
+   [
+    15.897959,
+    0.16734694
+   ],
+   [
+    18.941176,
+    0.18039216
+   ],
+   [
+    22.122066,
+    0.19248826
+   ],
+   [
+    25.293706,
+    0.2041958
+   ],
+   [
+    28.421053,
+    0.21052632
+   ],
+   [
+    31.938776,
+    0.22040816
+   ],
+   [
+    35.602941,
+    0.22941176
+   ],
+   [
+    39.285714,
+    0.23809524
+   ],
+   [
+    43.076923,
+    0.24615385
+   ],
+   [
+    46.352941,
+    0.25098039
+   ],
+   [
+    50.328947,
+    0.25789474
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2408",
+  "name": "Prone Leg Curl",
+  "url": "https://www.hoistfitness.com/pages/rs-2408-prone-leg-curl",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": false,
+  "stackLb": 180,
+  "stackKg": 82,
+  "stackWithAddOnLb": 185,
+  "specSource": "https://www.hoistfitness.com/products/rs-2408-prone-leg-curl",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-2412",
+  "name": "Glute Master",
+  "url": "https://www.hoistfitness.com/pages/rs-2412-glute-master",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": false,
+  "stackLb": 180,
+  "stackKg": 82,
+  "stackWithAddOnLb": 185,
+  "specSource": "https://www.hoistfitness.com/products/glute-master",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-2415",
+  "name": "Rotary Calf",
+  "url": "https://www.hoistfitness.com/pages/rs-2415-rotary-calf",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/rotary-calf",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2415/{bodyWeight}",
+  "coef": [
+   [
+    6.363636,
+    0.42424242
+   ],
+   [
+    14.406504,
+    0.57723577
+   ],
+   [
+    24.783784,
+    0.70810811
+   ],
+   [
+    44.07416,
+    0.7995365
+   ],
+   [
+    65.666667,
+    0.87555556
+   ],
+   [
+    89.571429,
+    0.94285714
+   ],
+   [
+    114.677083,
+    0.99583333
+   ],
+   [
+    141.159649,
+    1.04561404
+   ],
+   [
+    168.255319,
+    1.08510638
+   ],
+   [
+    196.538462,
+    1.12307692
+   ],
+   [
+    224.989437,
+    1.15352113
+   ],
+   [
+    254.44898,
+    1.18367347
+   ],
+   [
+    284.456897,
+    1.21034483
+   ],
+   [
+    314.827586,
+    1.23448276
+   ],
+   [
+    344.891892,
+    1.25405405
+   ],
+   [
+    375.888889,
+    1.27407407
+   ],
+   [
+    407.13587,
+    1.2923913
+   ],
+   [
+    438.636364,
+    1.30909091
+   ]
+  ],
+  "coefAddOn": [
+   [
+    8.458824,
+    0.42352941
+   ],
+   [
+    17.311111,
+    0.57777778
+   ],
+   [
+    28.210526,
+    0.70526316
+   ],
+   [
+    48.07416,
+    0.7995365
+   ],
+   [
+    70.26087,
+    0.87826087
+   ],
+   [
+    94.05,
+    0.94
+   ],
+   [
+    119.706294,
+    0.9958042
+   ],
+   [
+    146.2375,
+    1.045
+   ],
+   [
+    173.923077,
+    1.08717949
+   ],
+   [
+    201.818182,
+    1.12121212
+   ],
+   [
+    230.857143,
+    1.15428571
+   ],
+   [
+    260.432432,
+    1.18378378
+   ],
+   [
+    290.461538,
+    1.21025641
+   ],
+   [
+    320.878049,
+    1.23414634
+   ],
+   [
+    351.627907,
+    1.25581395
+   ],
+   [
+    382.666667,
+    1.27555556
+   ],
+   [
+    413.921875,
+    1.29375
+   ],
+   [
+    444.783784,
+    1.30810811
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2501",
+  "name": "Shoulder Press",
+  "url": "https://www.hoistfitness.com/pages/rs-2501-shoulder-press",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 255,
+  "stackKg": 116,
+  "stackWithAddOnLb": 260,
+  "specSource": "https://www.hoistfitness.com/products/shoulder-press",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2501/{bodyWeight}",
+  "coef": [
+   [
+    4.272727,
+    0.28484848
+   ],
+   [
+    7.142857,
+    0.28571429
+   ],
+   [
+    10.216216,
+    0.29189189
+   ],
+   [
+    13.384615,
+    0.2974359
+   ],
+   [
+    16.634146,
+    0.30243902
+   ],
+   [
+    19.953488,
+    0.30697674
+   ],
+   [
+    23.333333,
+    0.31111111
+   ],
+   [
+    26.434211,
+    0.31052632
+   ],
+   [
+    29.857143,
+    0.31428571
+   ],
+   [
+    33.347059,
+    0.31764706
+   ],
+   [
+    36.837209,
+    0.32093023
+   ],
+   [
+    43.178571,
+    0.31904762
+   ],
+   [
+    49.803279,
+    0.32131148
+   ],
+   [
+    56.538462,
+    0.32307692
+   ],
+   [
+    63.320755,
+    0.3245283
+   ],
+   [
+    70.076087,
+    0.32608696
+   ],
+   [
+    76.909091,
+    0.32727273
+   ],
+   [
+    83.754717,
+    0.32830189
+   ]
+  ],
+  "coefAddOn": [
+   [
+    5.647059,
+    0.28235294
+   ],
+   [
+    8.541667,
+    0.28333333
+   ],
+   [
+    11.789474,
+    0.29473684
+   ],
+   [
+    15.2,
+    0.3
+   ],
+   [
+    18.285714,
+    0.3047619
+   ],
+   [
+    21.329545,
+    0.30454545
+   ],
+   [
+    24.706522,
+    0.30869565
+   ],
+   [
+    28.15625,
+    0.3125
+   ],
+   [
+    31.580645,
+    0.31612903
+   ],
+   [
+    34.711538,
+    0.31538462
+   ],
+   [
+    38.225926,
+    0.31851852
+   ],
+   [
+    44.837209,
+    0.32093023
+   ],
+   [
+    51.612903,
+    0.32258065
+   ],
+   [
+    58.351351,
+    0.32432432
+   ],
+   [
+    65.142857,
+    0.32571429
+   ],
+   [
+    71.990385,
+    0.32692308
+   ],
+   [
+    78.769231,
+    0.32820513
+   ],
+   [
+    85.016667,
+    0.32666667
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2502",
+  "name": "Lateral Raise",
+  "url": "https://www.hoistfitness.com/pages/rs-2502-lateral-raise",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": false,
+  "stackLb": null,
+  "stackKg": null,
+  "stackWithAddOnLb": null,
+  "specSource": null,
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-2601",
+  "name": "Abdominals",
+  "url": "https://www.hoistfitness.com/pages/rs-2601-abdominals",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": true,
+  "stackLb": 335,
+  "stackKg": 152,
+  "stackWithAddOnLb": 340,
+  "specSource": "https://www.hoistfitness.com/products/rs-2601-abdominals",
+  "levels": 18,
+  "bodyWeightUnit": "lb",
+  "outputUnit": "lb",
+  "kind": "linear",
+  "apiUrl": "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/RS-2601/{bodyWeight}",
+  "coef": [
+   [
+    2.272727,
+    0.15151515
+   ],
+   [
+    4.428571,
+    0.17714286
+   ],
+   [
+    7.189189,
+    0.20540541
+   ],
+   [
+    12.878049,
+    0.23414634
+   ],
+   [
+    19.0,
+    0.25333333
+   ],
+   [
+    25.979592,
+    0.27346939
+   ],
+   [
+    33.415094,
+    0.29056604
+   ],
+   [
+    41.210526,
+    0.30526316
+   ],
+   [
+    49.298851,
+    0.31800766
+   ],
+   [
+    57.617284,
+    0.32921811
+   ],
+   [
+    66.130435,
+    0.33913043
+   ],
+   [
+    74.798986,
+    0.34797297
+   ],
+   [
+    83.014925,
+    0.35323383
+   ],
+   [
+    91.922747,
+    0.36051502
+   ],
+   [
+    100.943642,
+    0.36705202
+   ],
+   [
+    110.043887,
+    0.37304075
+   ],
+   [
+    119.227092,
+    0.37848606
+   ],
+   [
+    128.473118,
+    0.38351254
+   ]
+  ],
+  "coefAddOn": [
+   [
+    3.058824,
+    0.15294118
+   ],
+   [
+    5.333333,
+    0.17777778
+   ],
+   [
+    8.213158,
+    0.20526316
+   ],
+   [
+    14.016667,
+    0.23333333
+   ],
+   [
+    20.518325,
+    0.2565445
+   ],
+   [
+    27.597285,
+    0.2760181
+   ],
+   [
+    35.113537,
+    0.29257642
+   ],
+   [
+    42.482759,
+    0.30344828
+   ],
+   [
+    50.580645,
+    0.31612903
+   ],
+   [
+    58.909091,
+    0.32727273
+   ],
+   [
+    67.428571,
+    0.33714286
+   ],
+   [
+    76.108108,
+    0.34594595
+   ],
+   [
+    84.923077,
+    0.35384615
+   ],
+   [
+    93.853659,
+    0.36097561
+   ],
+   [
+    102.883721,
+    0.36744186
+   ],
+   [
+    112.0,
+    0.37333333
+   ],
+   [
+    121.191489,
+    0.3787234
+   ],
+   [
+    130.44898,
+    0.38367347
+   ]
+  ],
+  "formula": "actual = Math.round(a + b * Math.floor(bodyWeight)) with [a,b] = coef[level-1]; coefAddOn is the same table with the optional 5 lb weight upgrade fitted. overrides[level][floor(bodyWeight)] replaces the result at known .5 ties.",
+  "sampledBodyWeights": "0, 40-420 dense on RS-2601, 60-400 every 5-10 lb, 1000 on all"
+ },
+ {
+  "model": "RS-2602",
+  "name": "Rotary Torso",
+  "url": "https://www.hoistfitness.com/pages/rs-2602-rotary-torso",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": false,
+  "stackLb": 130,
+  "stackKg": 59,
+  "stackWithAddOnLb": 135,
+  "specSource": "https://www.hoistfitness.com/products/rs-2602-rotary-torso",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ },
+ {
+  "model": "RS-2700",
+  "name": "Chin-Dip Assist",
+  "url": "https://www.hoistfitness.com/pages/rs-2700-chin-dip-assist",
+  "line": "ROC-IT Selectorized",
+  "series": "RS-2000",
+  "hasCalculator": false,
+  "stackLb": 380,
+  "stackKg": 172,
+  "stackWithAddOnLb": null,
+  "specSource": "https://www.hoistfitness.com/products/rs-2700-chin-dip-assist",
+  "note": "The calculator API answers 400 for this model; no page calculator."
+ }
 ]
