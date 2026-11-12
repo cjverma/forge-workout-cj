@@ -1,6 +1,7 @@
 import { setCors, checkAuth } from "./_shared.js";
 import { sql, ensureSchema } from "./_db.js";
 import { kg1 } from "../src/constants.js";
+import { parseHoistTable } from "../src/hoist.js";
 
 export async function assembleState() {
   await ensureSchema();
@@ -141,6 +142,7 @@ export default async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(204).end();
   if (!checkAuth(req, res)) return;
   if (req.method !== "GET") return res.status(405).json({ error: "Method not allowed" });
+  if (req.query && req.query.hoist != null) return hoistTable(req, res);
 
   try {
     const state = await assembleState();
@@ -150,5 +152,34 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error("[state]", e.message);
     return res.status(502).json({ error: "Failed to load state" });
+  }
+}
+
+// ── Hoist ROC-IT weight ratio (Nov 12) ───────────────────────────────────────
+// GET /api/state?hoist=RS-1402&bw=276 -> { model, bw, levels: [{level, lb}] }.
+// The machines move the user's body with the weight, so the weight actually
+// lifted at each pin level depends on body weight. Hoist's product pages ask
+// their own calculator service for this table (model number + body weight in
+// lb, the page's legacy field was "weight_lbs"); we ask the same service, so
+// the app shows exactly what hoistfitness.com shows. Folded into this endpoint:
+// api/ is at the 12-function Hobby limit.
+const HOIST_API = "https://hoistweightratiocalculatorprod-qoltpirw3q-wl.a.run.app/weightratio/calculateRatio/";
+async function hoistTable(req, res) {
+  const model = String(req.query.hoist || "").toUpperCase();
+  const bw = Math.round(Number(req.query.bw));
+  if (!/^RS-\d{4}$/.test(model) || !(bw >= 60 && bw <= 700)) return res.status(400).json({ error: "Bad model or body weight" });
+  try {
+    const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 10000);
+    const r = await fetch(HOIST_API + encodeURIComponent(model) + "/" + bw, { signal: ctl.signal, headers: { accept: "application/json" } });
+    clearTimeout(t);
+    if (!r.ok) return res.status(502).json({ error: "Hoist calculator unavailable" });
+    const j = await r.json();
+    const levels = parseHoistTable(j?.data?.actualWeightLiftedHtml);
+    if (!levels.length) return res.status(502).json({ error: "No table for this machine" });
+    res.setHeader("Cache-Control", "private, max-age=86400");
+    return res.json({ model, bw, levels });
+  } catch (e) {
+    console.error("[hoist]", e.message);
+    return res.status(502).json({ error: "Hoist calculator unavailable" });
   }
 }

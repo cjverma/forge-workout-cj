@@ -870,7 +870,7 @@ ok("toggleSet reads the live weight/reps inputs by id before checking completene
 // on truthiness (`if(wVal)`) — the gated form leaves stale state in place
 // when a field is backspaced to empty and done is tapped immediately.
 ok("the DOM read is unconditional (no truthiness gate that would preserve stale state)",
-  /if\(wEl\)sd\.weight=wEl\.value\.trim\(\);/.test(WK_TOGGLE) &&
+  /if\(wEl\)\{if\(_hm\)hoistApply\(key,exId,sd,wEl\.value\);else sd\.weight=wEl\.value\.trim\(\);\}/.test(WK_TOGGLE) &&
   /if\(rEl\)sd\.reps=rEl\.value\.trim\(\);/.test(WK_TOGGLE) &&
   !/if\(wVal\)/.test(WK_TOGGLE));
 
@@ -965,6 +965,23 @@ section("16a6 · phase reached on the 3-day average; the celebration (Nov 10)");
   ok("checkMilestones celebrates each 5 kg phase once (phase:<id>), and the 5 kg modal skips phase targets",
     /const tag="phase:"\+p\.id;/.test(WK) && /showCelebration\(\.\.\.phaseCelebration\(p,r\)\)/.test(WK) && /if\(checkPhaseCelebration\(\)\)return;/.test(WK) && /ctx\.checkPhaseCelebration\?\.\(\)/.test(readFileSync("src/main.js", "utf8")) && /if\(phaseKg\.has\(t\)\)continue;/.test(WK));
   ok("the celebration honours reduced motion and writes text with textContent", /prefers-reduced-motion: reduce/.test(readFileSync("src/ui.js", "utf8")) && /w\.textContent = words/.test(readFileSync("src/ui.js", "utf8")));
+}
+
+section("16a7 · Hoist ROC-IT levels (Nov 12)");
+{
+  const H = await import("./src/hoist.js");
+  const LEG = [28, 41, 53, 70, 87, 104, 122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279].map((lb, i) => ({ level: i + 1, lb }));
+  const html = "<table><tr><th>LEVEL</th><th>ACTUAL WEIGHT LIFTED</th></tr>" + LEG.map((r) => `<tr><td>${r.level}</td><td>${r.lb}</td></tr>`).join("") + "</table>";
+  ok("the Hoist calculator's HTML table parses to levels (the user's RS-1402 example)", JSON.stringify(H.parseHoistTable(html)) === JSON.stringify(LEG));
+  ok("30 machines with a calculator; a leg curl suggests RS-1402/RS-2402", H.HOIST_MACHINES.length === 30 && H.suggestHoist("Seated Leg Curl").map((m) => m.model).join() === "RS-1402,RS-2402");
+  ok("level for a target: heaviest at or under it (+2 lb slack); never below 1", H.hoistLevelFor(LEG, 145) === 8 && H.hoistLevelFor(LEG, 141.5) === 8 && H.hoistLevelFor(LEG, 10) === 1 && H.hoistLb(LEG, 8) === 140);
+  ok("body weight for the tables moves only in 2 kg steps (the user: recalculate after 2 kg)", H.hoistBodyKg(123.4, 125) === 125 && H.hoistBodyKg(122.9, 125) === 123 && H.hoistBodyKg(125.2, null) === 125);
+  const ST = readFileSync("api/state.js", "utf8");
+  ok("the server asks Hoist's calculator with a validated model + body weight (lb), folded into /api/state (12-function limit)",
+    /if \(req\.query && req\.query\.hoist != null\) return hoistTable\(req, res\);/.test(ST) && /\^RS-\\d\{4\}\$/.test(ST) && /bw >= 60 && bw <= 700/.test(ST));
+  const W = readFileSync("src/workout.js", "utf8");
+  ok("a level is stored with its real weight; no table means no weight, so the set cannot be ticked on a guess",
+    /sd\.weight=lb!=null\?String\(lb\):"";/.test(W) && /if\(_hm&&sd\.level&&!sd\.weight\)/.test(W));
 }
 
 section("16b · proteinTargetG single source of truth");
@@ -2437,7 +2454,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   // est. 1RM" and, comparing that against the real kg PR, announced a new PR on
   // a lift nowhere near one.
   ok("the PR hint converts the typed weight to kg before comparing",
-    /const w=toKg\(raw,getExUnit\(ctx\.sk\(ctx\.cDay\),exId\)\);/.test(WORKOUT));
+    /const w=_hm\?\(hoistLb\(hoistTable\(_hm\),raw\)!=null\?hoistLb\(hoistTable\(_hm\),raw\)\*LB_TO_KG:0\):toKg\(raw,getExUnit\(_k,exId\)\);/.test(WORKOUT));
 
   // _prLbFix1 wrote localStorage only. A sync replaces state wholesale, so the
   // uncorrected server rows came back on the next pull and the PR read wrong

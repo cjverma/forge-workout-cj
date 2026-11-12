@@ -28,7 +28,9 @@ import { chromium } from "playwright";
 import express from "express";
 import { NOW, dayIso, fixture } from "./test-fixture.mjs";
 
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// The pre-installed browser: /opt/pw-browsers/chromium is a stable link to
+// whichever Chromium build the container ships (the versioned folder changes).
+const CHROME = "/opt/pw-browsers/chromium";
 const PORT = 8795, BASE = `http://127.0.0.1:${PORT}/`;
 const OUT = process.env.LAYOUT_OUT || "";
 if (OUT) mkdirSync(OUT, { recursive: true });
@@ -72,6 +74,18 @@ const SCREENS = [
     await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });
     await p.waitForTimeout(200);
     await p.evaluate(() => document.querySelector('[onclick*="expand("]')?.click()); } },
+  // Hoist mode (Nov 12): machine picker, Level box, "Level 8 = 140 lb" line.
+  { name: "workout: hoist mode", root: PAGE, run: async (p) => {
+    await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });
+    await p.waitForTimeout(150);
+    await p.evaluate(() => { const b = document.querySelector('[onclick*="expand("]'); b?.click(); });
+    for (let k = 0; k < 3; k++) {
+      const done = await p.evaluate(() => { const c = document.querySelector(".sets-body.open .unit-chip"); if (!c) return true; if (c.textContent.trim() === "Level") return true; c.click(); return false; });
+      if (done) break; await p.waitForTimeout(150);
+    }
+    await p.waitForTimeout(400);
+    await p.evaluate(() => { document.querySelector('[onclick*="expand("]')?.click(); document.querySelector('[onclick*="expand("]')?.click(); document.querySelector(".hoist-row")?.scrollIntoView({ block: "start" }); }); },
+    after: async (p) => { await p.evaluate(() => { try { localStorage.removeItem("f5_hoist_map"); } catch (_) {} }); } },
   { name: "workout: how was today (review shown)", root: PAGE, run: async (p) => {
     await p.evaluate(() => document.getElementById("p-Wednesday")?.click()); await p.waitForTimeout(150);
     await p.evaluate(() => window.reviewToday?.()); await p.waitForTimeout(600);
@@ -342,6 +356,7 @@ async function open(dev, theme, state) {
   await page.route("**/api/**", async (r) => {
     const path = new URL(r.request().url()).pathname;
     const json = (status, body) => r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    if (path === "/api/state" && new URL(r.request().url()).searchParams.get("hoist")) return json(200, { levels: [28, 41, 53, 70, 87, 104, 122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279].map((lb, i) => ({ level: i + 1, lb })) });
     if (path === "/api/state") return json(501, {});
     if (path === "/api/mutate") return json(200, { ok: true });
     if (path === "/api/coach") return json(200, { text: "**Solid week.** Protein hit target on 5 of 7 days.\n\n### Next week\n- Keep food at 1,500 on 6 of 7 days\n- Weigh in every morning" });

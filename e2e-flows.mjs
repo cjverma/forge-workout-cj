@@ -18,7 +18,9 @@ import { chromium } from "playwright";
 import express from "express";
 import { programFor, weekKeyOf, DAYS, prSlug, PR_ALIAS } from "./src/constants.js";
 
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// The pre-installed browser: /opt/pw-browsers/chromium is a stable link to
+// whichever Chromium build the container ships (the versioned folder changes).
+const CHROME = "/opt/pw-browsers/chromium";
 const PORT = 8793, BASE = `http://127.0.0.1:${PORT}/`;
 // Wednesday evening, mid-week: there is a past day (Mon/Tue), today, and future.
 // The clock, the fixture and its dates live in test-fixture.mjs, shared with

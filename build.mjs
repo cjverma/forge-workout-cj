@@ -25,6 +25,7 @@ const inlineJs = [
   sourceForInline("src/ui.js"),
   sourceForInline("src/phase.js"),
   sourceForInline("src/plan.js"),
+  sourceForInline("src/hoist.js"),
   sourceForInline("src/quotes.js"),
   sourceForInline("src/sync.js"),
   sourceForInline("src/workout.js"),

@@ -1,5 +1,6 @@
 import { ctx } from "./runtime.js";
-import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult, PHASES, phaseReached, phaseCurveKg, addDaysIso } from "./phase.js";
+import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult, PHASES, phaseReached, phaseCurveKg, addDaysIso, sevenDayAvg, latestWeightLog } from "./phase.js";
+import { HOIST_MACHINES, HOIST_LB, suggestHoist, hoistName, hoistLb, hoistLevelFor, hoistBodyKg } from "./hoist.js";
 import { esc, fmtDate, showToast, showToastBig, showMilestone, showCelebration, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
@@ -46,8 +47,87 @@ function toggleExUnit(key,exId){
   if(ctx.isReadOnly(key))return;
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
-  S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
+  const ed=S.sessions[key][exId],ex=curProg()?.exercises.find(e=>e.id===exId);
+  const cur=getHoist(key,exId)?"hoist":getExUnit(key,exId);
+  const next=cur==="kg"?"lbs":cur==="lbs"&&ex?.cat==="gym"?"hoist":"kg";
+  if(next==="hoist"){
+    const model=hoistMapGet(exId)||suggestHoist(ex?.name)[0]?.model||HOIST_MACHINES[0].model;
+    ed.hoist=model;ed.unit="lbs";hoistMapSet(exId,model);hoistTable(model);
+  }else{ed.hoist="";ed.unit=next;if(cur==="hoist")hoistMapSet(exId,null);}
   save();queueSession(key,exId);reCard(key,exId);
+}
+
+// ── HOIST MODE (Nov 12) ──
+// The weight box takes the machine's pin LEVEL; the set stores the real
+// weight lifted (lb, from Hoist's table at the user's body weight) as its
+// weight, plus level/hoist/bwLb, so PRs, working weight, the unit check, the
+// weekly plan and the email all keep working on real weights. The machine for
+// an exercise lives on its logged sets (synced) and in a per-device map.
+function hoistLS(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;}}
+function hoistLSSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}}
+function hoistMapGet(exId){return hoistLS("f5_hoist_map",{})[canonicalId(exId)]||null;}
+function hoistMapSet(exId,model){const m=hoistLS("f5_hoist_map",{});if(model)m[canonicalId(exId)]=model;else delete m[canonicalId(exId)];hoistLSSet("f5_hoist_map",m);}
+function getHoist(key,exId){
+  const ed=ctx.getS().sessions[key]?.[exId];
+  if(ed&&ed.hoist!==undefined)return ed.hoist||null;
+  const fromSets=(ed?.sets||[]).find(x=>x&&x.hoist)?.hoist;
+  if(fromSets)return fromSets;
+  if(ed&&(ed.sets||[]).some(x=>x&&x.weight))return null;
+  const last=lastSessionEx(exId);
+  if(last?.hoist)return last.hoist;
+  return hoistMapGet(exId);
+}
+// The body weight (kg) tables are computed at; moves only in 2 kg steps.
+function hoistBodyNow(){
+  const cur=sevenDayAvg(isoToday())??latestWeightLog();
+  const st=hoistLS("f5_hoist_bw",null);
+  const kg=hoistBodyKg(cur,st);
+  if(kg&&kg!==st)hoistLSSet("f5_hoist_bw",kg);
+  return kg;
+}
+const _hoistBusy={};
+// Cached table for a machine at the current body weight; fetches (once) when
+// missing and re-renders the card. Offline, the last table for the machine.
+function hoistTable(model){
+  const kg=hoistBodyNow();if(!model||!kg)return null;
+  const bwLb=Math.round(kg*HOIST_LB),all=hoistLS("f5_hoist_tables",{}),t=all[model];
+  if(t&&t.bwLb===bwLb)return t.levels;
+  if(!_hoistBusy[model]&&navigator.onLine!==false){
+    _hoistBusy[model]=true;
+    fetchT(`${API_CFG.baseUrl}/api/state?hoist=${encodeURIComponent(model)}&bw=${bwLb}`,{headers:{Authorization:"Bearer "+API_CFG.token}},12000)
+      .then(r=>r.ok?r.json():Promise.reject(new Error(r.status)))
+      .then(d=>{if(d&&d.levels&&d.levels.length){const a=hoistLS("f5_hoist_tables",{});a[model]={bwLb,levels:d.levels,at:Date.now()};hoistLSSet("f5_hoist_tables",a);if(ctx.renderW)ctx.renderW();}})
+      .catch(()=>{}).finally(()=>{setTimeout(()=>{_hoistBusy[model]=false;},60000);});
+  }
+  return t?t.levels:null;
+}
+// After the first server pull: load the tables for every machine in use, so
+// they are cached before the gym (often no signal there).
+function hoistPrefetch(){Object.values(hoistLS("f5_hoist_map",{})).forEach(m=>hoistTable(m));}
+ctx.hoistPrefetch=hoistPrefetch;
+function setHoistModel(key,exId,model){
+  const S=ctx.getS();if(ctx.isReadOnly(key))return;
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  const ed=S.sessions[key][exId];ed.hoist=model;ed.unit="lbs";hoistMapSet(exId,model);
+  const tbl=hoistTable(model);
+  (ed.sets||[]).forEach(sd=>{if(sd&&sd.level!=null&&sd.level!==""){sd.hoist=model;const lb=hoistLb(tbl,sd.level);sd.weight=lb!=null?String(lb):"";}});
+  save();queueSession(key,exId);reCard(key,exId);
+}
+// A typed level -> the set's real weight. Without a table yet the weight stays
+// empty, so the set cannot be ticked with a made-up number.
+function hoistApply(key,exId,sd,level){
+  const model=getHoist(key,exId),tbl=hoistTable(model),kg=hoistBodyNow();
+  sd.level=String(level||"").trim();sd.hoist=model;sd.bwLb=kg?Math.round(kg*HOIST_LB):null;
+  const lb=sd.level?hoistLb(tbl,sd.level):null;
+  sd.weight=lb!=null?String(lb):"";
+  return lb;
+}
+function hoistEqText(model,tbl,level){
+  if(level==null||level==="")return"";
+  if(!tbl)return navigator.onLine===false?"Offline: open once online to load this machine":"Loading this machine's weights";
+  const lb=hoistLb(tbl,level);
+  return lb!=null?`Level ${level} = ${lb} lb (${Math.round(lb*LB_TO_KG)} kg)`:`No level ${level} on this machine`;
 }
 // Placeholder for the weight box. The box already prints its unit (.wt-wrap),
 // so the hint carries numbers only, converted when the box is in lbs: it used
@@ -96,7 +176,7 @@ function lastSessionEx(exId){
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
   // The set to beat: best by estimated 1RM, so weight and reps both count.
   const top=kgSets.reduce((b,s)=>!b||epley1RM(s.kg,s.reps)>epley1RM(b.kg,b.reps)?s:b,null);
-  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
+  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top,hoist:best.sets.find(s=>s.hoist)?.hoist||null};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
 // Rounded DOWN to a loadable step: a working target must never round up past
@@ -587,6 +667,10 @@ function card(ex,sess,key,rdOnly=false){
   // Flare mode: 75% of the working weight, never an increase.
   const _work=_work0&&_flare?{kg:_work0.kg*FLARE_LOAD,reps:_work0.reps,held:false}:_work0;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
+  // Hoist: the target as the pin level whose real weight is closest at or under it.
+  const _hModel=ex.cat==="gym"?getHoist(key,ex.id):null;
+  const _hTbl=_hModel?hoistTable(_hModel):null;
+  const _hLvl=_hModel&&_hTbl&&_work?hoistLevelFor(_hTbl,_work.kg/LB_TO_KG):null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
 
@@ -607,7 +691,9 @@ function card(ex,sess,key,rdOnly=false){
   } else {
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
-    let rows=`<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
+    const _bwKg=_hModel?hoistBodyNow():null;
+    let rows=(_hModel?`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Hoist machine</label><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setHoistModel('${key}','${ex.id}',this.value)">${HOIST_MACHINES.map(m=>`<option value="${m.model}"${m.model===_hModel?" selected":""}>${esc(m.model+" "+m.name)}</option>`).join("")}</select><div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div></div>`:"")+
+      `<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${_hModel?"Level":exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
@@ -620,14 +706,15 @@ function card(ex,sess,key,rdOnly=false){
         // one-set best: same number in the same unit as it was typed.
         if(target){const held=lastSetsForCarry.kgSets.find(s=>s.kg===_work.kg);weightVal=held&&_work.held&&lastSetsForCarry.unit===exUnit?Number(held.raw):target.w;}
       }
+      if(_hModel)weightVal=sd.level!=null&&sd.level!==""?sd.level:(!rdOnly&&!sd.weight&&_hLvl?_hLvl:"");
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(ex.hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
+        <span class="wt-wrap" data-unit="${_hModel?"lvl":exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="${_hModel?"numeric":"decimal"}" enterkeyhint="next" placeholder="${_hModel?"-":(hintDisp(ex.hint,exUnit)||exUnit)}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'${_hModel?"level":"weight"}',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
         ${rdOnly?'<div></div>':`<button class="sdel" onclick="delSet('${key}','${ex.id}',${i})" aria-label="Delete set ${i+1}" title="Delete set ${i+1}">${icon("trash",15)}</button>`}
-      </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
+      </div>${_hModel?`<div class="hoist-eq" id="he-${ex.id}-${i}">${esc(hoistEqText(_hModel,_hTbl,weightVal))}</div>`:""}<div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
@@ -638,7 +725,7 @@ function card(ex,sess,key,rdOnly=false){
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
       <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
-      <div class="ex-right"><span class="ex-hint">${target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
+      <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;
@@ -686,7 +773,10 @@ function saveF(key,exId,i,field,val){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
   ensure(key,exId,i);
-  S.sessions[key][exId].sets[i][field]=val;
+  if(field==="level"){
+    const sd0=S.sessions[key][exId].sets[i];hoistApply(key,exId,sd0,val);
+    const eq=document.getElementById("he-"+exId+"-"+i);if(eq)eq.textContent=hoistEqText(sd0.hoist,hoistTable(sd0.hoist),sd0.level);
+  }else S.sessions[key][exId].sets[i][field]=val;
   S.sessions[key][exId].sets[i].attempted=true;
   updateExerciseDone(key,exId);
   save();queueSession(key,exId);
@@ -729,9 +819,11 @@ function toggleSet(key,exId,i){
   // empty and tapping done immediately must invalidate completeness too,
   // not silently keep whatever was committed before.
   const wEl=document.getElementById(`wi-${exId}-${i}`),rEl=document.getElementById(`ri-${exId}-${i}`);
-  if(wEl)sd.weight=wEl.value.trim();
+  const _hm=getHoist(key,exId);
+  if(wEl){if(_hm)hoistApply(key,exId,sd,wEl.value);else sd.weight=wEl.value.trim();}
   if(rEl)sd.reps=rEl.value.trim();
-  if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
+  if(_hm&&sd.level&&!sd.weight){showToast(hoistEqText(_hm,hoistTable(_hm),sd.level)||"Enter the level first");return;}
+  if(!sd.weight||!sd.reps){showToast(_hm?"Enter the level and reps first":"Enter weight and reps first");return;}
   const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   if(!sd.done&&!sd.unitOk)checkUnitOnLog(key,exId,i,sd,ex,wEl);
@@ -1480,7 +1572,9 @@ function prHint(exId,i){
   // (always). Without this the hint read 120 lbs as "160kg est. 1RM" and, worse,
   // compared that inflated number against the real kg PR, so it announced a new
   // PR on a lift that was nowhere near one.
-  const w=toKg(raw,getExUnit(ctx.sk(ctx.cDay),exId));
+  const _k=ctx.sk(ctx.cDay),_hm=getHoist(_k,exId);
+  if(_hm){const tb=hoistTable(_hm),eq=document.getElementById("he-"+exId+"-"+i);if(eq)eq.textContent=hoistEqText(_hm,tb,document.getElementById("wi-"+exId+"-"+i)?.value);}
+  const w=_hm?(hoistLb(hoistTable(_hm),raw)!=null?hoistLb(hoistTable(_hm),raw)*LB_TO_KG:0):toKg(raw,getExUnit(_k,exId));
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
@@ -1653,6 +1747,7 @@ ctx.checkPhaseCelebration=checkPhaseCelebration;
 
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
+window.setHoistModel=setHoistModel;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;
 window.expand=expand;
