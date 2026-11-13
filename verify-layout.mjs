@@ -28,7 +28,9 @@ import { chromium } from "playwright";
 import express from "express";
 import { NOW, dayIso, fixture } from "./test-fixture.mjs";
 
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// The pre-installed browser: /opt/pw-browsers/chromium is a stable link to
+// whichever Chromium build the container ships (the versioned folder changes).
+const CHROME = "/opt/pw-browsers/chromium";
 const PORT = 8795, BASE = `http://127.0.0.1:${PORT}/`;
 const OUT = process.env.LAYOUT_OUT || "";
 if (OUT) mkdirSync(OUT, { recursive: true });
@@ -72,6 +74,15 @@ const SCREENS = [
     await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });
     await p.waitForTimeout(200);
     await p.evaluate(() => document.querySelector('[onclick*="expand("]')?.click()); } },
+  // Hoist mode (Nov 12): machine picker, Level box, "Level 8 = 140 lb" line.
+  { name: "workout: hoist mode", root: PAGE, run: async (p) => {
+    await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });
+    await p.waitForTimeout(150);
+    await p.evaluate(() => { const b = document.querySelector('[onclick*="expand("]'); b?.click(); });
+    await p.evaluate(() => { const sel = document.querySelector(".sets-body.open .hoist-sel"); if (sel) { sel.value = sel.querySelector('option[value^="RS-2"]')?.value || "RS-2402"; sel.dispatchEvent(new Event("change")); } });
+    await p.waitForTimeout(400);
+    await p.evaluate(() => { document.querySelector('[onclick*="expand("]')?.click(); document.querySelector('[onclick*="expand("]')?.click(); document.querySelector(".hoist-row")?.scrollIntoView({ block: "start" }); }); },
+    after: async (p) => { await p.evaluate(() => { try { localStorage.removeItem("f5_hoist_map"); } catch (_) {} }); } },
   { name: "workout: how was today (review shown)", root: PAGE, run: async (p) => {
     await p.evaluate(() => document.getElementById("p-Wednesday")?.click()); await p.waitForTimeout(150);
     await p.evaluate(() => window.reviewToday?.()); await p.waitForTimeout(600);
@@ -106,6 +117,9 @@ const SCREENS = [
     await p.evaluate(() => document.getElementById("nav-workout").click());
     await p.evaluate(() => { const t = document.getElementById("toast"); t.textContent = "No recent backup. Export one from Settings."; t.classList.add("show"); }); },
     after: async (p) => { await p.evaluate(() => document.getElementById("toast").classList.remove("show")); } },
+  { name: "pop-up: phase celebration", root: ["#milestoneModal"], run: async (p) => {
+    await p.evaluate(() => { window.__showCelebration("Phase 1 complete", "125 kg reached, 2 days early.", [["Weight", "130 to 124.9 kg"], ["Took", "16 days, 1 day early"], ["Down since October", "5.1 kg"], ["Next", "120 kg by Nov 30"]], "Five kilos. A year ago your back had you in bed. Now you are training six days a week and the scale is moving on schedule. That is not luck: it is every meal you logged and every session you showed up for. You start the next phase 0.6 kg ahead of the line, a cushion for the weeks that don't go to plan."); document.querySelector("#milestoneModal .ms-confetti")?.remove(); }); },
+    after: async (p) => { await p.evaluate(() => window.closeMilestone()); } },
   { name: "pop-up: milestone", root: ["#milestoneModal"], run: async (p) => {
     await p.evaluate(() => { document.getElementById("msIcon").textContent = "💪"; document.getElementById("msTitle").textContent = "6 Workouts This Week"; document.getElementById("msSub").textContent = "Elite consistency."; document.getElementById("milestoneModal").classList.add("show"); }); },
     after: async (p) => { await p.evaluate(() => document.getElementById("milestoneModal").classList.remove("show")); } },

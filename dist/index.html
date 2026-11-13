@@ -1370,7 +1370,10 @@ body[data-tab] .danger-zone .st-sec{color:var(--mid);background:none;border:0;pa
 body[data-tab] .danger-zone .st-group{border-radius:var(--r-lg);}
 body[data-tab] #tc .danger-zone .st-ttl[style*="color:var(--red)"]{color:var(--red)!important;}
 /* Theme sweep (Oct 28): last off-look spots found by verify-layout's theme check. */
-.wv .ol-up,.wv .ol-down,.wv .ol-eq{background:var(--s2);color:var(--mid);}
+.wv .ol-up,.wv .ol-down,.wv .ol-eq{background:none;color:inherit;padding:0;margin:0;font:inherit;border:0;}
+.wv .ol-up{color:var(--white);font-weight:600;}
+.wv .ex-cmp{font-size:13px;line-height:18px;color:var(--mid);}
+.wv .ex-cmp:empty{display:none;}
 .wv .calf-btn{color:var(--accent-text);}
 body[data-tab] .edit-pill{box-shadow:none;}
 body[data-tab] .export-card{background:none;}
@@ -1386,7 +1389,25 @@ body[data-tab] :is(.gap-done,.gap-skip,.gap-wait){color:var(--mid);}
 body[data-tab] :is(.gap-skip,.gap-wait) .gap-val{font-size:15px;}
 body[data-tab] .gap-note{display:flex;gap:10px;align-items:flex-start;background:var(--s2);border-radius:10px;padding:12px;margin:4px 0 12px;color:var(--white);}
 body[data-tab] .gap-note-t{font-size:15px;font-weight:600;}
-body[data-tab] .cover-note{font-size:15px;line-height:20px;color:var(--lt);margin:4px 0 12px;}
+body[data-tab] #milestoneModal .ms-stats{width:100%;box-sizing:border-box;align-self:stretch;background:var(--s1);border-radius:var(--r-lg);padding:4px 16px;margin:0 0 16px;text-align:left;}
+body[data-tab] #milestoneModal .ms-stat{display:flex;justify-content:space-between;gap:12px;padding:11px 0;font-size:17px;color:var(--mid);}
+body[data-tab] #milestoneModal .ms-stat+.ms-stat{border-top:.5px solid var(--b1);}
+body[data-tab] #milestoneModal .ms-stat b{color:var(--white);font-weight:600;font-variant-numeric:tabular-nums;}
+body[data-tab] #milestoneModal .ms-words{width:100%;align-self:stretch;font-size:17px;line-height:24px;color:var(--lt);margin:0 0 24px;text-align:left;}
+body[data-tab] #milestoneModal .ms-confetti{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+body[data-tab] #milestoneModal .sum-inner{position:relative;z-index:2;}
+.wv .hoist-row{margin:0 0 10px;}
+.wv .hoist-lbl{display:block;font-size:13px;color:var(--mid);margin-bottom:4px;}
+.wv .hoist-selwrap{position:relative;display:block;}
+.wv .hoist-selwrap::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border-right:2px solid var(--mid);border-bottom:2px solid var(--mid);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+.wv .hoist-sel{-webkit-appearance:none;appearance:none;width:100%;min-height:44px;background:var(--s2);color:var(--white);border:none;border-radius:var(--r-md);padding:0 44px 0 14px;font:inherit;font-size:17px;text-overflow:ellipsis;}
+.wv .hoist-add{display:flex;align-items:center;gap:10px;min-height:44px;font-size:17px;color:var(--white);}
+.wv .hoist-add input{width:22px;height:22px;accent-color:var(--accent);}
+.wv .hoist-note{font-size:13px;color:var(--mid);margin-top:6px;line-height:18px;}
+.wv .hoist-eq{font-size:13px;color:var(--mid);text-align:right;margin:-2px 0 2px;padding-right:4px;font-variant-numeric:tabular-nums;}
+body[data-tab] .nut-ring-sub{font-size:13px;color:var(--mid);margin-top:2px;font-variant-numeric:tabular-nums;}
+body[data-tab] .food-line{font-size:15px;line-height:20px;color:var(--lt);margin:0 0 4px;}
+body[data-tab] .food-line b{color:var(--white);font-weight:600;}
 body[data-tab] .gap-note-b{font-size:15px;line-height:20px;color:var(--lt);margin-top:2px;}
 body[data-tab] .gap-group{padding:0 16px 4px;background:var(--s1);border-radius:var(--r-lg);}
 body[data-tab] .score-head{display:flex;align-items:center;gap:16px;padding:14px 0 10px;}
@@ -1395,7 +1416,8 @@ body[data-tab] .score-sub{font-size:15px;color:var(--mid);}
 body[data-tab] .act-line{font-size:15px;color:var(--lt);margin-top:6px;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;}
 body[data-tab] .act-line b{color:var(--white);font-weight:600;}
 body[data-tab] .act-line span{font-size:13px;color:var(--mid);}
-body[data-tab] .act-line.act-met{color:var(--mid);}
+body[data-tab] .act-line.act-met{color:var(--mid);flex-wrap:nowrap;align-items:flex-start;}
+body[data-tab] .act-line.act-met svg{flex:none;margin-top:1px;}
 body[data-tab] .macro-tr{position:relative;overflow:visible;}
 body[data-tab] .macro-tick{position:absolute;top:-3px;width:2px;height:10px;border-radius:1px;background:var(--white);margin-left:-1px;}
 body[data-tab] .macro-gap{font-size:13px;color:var(--mid);margin-top:5px;}
@@ -1507,6 +1529,8 @@ body[data-tab] :is(.flare-ok,.flare-worse){font-size:15px;line-height:20px;margi
     <div class="sum-icon" id="msIcon"></div>
     <div class="sum-title" id="msTitle"></div>
     <div class="sum-sub" id="msSub"></div>
+    <div class="ms-stats" id="msStats" style="display:none"></div>
+    <div class="ms-words" id="msWords" style="display:none"></div>
     <button class="sum-close" onclick="closeMilestone()">Continue</button>
   </div>
 </div>
@@ -2777,11 +2801,48 @@ function showMilestone(icon, title, sub) {
   document.getElementById("msIcon").textContent = icon;
   document.getElementById("msTitle").textContent = title;
   document.getElementById("msSub").textContent = sub;
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  if (st) st.style.display = "none"; if (w) w.style.display = "none";
   document.getElementById("milestoneModal").classList.add("show");
 }
 
+// A bigger moment than showMilestone: a phase reached (Nov 10, the user:
+// "there should be some celebration and kind words when I hit a milestone").
+// Check mark, title, the numbers, a few kind words, and a short confetti
+// burst (skipped under prefers-reduced-motion). Text only via textContent.
+function showCelebration(title, sub, stats, words) {
+  document.getElementById("msIcon").innerHTML = '<svg class="sum-check" viewBox="0 0 56 56" width="56" height="56" aria-hidden="true"><circle cx="28" cy="28" r="28"/><path d="M17 29.5l7.5 7.5L39.5 21"/></svg>';
+  document.getElementById("msTitle").textContent = title;
+  document.getElementById("msSub").textContent = sub;
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  st.innerHTML = ""; (stats || []).forEach(([l, v]) => { const r = document.createElement("div"); r.className = "ms-stat"; const a = document.createElement("span"); a.textContent = l; const b = document.createElement("b"); b.textContent = v; r.append(a, b); st.append(r); });
+  st.style.display = stats && stats.length ? "" : "none";
+  w.textContent = words || ""; w.style.display = words ? "" : "none";
+  document.getElementById("milestoneModal").classList.add("show", "celebrate");
+  confetti();
+}
+function confetti() {
+  try { if (matchMedia("(prefers-reduced-motion: reduce)").matches) return; } catch (_) {}
+  const c = document.createElement("canvas"); c.className = "ms-confetti"; c.setAttribute("aria-hidden", "true");
+  const m = document.getElementById("milestoneModal"); m.append(c);
+  const W = c.width = innerWidth * 2, H = c.height = innerHeight * 2, g = c.getContext("2d");
+  const cs = getComputedStyle(document.body), cols = ["--accent", "--chart-p", "--chart-c", "--chart-f", "--green"].map(v => cs.getPropertyValue(v).trim()).filter(Boolean);
+  const bits = Array.from({ length: 140 }, () => ({ x: W / 2 + (Math.random() - .5) * W * .3, y: H * .35, vx: (Math.random() - .5) * 34, vy: -Math.random() * 46 - 14, r: Math.random() * 6.28, vr: (Math.random() - .5) * .4, s: 10 + Math.random() * 12, c: cols[Math.floor(Math.random() * cols.length)] || "#0A84FF" }));
+  const t0 = performance.now();
+  (function f(now) {
+    const k = (now - t0) / 2600; g.clearRect(0, 0, W, H);
+    if (k >= 1 || !c.isConnected) { c.remove(); return; }
+    g.globalAlpha = Math.min(1, (1 - k) * 2.5);
+    bits.forEach(b => { b.vy += 1.5; b.vx *= .985; b.x += b.vx; b.y += b.vy; b.r += b.vr; g.save(); g.translate(b.x, b.y); g.rotate(b.r); g.fillStyle = b.c; g.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2); g.restore(); });
+    requestAnimationFrame(f);
+  })(t0);
+}
+
 function closeMilestone() {
-  document.getElementById("milestoneModal").classList.remove("show");
+  const m = document.getElementById("milestoneModal");
+  m.classList.remove("show", "celebrate"); m.querySelector(".ms-confetti")?.remove();
+  const st = document.getElementById("msStats"), w = document.getElementById("msWords");
+  if (st) { st.innerHTML = ""; st.style.display = "none"; } if (w) { w.textContent = ""; w.style.display = "none"; }
 }
 
 function applyTheme() {
@@ -2806,6 +2867,7 @@ function toggleTheme() {
 
 window.toggleTheme = toggleTheme;
 window.closeMilestone = closeMilestone;
+window.__showCelebration = showCelebration; // the layout audit opens it
 
 
 
@@ -3125,6 +3187,28 @@ function actualDeficit(dateIso){
 //
 // Derived from the phase definition rather than typed in as a constant, so it
 // can never contradict that phase's own startKg/targetKg/dates.
+// A phase's weight target is REACHED on the first day, inside the phase, where
+// the average of the weigh-ins logged that day and the two before (at least
+// two, including that day's) is at or under the target (Nov 10, the user hit
+// 125.0 on day 15 of 17: "your approach is right", one reading is not enough,
+// weight swings 0.5-1 kg with water and salt). The calendar never moves: the
+// next phase still starts the day after this one's planned end, so reaching
+// early banks the gap as "ahead of the line".
+function avg3(dateIso,weights){
+  const ws=weights||phaseStore().nutrition?.weights||{};
+  if(ws[dateIso]==null||isNaN(Number(ws[dateIso])))return null;
+  const v=[0,1,2].map(i=>ws[addDaysIso(dateIso,-i)]).filter(x=>x!=null&&!isNaN(Number(x))).map(Number);
+  return v.length>=2?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null;
+}
+function phaseReached(p,todayIso,weights){
+  if(!p)return null;
+  const t=todayIso||isoToday(),end=effectiveEnd(p,t),last=t<end?t:end;
+  for(let d=p.start;d<=last;d=addDaysIso(d,1)){
+    const a=avg3(d,weights);
+    if(a!=null&&a<=p.targetKg)return{date:d,avg:a,daysEarly:Math.max(0,daysBetween(d,end)),days:daysBetween(p.start,d)+1};
+  }
+  return null;
+}
 function phaseRequiredDeficit(p){
   if(!p)return 0;
   const days=Math.max(1,daysBetween(p.start,p.plannedEnd)+1);
@@ -3469,6 +3553,113 @@ function planToUpdates(parsed, planMon) {
 }
 
 
+// Hoist ROC-IT machines and their weight ratio (Nov 12; the user: "I can add
+// plate number and you calculate weight"). On these machines the seat or pad
+// moves the user's body with the stack, so the weight actually lifted at a pin
+// LEVEL depends on body weight. Hoist's product pages ask Hoist's calculator
+// server for the table; the constants below reproduce it (research on branch
+// claude/hoist-data: ~2,500 responses fitted, 357/360 held-out values exact,
+// never more than 1 lb off at a .5 tie). Per level the weight is a straight
+// line in body weight: actual = round(a + b * floor(bodyWeightLb)), with
+// `overrides[level][bw]` at the known ties. 18 levels on every machine, lb in
+// and lb out. `coefAddOn` (RS-2000 only) is the table with Hoist's optional
+// 5 lb add-on weight fitted. Computed on the device, so it works with no
+// signal at the gym, and recomputed once body weight has moved 2 kg (the
+// user: "it needs to be recalculated post 2 kg weight loss").
+//
+// The 30 machines with a calculator on hoistfitness.com (sitemap, Nov 12
+// 2026). RS-1000 and RS-2000 are two generations with different tables: the
+// model number is on the machine's shroud.
+//
+// Pure (no DOM, no ctx).
+const HOIST_MACHINES=[
+{"model":"RS-1101","name":"Seated Dip","coef":[[3.272727,0.21818182],[7.847222,0.26111111],[13.384615,0.2974359],[22.674419,0.34883721],[32.914894,0.38723404],[43.618421,0.41578947],[55.04,0.44],[67.338983,0.46440678],[79.15625,0.47916667],[91.101852,0.49259259],[103.953488,0.50697674],[117.0,0.52],[129.645161,0.52903226],[142.411765,0.5372549],[155.275862,0.54482759],[168.241379,0.55172414],[181.315789,0.55789474],[194.454545,0.56363636]]},
+{"model":"RS-1102","name":"Biceps Curl","coef":[[3.181818,0.21212121],[6.666667,0.22222222],[10.384615,0.23076923],[16.325581,0.25116279],[22.425532,0.26382979],[28.823529,0.2745098],[35.0,0.28],[41.779661,0.28813559],[46.15625,0.27916667],[51.367347,0.27755102],[55.983333,0.27333333],[60.580311,0.26943005],[65.756098,0.26829268],[70.297297,0.26486486],[74.689655,0.26206897],[79.111111,0.25925926],[83.429009,0.25703794],[87.818182,0.25454545]]},
+{"model":"RS-1201","name":"Lat Pulldown","coef":[[3.454545,0.23030303],[8.066667,0.26666667],[13.153846,0.29230769],[21.702703,0.33513514],[31.106383,0.36595745],[40.764706,0.38823529],[51.363636,0.41090909],[61.932203,0.42711864],[71.215909,0.43181818],[80.619565,0.43586957],[90.093635,0.43941248],[100.20442,0.44530387],[109.8,0.448],[120.702128,0.45531915],[131.689655,0.46206897],[142.697368,0.46842105],[153.947368,0.47368421],[165.181818,0.47878788]]},
+{"model":"RS-1203","name":"Seated Mid Row","coef":[[6.181818,0.41212121],[12.847222,0.42777778],[19.615385,0.43589744],[30.837209,0.4744186],[42.319149,0.49787234],[53.529412,0.50980392],[65.0,0.52],[76.176471,0.5254902],[85.84375,0.52083333],[95.545455,0.51636364],[105.666667,0.51555556],[116.413793,0.51724138],[126.545455,0.51636364],[137.295082,0.51803279],[148.127907,0.51937984],[158.828947,0.52105263],[169.694915,0.5220339],[180.538462,0.52307692]]},
+{"model":"RS-1204","name":"Low Back","coef":[[2.181818,0.14545455],[8.361111,0.27777778],[17.538462,0.38974359],[30.297297,0.46486486],[44.851064,0.52765957],[61.764706,0.58823529],[79.102041,0.63265306],[98.305085,0.6779661],[117.322222,0.71111111],[138.04878,0.74634146],[158.192982,0.77192982],[180.07416,0.7995365],[200.938776,0.82040816],[223.478261,0.84347826],[245.06383,0.85957447],[268.171053,0.87894737],[290.097561,0.89268293],[313.636364,0.90909091]]},
+{"model":"RS-1301","name":"Chest Press","coef":[[4.545455,0.3030303],[10.847222,0.36111111],[17.307692,0.38461538],[30.297297,0.46486486],[41.565789,0.48947368],[55.588235,0.52941176],[65.909091,0.52727273],[78.688889,0.54222222],[91.666667,0.55555556],[104.897959,0.56734694],[118.380282,0.57746479],[132.0,0.58666667],[145.802632,0.59473684],[159.391473,0.60310078],[173.604651,0.60930233],[187.692308,0.61538462],[201.831579,0.62105263],[216.039474,0.62631579]],"overrides":{"14":{"0":160}}},
+{"model":"RS-1302","name":"Pec Fly","coef":[[0.636364,0.04242424],[2.0,0.06666667],[4.153846,0.09230769],[7.55814,0.11627907],[11.57234,0.13617021],[16.058824,0.15294118],[20.897959,0.16734694],[26.061224,0.17959184],[31.428571,0.19047619],[36.92584,0.2004635],[42.723404,0.20851064],[48.6,0.216],[54.571429,0.22285714],[60.6,0.22909091],[66.827586,0.23448276],[73.128788,0.23939394],[79.333333,0.24444444],[85.727273,0.24848485]]},
+{"model":"RS-1401","name":"Leg Extension","coef":[[3.272727,0.21818182],[7.333333,0.24444444],[12.066667,0.26666667],[19.953488,0.30697674],[28.302632,0.33157895],[37.470588,0.35686275],[46.414634,0.37073171],[56.525424,0.38983051],[66.03708,0.39976825],[76.19,0.412],[86.058824,0.41960784],[96.573529,0.42941176],[107.318966,0.43793103],[117.478261,0.44347826],[127.758621,0.44827586],[138.105263,0.45263158],[148.46648,0.45698324],[158.909091,0.46060606]]},
+{"model":"RS-1402","name":"Leg Curl","coef":[[5.5,0.18333333],[10.808824,0.24117647],[17.142857,0.28571429],[27.421875,0.34375],[38.81,0.388],[51.12037,0.42592593],[64.215517,0.45862069],[78.451613,0.49032258],[91.046875,0.50625],[104.596491,0.52280702],[118.333333,0.53777778],[131.692308,0.54871795],[145.853659,0.56097561],[160.186047,0.57209302],[174.632353,0.58235294],[189.276596,0.59148936],[203.96292,0.60023175],[218.823529,0.60784314]],"overrides":{"1":{"240":50,"180":39,"360":72,"60":17}}},
+{"model":"RS-1403","name":"Leg Press","coef":[[7.381579,0.18421053],[14.607143,0.24285714],[23.285714,0.29142857],[33.292683,0.33170732],[44.0,0.36666667],[55.739583,0.39583333],[67.610119,0.42261905],[80.204545,0.44545455],[93.259615,0.46538462],[106.419355,0.48387097],[120.25,0.5],[133.786765,0.51470588],[147.8,0.528],[162.05,0.54],[176.333333,0.55111111],[190.820896,0.56119403],[205.426471,0.57058824],[220.103448,0.57931034]],"overrides":{"5":{"195":115,"225":126,"165":104}}},
+{"model":"RS-1406","name":"Inner Thigh","coef":[[1.169444,0.03888889],[3.305085,0.0779661],[5.902439,0.10731707],[9.310345,0.13793103],[12.858696,0.16086957],[17.181818,0.18545455],[21.351724,0.20413793],[26.363636,0.22424242],[31.137255,0.23921569],[36.578125,0.25625],[41.679606,0.26882966],[47.454545,0.28363636],[52.938776,0.29387755],[59.0,0.30666667],[64.666667,0.31555556],[70.983333,0.32666667],[76.740385,0.33461538],[83.4,0.344]]},
+{"model":"RS-1407","name":"Outer Thigh","coef":[[0.847222,0.02777778],[2.428571,0.05714286],[4.560976,0.08292683],[6.736842,0.10175439],[9.73913,0.12173913],[12.93617,0.14042553],[16.058824,0.15294118],[19.784091,0.16818182],[23.232143,0.17857143],[27.276596,0.19148936],[31.265306,0.20408163],[35.363636,0.21090909],[39.808511,0.2212766],[44.384615,0.23076923],[48.469388,0.23673469],[53.2375,0.245],[57.625,0.25],[62.4,0.25714286]],"overrides":{"11":{"0":32},"15":{"0":49}}},
+{"model":"RS-1415","name":"Rotary Calf","coef":[[6.363636,0.42424242],[17.311111,0.57777778],[31.846154,0.70769231],[52.07416,0.7995365],[74.544118,0.87647059],[98.823529,0.94117647],[124.706294,0.9958042],[151.439024,1.04390244],[179.142857,1.08571429],[207.632653,1.12244898],[236.774194,1.15483871],[266.4,1.184],[296.474576,1.21016949],[326.90566,1.23396226],[357.724138,1.25517241],[388.793103,1.27471264],[420.097561,1.29268293],[451.636364,1.30909091]]},
+{"model":"RS-1501","name":"Shoulder Press","coef":[[2.272727,0.28484848],[6.54717,0.28301887],[11.101852,0.29259259],[17.294118,0.29803922],[23.594595,0.3027027],[30.06383,0.30638298],[36.548387,0.30967742],[43.15625,0.3125],[49.7375,0.315],[56.439024,0.31707317],[63.203125,0.31875],[69.84375,0.32083333],[76.694915,0.3220339],[83.485294,0.32352941],[90.320755,0.3245283],[97.111111,0.32592593],[104.0,0.32682927],[110.819672,0.32786885]]},
+{"model":"RS-1601","name":"Abdominals","coef":[[2.272727,0.15151515],[5.333333,0.17777778],[9.197368,0.20526316],[15.116279,0.23255814],[21.702128,0.25531915],[28.823529,0.2745098],[36.363636,0.29090909],[44.2625,0.305],[52.402174,0.3173913],[60.754717,0.32830189],[69.27381,0.33809524],[77.971774,0.34677419],[86.842105,0.35438596],[95.789474,0.36140351],[104.83871,0.36774194],[113.934211,0.37368421],[123.168421,0.37894737],[132.432432,0.38378378]]},
+{"model":"RS-2101","name":"Seated Dip","coef":[[3.272727,0.21818182],[6.571429,0.26285714],[10.405405,0.2972973],[15.694872,0.34871795],[21.195122,0.38536585],[26.906977,0.41395349],[33.04,0.44],[39.425532,0.46382979],[45.367347,0.47755102],[51.882353,0.49411765],[58.150943,0.50566038],[70.178571,0.51904762],[81.819672,0.52786885],[94.230769,0.53846154],[106.2375,0.545],[118.346939,0.55102041],[131.226415,0.55849057],[143.555556,0.56296296]],"coefAddOn":[[4.367647,0.21764706],[7.847222,0.26111111],[12.2,0.3],[17.5,0.35],[23.178571,0.38571429],[28.931034,0.4137931],[35.107477,0.43925234],[41.65625,0.4625],[48.0,0.48],[54.153846,0.49230769],[60.898148,0.50740741],[72.837209,0.52093023],[84.645161,0.52903226],[96.568182,0.53636364],[109.114583,0.54583333],[121.297297,0.55135135],[134.191176,0.55882353],[146.530612,0.56326531]],"overridesAddOn":{"4":{"280":115,"120":59,"300":122},"18":{"0":146}}},
+{"model":"RS-2102","name":"Biceps Curl","coef":[[3.181818,0.21212121],[5.571429,0.22285714],[8.135135,0.23243243],[11.307692,0.25128205],[14.487805,0.26341463],[17.837209,0.2744186],[21.0,0.28],[24.565789,0.28947368],[26.367347,0.27755102],[29.235294,0.27843137],[31.245283,0.27169811],[36.473684,0.27017544],[41.679606,0.26882966],[46.279412,0.26470588],[50.869565,0.26086957],[55.943396,0.26037736],[60.4,0.25714286],[64.881356,0.25423729]],"coefAddOn":[[4.235294,0.21176471],[6.666667,0.22222222],[9.263158,0.23157895],[12.625,0.25],[15.72619,0.26190476],[19.090909,0.27272727],[22.26087,0.27826087],[25.875,0.2875],[28.0,0.28],[30.461538,0.27692308],[32.888889,0.27407407],[37.672269,0.26890756],[42.8125,0.26785714],[47.454545,0.26363636],[52.571429,0.26285714],[57.081081,0.25945946],[61.578125,0.25625],[65.95122,0.25365854]],"overridesAddOn":{"8":{"270":103,"110":57},"14":{"95":73,"315":131}}},
+{"model":"RS-2201","name":"Lat Pulldown","coef":[[3.454545,0.23030303],[6.726852,0.26851852],[10.216216,0.29189189],[18.512195,0.33658537],[27.333333,0.36444444],[36.836735,0.3877551],[47.301887,0.41132075],[57.81,0.428],[67.102041,0.43265306],[76.486842,0.43684211],[85.913043,0.44057971],[95.983333,0.44666667],[105.653061,0.44897959],[115.881356,0.45423729],[126.816327,0.46122449],[137.775591,0.46771654],[148.983333,0.47333333],[160.26087,0.47826087]],"coefAddOn":[[4.602941,0.22941176],[8.066667,0.26666667],[11.789474,0.29473684],[20.0,0.33333333],[29.217391,0.36521739],[38.81,0.388],[49.361111,0.41111111],[59.862069,0.42758621],[69.16129,0.43225806],[78.545455,0.43636364],[88.04,0.44],[98.131148,0.44590164],[107.682927,0.44878049],[118.546875,0.45625],[129.571429,0.46285714],[140.655172,0.46896552],[151.823529,0.4745098],[163.0,0.48]]},
+{"model":"RS-2203","name":"Seated Mid Row","coef":[[6.181818,0.41212121],[10.714286,0.42857143],[15.324324,0.43783784],[25.983333,0.47333333],[37.333333,0.49777778],[48.469388,0.51020408],[59.837209,0.52093023],[71.052632,0.52631579],[80.803279,0.52131148],[90.45283,0.51698113],[100.59,0.516],[111.3125,0.51785714],[121.45283,0.51698113],[132.222222,0.51851852],[143.0,0.52],[153.803279,0.52131148],[164.612903,0.52258065],[175.428571,0.52380952]],"coefAddOn":[[8.235294,0.41176471],[12.847222,0.42777778],[17.486842,0.43684211],[28.571429,0.47619048],[40.25,0.5],[50.783784,0.50810811],[62.222222,0.51851852],[73.37931,0.52413793],[83.170213,0.51914894],[92.727273,0.51515152],[102.857143,0.51428571],[113.580645,0.51612903],[123.673077,0.51538462],[134.439024,0.51707317],[145.171875,0.51875],[156.0,0.52],[166.803279,0.52131148],[177.632653,0.52244898]]},
+{"model":"RS-2204","name":"Low Back","coef":[[2.181818,0.14545455],[7.0,0.28],[13.621622,0.38918919],[20.966667,0.46666667],[29.016667,0.52666667],[38.093023,0.58604651],[47.318182,0.63116883],[57.544118,0.67647059],[67.469388,0.71020408],[78.2625,0.745],[88.934211,0.77368421],[108.07416,0.7995365],[127.058824,0.81960784],[147.529412,0.84313725],[167.869565,0.86086957],[189.095588,0.87941176],[209.967626,0.89352518],[231.714286,0.90857143]],"coefAddOn":[[2.955882,0.14705882],[8.361111,0.27777778],[15.578947,0.38947368],[23.297297,0.46486486],[31.742857,0.52857143],[41.068966,0.5862069],[50.782609,0.63478261],[61.162791,0.67906977],[71.192,0.712],[82.096154,0.74615385],[92.444444,0.77037037],[112.07416,0.7995365],[131.096774,0.81935484],[151.636364,0.84242424],[172.05,0.86],[193.235294,0.87843137],[214.153846,0.89230769],[236.529412,0.90980392]]},
+{"model":"RS-2301","name":"Chest Press","coef":[[4.545455,0.3030303],[9.0,0.36],[13.432432,0.38378378],[25.487805,0.46341463],[36.666667,0.48888889],[50.408163,0.53061224],[60.754717,0.52830189],[73.453125,0.54375],[85.864583,0.55416667],[99.09434,0.56603774],[112.503067,0.57668712],[126.068966,0.5862069],[139.802632,0.59473684],[153.415385,0.60307692],[167.571429,0.60952381],[181.618421,0.61578947],[195.756757,0.62162162],[210.0,0.62666667]],"coefAddOn":[[6.117647,0.30588235],[10.847222,0.36111111],[15.355263,0.38421053],[27.966667,0.46666667],[39.285714,0.49142857],[52.8,0.528],[63.111111,0.52592593],[75.780488,0.54146341],[88.774194,0.55483871],[102.083333,0.56666667],[115.406504,0.57723577],[129.0,0.58666667],[142.802632,0.59473684],[156.415385,0.60307692],[170.604651,0.60930233],[184.627451,0.61568627],[198.825758,0.62121212],[213.0,0.62666667]],"overrides":{"11":{"0":112},"14":{"0":154}},"overridesAddOn":{"14":{"0":157}}},
+{"model":"RS-2302","name":"Pec Fly","coef":[[0.636364,0.04242424],[1.671875,0.06875],[3.216216,0.09189189],[5.307692,0.11794872],[7.514634,0.13658537],[10.016667,0.15333333],[12.681818,0.16883117],[15.191489,0.1787234],[18.226531,0.19183673],[20.92584,0.2004635],[23.867925,0.20754717],[29.338235,0.21764706],[34.557377,0.22295082],[39.846154,0.22769231],[45.782609,0.23478261],[51.255319,0.23829787],[57.389706,0.24411765],[63.653061,0.24897959]],"coefAddOn":[[0.838235,0.04117647],[2.0,0.06666667],[3.789474,0.09473684],[5.752212,0.11504425],[8.297619,0.13809524],[10.840909,0.15454545],[13.217391,0.16521739],[16.103448,0.17931034],[19.208,0.192],[21.92584,0.2004635],[24.888889,0.20740741],[30.391304,0.2173913],[35.579545,0.22272727],[41.454545,0.23030303],[46.857143,0.23428571],[52.913043,0.24057971],[58.421875,0.24375],[64.682927,0.24878049]]},
+{"model":"RS-2401","name":"Leg Extension","coef":[[6.541667,0.21666667],[9.684211,0.24210526],[13.297297,0.26486486],[18.285714,0.3047619],[23.302632,0.33157895],[28.521739,0.35652174],[33.414634,0.37073171],[38.81,0.388],[44.03708,0.39976825],[49.361111,0.41111111],[54.803571,0.42142857],[64.525,0.43],[74.40625,0.4375],[84.389706,0.44411765],[93.881579,0.44736842],[104.105263,0.45263158],[114.317308,0.45769231],[124.06383,0.45957447]],"coefAddOn":[[7.567568,0.21621622],[11.076923,0.24615385],[14.756098,0.26829268],[19.953488,0.30697674],[25.0,0.33333333],[30.382979,0.35744681],[35.285714,0.37142857],[40.764706,0.38823529],[46.03708,0.39976825],[51.363636,0.41090909],[56.842105,0.42105263],[66.602941,0.42941176],[76.486842,0.43684211],[86.478261,0.44347826],[96.653061,0.44897959],[106.222222,0.45185185],[116.54717,0.45660377],[126.816327,0.46122449]],"overridesAddOn":{"17":{"0":116}}},
+{"model":"RS-2402","name":"Leg Curl","coef":[[5.5,0.18333333],[9.684211,0.24210526],[14.272727,0.28484848],[20.585714,0.34285714],[27.056818,0.38636364],[34.086957,0.42608696],[41.270833,0.45833333],[49.21,0.492],[55.846154,0.50769231],[62.694444,0.52222222],[70.090909,0.53939394],[82.625,0.55],[95.65625,0.5625],[108.934211,0.57368421],[122.541667,0.58333333],[136.176471,0.59215686],[149.96292,0.60023175],[163.928571,0.60714286]],"coefAddOn":[[6.432432,0.18378378],[10.808824,0.24117647],[15.810606,0.28787879],[22.372093,0.34418605],[29.0,0.38666667],[36.170213,0.42553191],[43.428571,0.45714286],[51.470588,0.49019608],[58.150943,0.50566038],[65.485294,0.52352941],[72.473684,0.53684211],[84.845238,0.54761905],[97.96,0.56],[111.40625,0.57083333],[125.44898,0.58367347],[139.176471,0.59215686],[152.96292,0.60023175],[166.947368,0.60701754]],"overrides":{"1":{"360":72,"60":17,"180":39,"240":50},"18":{"360":382}}},
+{"model":"RS-2403","name":"Leg Press","coef":[[7.381579,0.18421053],[14.607143,0.24285714],[23.285714,0.29142857],[33.292683,0.33170732],[44.0,0.36666667],[55.739583,0.39583333],[67.610119,0.42261905],[80.204545,0.44545455],[93.259615,0.46538462],[106.419355,0.48387097],[120.25,0.5],[133.786765,0.51470588],[147.8,0.528],[162.05,0.54],[176.333333,0.55111111],[190.820896,0.56119403],[205.426471,0.57058824],[220.103448,0.57931034]],"coefAddOn":[[8.538462,0.18974359],[15.983333,0.24666667],[25.319149,0.29787234],[35.411765,0.3372549],[46.829787,0.37446809],[58.260417,0.40416667],[70.714286,0.42857143],[83.352941,0.45098039],[96.983333,0.47333333],[110.433962,0.49056604],[124.078125,0.50625],[137.881679,0.52061069],[152.033333,0.53333333],[166.2625,0.545],[181.315789,0.55789474],[195.83871,0.56774194],[210.503067,0.57668712],[225.2625,0.585]],"overrides":{"5":{"165":104,"195":115,"225":126}},"overridesAddOn":{"17":{"0":210}}},
+{"model":"RS-2406","name":"Inner Thigh","coef":[[0.838235,0.04117647],[2.361111,0.07777778],[4.210526,0.10526316],[7.05,0.14],[9.714286,0.16190476],[13.056818,0.18636364],[16.219512,0.20487805],[20.2875,0.225],[24.0,0.24],[28.371212,0.25757576],[32.448498,0.27038627],[36.6875,0.28214286],[41.046512,0.29302326],[46.0,0.30666667],[50.580645,0.31612903],[55.3125,0.325],[60.0,0.33333333],[65.372093,0.34418605]],"coefAddOn":[[0.96,0.04],[2.643243,0.07567568],[4.846154,0.10769231],[7.514634,0.13658537],[10.581395,0.1627907],[14.0,0.18666667],[17.22619,0.2047619],[21.326531,0.2244898],[25.141304,0.23913043],[29.564103,0.25641026],[33.64574,0.2690583],[38.368421,0.28421053],[42.7375,0.295],[47.770492,0.30819672],[51.857143,0.31428571],[57.097826,0.32608696],[61.734694,0.33469388],[67.25,0.34496124]]},
+{"model":"RS-2407","name":"Outer Thigh","coef":[[0.602941,0.02941176],[1.694444,0.05555556],[3.368421,0.08421053],[5.1,0.1],[7.428571,0.12380952],[9.875,0.14090909],[12.184783,0.15217391],[15.083333,0.16666667],[18.05,0.18],[21.173077,0.19230769],[24.322917,0.20416667],[27.378378,0.21081081],[30.896552,0.22068966],[34.525,0.23],[37.666667,0.23555556],[41.453125,0.24375],[45.258065,0.2516129],[48.6,0.256]],"coefAddOn":[[0.714286,0.02857143],[2.081081,0.05945946],[3.692308,0.08205128],[5.634146,0.10243902],[7.828947,0.12105263],[10.697368,0.14210526],[12.983333,0.15333333],[15.897959,0.16734694],[18.941176,0.18039216],[22.122066,0.19248826],[25.293706,0.2041958],[28.421053,0.21052632],[31.938776,0.22040816],[35.602941,0.22941176],[39.285714,0.23809524],[43.076923,0.24615385],[46.352941,0.25098039],[50.328947,0.25789474]]},
+{"model":"RS-2415","name":"Rotary Calf","coef":[[6.363636,0.42424242],[14.406504,0.57723577],[24.783784,0.70810811],[44.07416,0.7995365],[65.666667,0.87555556],[89.571429,0.94285714],[114.677083,0.99583333],[141.159649,1.04561404],[168.255319,1.08510638],[196.538462,1.12307692],[224.989437,1.15352113],[254.44898,1.18367347],[284.456897,1.21034483],[314.827586,1.23448276],[344.891892,1.25405405],[375.888889,1.27407407],[407.13587,1.2923913],[438.636364,1.30909091]],"coefAddOn":[[8.458824,0.42352941],[17.311111,0.57777778],[28.210526,0.70526316],[48.07416,0.7995365],[70.26087,0.87826087],[94.05,0.94],[119.706294,0.9958042],[146.2375,1.045],[173.923077,1.08717949],[201.818182,1.12121212],[230.857143,1.15428571],[260.432432,1.18378378],[290.461538,1.21025641],[320.878049,1.23414634],[351.627907,1.25581395],[382.666667,1.27555556],[413.921875,1.29375],[444.783784,1.30810811]]},
+{"model":"RS-2501","name":"Shoulder Press","coef":[[4.272727,0.28484848],[7.142857,0.28571429],[10.216216,0.29189189],[13.384615,0.2974359],[16.634146,0.30243902],[19.953488,0.30697674],[23.333333,0.31111111],[26.434211,0.31052632],[29.857143,0.31428571],[33.347059,0.31764706],[36.837209,0.32093023],[43.178571,0.31904762],[49.803279,0.32131148],[56.538462,0.32307692],[63.320755,0.3245283],[70.076087,0.32608696],[76.909091,0.32727273],[83.754717,0.32830189]],"coefAddOn":[[5.647059,0.28235294],[8.541667,0.28333333],[11.789474,0.29473684],[15.2,0.3],[18.285714,0.3047619],[21.329545,0.30454545],[24.706522,0.30869565],[28.15625,0.3125],[31.580645,0.31612903],[34.711538,0.31538462],[38.225926,0.31851852],[44.837209,0.32093023],[51.612903,0.32258065],[58.351351,0.32432432],[65.142857,0.32571429],[71.990385,0.32692308],[78.769231,0.32820513],[85.016667,0.32666667]]},
+{"model":"RS-2601","name":"Abdominals","coef":[[2.272727,0.15151515],[4.428571,0.17714286],[7.189189,0.20540541],[12.878049,0.23414634],[19.0,0.25333333],[25.979592,0.27346939],[33.415094,0.29056604],[41.210526,0.30526316],[49.298851,0.31800766],[57.617284,0.32921811],[66.130435,0.33913043],[74.798986,0.34797297],[83.014925,0.35323383],[91.922747,0.36051502],[100.943642,0.36705202],[110.043887,0.37304075],[119.227092,0.37848606],[128.473118,0.38351254]],"coefAddOn":[[3.058824,0.15294118],[5.333333,0.17777778],[8.213158,0.20526316],[14.016667,0.23333333],[20.518325,0.2565445],[27.597285,0.2760181],[35.113537,0.29257642],[42.482759,0.30344828],[50.580645,0.31612903],[58.909091,0.32727273],[67.428571,0.33714286],[76.108108,0.34594595],[84.923077,0.35384615],[93.853659,0.36097561],[102.883721,0.36744186],[112.0,0.37333333],[121.191489,0.3787234],[130.44898,0.38367347]]}
+];
+const HOIST_LB=2.20462;
+
+// Weight actually lifted (lb) at a level, for a body weight in lb: Hoist's
+// calculator, reproduced.
+function hoistActual(machine,level,bwLb,addOn=false){
+  const m=typeof machine==="string"?HOIST_MACHINES.find(x=>x.model===machine):machine;
+  const L=Number(level);if(!m||!Number.isInteger(L)||L<1||L>m.coef.length||!(bwLb>=0))return null;
+  const useAdd=addOn&&m.coefAddOn,bw=Math.floor(bwLb);
+  const ov=(useAdd?m.overridesAddOn:m.overrides)?.[L]?.[bw];
+  if(ov!=null)return ov;
+  const [a,b]=(useAdd?m.coefAddOn:m.coef)[L-1];
+  return Math.round(a+b*bw);
+}
+// The whole table (levels 1-18) at a body weight, in the shape the card uses.
+function hoistTableFor(model,bwLb,addOn=false){
+  const m=HOIST_MACHINES.find(x=>x.model===model);if(!m||!(bwLb>0))return null;
+  return m.coef.map((_,i)=>({level:i+1,lb:hoistActual(m,i+1,bwLb,addOn)}));
+}
+function hoistHasAddOn(model){return !!HOIST_MACHINES.find(x=>x.model===model)?.coefAddOn;}
+
+// Best guess at the machine for an exercise name (the user confirms it).
+const HOIST_WORDS=[
+  [/leg\s*curl/i,"Leg Curl"],[/leg\s*ext/i,"Leg Extension"],[/leg\s*press/i,"Leg Press"],
+  [/inner\s*thigh|adduct/i,"Inner Thigh"],[/outer\s*thigh|abduct/i,"Outer Thigh"],[/calf/i,"Rotary Calf"],
+  [/chest\s*press|incline.*press/i,"Chest Press"],[/pec|fly/i,"Pec Fly"],[/shoulder\s*press/i,"Shoulder Press"],
+  [/pulldown|lat\b/i,"Lat Pulldown"],[/row/i,"Seated Mid Row"],[/bicep|curl/i,"Biceps Curl"],
+  [/\bdip\b/i,"Seated Dip"],[/ab(s|dominal)?\b|crunch/i,"Abdominals"],[/low\s*back|back\s*ext/i,"Low Back"],
+];
+// Free weights, cables and bands never run on a ROC-IT machine (Nov 13: only
+// the real matches are offered, so a wrist curl can't pick the Biceps Curl).
+const HOIST_NOT=/dumbbell|\bdb\b|cable|barbell|band|hammer|wrist|straight arm|kickback|rope|tricep extension/i;
+function suggestHoist(exName){
+  if(HOIST_NOT.test(String(exName||"")))return[];
+  const hit=HOIST_WORDS.find(([rx])=>rx.test(String(exName||"")));
+  return hit?HOIST_MACHINES.filter(m=>m.name===hit[1]):[];
+}
+function hoistName(model){const m=HOIST_MACHINES.find(x=>x.model===model);return m?`${m.model} ${m.name}`:model;}
+
+// Weight (lb) at a level, from a fetched table.
+function hoistLb(table,level){const r=(table||[]).find(x=>x.level===Number(level));return r?r.lb:null;}
+// The level for a target weight: the heaviest level at or under the target
+// (+2 lb of slack for rounding), never below level 1.
+function hoistLevelFor(table,targetLb){
+  if(!table||!table.length||!(targetLb>0))return null;
+  const ok=table.filter(x=>x.lb<=targetLb+2);
+  return (ok.length?ok[ok.length-1]:table[0]).level;
+}
+// Body weight the tables are computed at: kept until the current weight has
+// moved 2 kg from it, so the levels don't reshuffle with daily water swings.
+function hoistBodyKg(currentKg,storedKg){
+  if(!(currentKg>0))return storedKg>0?storedKg:null;
+  if(storedKg>0&&Math.abs(currentKg-storedKg)<2)return storedKg;
+  return Math.round(currentKg*2)/2;
+}
+
+
 
 
 const Q=[
@@ -3768,6 +3959,7 @@ window.checkSyncNow = checkSyncNow;
 
 
 
+
 function fetchT(url, opts, ms = 15000) {
   const ac = new AbortController();
   const t = setTimeout(() => ac.abort(), ms);
@@ -3805,10 +3997,100 @@ function defaultUnit(exId){
 function toggleExUnit(key,exId){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
+  if(getHoist(key,exId))return; // Level mode: the Machine dropdown switches back
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
   save();queueSession(key,exId);reCard(key,exId);
+}
+// The Machine dropdown on every gym card (Nov 13, the user: "it should be
+// regular or hoist machine; if I select a hoist machine it should switch").
+// "" = Regular (kg/lbs boxes); a model = Hoist Level boxes.
+function setMachine(key,exId,model){
+  const S=ctx.getS();if(ctx.isReadOnly(key))return;
+  if(model){setHoistModel(key,exId,model);return;}
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  const ed=S.sessions[key][exId];
+  ed.hoist="";hoistMapSet(exId,null);
+  // Unticked sets go back to plain weight boxes; ticked ones keep what was lifted.
+  (ed.sets||[]).forEach(sd=>{if(sd&&!sd.done&&sd.level!=null){delete sd.level;delete sd.hoist;delete sd.bwLb;delete sd.addOn;}});
+  save();queueSession(key,exId);reCard(key,exId);
+}
+function machineSelectHtml(key,ex,model,rdOnly){
+  // Only the Hoist machines that match this exercise (Nov 13, the user: "only
+  // best match should be available"), plus one already in use. None: no row.
+  const opts=suggestHoist(ex.name);
+  if(model&&!opts.some(m=>m.model===model)){const cur=HOIST_MACHINES.find(m=>m.model===model);if(cur)opts.push(cur);}
+  if(!opts.length)return"";
+  const opt=m=>`<option value="${m.model}"${m.model===model?" selected":""}>${esc("Hoist "+m.model+" "+m.name)}</option>`;
+  return`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Machine</label><span class="hoist-selwrap"><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setMachine('${key}','${ex.id}',this.value)"><option value=""${model?"":" selected"}>Regular (weight in kg or lbs)</option>${opts.map(opt).join("")}</select></span>`;
+}
+
+// ── HOIST MODE (Nov 12) ──
+// The weight box takes the machine's pin LEVEL; the set stores the real
+// weight lifted (lb, from Hoist's table at the user's body weight) as its
+// weight, plus level/hoist/bwLb, so PRs, working weight, the unit check, the
+// weekly plan and the email all keep working on real weights. The machine for
+// an exercise lives on its logged sets (synced) and in a per-device map.
+function hoistLS(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;}}
+function hoistLSSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}}
+function hoistMapGet(exId){return hoistLS("f5_hoist_map",{})[canonicalId(exId)]||null;}
+function hoistMapSet(exId,model){const m=hoistLS("f5_hoist_map",{});if(model)m[canonicalId(exId)]=model;else delete m[canonicalId(exId)];hoistLSSet("f5_hoist_map",m);}
+function getHoist(key,exId){
+  const ed=ctx.getS().sessions[key]?.[exId];
+  if(ed&&ed.hoist!==undefined)return ed.hoist||null;
+  const fromSets=(ed?.sets||[]).find(x=>x&&x.hoist)?.hoist;
+  if(fromSets)return fromSets;
+  if(ed&&(ed.sets||[]).some(x=>x&&x.weight))return null;
+  const last=lastSessionEx(exId);
+  if(last?.hoist)return last.hoist;
+  return hoistMapGet(exId);
+}
+// The body weight (kg) tables are computed at; moves only in 2 kg steps.
+function hoistBodyNow(){
+  const cur=sevenDayAvg(isoToday())??latestWeightLog();
+  const st=hoistLS("f5_hoist_bw",null);
+  const kg=hoistBodyKg(cur,st);
+  if(kg&&kg!==st)hoistLSSet("f5_hoist_bw",kg);
+  return kg;
+}
+// RS-2000 machines can have Hoist's 5 lb add-on weight fitted (a different
+// table). Per machine, per device: it is a property of the gym's machine.
+function hoistAddOn(model){return hoistHasAddOn(model)&&!!hoistLS("f5_hoist_addon",{})[model];}
+// The table for a machine at the current body weight, computed on the device
+// from Hoist's constants (src/hoist.js): no network, so it works at the gym.
+function hoistTable(model){
+  const kg=hoistBodyNow();if(!model||!kg)return null;
+  return hoistTableFor(model,Math.round(kg*HOIST_LB),hoistAddOn(model));
+}
+function setHoistAddOn(key,exId,model,on){
+  const a=hoistLS("f5_hoist_addon",{});if(on)a[model]=true;else delete a[model];hoistLSSet("f5_hoist_addon",a);
+  setHoistModel(key,exId,model);
+}
+function setHoistModel(key,exId,model){
+  const S=ctx.getS();if(ctx.isReadOnly(key))return;
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  const ed=S.sessions[key][exId];ed.hoist=model;ed.unit="lbs";hoistMapSet(exId,model);
+  const tbl=hoistTable(model);
+  (ed.sets||[]).forEach(sd=>{if(sd&&sd.level!=null&&sd.level!==""&&!sd.done){sd.hoist=model;sd.addOn=hoistAddOn(model)||undefined;const lb=hoistLb(tbl,sd.level);sd.weight=lb!=null?String(lb):"";}});
+  save();queueSession(key,exId);reCard(key,exId);
+}
+// A typed level -> the set's real weight. Without a table yet the weight stays
+// empty, so the set cannot be ticked with a made-up number.
+function hoistApply(key,exId,sd,level){
+  const model=getHoist(key,exId),tbl=hoistTable(model),kg=hoistBodyNow();
+  sd.level=String(level||"").trim();sd.hoist=model;sd.bwLb=kg?Math.round(kg*HOIST_LB):null;sd.addOn=hoistAddOn(model)||undefined;
+  const lb=sd.level?hoistLb(tbl,sd.level):null;
+  sd.weight=lb!=null?String(lb):"";
+  return lb;
+}
+function hoistEqText(model,tbl,level){
+  if(level==null||level==="")return"";
+  if(!tbl)return"Log a weigh-in to work out the weight";
+  const lb=hoistLb(tbl,level);
+  return lb!=null?`Level ${level} = ${lb} lb (${Math.round(lb*LB_TO_KG)} kg)`:`No level ${level} on this machine`;
 }
 // Placeholder for the weight box. The box already prints its unit (.wt-wrap),
 // so the hint carries numbers only, converted when the box is in lbs: it used
@@ -3857,7 +4139,7 @@ function lastSessionEx(exId){
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
   // The set to beat: best by estimated 1RM, so weight and reps both count.
   const top=kgSets.reduce((b,s)=>!b||epley1RM(s.kg,s.reps)>epley1RM(b.kg,b.reps)?s:b,null);
-  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
+  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top,hoist:best.sets.find(s=>s.hoist)?.hoist||null};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
 // Rounded DOWN to a loadable step: a working target must never round up past
@@ -4348,6 +4630,10 @@ function card(ex,sess,key,rdOnly=false){
   // Flare mode: 75% of the working weight, never an increase.
   const _work=_work0&&_flare?{kg:_work0.kg*FLARE_LOAD,reps:_work0.reps,held:false}:_work0;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
+  // Hoist: the target as the pin level whose real weight is closest at or under it.
+  const _hModel=ex.cat==="gym"?getHoist(key,ex.id):null;
+  const _hTbl=_hModel?hoistTable(_hModel):null;
+  const _hLvl=_hModel&&_hTbl&&_work?hoistLevelFor(_hTbl,_work.kg/LB_TO_KG):null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
 
@@ -4357,7 +4643,7 @@ function card(ex,sess,key,rdOnly=false){
   const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
   // Overload badge, in its own span so it can be refreshed in place.
-  const olBadge=ex.sets>1?`<span id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</span>`:"";
+  const olBadge=ex.sets>1?`<div class="ex-cmp" id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</div>`:"";
 
   let body="";
   if(ex.cat==="cardio"){
@@ -4368,7 +4654,10 @@ function card(ex,sess,key,rdOnly=false){
   } else {
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
-    let rows=`<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
+    const _bwKg=_hModel?hoistBodyNow():null;
+    const _mSel=ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"";
+    let rows=_mSel+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(_mSel?"</div>":"")+
+      `<div class="set-hdr"><div>Set</div><div>${_hModel?`<span class="unit-chip">Level</span>`:`<button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button>`}</div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
@@ -4381,14 +4670,15 @@ function card(ex,sess,key,rdOnly=false){
         // one-set best: same number in the same unit as it was typed.
         if(target){const held=lastSetsForCarry.kgSets.find(s=>s.kg===_work.kg);weightVal=held&&_work.held&&lastSetsForCarry.unit===exUnit?Number(held.raw):target.w;}
       }
+      if(_hModel)weightVal=sd.level!=null&&sd.level!==""?sd.level:(!rdOnly&&!sd.weight&&_hLvl?_hLvl:"");
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(ex.hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
+        <span class="wt-wrap" data-unit="${_hModel?"lvl":exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="${_hModel?"numeric":"decimal"}" enterkeyhint="next" placeholder="${_hModel?"-":(hintDisp(ex.hint,exUnit)||exUnit)}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'${_hModel?"level":"weight"}',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
         ${rdOnly?'<div></div>':`<button class="sdel" onclick="delSet('${key}','${ex.id}',${i})" aria-label="Delete set ${i+1}" title="Delete set ${i+1}">${icon("trash",15)}</button>`}
-      </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
+      </div>${_hModel?`<div class="hoist-eq" id="he-${ex.id}-${i}">${esc(hoistEqText(_hModel,_hTbl,weightVal))}</div>`:""}<div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
@@ -4398,8 +4688,8 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
-      <div class="ex-right"><span class="ex-hint">${target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
+      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}</div>`;})()}</div>
+      <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;
@@ -4447,7 +4737,10 @@ function saveF(key,exId,i,field,val){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
   ensure(key,exId,i);
-  S.sessions[key][exId].sets[i][field]=val;
+  if(field==="level"){
+    const sd0=S.sessions[key][exId].sets[i];hoistApply(key,exId,sd0,val);
+    const eq=document.getElementById("he-"+exId+"-"+i);if(eq)eq.textContent=hoistEqText(sd0.hoist,hoistTable(sd0.hoist),sd0.level);
+  }else S.sessions[key][exId].sets[i][field]=val;
   S.sessions[key][exId].sets[i].attempted=true;
   updateExerciseDone(key,exId);
   save();queueSession(key,exId);
@@ -4490,9 +4783,11 @@ function toggleSet(key,exId,i){
   // empty and tapping done immediately must invalidate completeness too,
   // not silently keep whatever was committed before.
   const wEl=document.getElementById(`wi-${exId}-${i}`),rEl=document.getElementById(`ri-${exId}-${i}`);
-  if(wEl)sd.weight=wEl.value.trim();
+  const _hm=getHoist(key,exId);
+  if(wEl){if(_hm)hoistApply(key,exId,sd,wEl.value);else sd.weight=wEl.value.trim();}
   if(rEl)sd.reps=rEl.value.trim();
-  if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
+  if(_hm&&sd.level&&!sd.weight){showToast(hoistEqText(_hm,hoistTable(_hm),sd.level)||"Enter the level first");return;}
+  if(!sd.weight||!sd.reps){showToast(_hm?"Enter the level and reps first":"Enter weight and reps first");return;}
   const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   if(!sd.done&&!sd.unitOk)checkUnitOnLog(key,exId,i,sd,ex,wEl);
@@ -4691,7 +4986,9 @@ function delSet(key,exId,i){
 
 function olBadgeHtml(exId,sess){
   const dir=overloadDir(exId,sess);
-  return dir==="up"?`<span class="ol-up">↑</span>`:dir==="down"?`<span class="ol-down">↓</span>`:dir==="eq"?`<span class="ol-eq">=</span>`:"";
+  // Said in words (Nov 12, the user read the bare up arrow as "new PR"): it
+  // compares this session's best set with LAST session's, nothing more.
+  return dir==="up"?`<span class="ol-up">Beat last time</span>`:dir==="down"?`<span class="ol-down">Below last time</span>`:dir==="eq"?`<span class="ol-eq">Same as last time</span>`:"";
 }
 // Refresh just the up/down/equal arrow. reCard() skips the whole card while an
 // input inside it has focus (so the iOS keyboard is not dismissed mid-entry),
@@ -5241,11 +5538,16 @@ function prHint(exId,i){
   // (always). Without this the hint read 120 lbs as "160kg est. 1RM" and, worse,
   // compared that inflated number against the real kg PR, so it announced a new
   // PR on a lift that was nowhere near one.
-  const w=toKg(raw,getExUnit(ctx.sk(ctx.cDay),exId));
+  const _k=ctx.sk(ctx.cDay),_hm=getHoist(_k,exId);
+  if(_hm){const tb=hoistTable(_hm),eq=document.getElementById("he-"+exId+"-"+i);if(eq)eq.textContent=hoistEqText(_hm,tb,document.getElementById("wi-"+exId+"-"+i)?.value);}
+  const w=_hm?(hoistLb(hoistTable(_hm),raw)!=null?hoistLb(hoistTable(_hm),raw)*LB_TO_KG:0):toKg(raw,getExUnit(_k,exId));
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>Est. 1RM: '+est+'kg · new PR!</span>':"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  // Shown in the box's unit (Nov 12: "51kg (PR: 87kg)" beside a box in lbs
+  // read as nonsense); the comparison itself stays in kg.
+  const u=_hm||getExUnit(_k,exId)==="lbs"?"lbs":"kg",lu=u==="lbs"?"lb":"kg",show=x=>Math.round(inUnit(x,u));
+  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>New best: est. max '+show(est)+' '+lu+'</span>':"Est. max "+show(est)+" "+lu+", your best "+show(prev.est)+" "+lu):"Est. max "+show(est)+" "+lu;
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps,unit){
@@ -5317,6 +5619,25 @@ function longestWeekStreak(){
   for(let w=104;w>=0;w--){if(weekQualifies(shiftIso(mon,-7*w))){run++;if(run>best)best=run;}else if(w>0)run=0;}
   return best;
 }
+// ── A 5 kg phase reached: the celebration (Nov 10) ──
+// Once per phase ("phase:<id>" in shownWeight5kg, synced), on the rule the
+// card uses (phaseReached: 3-day average at or under the target). Also run on
+// its own after the first server pull, because weigh-ins arrive from
+// HealthKit without a tap; the other milestones stay tap-triggered.
+function checkPhaseCelebration(){
+  const S=ctx.getS(),today=isoToday();
+  if(!S.milestones)return false;
+  S.milestones.shownWeight5kg=S.milestones.shownWeight5kg||[];
+  for(const p of PHASES.filter(x=>/^p5_/.test(x.id))){
+    const tag="phase:"+p.id;
+    if(S.milestones.shownWeight5kg.includes(tag)||today<p.start)continue;
+    const r=phaseReached(p,today);if(!r)continue;
+    S.milestones.shownWeight5kg.push(tag);save();queueMilestones();
+    showCelebration(...phaseCelebration(p,r));
+    return true;
+  }
+  return false;
+}
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
@@ -5343,11 +5664,15 @@ function checkMilestones(){
     const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=pt;}).every(Boolean);
     if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩",`7 Days of ${pt}g+ Protein`,"Consistent fuelling = consistent results.");}
   }
+  if(checkPhaseCelebration())return; // one pop-up at a time
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
+  // Thresholds that are a 5 kg phase target get the celebration above instead.
+  const phaseKg=new Set(PHASES.filter(x=>/^p5_/.test(x.id)).map(x=>x.targetKg));
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
   if(wtEntries.length){
     const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
     for(const t of [90,95,100,105,110,115,120,125,130,135]){
+      if(phaseKg.has(t))continue;
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();queueMilestones();
         showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
@@ -5357,11 +5682,43 @@ function checkMilestones(){
   }
 }
 
+// The words for a reached phase: what was done, how early, what is next, and
+// something kind that is true (the comeback from six months in bed in 2025).
+function phaseCelebration(p,r){
+  const P5=PHASES.filter(x=>/^p5_/.test(x.id)),i=P5.indexOf(p),n=P5.length,next=P5[i+1];
+  const first=P5[0].startKg,total=Math.round((first-r.avg)*10)/10;
+  const early=r.daysEarly>0?`${r.daysEarly} day${r.daysEarly===1?"":"s"} early`:"right on time";
+  // "Ahead" from the latest weigh-in, as the card's "Ahead 0.9 kg" chip reads.
+  const latest=Number(Object.entries(ctx.getS().nutrition?.weights||{}).filter(([,v])=>!isNaN(Number(v))).sort(([a],[b])=>b.localeCompare(a))[0]?.[1]??r.avg);
+  const ahead=Math.round((phaseCurveKg(p,isoToday())-latest)*10)/10;
+  const stats=[["Weight",`${p.startKg} to ${r.avg} kg`],["Took",`${r.days} days, ${early}`],["Down since October",`${total} kg`]];
+  if(next)stats.push(["Next",`${next.targetKg} kg by ${fmtDate(next.plannedEnd)}`]);
+  const aheadTxt=ahead>0.05?` You start the next phase ${ahead.toFixed(1)} kg ahead of the line, a cushion for the weeks that don't go to plan.`:"";
+  const WORDS=[
+    `Five kilos. A year ago your back had you in bed. Now you are training six days a week and the scale is moving on schedule. That is not luck: it is every meal you logged and every session you showed up for.${aheadTxt}`,
+    `${total} kg down since October. The first five can come fast. The second five take consistency, and you just proved you have it.${aheadTxt}`,
+    `${total} kg down, and the holidays are next. You don't need to be perfect over them, just keep logging. A logged bad day is still a day you were in charge of.${aheadTxt}`,
+    `110 kg, straight through the holidays. ${total} kg down since October, and the hardest stretch of the year is behind you.${aheadTxt}`,
+    `${total} kg down. Your back now carries ${total} kg less into every session, every staircase, every morning. Keep going.${aheadTxt}`,
+    `100 kg. Two digits are next. ${total} kg down since October, and one phase left.${aheadTxt}`,
+    `95 kg. You set a hard goal in October, kept to the plan through a back flare and a winter, and hit it. ${total} kg down. Be proud of this one.`,
+  ];
+  const title=i===n-1?"Goal reached":`Phase ${i+1} complete`;
+  const sub=i===n-1?`95 kg, ${early}.`:`${p.targetKg} kg reached, ${early}.`;
+  return[title,sub,stats,WORDS[Math.min(i,WORDS.length-1)]];
+}
+
 // Expose to ctx for main.js to use
 ctx.renderW=renderW;
+// After the first server pull: weigh-ins usually arrive from HealthKit, not a
+// tap, so a phase reached overnight is celebrated on the next launch.
+ctx.checkPhaseCelebration=checkPhaseCelebration;
 
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
+window.setHoistModel=setHoistModel;
+window.setMachine=setMachine;
+window.setHoistAddOn=setHoistAddOn;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;
 window.expand=expand;
@@ -5791,9 +6148,22 @@ function renderNutrition(){
   const overKcal=Math.max(0,consumed-finalTarget);
   const extraBurn=(phase&&!shock)?Math.max(0,Math.round((active-phaseActiveTarget(phase,date))*activeMult(date))):0;
   const netOver=Math.max(0,overKcal-extraBurn);
-  const covered=overKcal>0&&netOver===0;
-  const pillCls=covered?"tpill-green":ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
-  const pillTxt=covered?"On track":ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
+  // The ring shows the DAY'S DEFICIT against what the plan needs today (Nov 10,
+  // the user picked "deficit in ring" over food-only: "+209 burned off" was
+  // confusing). Deficit = burn (resting + counted active) minus food, as the
+  // line under it always said; the plan figure is phaseDayDeficit (fixed
+  // 2,700 resting, the day's active and food targets). Food moves to a line.
+  // Today, before the budget is eaten, project the rest of it: counting the
+  // whole day's resting burn against only the food eaten so far read "On
+  // track" at 1 PM. Past days (and today once over budget) use what was eaten.
+  const projected=date===isoToday()&&consumed<finalTarget;
+  const defKcal=totalBurn-(projected?finalTarget:consumed);
+  const planDef=(phase&&!shock)?phaseDayDeficit(phase,date):null;
+  const ringPct=planDef?Math.max(0,Math.min(100,Math.round(defKcal/planDef*100))):pct;
+  const onPlan=planDef!=null&&defKcal>=planDef;
+  const pillCls=onPlan||(planDef==null&&ratio<=1.1)?"tpill-green":netOver>0?"tpill-red":"tpill-amber";
+  const pillTxt=planDef==null?(ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target")
+    :onPlan?"On track":netOver>0?"Over target":date<isoToday()?"Short of plan":"In progress";
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g, C ${it.carbs||0}g, F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
@@ -5831,16 +6201,16 @@ function renderNutrition(){
         <svg width="128" height="128" viewBox="0 0 128 128">
           <circle cx="64" cy="64" r="56" fill="none" stroke="var(--hero-line)" stroke-width="10"/>
           <circle cx="64" cy="64" r="56" fill="none" stroke="var(--hero-accent)" stroke-width="10" stroke-linecap="round"
-            stroke-dasharray="351.86" stroke-dashoffset="${(351.86*(1-Math.min(pct,100)/100)).toFixed(1)}"
+            stroke-dasharray="351.86" stroke-dashoffset="${(351.86*(1-Math.min(ringPct,100)/100)).toFixed(1)}"
             transform="rotate(-90 64 64)" class="nut-ring-fill"/>
         </svg>
         <div class="nut-ring-text">
-          <div class="nut-ring-big">${consumed>finalTarget?"+"+(consumed-finalTarget).toLocaleString():remaining.toLocaleString()}</div>
-          <div class="nut-ring-small">${covered?"burned off":consumed>finalTarget?"kcal over":"kcal remaining"}</div>
+          <div class="nut-ring-big">${defKcal>=0?defKcal.toLocaleString():"+"+(-defKcal).toLocaleString()}</div>
+          <div class="nut-ring-small">${projected?(defKcal>=0?"projected deficit":"projected surplus"):defKcal>=0?"kcal deficit":"kcal surplus"}</div>
+          ${planDef!=null?`<div class="nut-ring-sub">plan: ${planDef.toLocaleString()}</div>`:""}
         </div>
       </div>
-      <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten, ${finalTarget.toLocaleString()} target${shock?", shock day":""}</div>
-      <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
+      <div class="food-line"><b>Food:</b> ${consumed.toLocaleString()} of ${finalTarget.toLocaleString()}, ${overKcal>0?`${overKcal.toLocaleString()} kcal over`:`${remaining.toLocaleString()} kcal remaining`}${shock?", shock day":""}</div>
       ${phase?(()=>{
         // Active compliance: how much active is ACTUALLY still needed today,
         // not the planned target assuming you eat the full budget. The
@@ -5853,7 +6223,7 @@ function renderNutrition(){
         // the workout/rest split stays intact since plannedTgt already
         // reflects which kind of day this is.
         const plannedTgt=phaseActiveTarget(phase,date);
-        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-eatKcalFor(phase,date))/activeMult(date)));
+        const aTgt=Math.max(0,Math.round(plannedTgt+((projected?finalTarget:consumed)-eatKcalFor(phase,date))/activeMult(date)));
         const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
@@ -5862,7 +6232,6 @@ function renderNutrition(){
         return met?`<div class="act-line act-met">${icon("bolt",18)} Active target met: ${active.toLocaleString()} of ${aTgt.toLocaleString()} (${lbl})</div>`
           :`<div class="act-line">${icon("bolt",18)} <b>Active: ${remain.toLocaleString()} to go</b> <span>${active.toLocaleString()} of ${aTgt.toLocaleString()}, ${aPct}% (${lbl})</span></div>`;
       })():""}
-      ${covered?`<div class="cover-note">${overKcal.toLocaleString()} kcal over on food, burned off by extra activity. Today's deficit is on plan.</div>`:""}
       ${netOver>0&&items.length?(()=>{const big=items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0];const pl=Math.max(0,pTarget-Math.round(protein));
         return gapNote(extraBurn>0?`${netOver.toLocaleString()} kcal over after activity`:`${overKcal.toLocaleString()} kcal over`,`${extraBurn>0?`${overKcal.toLocaleString()} over on food, ${extraBurn.toLocaleString()} burned off by extra activity. `:""}Biggest item: ${esc(big.name)}, ${Math.round(big.kcal).toLocaleString()} kcal.${pl>=20?` Protein ${pl} g short.`:""}`);})():""}
       ${macroPie(protein,carbs,fat,fibre)}
@@ -6427,7 +6796,15 @@ function phaseCardHtml(){
   // Days are inclusive: a phase from Oct 26 to Nov 15 has 21 of them.
   const spanDays=totalDays+1;
   const dayIn=Math.min(Math.max(daysBetween(p.start,t)+1,1),spanDays);
-  const pctDone=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  // The bar is WEIGHT lost toward the target (Nov 10), from the 3-day average
+  // (else the latest weigh-in), not the share of days gone; days without any
+  // weigh-in fall back to days.
+  const reachedP=phaseReached(p,t);
+  const wNow=avg3(t)??latestWeightLog();
+  const pctDone=reachedP?100:wNow!=null&&p.startKg>p.targetKg?Math.round(Math.min(100,Math.max(0,(p.startKg-wNow)/(p.startKg-p.targetKg)*100)))
+    :Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  const lostNow=wNow!=null?Math.round(Math.max(0,p.startKg-wNow)*10)/10:null;
+  const todayKg=S.nutrition?.weights?.[t]!=null?Number(S.nutrition.weights[t]):null;
   const avg=sevenDayAvg(t);
   const cor=phaseCorridor(p,t);
   const health=phaseHealth(p,t);
@@ -6447,7 +6824,7 @@ function phaseCardHtml(){
   const lostPct=lost!=null?Math.round(lost/p.startKg*1000)/10:null;
 
   // Milestones (5-kg thresholds, shared list with checkMilestones)
-  const reached=(S.milestones?.shownWeight5kg||[]).slice().sort((a,b)=>a-b)[0];
+  const reached=(S.milestones?.shownWeight5kg||[]).filter(x=>typeof x==="number").sort((a,b)=>a-b)[0];
   const nextMs=cur!=null?[135,130,125,120,115,110,105,100,95,90].find(m=>m<cur):null;
 
   // Verdict (due once past effective end, or via Accept)
@@ -6502,7 +6879,7 @@ function phaseCardHtml(){
   const wkSunLbl=new Date(wkSun+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
   const wkGap=latestKg==null?null:Math.round((latestKg-wkGoal)*10)/10;
   const weekGoalHtml=gapRow(wkGap==null||wkGap>0?"open":"done","This week's goal",`${wkGoal.toFixed(1)} kg by Sun, ${wkSunLbl}`,
-    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`);
+    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:(Math.abs(wkGap)<0.05?`Reached at ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`));
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
@@ -6581,10 +6958,12 @@ function phaseCardHtml(){
     <summary><div><div>${icon("target",20)} ${esc(p.name||p.id.replace("_"," ").replace(/^p/,"P"))}</div><div class="st-acc-sub">${chipText}</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-        <span style="${nMuted}">Day ${dayIn} of ${spanDays}, ${p.startKg} to ${p.targetKg} kg by ${fmtD(end)}</span>
+        <span style="${nMuted}">${reachedP?`${icon("trophy",16)} Reached ${fmtD(reachedP.date)}, ${reachedP.daysEarly>0?`${reachedP.daysEarly} day${reachedP.daysEarly===1?"":"s"} early`:"on time"}. Next phase starts ${fmtD(addDaysIso(end,1))}.`
+          :`Day ${dayIn} of ${spanDays}, ${lostNow!=null?`${lostNow} of ${Math.round((p.startKg-p.targetKg)*10)/10} kg lost`:`${p.startKg} to ${p.targetKg} kg`} by ${fmtD(end)}`}</span>
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
-      <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      <div class="prog-bar-wrap" style="margin-bottom:${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?6:14}px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      ${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?`<div style="${nMuted};margin-bottom:14px">${todayKg.toFixed(1)} kg today. It counts once your 3-day average is at ${p.targetKg} kg, so one good reading isn't a fluke.</div>`:""}
       <div class="week-goal">${weekGoalHtml}</div>
       ${weightBlockHtml}
       ${rangeRowHtml}
@@ -8781,7 +9160,7 @@ function initApp(){
   // pre-write data and clobber it the moment the outbox empties.
   // Auto-plan runs AFTER the pull, so it sees the server's plans (another
   // device may already have generated this week's) and is not overwritten.
-  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).then(()=>ctx.maybeUnitReview?.()).catch(()=>{});
+  flushOutbox().then(()=>loadServerState(false)).then(()=>ctx.maybeAutoPlan?.()).then(()=>ctx.checkPhaseCelebration?.()).then(()=>ctx.maybeUnitReview?.()).catch(()=>{});
   // Backup nudge: data exists but no backup in 14+ days
   const hasData=Object.keys(S.sessions||{}).length>3;
   const staleBackup=!S._lastBackup||Date.now()-S._lastBackup>14*86400000;

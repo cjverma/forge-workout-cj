@@ -315,6 +315,28 @@ export function actualDeficit(dateIso){
 //
 // Derived from the phase definition rather than typed in as a constant, so it
 // can never contradict that phase's own startKg/targetKg/dates.
+// A phase's weight target is REACHED on the first day, inside the phase, where
+// the average of the weigh-ins logged that day and the two before (at least
+// two, including that day's) is at or under the target (Nov 10, the user hit
+// 125.0 on day 15 of 17: "your approach is right", one reading is not enough,
+// weight swings 0.5-1 kg with water and salt). The calendar never moves: the
+// next phase still starts the day after this one's planned end, so reaching
+// early banks the gap as "ahead of the line".
+export function avg3(dateIso,weights){
+  const ws=weights||phaseStore().nutrition?.weights||{};
+  if(ws[dateIso]==null||isNaN(Number(ws[dateIso])))return null;
+  const v=[0,1,2].map(i=>ws[addDaysIso(dateIso,-i)]).filter(x=>x!=null&&!isNaN(Number(x))).map(Number);
+  return v.length>=2?Math.round(v.reduce((a,b)=>a+b,0)/v.length*10)/10:null;
+}
+export function phaseReached(p,todayIso,weights){
+  if(!p)return null;
+  const t=todayIso||isoToday(),end=effectiveEnd(p,t),last=t<end?t:end;
+  for(let d=p.start;d<=last;d=addDaysIso(d,1)){
+    const a=avg3(d,weights);
+    if(a!=null&&a<=p.targetKg)return{date:d,avg:a,daysEarly:Math.max(0,daysBetween(d,end)),days:daysBetween(p.start,d)+1};
+  }
+  return null;
+}
 export function phaseRequiredDeficit(p){
   if(!p)return 0;
   const days=Math.max(1,daysBetween(p.start,p.plannedEnd)+1);

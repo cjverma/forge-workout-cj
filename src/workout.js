@@ -1,6 +1,7 @@
 import { ctx } from "./runtime.js";
-import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult } from "./phase.js";
-import { esc, fmtDate, showToast, showToastBig, showMilestone, mdLite, icon } from "./ui.js";
+import { isoToday, isoDate, proteinTargetG, phaseFor, phaseActiveTarget, eatKcalFor, activeMult, PHASES, phaseReached, phaseCurveKg, addDaysIso, sevenDayAvg, latestWeightLog } from "./phase.js";
+import { HOIST_MACHINES, HOIST_LB, suggestHoist, hoistLb, hoistLevelFor, hoistBodyKg, hoistTableFor, hoistHasAddOn } from "./hoist.js";
+import { esc, fmtDate, showToast, showToastBig, showMilestone, showCelebration, mdLite, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueSession, queueSessionMeta, queueMutation, queueMilestones } from "./sync.js";
 import { workingWeight, targetRepsOf, maxRepsOf } from "./plan.js";
@@ -44,10 +45,100 @@ function defaultUnit(exId){
 function toggleExUnit(key,exId){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
+  if(getHoist(key,exId))return; // Level mode: the Machine dropdown switches back
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
   S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
   save();queueSession(key,exId);reCard(key,exId);
+}
+// The Machine dropdown on every gym card (Nov 13, the user: "it should be
+// regular or hoist machine; if I select a hoist machine it should switch").
+// "" = Regular (kg/lbs boxes); a model = Hoist Level boxes.
+function setMachine(key,exId,model){
+  const S=ctx.getS();if(ctx.isReadOnly(key))return;
+  if(model){setHoistModel(key,exId,model);return;}
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  const ed=S.sessions[key][exId];
+  ed.hoist="";hoistMapSet(exId,null);
+  // Unticked sets go back to plain weight boxes; ticked ones keep what was lifted.
+  (ed.sets||[]).forEach(sd=>{if(sd&&!sd.done&&sd.level!=null){delete sd.level;delete sd.hoist;delete sd.bwLb;delete sd.addOn;}});
+  save();queueSession(key,exId);reCard(key,exId);
+}
+function machineSelectHtml(key,ex,model,rdOnly){
+  // Only the Hoist machines that match this exercise (Nov 13, the user: "only
+  // best match should be available"), plus one already in use. None: no row.
+  const opts=suggestHoist(ex.name);
+  if(model&&!opts.some(m=>m.model===model)){const cur=HOIST_MACHINES.find(m=>m.model===model);if(cur)opts.push(cur);}
+  if(!opts.length)return"";
+  const opt=m=>`<option value="${m.model}"${m.model===model?" selected":""}>${esc("Hoist "+m.model+" "+m.name)}</option>`;
+  return`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Machine</label><span class="hoist-selwrap"><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setMachine('${key}','${ex.id}',this.value)"><option value=""${model?"":" selected"}>Regular (weight in kg or lbs)</option>${opts.map(opt).join("")}</select></span>`;
+}
+
+// ── HOIST MODE (Nov 12) ──
+// The weight box takes the machine's pin LEVEL; the set stores the real
+// weight lifted (lb, from Hoist's table at the user's body weight) as its
+// weight, plus level/hoist/bwLb, so PRs, working weight, the unit check, the
+// weekly plan and the email all keep working on real weights. The machine for
+// an exercise lives on its logged sets (synced) and in a per-device map.
+function hoistLS(k,d){try{return JSON.parse(localStorage.getItem(k))??d;}catch(_){return d;}}
+function hoistLSSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));}catch(_){}}
+function hoistMapGet(exId){return hoistLS("f5_hoist_map",{})[canonicalId(exId)]||null;}
+function hoistMapSet(exId,model){const m=hoistLS("f5_hoist_map",{});if(model)m[canonicalId(exId)]=model;else delete m[canonicalId(exId)];hoistLSSet("f5_hoist_map",m);}
+function getHoist(key,exId){
+  const ed=ctx.getS().sessions[key]?.[exId];
+  if(ed&&ed.hoist!==undefined)return ed.hoist||null;
+  const fromSets=(ed?.sets||[]).find(x=>x&&x.hoist)?.hoist;
+  if(fromSets)return fromSets;
+  if(ed&&(ed.sets||[]).some(x=>x&&x.weight))return null;
+  const last=lastSessionEx(exId);
+  if(last?.hoist)return last.hoist;
+  return hoistMapGet(exId);
+}
+// The body weight (kg) tables are computed at; moves only in 2 kg steps.
+function hoistBodyNow(){
+  const cur=sevenDayAvg(isoToday())??latestWeightLog();
+  const st=hoistLS("f5_hoist_bw",null);
+  const kg=hoistBodyKg(cur,st);
+  if(kg&&kg!==st)hoistLSSet("f5_hoist_bw",kg);
+  return kg;
+}
+// RS-2000 machines can have Hoist's 5 lb add-on weight fitted (a different
+// table). Per machine, per device: it is a property of the gym's machine.
+function hoistAddOn(model){return hoistHasAddOn(model)&&!!hoistLS("f5_hoist_addon",{})[model];}
+// The table for a machine at the current body weight, computed on the device
+// from Hoist's constants (src/hoist.js): no network, so it works at the gym.
+function hoistTable(model){
+  const kg=hoistBodyNow();if(!model||!kg)return null;
+  return hoistTableFor(model,Math.round(kg*HOIST_LB),hoistAddOn(model));
+}
+function setHoistAddOn(key,exId,model,on){
+  const a=hoistLS("f5_hoist_addon",{});if(on)a[model]=true;else delete a[model];hoistLSSet("f5_hoist_addon",a);
+  setHoistModel(key,exId,model);
+}
+function setHoistModel(key,exId,model){
+  const S=ctx.getS();if(ctx.isReadOnly(key))return;
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  const ed=S.sessions[key][exId];ed.hoist=model;ed.unit="lbs";hoistMapSet(exId,model);
+  const tbl=hoistTable(model);
+  (ed.sets||[]).forEach(sd=>{if(sd&&sd.level!=null&&sd.level!==""&&!sd.done){sd.hoist=model;sd.addOn=hoistAddOn(model)||undefined;const lb=hoistLb(tbl,sd.level);sd.weight=lb!=null?String(lb):"";}});
+  save();queueSession(key,exId);reCard(key,exId);
+}
+// A typed level -> the set's real weight. Without a table yet the weight stays
+// empty, so the set cannot be ticked with a made-up number.
+function hoistApply(key,exId,sd,level){
+  const model=getHoist(key,exId),tbl=hoistTable(model),kg=hoistBodyNow();
+  sd.level=String(level||"").trim();sd.hoist=model;sd.bwLb=kg?Math.round(kg*HOIST_LB):null;sd.addOn=hoistAddOn(model)||undefined;
+  const lb=sd.level?hoistLb(tbl,sd.level):null;
+  sd.weight=lb!=null?String(lb):"";
+  return lb;
+}
+function hoistEqText(model,tbl,level){
+  if(level==null||level==="")return"";
+  if(!tbl)return"Log a weigh-in to work out the weight";
+  const lb=hoistLb(tbl,level);
+  return lb!=null?`Level ${level} = ${lb} lb (${Math.round(lb*LB_TO_KG)} kg)`:`No level ${level} on this machine`;
 }
 // Placeholder for the weight box. The box already prints its unit (.wt-wrap),
 // so the hint carries numbers only, converted when the box is in lbs: it used
@@ -96,7 +187,7 @@ function lastSessionEx(exId){
   const avgKg=kgSets.reduce((a,s)=>a+s.kg,0)/kgSets.length;
   // The set to beat: best by estimated 1RM, so weight and reps both count.
   const top=kgSets.reduce((b,s)=>!b||epley1RM(s.kg,s.reps)>epley1RM(b.kg,b.reps)?s:b,null);
-  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top};
+  return{weight:avgKg,reps,sets:best.sets,unit:best.unit,kgSets,top,hoist:best.sets.find(s=>s.hoist)?.hoist||null};
 }
 const inUnit=(kg,unit)=>unit==="lbs"?Math.round(kg/LB_TO_KG*10)/10:Math.round(kg*10)/10;
 // Rounded DOWN to a loadable step: a working target must never round up past
@@ -587,6 +678,10 @@ function card(ex,sess,key,rdOnly=false){
   // Flare mode: 75% of the working weight, never an increase.
   const _work=_work0&&_flare?{kg:_work0.kg*FLARE_LOAD,reps:_work0.reps,held:false}:_work0;
   const target=_work?{w:_work.held?inUnit(_work.kg,_tUnit):inUnitFloor(_work.kg,_tUnit),r:_work.reps}:null;
+  // Hoist: the target as the pin level whose real weight is closest at or under it.
+  const _hModel=ex.cat==="gym"?getHoist(key,ex.id):null;
+  const _hTbl=_hModel?hoistTable(_hModel):null;
+  const _hLvl=_hModel&&_hTbl&&_work?hoistLevelFor(_hTbl,_work.kg/LB_TO_KG):null;
   const url="https://www.youtube.com/results?search_query="+encodeURIComponent(ex.name+" form");
   const demo=demoHtml(ex.name,ex.muscles);
 
@@ -596,7 +691,7 @@ function card(ex,sess,key,rdOnly=false){
   const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
   // Overload badge, in its own span so it can be refreshed in place.
-  const olBadge=ex.sets>1?`<span id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</span>`:"";
+  const olBadge=ex.sets>1?`<div class="ex-cmp" id="ol-${ex.id}">${olBadgeHtml(ex.id,sess)}</div>`:"";
 
   let body="";
   if(ex.cat==="cardio"){
@@ -607,7 +702,10 @@ function card(ex,sess,key,rdOnly=false){
   } else {
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
-    let rows=`<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
+    const _bwKg=_hModel?hoistBodyNow():null;
+    const _mSel=ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"";
+    let rows=_mSel+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(_mSel?"</div>":"")+
+      `<div class="set-hdr"><div>Set</div><div>${_hModel?`<span class="unit-chip">Level</span>`:`<button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button>`}</div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
@@ -620,14 +718,15 @@ function card(ex,sess,key,rdOnly=false){
         // one-set best: same number in the same unit as it was typed.
         if(target){const held=lastSetsForCarry.kgSets.find(s=>s.kg===_work.kg);weightVal=held&&_work.held&&lastSetsForCarry.unit===exUnit?Number(held.raw):target.w;}
       }
+      if(_hModel)weightVal=sd.level!=null&&sd.level!==""?sd.level:(!rdOnly&&!sd.weight&&_hLvl?_hLvl:"");
       rows+=`<div class="set-row ${rCls}" id="sr-${ex.id}-${i}">
         <div class="sn">${i+1}</div>
-        <span class="wt-wrap" data-unit="${exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="decimal" enterkeyhint="next" placeholder="${hintDisp(ex.hint,exUnit)||exUnit}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'weight',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
+        <span class="wt-wrap" data-unit="${_hModel?"lvl":exUnit}"><input id="wi-${ex.id}-${i}" class="si" type="number" inputmode="${_hModel?"numeric":"decimal"}" enterkeyhint="next" placeholder="${_hModel?"-":(hintDisp(ex.hint,exUnit)||exUnit)}" value="${esc(String(weightVal||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'${_hModel?"level":"weight"}',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onWtKey(event,'${ex.id}',${i})" onfocus="this.select()"></span>
         <div class="sx">×</div>
         <input id="ri-${ex.id}-${i}" class="si" type="number" inputmode="numeric" enterkeyhint="done" placeholder="${typeof ex.reps==="number"?ex.reps:"-"}" value="${esc(String(sd.reps||""))}" ${rdOnly?'disabled':''} onchange="saveF('${key}','${ex.id}',${i},'reps',this.value)" oninput="prHint('${ex.id}',${i})" onkeydown="onRpKey(event)" onfocus="this.select()">
         <button class="sdone ${sd.done?"done":""} ${!hasD?"locked":""}" ${rdOnly?'disabled':''} onclick="toggleSet('${key}','${ex.id}',${i})" title="${!hasD?"Enter weight and reps first":"Done"}">${sd.done?"✓":"○"}</button>
         ${rdOnly?'<div></div>':`<button class="sdel" onclick="delSet('${key}','${ex.id}',${i})" aria-label="Delete set ${i+1}" title="Delete set ${i+1}">${icon("trash",15)}</button>`}
-      </div><div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
+      </div>${_hModel?`<div class="hoist-eq" id="he-${ex.id}-${i}">${esc(hoistEqText(_hModel,_hTbl,weightVal))}</div>`:""}<div id="pr-hint-${ex.id}-${i}" style="font-size:10px;min-height:14px;margin:-4px 0 4px;padding-right:4px;text-align:right;transition:color .2s"></div>`;
     }
     body=`${demo}<div class="cue-box">${cue}</div>
     <div class="action-row"><a class="watch-chip" href="${url}" target="_blank">Watch form</a>${!isDone&&!isSkip&&!rdOnly?`<button class="skip-btn" onclick="skipEx('${key}','${ex.id}')">Skip</button>`:""}</div>
@@ -637,8 +736,8 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${name}${olBadge}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${ghostHtml}${(()=>{const pr=bestPR(ex.id);return pr?`<div class="pr-badge">Best ${pr.weight} kg × ${pr.reps}, est. 1RM ${pr.est} kg</div>`:"";})()}</div>
-      <div class="ex-right"><span class="ex-hint">${target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
+      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}</div>`;})()}</div>
+      <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
   </div>`;
@@ -686,7 +785,10 @@ function saveF(key,exId,i,field,val){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
   ensure(key,exId,i);
-  S.sessions[key][exId].sets[i][field]=val;
+  if(field==="level"){
+    const sd0=S.sessions[key][exId].sets[i];hoistApply(key,exId,sd0,val);
+    const eq=document.getElementById("he-"+exId+"-"+i);if(eq)eq.textContent=hoistEqText(sd0.hoist,hoistTable(sd0.hoist),sd0.level);
+  }else S.sessions[key][exId].sets[i][field]=val;
   S.sessions[key][exId].sets[i].attempted=true;
   updateExerciseDone(key,exId);
   save();queueSession(key,exId);
@@ -729,9 +831,11 @@ function toggleSet(key,exId,i){
   // empty and tapping done immediately must invalidate completeness too,
   // not silently keep whatever was committed before.
   const wEl=document.getElementById(`wi-${exId}-${i}`),rEl=document.getElementById(`ri-${exId}-${i}`);
-  if(wEl)sd.weight=wEl.value.trim();
+  const _hm=getHoist(key,exId);
+  if(wEl){if(_hm)hoistApply(key,exId,sd,wEl.value);else sd.weight=wEl.value.trim();}
   if(rEl)sd.reps=rEl.value.trim();
-  if(!sd.weight||!sd.reps){showToast("Enter weight and reps first");return;}
+  if(_hm&&sd.level&&!sd.weight){showToast(hoistEqText(_hm,hoistTable(_hm),sd.level)||"Enter the level first");return;}
+  if(!sd.weight||!sd.reps){showToast(_hm?"Enter the level and reps first":"Enter weight and reps first");return;}
   const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
   if(!sd.done&&!sd.unitOk)checkUnitOnLog(key,exId,i,sd,ex,wEl);
@@ -930,7 +1034,9 @@ function delSet(key,exId,i){
 
 function olBadgeHtml(exId,sess){
   const dir=overloadDir(exId,sess);
-  return dir==="up"?`<span class="ol-up">↑</span>`:dir==="down"?`<span class="ol-down">↓</span>`:dir==="eq"?`<span class="ol-eq">=</span>`:"";
+  // Said in words (Nov 12, the user read the bare up arrow as "new PR"): it
+  // compares this session's best set with LAST session's, nothing more.
+  return dir==="up"?`<span class="ol-up">Beat last time</span>`:dir==="down"?`<span class="ol-down">Below last time</span>`:dir==="eq"?`<span class="ol-eq">Same as last time</span>`:"";
 }
 // Refresh just the up/down/equal arrow. reCard() skips the whole card while an
 // input inside it has focus (so the iOS keyboard is not dismissed mid-entry),
@@ -1480,11 +1586,16 @@ function prHint(exId,i){
   // (always). Without this the hint read 120 lbs as "160kg est. 1RM" and, worse,
   // compared that inflated number against the real kg PR, so it announced a new
   // PR on a lift that was nowhere near one.
-  const w=toKg(raw,getExUnit(ctx.sk(ctx.cDay),exId));
+  const _k=ctx.sk(ctx.cDay),_hm=getHoist(_k,exId);
+  if(_hm){const tb=hoistTable(_hm),eq=document.getElementById("he-"+exId+"-"+i);if(eq)eq.textContent=hoistEqText(_hm,tb,document.getElementById("wi-"+exId+"-"+i)?.value);}
+  const w=_hm?(hoistLb(hoistTable(_hm),raw)!=null?hoistLb(hoistTable(_hm),raw)*LB_TO_KG:0):toKg(raw,getExUnit(_k,exId));
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
   const prev=bestPR(exId);
-  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>Est. 1RM: '+est+'kg · new PR!</span>':"Est. 1RM: "+est+"kg (PR: "+prev.est+"kg)"):"Est. 1RM: "+est+"kg";
+  // Shown in the box's unit (Nov 12: "51kg (PR: 87kg)" beside a box in lbs
+  // read as nonsense); the comparison itself stays in kg.
+  const u=_hm||getExUnit(_k,exId)==="lbs"?"lbs":"kg",lu=u==="lbs"?"lb":"kg",show=x=>Math.round(inUnit(x,u));
+  el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>New best: est. max '+show(est)+' '+lu+'</span>':"Est. max "+show(est)+" "+lu+", your best "+show(prev.est)+" "+lu):"Est. max "+show(est)+" "+lu;
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
 function checkAndStorePR(exId,weight,reps,unit){
@@ -1556,6 +1667,25 @@ function longestWeekStreak(){
   for(let w=104;w>=0;w--){if(weekQualifies(shiftIso(mon,-7*w))){run++;if(run>best)best=run;}else if(w>0)run=0;}
   return best;
 }
+// ── A 5 kg phase reached: the celebration (Nov 10) ──
+// Once per phase ("phase:<id>" in shownWeight5kg, synced), on the rule the
+// card uses (phaseReached: 3-day average at or under the target). Also run on
+// its own after the first server pull, because weigh-ins arrive from
+// HealthKit without a tap; the other milestones stay tap-triggered.
+function checkPhaseCelebration(){
+  const S=ctx.getS(),today=isoToday();
+  if(!S.milestones)return false;
+  S.milestones.shownWeight5kg=S.milestones.shownWeight5kg||[];
+  for(const p of PHASES.filter(x=>/^p5_/.test(x.id))){
+    const tag="phase:"+p.id;
+    if(S.milestones.shownWeight5kg.includes(tag)||today<p.start)continue;
+    const r=phaseReached(p,today);if(!r)continue;
+    S.milestones.shownWeight5kg.push(tag);save();queueMilestones();
+    showCelebration(...phaseCelebration(p,r));
+    return true;
+  }
+  return false;
+}
 function checkMilestones(){
   const S=ctx.getS();
   const today=isoToday();
@@ -1582,11 +1712,15 @@ function checkMilestones(){
     const allHit=Array.from({length:7},(_,i)=>{const d=new Date(today+"T12:00:00");d.setDate(d.getDate()-i);const items=(S.nutrition.days?.[isoDate(d)]||{}).items||[];return items.reduce((s,it)=>s+(it.protein||0),0)>=pt;}).every(Boolean);
     if(allHit){S.milestones.shownProtein7.push(wkKey);save();queueMilestones();showMilestone("🥩",`7 Days of ${pt}g+ Protein`,"Consistent fuelling = consistent results.");}
   }
+  if(checkPhaseCelebration())return; // one pop-up at a time
   // ── Every 5 kg weight drop (modal) — uses latest logged weight ──
+  // Thresholds that are a 5 kg phase target get the celebration above instead.
+  const phaseKg=new Set(PHASES.filter(x=>/^p5_/.test(x.id)).map(x=>x.targetKg));
   const wtEntries=Object.entries(S.nutrition.weights||{}).filter(([,v])=>!isNaN(Number(v)));
   if(wtEntries.length){
     const current=Number(wtEntries.sort(([a],[b])=>b.localeCompare(a))[0][1]);
     for(const t of [90,95,100,105,110,115,120,125,130,135]){
+      if(phaseKg.has(t))continue;
       if(current<=t&&!S.milestones.shownWeight5kg.includes(t)){
         S.milestones.shownWeight5kg.push(t);save();queueMilestones();
         showMilestone("💪",`${t} kg Milestone!`,`You logged ${current.toFixed(1)} kg. Keep pushing.`);
@@ -1596,11 +1730,43 @@ function checkMilestones(){
   }
 }
 
+// The words for a reached phase: what was done, how early, what is next, and
+// something kind that is true (the comeback from six months in bed in 2025).
+function phaseCelebration(p,r){
+  const P5=PHASES.filter(x=>/^p5_/.test(x.id)),i=P5.indexOf(p),n=P5.length,next=P5[i+1];
+  const first=P5[0].startKg,total=Math.round((first-r.avg)*10)/10;
+  const early=r.daysEarly>0?`${r.daysEarly} day${r.daysEarly===1?"":"s"} early`:"right on time";
+  // "Ahead" from the latest weigh-in, as the card's "Ahead 0.9 kg" chip reads.
+  const latest=Number(Object.entries(ctx.getS().nutrition?.weights||{}).filter(([,v])=>!isNaN(Number(v))).sort(([a],[b])=>b.localeCompare(a))[0]?.[1]??r.avg);
+  const ahead=Math.round((phaseCurveKg(p,isoToday())-latest)*10)/10;
+  const stats=[["Weight",`${p.startKg} to ${r.avg} kg`],["Took",`${r.days} days, ${early}`],["Down since October",`${total} kg`]];
+  if(next)stats.push(["Next",`${next.targetKg} kg by ${fmtDate(next.plannedEnd)}`]);
+  const aheadTxt=ahead>0.05?` You start the next phase ${ahead.toFixed(1)} kg ahead of the line, a cushion for the weeks that don't go to plan.`:"";
+  const WORDS=[
+    `Five kilos. A year ago your back had you in bed. Now you are training six days a week and the scale is moving on schedule. That is not luck: it is every meal you logged and every session you showed up for.${aheadTxt}`,
+    `${total} kg down since October. The first five can come fast. The second five take consistency, and you just proved you have it.${aheadTxt}`,
+    `${total} kg down, and the holidays are next. You don't need to be perfect over them, just keep logging. A logged bad day is still a day you were in charge of.${aheadTxt}`,
+    `110 kg, straight through the holidays. ${total} kg down since October, and the hardest stretch of the year is behind you.${aheadTxt}`,
+    `${total} kg down. Your back now carries ${total} kg less into every session, every staircase, every morning. Keep going.${aheadTxt}`,
+    `100 kg. Two digits are next. ${total} kg down since October, and one phase left.${aheadTxt}`,
+    `95 kg. You set a hard goal in October, kept to the plan through a back flare and a winter, and hit it. ${total} kg down. Be proud of this one.`,
+  ];
+  const title=i===n-1?"Goal reached":`Phase ${i+1} complete`;
+  const sub=i===n-1?`95 kg, ${early}.`:`${p.targetKg} kg reached, ${early}.`;
+  return[title,sub,stats,WORDS[Math.min(i,WORDS.length-1)]];
+}
+
 // Expose to ctx for main.js to use
 ctx.renderW=renderW;
+// After the first server pull: weigh-ins usually arrive from HealthKit, not a
+// tap, so a phase reached overnight is celebrated on the next launch.
+ctx.checkPhaseCelebration=checkPhaseCelebration;
 
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
+window.setHoistModel=setHoistModel;
+window.setMachine=setMachine;
+window.setHoistAddOn=setHoistAddOn;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;
 window.expand=expand;

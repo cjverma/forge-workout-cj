@@ -564,8 +564,8 @@ ok("compliance is null-safe: no score shows 'Starts after today', never NaN",
 
 // Dashboard psychology: behaviours, not deficits
 const rnBody = fnBody("renderNutrition");
-ok("required deficit is NOT rendered on the Nutrition dashboard",
-  !rnBody.includes("phaseDayDeficit") && !HTML.includes("Move target"));
+ok("the intake ring shows the day's deficit vs the plan's (Nov 10, the user's pick), food on its own line",
+  rnBody.includes("phaseDayDeficit(phase,date)") && rnBody.includes("const projected=date===isoToday()&&consumed<finalTarget;") && rnBody.includes("kcal deficit") && rnBody.includes("plan: ") && rnBody.includes("<b>Food:</b>") && !HTML.includes("Move target"));
 ok("intakeFloor/moveGap fully removed", !HTML.includes("intakeFloor") && !HTML.includes("moveGap"));
 ok("hero shows active compliance (fraction, %, remaining, label)",
   HTML.includes("kcal remaining") && HTML.includes("Needs improvement") && HTML.includes("Excellent"));
@@ -786,9 +786,9 @@ section("15b · Active target reflects real intake, not assumed budget");
 // which kind of day (workout/rest) it is.
 {
   const NUT2 = readFileSync("src/nutrition.js", "utf8");
-  ok("Active target is re-solved from actual consumed against the DAY's food target (1,200 on Sunday)",
+  ok("Active target is re-solved from consumed (projected to the budget today, Nov 10) against the DAY's food target (1,200 on Sunday)",
     /const plannedTgt=phaseActiveTarget\(phase,date\);/.test(NUT2) &&
-    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(consumed-eatKcalFor\(phase,date\)\)\/activeMult\(date\)\)\);/.test(NUT2));
+    /const aTgt=Math\.max\(0,Math\.round\(plannedTgt\+\(\(projected\?finalTarget:consumed\)-eatKcalFor\(phase,date\)\)\/activeMult\(date\)\)\);/.test(NUT2));
   ok("aTgt===0 (nothing further needed) reads as fully met, not a failing 0%",
     /const aPct=aTgt\?Math\.round\(active\/aTgt\*100\):100;/.test(NUT2));
 }
@@ -870,7 +870,7 @@ ok("toggleSet reads the live weight/reps inputs by id before checking completene
 // on truthiness (`if(wVal)`) — the gated form leaves stale state in place
 // when a field is backspaced to empty and done is tapped immediately.
 ok("the DOM read is unconditional (no truthiness gate that would preserve stale state)",
-  /if\(wEl\)sd\.weight=wEl\.value\.trim\(\);/.test(WK_TOGGLE) &&
+  /if\(wEl\)\{if\(_hm\)hoistApply\(key,exId,sd,wEl\.value\);else sd\.weight=wEl\.value\.trim\(\);\}/.test(WK_TOGGLE) &&
   /if\(rEl\)sd\.reps=rEl\.value\.trim\(\);/.test(WK_TOGGLE) &&
   !/if\(wVal\)/.test(WK_TOGGLE));
 
@@ -941,9 +941,57 @@ section("16a4 · the one allowed shoulder press (Nov 9)");
 section("16a5 · food over, burned off (Nov 10)");
 {
   const N = readFileSync("src/nutrition.js", "utf8");
-  ok("food over the budget is netted against active beyond the day's planned target (same activeMult): covered -> 'On track', 'burned off', no Needs attention",
+  ok("food over the budget is netted against active beyond the day's planned target (same activeMult): covered -> no Needs attention",
     /const extraBurn=\(phase&&!shock\)\?Math\.max\(0,Math\.round\(\(active-phaseActiveTarget\(phase,date\)\)\*activeMult\(date\)\)\):0;/.test(N) &&
-    /const covered=overKcal>0&&netOver===0;/.test(N) && /covered\?"burned off"/.test(N) && /\$\{netOver>0&&items\.length\?/.test(N));
+    !/"burned off"/.test(N) && /\$\{netOver>0&&items\.length\?/.test(N));
+}
+
+section("16a6 · phase reached on the 3-day average; the celebration (Nov 10)");
+{
+  const E2 = await import("./src/phase.js");
+  const RT2 = await import("./src/runtime.js");
+  const prevGetS = RT2.ctx.getS;
+  RT2.ctx.getS = () => ({ nutrition: { weights: {} }, phaseRun: {} });
+  const p1 = E2.PHASES.find((x) => x.id === "p5_1");
+  const w = { "2026-11-09": 125.6, "2026-11-10": 125.0 };
+  ok("one reading at the target is not 'reached' (3-day average 125.3)", E2.phaseReached(p1, "2026-11-10", w) === null);
+  const w2 = { ...w, "2026-11-11": 124.6, "2026-11-12": 124.8 };
+  const r = E2.phaseReached(p1, "2026-11-12", w2);
+  ok("reached on the first day the 3-day average is at or under the target (Nov 12, 124.8, on time)", r && r.date === "2026-11-12" && r.avg === 124.8 && r.daysEarly === 0 && r.days === 17, JSON.stringify(r));
+  ok("a lone weigh-in never counts (needs 2 of the 3 days)", E2.avg3("2026-11-11", { "2026-11-11": 120 }) === null);
+  ok("the calendar does not move: phase 2 still starts Nov 13", E2.phaseFor("2026-11-13")?.id === "p5_2" && E2.phaseFor("2026-11-12")?.id === "p5_1");
+  RT2.ctx.getS = prevGetS;
+  const WK = readFileSync("src/workout.js", "utf8");
+  ok("checkMilestones celebrates each 5 kg phase once (phase:<id>), and the 5 kg modal skips phase targets",
+    /const tag="phase:"\+p\.id;/.test(WK) && /showCelebration\(\.\.\.phaseCelebration\(p,r\)\)/.test(WK) && /if\(checkPhaseCelebration\(\)\)return;/.test(WK) && /ctx\.checkPhaseCelebration\?\.\(\)/.test(readFileSync("src/main.js", "utf8")) && /if\(phaseKg\.has\(t\)\)continue;/.test(WK));
+  ok("the celebration honours reduced motion and writes text with textContent", /prefers-reduced-motion: reduce/.test(readFileSync("src/ui.js", "utf8")) && /w\.textContent = words/.test(readFileSync("src/ui.js", "utf8")));
+}
+
+section("16a7 · Hoist ROC-IT levels (Nov 12)");
+{
+  const H = await import("./src/hoist.js");
+  const SITE = [28, 41, 53, 70, 87, 104, 122, 140, 154, 170, 186, 200, 216, 232, 247, 263, 279, 295];
+  ok("RS-1402 at 125 reproduces hoistfitness.com's table exactly, 18 levels (the user's example + level 18)", H.hoistTableFor("RS-1402", 125).map((r) => r.lb).join() === SITE.join());
+  ok("known .5 ties come from overrides (RS-1402 level 1 at 240 lb = 50, 60 lb = 17)", H.hoistActual("RS-1402", 1, 240) === 50 && H.hoistActual("RS-1402", 1, 60) === 17);
+  ok("body weight is truncated to a whole lb like the site (183.99 = 183)", H.hoistActual("RS-2403", 9, 183.99) === H.hoistActual("RS-2403", 9, 183));
+  ok("the add-on table exists only on RS-2000 machines and is heavier", H.hoistHasAddOn("RS-2402") && !H.hoistHasAddOn("RS-1402") && H.hoistActual("RS-2402", 10, 276, true) > H.hoistActual("RS-2402", 10, 276));
+  ok("out-of-range levels and unknown machines give null, never a made-up weight", H.hoistActual("RS-1402", 19, 276) === null && H.hoistActual("RS-1402", 0, 276) === null && H.hoistActual("RS-9999", 3, 276) === null);
+  ok("30 machines, all with 18 [a,b] pairs; a leg curl suggests RS-1402/RS-2402", H.HOIST_MACHINES.length === 30 && H.HOIST_MACHINES.every((m) => m.coef.length === 18 && m.coef.every((c) => c.length === 2)) && H.suggestHoist("Seated Leg Curl").map((m) => m.model).join() === "RS-1402,RS-2402");
+  const LEG = H.hoistTableFor("RS-1402", 125);
+  ok("level for a target: heaviest at or under it (+2 lb slack); never below 1", H.hoistLevelFor(LEG, 145) === 8 && H.hoistLevelFor(LEG, 141.5) === 8 && H.hoistLevelFor(LEG, 10) === 1 && H.hoistLb(LEG, 8) === 140);
+  ok("body weight for the tables moves only in 2 kg steps (the user: recalculate after 2 kg)", H.hoistBodyKg(123.4, 125) === 125 && H.hoistBodyKg(122.9, 125) === 123 && H.hoistBodyKg(125.2, null) === 125);
+  const W = readFileSync("src/workout.js", "utf8");
+  ok("tables are computed on the device (no server call, works offline at the gym)", /return hoistTableFor\(model,Math\.round\(kg\*HOIST_LB\),hoistAddOn\(model\)\);/.test(W) && !/api\/state\?hoist/.test(W) && !/hoist/i.test(readFileSync("api/state.js", "utf8")));
+  ok("a level is stored with its real weight; no table means no weight, so the set cannot be ticked on a guess",
+    /sd\.weight=lb!=null\?String\(lb\):"";/.test(W) && /if\(_hm&&sd\.level&&!sd\.weight\)/.test(W));
+  ok("a ticked set keeps the weight it was lifted at when the machine or add-on changes", /&&!sd\.done\)\{sd\.hoist=model;/.test(W));
+  ok("only real matches are offered: free weights, cables and wrist curls get none; dips only match Seated Dip",
+    ["Seated Dumbbell Curl", "Hammer Curl", "Cable Bicep Curl", "Seated DB Wrist Curl", "Straight Arm Pulldown", "Seated Cable Row", "Tricep Extension Machine", "Cable Tricep Pushdown"].every((n) => !H.suggestHoist(n).length) &&
+    H.suggestHoist("Chest Supported Row").map((m) => m.model).join() === "RS-1203,RS-2203" && H.suggestHoist("Leg Press Machine").length === 2);
+  ok("the Machine dropdown lists Regular plus only the matching Hoist machines (Nov 13), and no dropdown without a match",
+    /const opts=suggestHoist\(ex\.name\);/.test(W) && /if\(!opts\.length\)return"";/.test(W) && !/All Hoist machines/.test(W));
+  ok("every gym card has a Machine dropdown: Regular (kg/lbs) or a Hoist model; picking one switches the boxes (Nov 13)",
+    /<option value=""\$\{model\?"":" selected"\}>Regular \(weight in kg or lbs\)<\/option>/.test(W) && /onchange="setMachine\(/.test(W) && /if\(getHoist\(key,exId\)\)return; \/\/ Level mode/.test(W));
 }
 
 section("16b · proteinTargetG single source of truth");
@@ -2416,7 +2464,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   // est. 1RM" and, comparing that against the real kg PR, announced a new PR on
   // a lift nowhere near one.
   ok("the PR hint converts the typed weight to kg before comparing",
-    /const w=toKg\(raw,getExUnit\(ctx\.sk\(ctx\.cDay\),exId\)\);/.test(WORKOUT));
+    /const w=_hm\?\(hoistLb\(hoistTable\(_hm\),raw\)!=null\?hoistLb\(hoistTable\(_hm\),raw\)\*LB_TO_KG:0\):toKg\(raw,getExUnit\(_k,exId\)\);/.test(WORKOUT));
 
   // _prLbFix1 wrote localStorage only. A sync replaces state wholesale, so the
   // uncorrected server rows came back on the next pull and the PR read wrong

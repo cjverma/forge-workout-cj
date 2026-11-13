@@ -53,6 +53,19 @@ macro chart. The `:root` volt tokens below are only a fallback now.
   the top of a card with the biggest gap. Used on the goal card, the weekly
   deficit, Insights' Targets Hit This Week; the intake ring reads "+581 kcal
   over", macro tiles say "129 g to go" / "17 g over" with a limit tick.
+- **The intake ring shows the day's DEFICIT** (Nov 10, the user's pick from
+  three mockups after "+209 burned off" read as confusing): big number = burn
+  (resting + counted active) minus food, "kcal deficit"/"kcal surplus", with
+  "plan: N" (`phaseDayDeficit`) under it and the ring filled to deficit/plan.
+  Pill: On track (deficit >= plan), Over target (food over and not burned off),
+  In progress (today) / Short of plan (past). TODAY, until the food budget
+  is eaten, the deficit and the active target are PROJECTED as if the rest
+  of the budget gets eaten ("projected deficit"): counting the whole day's
+  resting burn against only food so far read "On track" at 1 PM and "420 of
+  177" active. Food is its own line ("Food: 1,709
+  of 1,500, 209 kcal over"); the Needs attention box shows only food left over
+  after extra activity (`extraBurn`, `netOver`). The weekly food habit still
+  scores food against the budget.
 - Status bar: `#000` dark / `#F2F2F7` light (`applyTheme`, manifest `?v=5`).
 - **App icon (Oct 30, "Night steel", picked from six on the design canvas)**:
   `icon.svg` is the source: a full-bleed graphite radial background (iOS
@@ -334,6 +347,27 @@ by Feb 20, cut at Oct 25, targetKg 128.31, ~2,173/day). `USER` is 95 by Feb
 for an unlogged day outside these phases is `restingDefaultFor()` (last 5 logged, else 2,700).
 Phase names never use "·". Don't change the phases or add a goal unasked.
 
+**Phase reached = the 3-day average** (Nov 10, the user hit 125.0 on day 15
+of 17; "your approach is right"). `phaseReached(p)` / `avg3()` in
+`src/phase.js`: the first day inside the phase where the average of that
+day's weigh-in and the two before (at least two, including that day) is at or
+under the target. **The calendar never moves**: the next phase still starts
+the day after the planned end, so reaching early banks the gap as "ahead of
+the line" (moving phase 2 forward was considered and declined). The card shows
+"Reached Nov 11, 1 day early. Next phase starts Nov 13." with a full bar; until
+then the bar is WEIGHT lost (3-day average, else latest), and a single reading
+at the target says it counts once the 3-day average gets there.
+**The celebration** (user: "some celebration and kind words when I hit a
+milestone"): `checkMilestones()` shows `showCelebration()` (`src/ui.js`) once
+per phase (`"phase:<id>"` in `shownWeight5kg`, synced): a check, "Phase 1
+complete", the numbers (weight, days and how early, kg down since October,
+next target), kind words per phase from `phaseCelebration()` in
+`src/workout.js` (the comeback from bed in 2025, the holidays, under 100), and
+a 2.6 s confetti burst in the app's chart colours (skipped under reduced
+motion). The 5 kg pop-up skips thresholds that are phase targets.
+`checkPhaseCelebration()` (only the phase check, not the other pop-ups) also
+runs after the first server pull: HealthKit weigh-ins arrive without a tap. The layout audit covers it ("pop-up: phase celebration").
+
 **Injury context for every AI call** (`HARD_RULES` in `api/_shared.js`):
 lumbar disc herniation with left-leg sciatica and calf nerve pain, and (Oct 29)
 bedridden July to December 2025, back in the gym around July 2026: rebuild
@@ -555,6 +589,36 @@ had been doing it pain-free at 20 kg x 15): `Seated Shoulder Press Machine
 `isBannedExercise`. Standing, dumbbell, barbell, military and any other
 "shoulder press" stay banned; renaming the entry re-bans it.
 
+### Hoist ROC-IT machines: log the pin LEVEL (Nov 12)
+On ROC-IT machines the seat moves the user's body with the stack, so the
+weight lifted at a level depends on body weight (hoistfitness.com has a
+calculator per machine). Every gym card (not warm-ups) has a **Machine**
+dropdown (Nov 13, the user: "regular or hoist machine; if I select a hoist
+machine it should switch"): "Regular (weight in kg or lbs)" or a Hoist model
+(ONLY the matching models, usually the RS-1000 and RS-2000 pair, plus one already
+in use; no dropdown when nothing matches; `suggestHoist` refuses dumbbell, DB,
+cable, barbell, band, hammer, wrist, straight-arm, kickback, rope and tricep
+extension names; `setMachine`). Picking a Hoist model switches the boxes
+to **Level**; the unit chip only toggles kg/lbs and reads "Level" (not
+tappable) in Hoist mode. In Level mode the card shows (`HOIST_MACHINES`
+in `src/hoist.js`: the 30 RS-1000/RS-2000 models with a calculator;
+`suggestHoist` pre-picks by exercise name), a "5 lb add-on weight fitted"
+switch on RS-2000 machines (`f5_hoist_addon`, per device), the box takes the
+level, and a "Level 9 = 154 lb (70 kg)" line shows the real weight. The SET
+stores `weight` = the real lb (so PRs, working weight, the unit check, the
+weekly plan and the email are unchanged) plus `level`, `hoist`, `bwLb`,
+`addOn`; `ed.unit` is "lbs". A ticked set keeps the weight it was lifted at.
+Targets read "Level 8 × 10" (`hoistLevelFor`: heaviest level at or under the
+working weight). **Computed on the device, no network**: `hoistActual()`
+reproduces Hoist's calculator server, `round(a + b * floor(bodyWeightLb))`
+per level with `overrides` at known .5 ties, 18 levels, lb in and out
+(research and fit on branch `claude/hoist-data`, `data/hoist-machines.json`
+and `.md`: ~2,500 responses, 357/360 held-out values exact, never more than
+1 lb off). Body weight is the 7-day average (else latest), recomputed only
+when it moves 2 kg (`hoistBodyKg`, `f5_hoist_bw`; the user: "recalculated
+post 2 kg weight loss"). The machine for an exercise lives on its logged sets
+and in `f5_hoist_map`.
+
 ### Vertical pulling
 A standard lat pulldown is banned by the spine rules. The only pulldown in the
 plan is `Seated Pulldown (Neutral Grip)`, and the grip belongs **in the name**:
@@ -739,6 +803,12 @@ Four surfaces resolve those keys back to names, and all four must agree:
   targetReps, maxReps)` turns a held weight done past the top into the
   same-1RM weight for the top reps, at most +10% a step (`raised`). The weekly
   plan prompt has the same ceiling: raise weight, never reps.
+- **"Beat last time", not an arrow** (Nov 12, the user read the bare up arrow
+  as a new PR). `olBadgeHtml` says "Beat last time" / "Below last time" /
+  "Same as last time" on its own line (`.ex-cmp`, id `ol-<exId>`) under the
+  sets and reps: this session's best set vs LAST session's, not the PR. The
+  live hint under a set ("Est. max 113 lb, your best 191 lb" / "New best") and
+  the Best line are in the box's unit, not always kg.
 - **The weekly plan sees set-to-set fatigue.** `buildSessionHistory` adds
   `fatigue` (reps at the most-used weight, first vs last, `repDropPct`) and
   the prompt says: big drop = hold load, add reps; little drop = step up.
@@ -1014,6 +1084,9 @@ deleted, and the badge never changed.
   and fails on: template placeholders reaching the DOM, a hero losing its
   gradient or dropping below 4.5:1, and any JS error. It skips loudly (not
   silently) when Playwright is unavailable.
+- The browser suites launch `/opt/pw-browsers/chromium`, a stable link to the
+  container's Chromium build (the versioned folder name changes between
+  containers; a hardcoded `chromium-1194` broke every run on a new one).
 - `verify-runtime.mjs` is a committed file, not a local scratch script —
   `playwright` is a real devDependency (`npm install` pulls it) so every clone
   gets the same runtime coverage. It was gitignored for a while as a "scratch

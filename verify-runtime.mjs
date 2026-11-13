@@ -15,7 +15,9 @@ import { programFor, FEATURES } from "./src/constants.js";
 
 const PORT = 8791;
 const URL = `http://127.0.0.1:${PORT}/dist/index.html`;
-const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
+// The pre-installed browser: /opt/pw-browsers/chromium is a stable link to
+// whichever Chromium build the container ships (the versioned folder changes).
+const CHROME = "/opt/pw-browsers/chromium";
 
 const fails = [];
 const note = (label, ok, detail = "") => {

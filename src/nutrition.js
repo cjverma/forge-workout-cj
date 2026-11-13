@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase, weekCountFrom } from "./phase.js";
+import { ACTIVE_MULT, USER, actualDeficit, activeCalibration, activeMult, dayDeficitCheck, eatKcalFor, calcBMR, calcTarget, isoDate, isoToday, latestWeightLog, phaseActiveTargets, phaseFor, phaseRequiredDeficit, proteinTargetG, restingFor, restingForPhase, weekCountFrom, phaseReached, avg3 } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, icon} from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueDayMeta, queueMutation, queueSettings } from "./sync.js";
@@ -227,9 +227,22 @@ export function renderNutrition(){
   const overKcal=Math.max(0,consumed-finalTarget);
   const extraBurn=(phase&&!shock)?Math.max(0,Math.round((active-phaseActiveTarget(phase,date))*activeMult(date))):0;
   const netOver=Math.max(0,overKcal-extraBurn);
-  const covered=overKcal>0&&netOver===0;
-  const pillCls=covered?"tpill-green":ratio<0.9?"tpill-green":ratio<=1.1?"tpill-amber":"tpill-red";
-  const pillTxt=covered?"On track":ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target";
+  // The ring shows the DAY'S DEFICIT against what the plan needs today (Nov 10,
+  // the user picked "deficit in ring" over food-only: "+209 burned off" was
+  // confusing). Deficit = burn (resting + counted active) minus food, as the
+  // line under it always said; the plan figure is phaseDayDeficit (fixed
+  // 2,700 resting, the day's active and food targets). Food moves to a line.
+  // Today, before the budget is eaten, project the rest of it: counting the
+  // whole day's resting burn against only the food eaten so far read "On
+  // track" at 1 PM. Past days (and today once over budget) use what was eaten.
+  const projected=date===isoToday()&&consumed<finalTarget;
+  const defKcal=totalBurn-(projected?finalTarget:consumed);
+  const planDef=(phase&&!shock)?phaseDayDeficit(phase,date):null;
+  const ringPct=planDef?Math.max(0,Math.min(100,Math.round(defKcal/planDef*100))):pct;
+  const onPlan=planDef!=null&&defKcal>=planDef;
+  const pillCls=onPlan||(planDef==null&&ratio<=1.1)?"tpill-green":netOver>0?"tpill-red":"tpill-amber";
+  const pillTxt=planDef==null?(ratio<0.9?"Under target":ratio<=1.1?"On track":"Over target")
+    :onPlan?"On track":netOver>0?"Over target":date<isoToday()?"Short of plan":"In progress";
   const foodListHtml=items.length?items.map(it=>{const t=it.time?new Date(it.time).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}):"";return`<div class="food-item"><div style="flex:1"><div class="food-name">${esc(it.name)}${t?`<span style="font-size:10px;color:var(--dim);font-weight:400;margin-left:6px">${t}</span>`:""}</div><div class="food-macros">P ${it.protein||0}g, C ${it.carbs||0}g, F ${it.fat||0}g</div></div><div style="display:flex;align-items:center;gap:4px"><div class="food-kcal">${it.kcal} kcal</div>${ro?"":`<button class="food-del" onclick="delFood('${date}','${it.id}')">Delete</button>`}</div></div>`;}).join(""):"";
   const wts=S.nutrition.weights||{};
   const allWtKeys=Object.keys(wts).sort();
@@ -267,16 +280,16 @@ export function renderNutrition(){
         <svg width="128" height="128" viewBox="0 0 128 128">
           <circle cx="64" cy="64" r="56" fill="none" stroke="var(--hero-line)" stroke-width="10"/>
           <circle cx="64" cy="64" r="56" fill="none" stroke="var(--hero-accent)" stroke-width="10" stroke-linecap="round"
-            stroke-dasharray="351.86" stroke-dashoffset="${(351.86*(1-Math.min(pct,100)/100)).toFixed(1)}"
+            stroke-dasharray="351.86" stroke-dashoffset="${(351.86*(1-Math.min(ringPct,100)/100)).toFixed(1)}"
             transform="rotate(-90 64 64)" class="nut-ring-fill"/>
         </svg>
         <div class="nut-ring-text">
-          <div class="nut-ring-big">${consumed>finalTarget?"+"+(consumed-finalTarget).toLocaleString():remaining.toLocaleString()}</div>
-          <div class="nut-ring-small">${covered?"burned off":consumed>finalTarget?"kcal over":"kcal remaining"}</div>
+          <div class="nut-ring-big">${defKcal>=0?defKcal.toLocaleString():"+"+(-defKcal).toLocaleString()}</div>
+          <div class="nut-ring-small">${projected?(defKcal>=0?"projected deficit":"projected surplus"):defKcal>=0?"kcal deficit":"kcal surplus"}</div>
+          ${planDef!=null?`<div class="nut-ring-sub">plan: ${planDef.toLocaleString()}</div>`:""}
         </div>
       </div>
-      <div style="font-size:11px;color:var(--hero-fg-dim);margin-bottom:4px">${consumed.toLocaleString()} eaten, ${finalTarget.toLocaleString()} target${shock?", shock day":""}</div>
-      <div class="net-line ${netDef<=0?"net-green":"net-red"}" style="text-align:left;margin-bottom:0">${netDef<=0?"✓ Deficit":"⚠ Surplus"} ${Math.abs(netDef).toLocaleString()} kcal vs burn</div>
+      <div class="food-line"><b>Food:</b> ${consumed.toLocaleString()} of ${finalTarget.toLocaleString()}, ${overKcal>0?`${overKcal.toLocaleString()} kcal over`:`${remaining.toLocaleString()} kcal remaining`}${shock?", shock day":""}</div>
       ${phase?(()=>{
         // Active compliance: how much active is ACTUALLY still needed today,
         // not the planned target assuming you eat the full budget. The
@@ -289,7 +302,7 @@ export function renderNutrition(){
         // the workout/rest split stays intact since plannedTgt already
         // reflects which kind of day this is.
         const plannedTgt=phaseActiveTarget(phase,date);
-        const aTgt=Math.max(0,Math.round(plannedTgt+(consumed-eatKcalFor(phase,date))/activeMult(date)));
+        const aTgt=Math.max(0,Math.round(plannedTgt+((projected?finalTarget:consumed)-eatKcalFor(phase,date))/activeMult(date)));
         const aPct=aTgt?Math.round(active/aTgt*100):100;
         const lbl=aPct>=95?"Excellent":aPct>=80?"Good":"Needs improvement";
         const met=aPct>=95;
@@ -298,7 +311,6 @@ export function renderNutrition(){
         return met?`<div class="act-line act-met">${icon("bolt",18)} Active target met: ${active.toLocaleString()} of ${aTgt.toLocaleString()} (${lbl})</div>`
           :`<div class="act-line">${icon("bolt",18)} <b>Active: ${remain.toLocaleString()} to go</b> <span>${active.toLocaleString()} of ${aTgt.toLocaleString()}, ${aPct}% (${lbl})</span></div>`;
       })():""}
-      ${covered?`<div class="cover-note">${overKcal.toLocaleString()} kcal over on food, burned off by extra activity. Today's deficit is on plan.</div>`:""}
       ${netOver>0&&items.length?(()=>{const big=items.slice().sort((a,b)=>(b.kcal||0)-(a.kcal||0))[0];const pl=Math.max(0,pTarget-Math.round(protein));
         return gapNote(extraBurn>0?`${netOver.toLocaleString()} kcal over after activity`:`${overKcal.toLocaleString()} kcal over`,`${extraBurn>0?`${overKcal.toLocaleString()} over on food, ${extraBurn.toLocaleString()} burned off by extra activity. `:""}Biggest item: ${esc(big.name)}, ${Math.round(big.kcal).toLocaleString()} kcal.${pl>=20?` Protein ${pl} g short.`:""}`);})():""}
       ${macroPie(protein,carbs,fat,fibre)}
@@ -863,7 +875,15 @@ function phaseCardHtml(){
   // Days are inclusive: a phase from Oct 26 to Nov 15 has 21 of them.
   const spanDays=totalDays+1;
   const dayIn=Math.min(Math.max(daysBetween(p.start,t)+1,1),spanDays);
-  const pctDone=Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  // The bar is WEIGHT lost toward the target (Nov 10), from the 3-day average
+  // (else the latest weigh-in), not the share of days gone; days without any
+  // weigh-in fall back to days.
+  const reachedP=phaseReached(p,t);
+  const wNow=avg3(t)??latestWeightLog();
+  const pctDone=reachedP?100:wNow!=null&&p.startKg>p.targetKg?Math.round(Math.min(100,Math.max(0,(p.startKg-wNow)/(p.startKg-p.targetKg)*100)))
+    :Math.round(Math.min(100,Math.max(0,daysBetween(p.start,t)/totalDays*100)));
+  const lostNow=wNow!=null?Math.round(Math.max(0,p.startKg-wNow)*10)/10:null;
+  const todayKg=S.nutrition?.weights?.[t]!=null?Number(S.nutrition.weights[t]):null;
   const avg=sevenDayAvg(t);
   const cor=phaseCorridor(p,t);
   const health=phaseHealth(p,t);
@@ -883,7 +903,7 @@ function phaseCardHtml(){
   const lostPct=lost!=null?Math.round(lost/p.startKg*1000)/10:null;
 
   // Milestones (5-kg thresholds, shared list with checkMilestones)
-  const reached=(S.milestones?.shownWeight5kg||[]).slice().sort((a,b)=>a-b)[0];
+  const reached=(S.milestones?.shownWeight5kg||[]).filter(x=>typeof x==="number").sort((a,b)=>a-b)[0];
   const nextMs=cur!=null?[135,130,125,120,115,110,105,100,95,90].find(m=>m<cur):null;
 
   // Verdict (due once past effective end, or via Accept)
@@ -938,7 +958,7 @@ function phaseCardHtml(){
   const wkSunLbl=new Date(wkSun+"T12:00:00Z").toLocaleDateString("en-US",{month:"short",day:"numeric",timeZone:"UTC"});
   const wkGap=latestKg==null?null:Math.round((latestKg-wkGoal)*10)/10;
   const weekGoalHtml=gapRow(wkGap==null||wkGap>0?"open":"done","This week's goal",`${wkGoal.toFixed(1)} kg by Sun, ${wkSunLbl}`,
-    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`);
+    wkGap==null?"Weigh in to see the gap":wkGap>0?`${wkGap.toFixed(1)} kg to go from ${Number(latestKg).toFixed(1)} kg`:(Math.abs(wkGap)<0.05?`Reached at ${Number(latestKg).toFixed(1)} kg`:`Reached: ${Math.abs(wkGap).toFixed(1)} kg under at ${Number(latestKg).toFixed(1)} kg`));
   const weightBlockHtml=
     '<div style="background:var(--s2);border-radius:8px;padding:10px 12px;margin:4px 0 8px">'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">'+
@@ -1017,10 +1037,12 @@ function phaseCardHtml(){
     <summary><div><div>${icon("target",20)} ${esc(p.name||p.id.replace("_"," ").replace(/^p/,"P"))}</div><div class="st-acc-sub">${chipText}</div></div></summary>
     <div class="st-acc-inner" style="padding-top:10px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px">
-        <span style="${nMuted}">Day ${dayIn} of ${spanDays}, ${p.startKg} to ${p.targetKg} kg by ${fmtD(end)}</span>
+        <span style="${nMuted}">${reachedP?`${icon("trophy",16)} Reached ${fmtD(reachedP.date)}, ${reachedP.daysEarly>0?`${reachedP.daysEarly} day${reachedP.daysEarly===1?"":"s"} early`:"on time"}. Next phase starts ${fmtD(addDaysIso(end,1))}.`
+          :`Day ${dayIn} of ${spanDays}, ${lostNow!=null?`${lostNow} of ${Math.round((p.startKg-p.targetKg)*10)/10} kg lost`:`${p.startKg} to ${p.targetKg} kg`} by ${fmtD(end)}`}</span>
         <span style="font-weight:700;font-size:14px">${pctDone}%</span>
       </div>
-      <div class="prog-bar-wrap" style="margin-bottom:14px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      <div class="prog-bar-wrap" style="margin-bottom:${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?6:14}px"><div class="prog-bar-fill" style="width:${pctDone}%">${pctDone>2&&pctDone<99?'<div class="prog-thumb"></div>':""}</div></div>
+      ${!reachedP&&todayKg!=null&&todayKg<=p.targetKg?`<div style="${nMuted};margin-bottom:14px">${todayKg.toFixed(1)} kg today. It counts once your 3-day average is at ${p.targetKg} kg, so one good reading isn't a fluke.</div>`:""}
       <div class="week-goal">${weekGoalHtml}</div>
       ${weightBlockHtml}
       ${rangeRowHtml}
