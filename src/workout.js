@@ -66,10 +66,13 @@ function setMachine(key,exId,model){
   save();queueSession(key,exId);reCard(key,exId);
 }
 function machineSelectHtml(key,ex,model,rdOnly){
-  const sug=suggestHoist(ex.name).map(m=>m.model);
+  // Only the Hoist machines that match this exercise (Nov 13, the user: "only
+  // best match should be available"), plus one already in use. None: no row.
+  const opts=suggestHoist(ex.name);
+  if(model&&!opts.some(m=>m.model===model)){const cur=HOIST_MACHINES.find(m=>m.model===model);if(cur)opts.push(cur);}
+  if(!opts.length)return"";
   const opt=m=>`<option value="${m.model}"${m.model===model?" selected":""}>${esc("Hoist "+m.model+" "+m.name)}</option>`;
-  const likely=HOIST_MACHINES.filter(m=>sug.includes(m.model)),rest=HOIST_MACHINES.filter(m=>!sug.includes(m.model));
-  return`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Machine</label><span class="hoist-selwrap"><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setMachine('${key}','${ex.id}',this.value)"><option value=""${model?"":" selected"}>Regular (weight in kg or lbs)</option>${likely.length?`<optgroup label="Likely match">${likely.map(opt).join("")}</optgroup>`:""}<optgroup label="All Hoist machines">${rest.map(opt).join("")}</optgroup></select></span>`;
+  return`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Machine</label><span class="hoist-selwrap"><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setMachine('${key}','${ex.id}',this.value)"><option value=""${model?"":" selected"}>Regular (weight in kg or lbs)</option>${opts.map(opt).join("")}</select></span>`;
 }
 
 // ── HOIST MODE (Nov 12) ──
@@ -700,7 +703,8 @@ function card(ex,sess,key,rdOnly=false){
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
     const _bwKg=_hModel?hoistBodyNow():null;
-    let rows=(ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"")+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?"</div>":"")+
+    const _mSel=ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"";
+    let rows=_mSel+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(_mSel?"</div>":"")+
       `<div class="set-hdr"><div>Set</div><div>${_hModel?`<span class="unit-chip">Level</span>`:`<button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button>`}</div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){

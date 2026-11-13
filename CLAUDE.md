@@ -595,7 +595,10 @@ weight lifted at a level depends on body weight (hoistfitness.com has a
 calculator per machine). Every gym card (not warm-ups) has a **Machine**
 dropdown (Nov 13, the user: "regular or hoist machine; if I select a hoist
 machine it should switch"): "Regular (weight in kg or lbs)" or a Hoist model
-(likely matches first; `setMachine`). Picking a Hoist model switches the boxes
+(ONLY the matching models, usually the RS-1000 and RS-2000 pair, plus one already
+in use; no dropdown when nothing matches; `suggestHoist` refuses dumbbell, DB,
+cable, barbell, band, hammer, wrist, straight-arm, kickback, rope and tricep
+extension names; `setMachine`). Picking a Hoist model switches the boxes
 to **Level**; the unit chip only toggles kg/lbs and reads "Level" (not
 tappable) in Hoist mode. In Level mode the card shows (`HOIST_MACHINES`
 in `src/hoist.js`: the 30 RS-1000/RS-2000 models with a calculator;

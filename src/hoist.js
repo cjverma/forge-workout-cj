@@ -75,9 +75,13 @@ const HOIST_WORDS=[
   [/inner\s*thigh|adduct/i,"Inner Thigh"],[/outer\s*thigh|abduct/i,"Outer Thigh"],[/calf/i,"Rotary Calf"],
   [/chest\s*press|incline.*press/i,"Chest Press"],[/pec|fly/i,"Pec Fly"],[/shoulder\s*press/i,"Shoulder Press"],
   [/pulldown|lat\b/i,"Lat Pulldown"],[/row/i,"Seated Mid Row"],[/bicep|curl/i,"Biceps Curl"],
-  [/dip|tricep/i,"Seated Dip"],[/ab(s|dominal)?\b|crunch/i,"Abdominals"],[/low\s*back|back\s*ext/i,"Low Back"],
+  [/\bdip\b/i,"Seated Dip"],[/ab(s|dominal)?\b|crunch/i,"Abdominals"],[/low\s*back|back\s*ext/i,"Low Back"],
 ];
+// Free weights, cables and bands never run on a ROC-IT machine (Nov 13: only
+// the real matches are offered, so a wrist curl can't pick the Biceps Curl).
+const HOIST_NOT=/dumbbell|\bdb\b|cable|barbell|band|hammer|wrist|straight arm|kickback|rope|tricep extension/i;
 export function suggestHoist(exName){
+  if(HOIST_NOT.test(String(exName||"")))return[];
   const hit=HOIST_WORDS.find(([rx])=>rx.test(String(exName||"")));
   return hit?HOIST_MACHINES.filter(m=>m.name===hit[1]):[];
 }
