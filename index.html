@@ -1398,7 +1398,9 @@ body[data-tab] #milestoneModal .ms-confetti{position:fixed;inset:0;width:100%;he
 body[data-tab] #milestoneModal .sum-inner{position:relative;z-index:2;}
 .wv .hoist-row{margin:0 0 10px;}
 .wv .hoist-lbl{display:block;font-size:13px;color:var(--mid);margin-bottom:4px;}
-.wv .hoist-sel{width:100%;min-height:44px;background:var(--s2);color:var(--white);border:none;border-radius:var(--r-md);padding:0 12px;font:inherit;font-size:17px;}
+.wv .hoist-selwrap{position:relative;display:block;}
+.wv .hoist-selwrap::after{content:"";position:absolute;right:18px;top:50%;width:8px;height:8px;border-right:2px solid var(--mid);border-bottom:2px solid var(--mid);transform:translateY(-70%) rotate(45deg);pointer-events:none;}
+.wv .hoist-sel{-webkit-appearance:none;appearance:none;width:100%;min-height:44px;background:var(--s2);color:var(--white);border:none;border-radius:var(--r-md);padding:0 44px 0 14px;font:inherit;font-size:17px;text-overflow:ellipsis;}
 .wv .hoist-add{display:flex;align-items:center;gap:10px;min-height:44px;font-size:17px;color:var(--white);}
 .wv .hoist-add input{width:22px;height:22px;accent-color:var(--accent);}
 .wv .hoist-note{font-size:13px;color:var(--mid);margin-top:6px;line-height:18px;}

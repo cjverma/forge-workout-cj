@@ -985,6 +985,8 @@ section("16a7 · Hoist ROC-IT levels (Nov 12)");
   ok("a level is stored with its real weight; no table means no weight, so the set cannot be ticked on a guess",
     /sd\.weight=lb!=null\?String\(lb\):"";/.test(W) && /if\(_hm&&sd\.level&&!sd\.weight\)/.test(W));
   ok("a ticked set keeps the weight it was lifted at when the machine or add-on changes", /&&!sd\.done\)\{sd\.hoist=model;/.test(W));
+  ok("every gym card has a Machine dropdown: Regular (kg/lbs) or a Hoist model; picking one switches the boxes (Nov 13)",
+    /<option value=""\$\{model\?"":" selected"\}>Regular \(weight in kg or lbs\)<\/option>/.test(W) && /onchange="setMachine\(/.test(W) && /if\(getHoist\(key,exId\)\)return; \/\/ Level mode/.test(W));
 }
 
 section("16b · proteinTargetG single source of truth");

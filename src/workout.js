@@ -45,16 +45,31 @@ function defaultUnit(exId){
 function toggleExUnit(key,exId){
   const S=ctx.getS();
   if(ctx.isReadOnly(key))return;
+  if(getHoist(key,exId))return; // Level mode: the Machine dropdown switches back
   if(!S.sessions[key])S.sessions[key]={};
   if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
-  const ed=S.sessions[key][exId],ex=curProg()?.exercises.find(e=>e.id===exId);
-  const cur=getHoist(key,exId)?"hoist":getExUnit(key,exId);
-  const next=cur==="kg"?"lbs":cur==="lbs"&&ex?.cat==="gym"?"hoist":"kg";
-  if(next==="hoist"){
-    const model=hoistMapGet(exId)||suggestHoist(ex?.name)[0]?.model||HOIST_MACHINES[0].model;
-    ed.hoist=model;ed.unit="lbs";hoistMapSet(exId,model);hoistTable(model);
-  }else{ed.hoist="";ed.unit=next;if(cur==="hoist")hoistMapSet(exId,null);}
+  S.sessions[key][exId].unit=getExUnit(key,exId)==="kg"?"lbs":"kg";
   save();queueSession(key,exId);reCard(key,exId);
+}
+// The Machine dropdown on every gym card (Nov 13, the user: "it should be
+// regular or hoist machine; if I select a hoist machine it should switch").
+// "" = Regular (kg/lbs boxes); a model = Hoist Level boxes.
+function setMachine(key,exId,model){
+  const S=ctx.getS();if(ctx.isReadOnly(key))return;
+  if(model){setHoistModel(key,exId,model);return;}
+  if(!S.sessions[key])S.sessions[key]={};
+  if(!S.sessions[key][exId])S.sessions[key][exId]={done:false,sets:[],skipped:false};
+  const ed=S.sessions[key][exId];
+  ed.hoist="";hoistMapSet(exId,null);
+  // Unticked sets go back to plain weight boxes; ticked ones keep what was lifted.
+  (ed.sets||[]).forEach(sd=>{if(sd&&!sd.done&&sd.level!=null){delete sd.level;delete sd.hoist;delete sd.bwLb;delete sd.addOn;}});
+  save();queueSession(key,exId);reCard(key,exId);
+}
+function machineSelectHtml(key,ex,model,rdOnly){
+  const sug=suggestHoist(ex.name).map(m=>m.model);
+  const opt=m=>`<option value="${m.model}"${m.model===model?" selected":""}>${esc("Hoist "+m.model+" "+m.name)}</option>`;
+  const likely=HOIST_MACHINES.filter(m=>sug.includes(m.model)),rest=HOIST_MACHINES.filter(m=>!sug.includes(m.model));
+  return`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Machine</label><span class="hoist-selwrap"><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setMachine('${key}','${ex.id}',this.value)"><option value=""${model?"":" selected"}>Regular (weight in kg or lbs)</option>${likely.length?`<optgroup label="Likely match">${likely.map(opt).join("")}</optgroup>`:""}<optgroup label="All Hoist machines">${rest.map(opt).join("")}</optgroup></select></span>`;
 }
 
 // ── HOIST MODE (Nov 12) ──
@@ -685,8 +700,8 @@ function card(ex,sess,key,rdOnly=false){
     const cnt=setCount(ex,ed);
     const exUnit=getExUnit(key,ex.id);
     const _bwKg=_hModel?hoistBodyNow():null;
-    let rows=(_hModel?`<div class="hoist-row"><label class="hoist-lbl" for="hm-${ex.id}">Hoist machine</label><select id="hm-${ex.id}" class="hoist-sel" ${rdOnly?"disabled":""} onchange="setHoistModel('${key}','${ex.id}',this.value)">${HOIST_MACHINES.map(m=>`<option value="${m.model}"${m.model===_hModel?" selected":""}>${esc(m.model+" "+m.name)}</option>`).join("")}</select>${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div></div>`:"")+
-      `<div class="set-hdr"><div>Set</div><div><button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${_hModel?"Level":exUnit}</button></div><div></div><div>Reps</div><div></div><div></div></div>`;
+    let rows=(ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"")+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?"</div>":"")+
+      `<div class="set-hdr"><div>Set</div><div>${_hModel?`<span class="unit-chip">Level</span>`:`<button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button>`}</div><div></div><div>Reps</div><div></div><div></div></div>`;
     const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
@@ -1746,6 +1761,7 @@ ctx.checkPhaseCelebration=checkPhaseCelebration;
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
 window.setHoistModel=setHoistModel;
+window.setMachine=setMachine;
 window.setHoistAddOn=setHoistAddOn;
 window.undoCalfTwinge=undoCalfTwinge;
 window.saveNotes=saveNotes;

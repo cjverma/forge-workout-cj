@@ -79,10 +79,7 @@ const SCREENS = [
     await p.evaluate(() => { document.getElementById("p-Wednesday")?.click(); });
     await p.waitForTimeout(150);
     await p.evaluate(() => { const b = document.querySelector('[onclick*="expand("]'); b?.click(); });
-    for (let k = 0; k < 3; k++) {
-      const done = await p.evaluate(() => { const c = document.querySelector(".sets-body.open .unit-chip"); if (!c) return true; if (c.textContent.trim() === "Level") return true; c.click(); return false; });
-      if (done) break; await p.waitForTimeout(150);
-    }
+    await p.evaluate(() => { const sel = document.querySelector(".sets-body.open .hoist-sel"); if (sel) { sel.value = sel.querySelector('option[value^="RS-2"]')?.value || "RS-2402"; sel.dispatchEvent(new Event("change")); } });
     await p.waitForTimeout(400);
     await p.evaluate(() => { document.querySelector('[onclick*="expand("]')?.click(); document.querySelector('[onclick*="expand("]')?.click(); document.querySelector(".hoist-row")?.scrollIntoView({ block: "start" }); }); },
     after: async (p) => { await p.evaluate(() => { try { localStorage.removeItem("f5_hoist_map"); } catch (_) {} }); } },
