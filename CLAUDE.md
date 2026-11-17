@@ -1025,7 +1025,10 @@ left alone.
 number typed in lbs while the exercise said kg (Leg Extension "120 kg x 15")
 survived all of them and blocked every real PR beneath it. Three layers now:
 `checkUnitOnLog()` asks on tick when a weight is >=1.8x the exercise's usual
-(or <=0.55x in lbs mode); `findUnitSuspects()` + the review sheet
+(or <=0.55x in lbs mode), in FORGE's own `#unitAsk` sheet (Nov 17, the user:
+"redesign the Apple system pop-up, act surprised and pump me": "Whoa, 61.2 kg?!
+Almost double your usual ...", "Yes, I lifted 61.2 kg" / "Oops, it was 61.2
+lb (27.8 kg)"; `unitAskPick` re-runs the tick; Hoist sets are skipped); `findUnitSuspects()` + the review sheet
 (`openUnitReview`, Settings, and once a day after launch) offer Convert / Keep
 per past set and `rebuildPRsFor()` the exercise; and the unit is printed in
 every weight box, with new entries defaulting to the unit last used on that

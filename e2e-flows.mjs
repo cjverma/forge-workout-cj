@@ -77,7 +77,7 @@ const wait = (page, ms = 250) => page.waitForTimeout(ms);
 // move between taps, as it does in real use.
 let _tick = 0;
 const advance = (page) => page.clock.setFixedTime(new Date(NOW.getTime() + (++_tick) * 61000));
-const closePopups = (page) => page.evaluate(() => { if (document.getElementById("milestoneModal")?.classList.contains("show")) closeMilestone(); });
+const closePopups = (page) => page.evaluate(() => { if (document.getElementById("milestoneModal")?.classList.contains("show")) closeMilestone(); if (document.getElementById("unitAsk")?.classList.contains("show")) unitAskClose(); });
 const text = (page, sel) => page.evaluate((s) => document.querySelector(s)?.textContent || "", sel);
 async function flow(name, fn) {
   try { await fn(); } catch (e) { note(`${name} (threw)`, false, e.message.split("\n")[0]); }
@@ -219,8 +219,10 @@ async function workoutSets(state) {
     await p.fill(`#wi-${id}-1`, "120"); await p.fill(`#ri-${id}-1`, "10");
     await p.click(`#sr-${id}-1 .sdone`);
     await wait(p, 300);
+    const ask = await p.evaluate(() => ({ shown: document.getElementById("unitAsk")?.classList.contains("show"), title: document.getElementById("uaTitle")?.textContent }));
+    if (ask.shown) { await p.click("#uaFix"); await wait(p, 300); }
     const set = (await S(p)).sessions[key][id].sets[1];
-    note("kg/lbs toggles; a weight ~3x usual asks first and OK logs it converted", u1 !== u0 && h.dialogs.some((d) => /Did you mean 120 lbs/.test(d)) && Number(set?.weight) === 54.4, JSON.stringify({ u0, u1, dialogs: h.dialogs, set }));
+    note("kg/lbs toggles; a weight ~3x usual opens FORGE's sheet and 'Oops, it was lb' logs it converted", u1 !== u0 && ask.shown && /120 kg\?!/.test(ask.title) && Number(set?.weight) === 54.4, JSON.stringify({ u0, u1, ask, set }));
   });
   await flow("cardio + skip", async () => {
     const cardio = await p.evaluate(() => [...document.querySelectorAll(".ex-card")].find((c) => c.querySelector(".ex-icon.cardio"))?.id.slice(3));
