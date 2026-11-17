@@ -1403,6 +1403,7 @@ body[data-tab] #milestoneModal .sum-inner{position:relative;z-index:2;}
 .wv .hoist-sel{-webkit-appearance:none;appearance:none;width:100%;min-height:44px;background:var(--s2);color:var(--white);border:none;border-radius:var(--r-md);padding:0 44px 0 14px;font:inherit;font-size:17px;text-overflow:ellipsis;}
 .wv .hoist-add{display:flex;align-items:center;gap:10px;min-height:44px;font-size:17px;color:var(--white);}
 .wv .hoist-add input{width:22px;height:22px;accent-color:var(--accent);}
+.wv .pr-remove{background:none;border:0;padding:0 0 0 6px;min-height:44px;font:inherit;color:var(--accent-text);cursor:pointer;}
 body[data-tab] #unitAsk .ua-icon{width:56px;height:56px;border-radius:50%;background:var(--accent);color:var(--accent-ink);display:flex;align-items:center;justify-content:center;margin:2px auto 12px;}
 body[data-tab] #unitAsk .ua-title{font-size:28px;font-weight:700;letter-spacing:.36px;text-align:center;font-variant-numeric:tabular-nums;}
 body[data-tab] #unitAsk .ua-sub{font-size:17px;line-height:23px;text-align:center;margin:8px 4px 6px;}
@@ -1511,8 +1512,9 @@ body[data-tab] :is(.flare-ok,.flare-worse){font-size:15px;line-height:20px;margi
     <div class="ua-icon" aria-hidden="true"><svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg></div>
     <div class="swap-title ua-title" id="uaTitle"></div>
     <div class="swap-sub ua-sub" id="uaSub"></div>
-    <button class="swap-keep" id="uaKeep" onclick="unitAskPick(false)"></button>
-    <button class="ua-fix" id="uaFix" onclick="unitAskPick(true)"></button>
+    <button class="swap-keep" id="uaKeep" onclick="askPick('keep')"></button>
+    <button class="ua-fix" id="uaFix" onclick="askPick('fix')"></button>
+    <button class="ua-fix" id="uaEdit" onclick="askPick('edit')"></button>
   </div>
 </div>
 <div class="swap-modal" id="swapModal">

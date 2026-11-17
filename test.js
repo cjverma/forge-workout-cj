@@ -994,6 +994,15 @@ section("16a7 · Hoist ROC-IT levels (Nov 12)");
     /<option value=""\$\{model\?"":" selected"\}>Regular \(weight in kg or lbs\)<\/option>/.test(W) && /onchange="setMachine\(/.test(W) && /if\(getHoist\(key,exId\)\)return; \/\/ Level mode/.test(W));
 }
 
+section("16a8 · weight check catches typos in lbs; Remove a best (Nov 17)");
+{
+  const W = readFileSync("src/workout.js", "utf8");
+  ok("lbs mode, far heavier than usual (500 vs ~20): asked, with 'Fix the number'", /typo=!sus&&unit==="lbs"&&kg\/usual>=UNIT_HI/.test(W) && /edit:"Fix the number"/.test(W));
+  ok("the Best line has Remove: the set stays in the log as noPR and never counts as a best again",
+    /class="pr-remove" onclick="event\.stopPropagation\(\);removeBest\(/.test(W) && /st\.noPR=true;/.test(W) && /st\.otherMachine\|\|st\.noPR\)continue;/.test(W));
+  ok("one FORGE sheet (#unitAsk) with keep / fix / edit choices, no native confirm for the weight check", /function openAsk\(o\)/.test(W) && !/confirm\(`\$\{w\} kg is much heavier/.test(W));
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");

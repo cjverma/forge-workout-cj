@@ -1028,7 +1028,13 @@ survived all of them and blocked every real PR beneath it. Three layers now:
 (or <=0.55x in lbs mode), in FORGE's own `#unitAsk` sheet (Nov 17, the user:
 "redesign the Apple system pop-up, act surprised and pump me": "Whoa, 61.2 kg?!
 Almost double your usual ...", "Yes, I lifted 61.2 kg" / "Oops, it was 61.2
-lb (27.8 kg)"; `unitAskPick` re-runs the tick; Hoist sets are skipped); `findUnitSuspects()` + the review sheet
+lb (27.8 kg)" / "Fix the number"; in lbs mode a weight >=1.8x usual is a
+typo check (Nov 17: 500 lbs on a ~20 lb lateral raise got through); one
+`openAsk()` sheet, `askPick` runs the choice and re-ticks; Hoist sets are
+skipped). **Remove a best** (Nov 17, "bring back option to remove PR sets"):
+the Best line on a card has Remove (`removeBest`): matching sets get `noPR`
+(kept in the log, never a best; `bestFromSessions` skips them), the PR
+entries at or above it are deleted and the next real best is recovered; `findUnitSuspects()` + the review sheet
 (`openUnitReview`, Settings, and once a day after launch) offer Convert / Keep
 per past set and `rebuildPRsFor()` the exercise; and the unit is printed in
 every weight box, with new entries defaulting to the unit last used on that
