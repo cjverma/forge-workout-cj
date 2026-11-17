@@ -838,7 +838,7 @@ function toggleSet(key,exId,i){
   if(!sd.weight||!sd.reps){showToast(_hm?"Enter the level and reps first":"Enter weight and reps first");return;}
   const prog=curProg();
   const ex=prog.exercises.find(e=>e.id===exId)||{sets:1};
-  if(!sd.done&&!sd.unitOk)checkUnitOnLog(key,exId,i,sd,ex,wEl);
+  if(!sd.done&&!sd.unitOk&&checkUnitOnLog(key,exId,i,sd,ex,wEl)){save();return;}
   sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
@@ -1765,6 +1765,8 @@ ctx.checkPhaseCelebration=checkPhaseCelebration;
 // window shims for inline onclick= handlers
 window.logCalfTwinge=logCalfTwinge;
 window.setHoistModel=setHoistModel;
+window.unitAskPick=unitAskPick;
+window.unitAskClose=unitAskClose;
 window.setMachine=setMachine;
 window.setHoistAddOn=setHoistAddOn;
 window.undoCalfTwinge=undoCalfTwinge;
@@ -1856,23 +1858,50 @@ export function unitSuspect(kg,unit,usual){
   return null;
 }
 const r1=x=>Math.round(x*10)/10;
+// A weight far off this exercise's usual. Used to be a native confirm() (the
+// user, Nov 17: "this is the Apple system pop-up, redesign it, act surprised
+// and pump me"). Now a FORGE sheet that hypes a real jump and makes the typo
+// fix one tap. Returns true when it opened (toggleSet waits for the answer;
+// unitAskPick() then re-runs the tick). Hoist sets are machine-computed.
+let _unitAsk=null;
 function checkUnitOnLog(key,exId,i,sd,ex,wEl){
+  if(getHoist(key,exId))return false;
   const cid=canonicalId(exId),unit=getExUnit(key,exId),w=Number(sd.weight);
   const others=loggedSetsKg(cid).filter(s=>!(s.key===key&&s.exId===exId&&s.i===i));
   const usual=recentUsualKg(others,key)??hintMidKg(ex.hint);
   const kg=toKg(w,unit),sus=unitSuspect(kg,unit,usual);
-  if(!sus)return;
+  if(!sus)return false;
   const name=(ex.name||"this exercise").replace(/^Warm-Up · (.*)$/,"$1 warm-up");
+  const conv=sus==="lbs"?r1(w*LB_TO_KG):r1(w/LB_TO_KG);
+  _unitAsk={key,exId,i,conv};
+  const $=id=>document.getElementById(id);
   if(sus==="lbs"){
-    const conv=r1(w*LB_TO_KG);
-    if(confirm(`${w} kg is much heavier than your usual ~${Math.round(usual)} kg on ${name}.\n\nDid you mean ${w} lbs?\n\nOK: log it as ${conv} kg\nCancel: keep ${w} kg`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
-    else sd.unitOk=true;
+    const x=kg/usual,how=x>=2.2?"More than double":x>=1.7?"Almost double":"Way above";
+    $("uaTitle").textContent=`Whoa, ${w} kg?!`;
+    $("uaSub").textContent=`${how} your usual ~${Math.round(usual)} kg on ${name}. If you really moved that, that's a monster set.`;
+    $("uaKeep").textContent=`Yes, I lifted ${w} kg`;
+    $("uaFix").textContent=`Oops, it was ${w} lb (${conv} kg)`;
+    _unitAsk.keepToast=`Monster set logged: ${w} kg. Keep that form tight.`;
   }else{
-    const conv=r1(w/LB_TO_KG);
-    if(confirm(`${w} lbs is much lighter than your usual ~${Math.round(usual/LB_TO_KG)} lbs on ${name}.\n\nDid you mean ${w} kg?\n\nOK: log it as ${conv} lbs\nCancel: keep ${w} lbs`)){sd.weight=String(conv);if(wEl)wEl.value=sd.weight;}
-    else sd.unitOk=true;
+    $("uaTitle").textContent=`Only ${w} lbs?`;
+    $("uaSub").textContent=`That's well under your usual ~${Math.round(usual/LB_TO_KG)} lbs on ${name}. Light day, or did the box mean kg?`;
+    $("uaKeep").textContent=`Light day, keep ${w} lbs`;
+    $("uaFix").textContent=`It was ${w} kg (${conv} lbs)`;
+    _unitAsk.keepToast=`Logged ${w} lbs. Easy days count too.`;
   }
+  $("unitAsk").classList.add("show");
+  return true;
 }
+function unitAskPick(fix){
+  const a=_unitAsk;document.getElementById("unitAsk")?.classList.remove("show");_unitAsk=null;
+  if(!a)return;
+  const S=ctx.getS(),sd=S.sessions[a.key]?.[a.exId]?.sets?.[a.i];if(!sd)return;
+  const wEl=document.getElementById(`wi-${a.exId}-${a.i}`);
+  if(fix){sd.weight=String(a.conv);if(wEl)wEl.value=sd.weight;}else sd.unitOk=true;
+  toggleSet(a.key,a.exId,a.i);
+  if(!fix&&a.keepToast)showToastBig(a.keepToast);
+}
+function unitAskClose(){document.getElementById("unitAsk")?.classList.remove("show");_unitAsk=null;}
 
 // Every logged set that looks like the wrong unit, for the review sheet.
 // Sets already confirmed (unitOk) are never asked about again.

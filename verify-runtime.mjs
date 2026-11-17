@@ -362,9 +362,13 @@ try {
       await page.locator(`#wi-${exId}-0`).fill("120");
       await page.locator(`#ri-${exId}-0`).fill("10");
       await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(300);
+      const sheet = await page.evaluate(() => ({ shown: document.getElementById("unitAsk")?.classList.contains("show"), title: document.getElementById("uaTitle")?.textContent, fix: document.getElementById("uaFix")?.textContent }));
+      note("a weight far above usual opens FORGE's own sheet, not a system pop-up ('Whoa, 120 kg?!')", sheet.shown && /Whoa, 120 kg\?!/.test(sheet.title) && /120 lb \(54\.4 kg\)/.test(sheet.fix), JSON.stringify(sheet));
+      await page.locator("#uaFix").click();
       await page.waitForTimeout(400);
       const w = await page.evaluate((id) => document.getElementById(`wi-${id}-0`)?.value, exId);
-      note("ticking a set ~2.2x heavier than usual asks, and OK logs it converted (120 -> 54.4 kg)", w === "54.4", "value=" + w);
+      note("ticking a set ~2.2x heavier than usual asks, and 'Oops, it was lb' logs it converted (120 -> 54.4 kg)", w === "54.4", "value=" + w);
       const unit = await page.evaluate((id) => document.querySelector(`#sr-${id}-0 .wt-wrap`)?.dataset.unit, exId);
       note("every weight box shows its unit inline", unit === "kg", "unit=" + unit);
       await page.close();
@@ -377,9 +381,11 @@ try {
       await page.locator(`#wi-${exId}-0`).fill("120");
       await page.locator(`#ri-${exId}-0`).fill("10");
       await page.locator(`#ex-${exId} .sdone`).first().click();
+      await page.waitForTimeout(300);
+      await page.locator("#uaKeep").click();
       await page.waitForTimeout(400);
       const r = await page.evaluate(({ id }) => { const S = JSON.parse(localStorage.f5); const k = Object.keys(S.sessions).find((k) => S.sessions[k][id]?.sets?.[0]?.weight === "120" && S.sessions[k][id].sets[0].done); return k ? S.sessions[k][id].sets[0] : null; }, { id: exId });
-      note("Cancel keeps the weight as typed and marks it confirmed", !!r && r.unitOk === true, JSON.stringify(r));
+      note("'Yes, I lifted it' keeps the weight as typed, ticks it and marks it confirmed", !!r && r.unitOk === true, JSON.stringify(r));
       await page.close();
     }
     // 2b. Nov 5: a weight that GREW over months (45 -> 82 -> 91 -> 96) is judged
@@ -407,7 +413,8 @@ try {
       await page.locator(`#ri-${exId}-0`).fill("15"); await page.locator(`#ri-${exId}-0`).dispatchEvent("change");
       await page.evaluate(([k, id]) => window.toggleSet(k, id, 0), [key, exId]); await page.waitForTimeout(400);
       const rows = await page.evaluate(() => { window.openUnitReview?.(); return document.querySelectorAll("#planModal.show .pm-change").length; });
-      note("a weight that grew 45 -> 96 kg over months: logging 91 kg asks nothing and the review sheet lists nothing", asked.length === 0 && rows === 0, JSON.stringify({ asked, rows }));
+      const sheetUp = await page.evaluate(() => document.getElementById("unitAsk")?.classList.contains("show"));
+      note("a weight that grew 45 -> 96 kg over months: logging 91 kg asks nothing and the review sheet lists nothing", asked.length === 0 && !sheetUp && rows === 0, JSON.stringify({ asked, sheetUp, rows }));
       await page.close();
     }
     // 3. Review sheet: the past 120 kg set is listed; Convert fixes it and the PR.
@@ -917,7 +924,7 @@ try {
       await page.locator(`#ri-${exId}-${i}`).fill(r);
       // iOS: tapping the tick does NOT move focus off the reps box (a desktop
       // click would focus the button and hide the bug). Tick with focus kept.
-      await page.evaluate(({ a, i }) => { document.getElementById(`ri-${a}-${i}`).focus(); window.toggleSet(window.__forgeKey(), a, i); }, { a: exId, i });
+      await page.evaluate(({ a, i }) => { document.getElementById(`ri-${a}-${i}`).focus(); window.toggleSet(window.__forgeKey(), a, i); if (document.getElementById("unitAsk")?.classList.contains("show")) window.unitAskPick(false); }, { a: exId, i });
       await page.waitForTimeout(250);
       return page.evaluate((a) => document.querySelector(`#ol-${a} span`)?.className || "none", exId);
     };
