@@ -326,8 +326,11 @@ weekly email), so Mon Oct 26 is never a missed day:
 | 7 | Feb 28 | -> 95 |
 
 Each phase starts at the previous target the day after it ends: the line is
-continuous and lands on 95 exactly on Feb 28 (tested). **Food: 1,500
-Mon-Sat, 1,200 on Sunday** (the rest day; `eatKcalRest`, read through
+continuous and lands on 95 exactly on Feb 28 (tested). **Food: 1,400
+Mon-Sat from Nov 18 2026** (the user: "decrease overall calories to 1,400 a day
+eaten, keep active calories as is"; `EAT_CUT_FROM`/`EAT_CUT_KCAL` in
+`eatKcalFor`; `eatKcalAvg` keeps 1,500 so the Watch active targets do NOT
+move and the 100 kcal is extra deficit; 1,500 before Nov 18), **1,200 on Sunday** (the rest day; `eatKcalRest`, read through
 `eatKcalFor(p,date)` everywhere a food target is used, and `eatKcalAvg(p)`
 for solving). **Resting is planned at a fixed 2,700** (`restingKcal` on the
 phases, the user's call: the Watch's resting figure is an estimate); a
@@ -456,9 +459,14 @@ deficit maths:
 | Food on target | 30% | finished days with food logged AND at or under `eatKcal` |
 | Workouts | 25% | `min(trained,5)` vs planned days possible so far; never over 100 |
 | Weight vs line | 25% | 0.5 kg deadband, then -25/kg; capped at 100 when ahead |
-| Weigh-ins | 10% | finished days with a weigh-in |
+| Weigh-ins | 10% | 5 of 7 days (Nov 18): two misses a week free, then -20 per miss |
 | Watch active | 10% | finished days at or over the target, clamped `+max(0,eaten-eatKcal)/ACTIVE_MULT` |
 
+- **The week's goals** (Nov 18, the user): food at or under target 7 of 7 days,
+  Watch active target met 7 of 7, Watch active logged 7 of 7, weigh-ins 5 of 7
+  (`WEEK_GOALS`, `goalRow()` in `src/nutrition.js`: done once met, "N to go"
+  while still possible, "N missed" once it can't be; used on the goal card and
+  in the drawer's Targets Hit This Week).
 - Today is never charged until it ends (`isoToday`, Toronto).
 - A weigh-in this week is judged against the line on its date. With none, the
   last one is CARRIED FORWARD against today's line, so skipping the scale

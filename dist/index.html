@@ -3048,7 +3048,17 @@ function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{expecte
 // Now derived from whatever the program actually schedules.
 function isRestDay(dateIso){return isGymRestDay(dateIso);}
 // The day's food target: a phase may eat less on the rest day (eatKcalRest).
-function eatKcalFor(p,dateIso){return p.eatKcalRest!=null&&isRestDay(dateIso)?p.eatKcalRest:p.eatKcal;}
+// Nov 18 2026 (the user): "decrease overall calories to 1,400 a day eaten,
+// keep active calories as is". From EAT_CUT_FROM the 5 kg phases eat 1,400 on
+// training days (Sunday stays 1,200). eatKcalAvg below is NOT changed: it is
+// what the Watch active target is solved from, so the active targets stay
+// exactly where they were and the extra 100 kcal is extra deficit.
+const EAT_CUT_FROM="2026-11-18",EAT_CUT_KCAL=1400;
+function eatKcalFor(p,dateIso){
+  if(p.eatKcalRest!=null&&isRestDay(dateIso))return p.eatKcalRest;
+  if(p&&/^p5_/.test(p.id||"")&&dateIso>=EAT_CUT_FROM)return Math.min(p.eatKcal,EAT_CUT_KCAL);
+  return p.eatKcal;
+}
 // The week's average food target (one rest day a week), which is what the
 // fixed daily deficit is solved against.
 function eatKcalAvg(p){return p.eatKcalRest!=null?(6*p.eatKcal+p.eatKcalRest)/7:p.eatKcal;}
@@ -6097,7 +6107,9 @@ function weekTargetsHtml(){
   const c=weekCompliance(p,mondayOfIso(t),t);
   const f=c.finishedDays,of=n=>`${n} of ${f} days`;
   const r=(lbl,n)=>!f?{state:"wait",lbl,val:"Starts tomorrow"}:n>=f?{state:"done",lbl,val:of(n)}:{state:"open",lbl,val:`${f-n} missed`,sub:of(n)};
-  const rows=[r("Food at or under target",c.foodDays),r("Watch active target met",c.activeDays),
+  const wd=c.weekDays||7;
+  const rows=[goalRow("Food at or under target",c.foodDays,Math.min(WEEK_GOALS.food,wd),f,wd),goalRow("Watch active target met",c.activeDays,Math.min(WEEK_GOALS.active,wd),f,wd),
+    goalRow("Weigh-ins",c.weighDays,Math.min(WEEK_GOALS.weigh,wd),f,wd),
     c.behindKg==null?null:c.behindKg>0?{state:"open",lbl:"Weight vs line",val:`${c.behindKg.toFixed(1)} kg behind`}:{state:"done",lbl:"Weight vs line",val:`${Math.abs(c.behindKg).toFixed(1)} kg ahead`}].filter(Boolean);
   const sc=c.overall,C=169.6;
   const ring=`<svg width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="Score ${sc??0} percent"><circle cx="32" cy="32" r="27" fill="none" stroke="var(--s2)" stroke-width="7"/><circle cx="32" cy="32" r="27" fill="none" stroke="var(--accent)" stroke-width="7" stroke-linecap="round" stroke-dasharray="${((sc||0)/100*C).toFixed(1)} ${C}" transform="rotate(-90 32 32)"/></svg>`;
@@ -6537,6 +6549,19 @@ async function generateDietReview(){
 // loss in self-monitoring trials, so it carries most; the scale is the outcome
 // and can't carry the score alone.
 const COMPLIANCE_WEIGHTS={food:0.30,workouts:0.25,weight:0.25,weighins:0.10,active:0.10};
+// The week's goals (Nov 18, the user): food at or under target 7 of 7 days,
+// Watch active target met 7 of 7, Watch active logged 7 of 7, weigh-ins 5 of 7.
+const WEEK_GOALS={food:7,active:7,activeLogged:7,weigh:5};
+// A "n of goal" row for a week: done once the goal is met, open while it can
+// still be met ("2 to go"), and "missed" once too many days have gone by.
+function goalRow(lbl,n,goal,elapsed,inWeek){
+  const left=Math.max(0,inWeek-elapsed),misses=Math.max(0,elapsed-n),canMiss=Math.max(0,inWeek-goal);
+  const g=goal>=inWeek?`Goal: all ${inWeek} days`:`Goal: ${goal} of ${inWeek} days`;
+  if(n>=goal)return{state:"done",lbl,val:`${n} of ${inWeek} days`,sub:g};
+  if(misses>canMiss)return{state:"open",lbl,val:`${misses} missed`,sub:`${n} of ${elapsed} so far. ${g}`};
+  if(!elapsed&&!n)return{state:"wait",lbl,val:"Starts today",sub:g};
+  return{state:"open",lbl,val:`${goal-n} to go`,sub:`${n} so far, ${left} day${left===1?"":"s"} left. ${g}`};
+}
 function mondayOfIso(dateIso){const dow=noonUTC(dateIso).getUTCDay();return addDaysIso(dateIso,dow===0?-6:1-dow);}
 // Weighted compliance for [weekStartIso .. endIso]. Today is never charged
 // until it ends (Toronto day, isoToday). A part with nothing to score yet is
@@ -6583,7 +6608,9 @@ function weekCompliance(p,weekStartIso,endIso){
     food:pct(foodDays,finished.length),
     workouts:expected>0?Math.min(100,Math.round(Math.min(trained,need)/expected*100)):null,
     weight:behindKg==null?null:behindKg<=0.5?100:Math.max(0,Math.round(100-(behindKg-0.5)*25)),
-    weighins:pct(weighDays,finished.length),
+    // 5 of 7 (Nov 18): two skipped days a week cost nothing.
+    weighins:finished.length?(()=>{const miss=finished.length-weighDays,free=7-WEEK_GOALS.weigh;return miss<=free?100:Math.max(0,Math.round(100*(WEEK_GOALS.weigh-(miss-free))/WEEK_GOALS.weigh));})():null,
+    weekDays:week.length,
     active:pct(activeDays,finished.length),
     foodDays,weighDays,activeDays,finishedDays:finished.length,
     // Logged at all (the goal card counts these; targets hit live in the drawer).
@@ -6630,7 +6657,7 @@ function coachRecommendation(p,todayIso,comp){
   if(!h||!comp||comp.overall==null)return"Log food and weight consistently this week to unlock recommendations.";
   if(h.colour==="green"&&comp.overall>=90)return"Excellent adherence. Avoid the temptation to cut calories further.";
   if(h.colour==="green")return"Stay the course.";
-  if(comp.food!=null&&comp.food<80)return"Log every meal and stay at 1,500 kcal on more days.";
+  if(comp.food!=null&&comp.food<80)return`Log every meal and stay at ${eatKcalFor(p,todayIso).toLocaleString()} kcal on more days.`;
   if(comp.active!=null&&comp.active<80)return"Hit the Watch active target on more days.";
   return"Hold targets steady and prioritise consistency over intensity.";
 }
@@ -6748,7 +6775,7 @@ async function aiPhaseReview(id){
       thisWeek:comp.overall==null?null:{overall:comp.overall,foodOnTargetDays:`${comp.foodDays} of ${comp.finishedDays}`,workouts:`${comp.trained} of ${comp.need} done`,weightVsLineKg:comp.behindKg,weighInDays:`${comp.weighDays} of ${comp.finishedDays}`,activeTargetDays:`${comp.activeDays} of ${comp.finishedDays}`},
       lastWeeks:hist,last14Days:days,
     };
-    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under the day's target of ${p.eatKcal} kcal${p.eatKcalRest!=null?` (${p.eatKcalRest} on the rest day)`:""} (30%), 5 workouts a week (25%), weight at or under the plan line (25%), a daily weigh-in (10%), the Watch active target (10%).\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
+    const prompt=`Goal progress review. The user scores their week on five habits: food logged and at or under the day's target of ${eatKcalFor(p,isoToday())} kcal${p.eatKcalRest!=null?` (${p.eatKcalRest} on the rest day)`:""} (30%), 5 workouts a week (25%), weight at or under the plan line (25%), weigh-ins on 5 of 7 days (10%), the Watch active target (10%). The week's goals: food at or under target 7 of 7 days, Watch active target met 7 of 7, Watch active logged 7 of 7, weigh-ins 5 of 7.\nFacts: ${JSON.stringify(facts)}\n\nThe hard goals (hardGoals) must still be hit; the phases are steps toward them.\nAs their coach, write: first, two sentences on how the goal is going so far (ahead or behind the line, by how much, and whether the habits explain it). Then up to three concrete actions with numbers that get them back on track for the next checkpoint (for example "eat at 1,500 on 6 of 7 days", "add a 20 min walk on rest days", "weigh in every morning"). If they are on track, say what to keep doing instead. Plain text, short lines, no headings, no em dashes.`;
     const r=await fetchT(API_CFG.baseUrl+"/api/coach",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+API_CFG.token},body:JSON.stringify({prompt})},60000);
     const d=await r.json();
     if(!r.ok||!d.text)throw new Error(d.error||"failed");
@@ -7027,15 +7054,15 @@ function phaseCardHtml(){
     comp.behindKg==null?{state:"open",lbl:"Weight vs line",val:"No weigh-in yet"}
       :comp.behindKg>0?{state:"open",lbl:"Weight vs line",val:wLine}:{state:"done",lbl:"Weight vs line",val:wLine},
     logRow("Food logged",comp.logged.food),
-    logRow("Weigh-ins",comp.logged.weigh),
-    logRow("Watch active logged",comp.logged.active),
+    (()=>{const wd=comp.weekDays||7,c=comp.logged.weigh;return goalRow("Weigh-ins",c.n,Math.min(WEEK_GOALS.weigh,wd),c.of,wd);})(),
+    (()=>{const wd=comp.weekDays||7,c=comp.logged.active;return goalRow("Watch active logged",c.n,Math.min(WEEK_GOALS.activeLogged,wd),c.of,wd);})(),
   ];
   // Needs attention: what is actually behind (workouts only once behind
   // schedule, not merely "to go" on a Monday).
   const behind=[];
   if(comp.trained<comp.expected)behind.push(`Workouts: ${comp.need-comp.trained} to go this week`);
   if(comp.behindKg>0)behind.push(`${comp.behindKg.toFixed(1)} kg behind the line`);
-  [["food log",comp.foodLogged],["weigh-in",comp.weighDays],["Watch active log",comp.activeLogged]].forEach(([k,n])=>{const m=fin-n;if(fin&&m>0)behind.push(`${m} ${k}${m===1?"":"s"} missed`);});
+  [["food log",comp.foodLogged,0],["weigh-in",comp.weighDays,7-WEEK_GOALS.weigh],["Watch active log",comp.activeLogged,0]].forEach(([k,n,free])=>{const m=fin-n-free;if(fin&&m>0)behind.push(`${m} ${k}${m===1?"":"s"} missed`);});
   const compHtml=(behind.length?gapNote("Needs attention",behind.join(". ")+"."):"")+
     gapSort(habitRows).map(r=>gapRow(r.state,r.lbl,r.val,r.sub)).join("");
 
@@ -8310,7 +8337,7 @@ function buildChatContext(){
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
       eatKcal:eatKcalFor(phase,today),activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
-      weekCompliance:comp.overall==null?null:{overall:comp.overall,scoring:"food logged and at or under eatKcal 30%, 5 workouts a week 25%, weight at or under the plan line 25%, daily weigh-in 10%, Watch active target 10%",foodOnTargetDays:comp.foodDays,weighInDays:comp.weighDays,activeTargetDays:comp.activeDays,finishedDays:comp.finishedDays,workoutsDone:comp.trained,workoutsNeeded:comp.need,kgBehindLine:comp.behindKg},expectedDeficitToday:dailyDeficitReq};
+      weekCompliance:comp.overall==null?null:{overall:comp.overall,scoring:"food logged and at or under eatKcal 30%, 5 workouts a week 25%, weight at or under the plan line 25%, weigh-ins on 5 of 7 days 10%, Watch active target 10%; weekly goals: food on target 7 of 7, active target 7 of 7, active logged 7 of 7, weigh-ins 5 of 7",foodOnTargetDays:comp.foodDays,weighInDays:comp.weighDays,activeTargetDays:comp.activeDays,finishedDays:comp.finishedDays,workoutsDone:comp.trained,workoutsNeeded:comp.need,kgBehindLine:comp.behindKg},expectedDeficitToday:dailyDeficitReq};
   })():null;
   const goal={
     type:"weight loss",

@@ -30,7 +30,7 @@ function buildChatContext(){
     return{id:phase.id,strategy:phase.strategy,endsEffective:effectiveEnd(phase,today),
       eatKcal:eatKcalFor(phase,today),activeTargetToday:phaseActiveTarget(phase,today),activeSoFar:active,
       latestWeighIn:wvc?{date:wvc.date,kg:wvc.kg,planKg:wvc.expected,aheadKg:wvc.diff}:null,bankedDays:banked?banked.days:null,
-      weekCompliance:comp.overall==null?null:{overall:comp.overall,scoring:"food logged and at or under eatKcal 30%, 5 workouts a week 25%, weight at or under the plan line 25%, daily weigh-in 10%, Watch active target 10%",foodOnTargetDays:comp.foodDays,weighInDays:comp.weighDays,activeTargetDays:comp.activeDays,finishedDays:comp.finishedDays,workoutsDone:comp.trained,workoutsNeeded:comp.need,kgBehindLine:comp.behindKg},expectedDeficitToday:dailyDeficitReq};
+      weekCompliance:comp.overall==null?null:{overall:comp.overall,scoring:"food logged and at or under eatKcal 30%, 5 workouts a week 25%, weight at or under the plan line 25%, weigh-ins on 5 of 7 days 10%, Watch active target 10%; weekly goals: food on target 7 of 7, active target 7 of 7, active logged 7 of 7, weigh-ins 5 of 7",foodOnTargetDays:comp.foodDays,weighInDays:comp.weighDays,activeTargetDays:comp.activeDays,finishedDays:comp.finishedDays,workoutsDone:comp.trained,workoutsNeeded:comp.need,kgBehindLine:comp.behindKg},expectedDeficitToday:dailyDeficitReq};
   })():null;
   const goal={
     type:"weight loss",

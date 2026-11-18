@@ -159,7 +159,17 @@ export function phaseCorridor(p,dateIso){const e=phaseCurveKg(p,dateIso);return{
 // Now derived from whatever the program actually schedules.
 export function isRestDay(dateIso){return isGymRestDay(dateIso);}
 // The day's food target: a phase may eat less on the rest day (eatKcalRest).
-export function eatKcalFor(p,dateIso){return p.eatKcalRest!=null&&isRestDay(dateIso)?p.eatKcalRest:p.eatKcal;}
+// Nov 18 2026 (the user): "decrease overall calories to 1,400 a day eaten,
+// keep active calories as is". From EAT_CUT_FROM the 5 kg phases eat 1,400 on
+// training days (Sunday stays 1,200). eatKcalAvg below is NOT changed: it is
+// what the Watch active target is solved from, so the active targets stay
+// exactly where they were and the extra 100 kcal is extra deficit.
+export const EAT_CUT_FROM="2026-11-18",EAT_CUT_KCAL=1400;
+export function eatKcalFor(p,dateIso){
+  if(p.eatKcalRest!=null&&isRestDay(dateIso))return p.eatKcalRest;
+  if(p&&/^p5_/.test(p.id||"")&&dateIso>=EAT_CUT_FROM)return Math.min(p.eatKcal,EAT_CUT_KCAL);
+  return p.eatKcal;
+}
 // The week's average food target (one rest day a week), which is what the
 // fixed daily deficit is solved against.
 export function eatKcalAvg(p){return p.eatKcalRest!=null?(6*p.eatKcal+p.eatKcalRest)/7:p.eatKcal;}

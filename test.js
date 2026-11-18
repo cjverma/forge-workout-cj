@@ -536,7 +536,7 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
   ok("weight vs line: 0.5 kg deadband, 1.0 behind = 88, 1.5 behind = 75, ahead caps at 100, 4.5 behind floors at 0",
     behind(128.5) === 100 && behind(129) === 88 && behind(129.5) === 75 && behind(126) === 100 && behind(132.5) === 0);
   const carried = mk({ nutrition: { days: {}, weights: { "2026-10-30": 131 } } }, { trained: wk })(P, "2026-11-02", "2026-11-07");
-  ok("skipping the scale doesn't help: the last weigh-in is carried forward against today's line", carried.weight === 38 && carried.carried === true && carried.weighins === 0, JSON.stringify(carried));
+  ok("skipping the scale doesn't help: the last weigh-in is carried forward against today's line", carried.weight === 38 && carried.carried === true && carried.weighins === 40, JSON.stringify(carried));
   const fasted = { nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(0, 0)])), weights: {} } };
   ok("a day with no food and no active logged fails food and active (never a free pass)",
     (() => { const c = mk(fasted)(P, "2026-11-02", "2026-11-07"); return c.food === 0 && c.active === 0; })());
@@ -545,7 +545,7 @@ ok("compliance weights are food 30 / workouts 25 / weight 25 / weigh-ins 10 / ac
   const mon = mk({ nutrition: { days: {}, weights: {} } }, { today: "2026-11-02" })(P, "2026-11-02", "2026-11-02");
   ok("Monday morning with nothing yet: overall is null (not 0, not NaN)", mon.overall === null && mon.workouts === null);
   const noScale = mk({ nutrition: { days: Object.fromEntries(wk.map((d) => [d, day(1400, 900)])), weights: {} } }, { trained: wk })(P, "2026-11-02", "2026-11-07");
-  ok("with no weigh-in ever, weight drops out and the rest reweight", noScale.weight === null && noScale.overall === Math.round((30 * 100 + 25 * 100 + 10 * 0 + 10 * 100) / 75), JSON.stringify(noScale));
+  ok("with no weigh-in ever, weight drops out and the rest reweight", noScale.weight === null && noScale.overall === Math.round((30 * 100 + 25 * 100 + 10 * 40 + 10 * 100) / 75), JSON.stringify(noScale));
 }
 // Renamed on the FRONTEND only. Storage keys keep the real name so dose history
 // is not orphaned, and the AI context keeps it so the GLP-1 class still informs
@@ -1001,6 +1001,19 @@ section("16a8 · weight check catches typos in lbs; Remove a best (Nov 17)");
   ok("the Best line has Remove: the set stays in the log as noPR and never counts as a best again",
     /class="pr-remove" onclick="event\.stopPropagation\(\);removeBest\(/.test(W) && /st\.noPR=true;/.test(W) && /st\.otherMachine\|\|st\.noPR\)continue;/.test(W));
   ok("one FORGE sheet (#unitAsk) with keep / fix / edit choices, no native confirm for the weight check", /function openAsk\(o\)/.test(W) && !/confirm\(`\$\{w\} kg is much heavier/.test(W));
+}
+
+section("16a9 · 1,400 kcal from Nov 18, active unchanged; weekly goals (Nov 18)");
+{
+  const E3 = await import("./src/phase.js");
+  const RT3 = await import("./src/runtime.js");
+  const prev = RT3.ctx.getS; RT3.ctx.getS = () => ({ nutrition: { weights: {}, days: {} }, phaseRun: {}, sessions: {} });
+  const p2 = E3.PHASES.find((x) => x.id === "p5_2");
+  ok("food target: 1,400 Mon-Sat from Nov 18, 1,200 Sunday, 1,500 before", E3.eatKcalFor(p2, "2026-11-18") === 1400 && E3.eatKcalFor(p2, "2026-11-22") === 1200 && E3.eatKcalFor(p2, "2026-11-17") === 1500);
+  ok("the Watch active target does not move with the food cut (still solved from the old average)", E3.phaseActiveTarget(p2, "2026-11-18") === E3.phaseActiveTarget(p2, "2026-11-17"));
+  RT3.ctx.getS = prev;
+  const N = readFileSync("src/nutrition.js", "utf8");
+  ok("weekly goals: food 7/7, active target 7/7, active logged 7/7, weigh-ins 5/7 (two free misses)", /const WEEK_GOALS=\{food:7,active:7,activeLogged:7,weigh:5\};/.test(N) && /free=7-WEEK_GOALS\.weigh/.test(N) && /goalRow\("Weigh-ins"/.test(N));
 }
 
 section("16b · proteinTargetG single source of truth");
