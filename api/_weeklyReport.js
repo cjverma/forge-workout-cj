@@ -117,7 +117,8 @@ function build(S, now) {
 
   // ── Nutrition + energy ──────────────────────────────────────────────────
   const protTarget = proteinTargetG();
-  const eatTarget = goal?.eatKcal ?? null;
+  // The training-day food target in force this week (1,400 from Nov 18 2026).
+  const eatTarget = goal ? Math.min(goal.eatKcal, ...elapsed.filter((d) => !isRestDay(d)).map((d) => eatKcalFor(goal, d))) : null;
   const req = goal ? phaseRequiredDeficit(goal) : null;
   const daysN = elapsed.map((d) => {
     const nd = S.nutrition.days[d] || {}, items = nd.items || [];
@@ -227,7 +228,7 @@ export function coachPrompt(x) {
       days: x.dayRows.map((r) => ({ day: r.day, session: r.label || null, status: r.status, exercisesDone: r.doneEx, exercisesPlanned: r.planned, note: r.note || null, calfTwinges: r.twinges || 0 })),
       prs: x.prs.map((p) => ({ exercise: p.name, weightKg: p.weight, reps: p.reps, gainKgEst1RM: p.gain })) },
   };
-  const system = `You are FORGE's coach writing the user's Monday email about the week that just ended. The user is on an aggressive, self-chosen fat-loss plan (eat 1,500 kcal, most of the deficit from training plus a daily 35-min incline walk) and trains 6 days a week with a history of calf and spine issues.
+  const system = `You are FORGE's coach writing the user's Monday email about the week that just ended. The user is on an aggressive, self-chosen fat-loss plan (eat 1,400 kcal Mon-Sat from Nov 18 2026 (1,500 before) and 1,200 on Sunday, most of the deficit from training plus a daily 35-min incline walk) and trains 6 days a week with a history of calf and spine issues.
 Write a VERDICT on how the week went, not a recap of numbers. Be honest and specific like a good coach: name what went well, what didn't, and why it matters for the goal. Use at most two numbers per paragraph, only where they make the point. Session notes and calf twinges are important: mention them if present. If data is missing (unlogged days, no weigh-in), say so plainly rather than guessing.
 Plain sentences. No em dashes, no emoji, no markdown, no headings. Never mention medication.
 Return ONLY JSON: {"headline": one sentence verdict on the whole week (max 14 words), "diet": 2-3 sentences, "training": 2-3 sentences, "nextWeek": [up to 3 short imperative sentences, most important first]}`;

@@ -497,7 +497,7 @@ if(!S._prAudit1){
       for(const[exId,ed]of Object.entries(sess)){
         if(!ed||typeof ed!=="object"||exId.startsWith("_")||canon(exId)!==cid)continue;
         for(const st of(ed.sets||[])){
-          if(!st||!st.done||!st.weight||!st.reps||st.otherMachine)continue;
+          if(!st||!st.done||!st.weight||!st.reps||st.otherMachine||st.noPR)continue;
           const w=ed.unit==="lbs"?Math.round(Number(st.weight)*LB*10)/10:Number(st.weight),r=Number(st.reps);
           if(!w||!r||r>30)continue;
           out.push({key,weight:w,reps:r,est:r===1?w:Math.round(w*(1+r/30))});

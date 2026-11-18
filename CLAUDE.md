@@ -326,8 +326,11 @@ weekly email), so Mon Oct 26 is never a missed day:
 | 7 | Feb 28 | -> 95 |
 
 Each phase starts at the previous target the day after it ends: the line is
-continuous and lands on 95 exactly on Feb 28 (tested). **Food: 1,500
-Mon-Sat, 1,200 on Sunday** (the rest day; `eatKcalRest`, read through
+continuous and lands on 95 exactly on Feb 28 (tested). **Food: 1,400
+Mon-Sat from Nov 18 2026** (the user: "decrease overall calories to 1,400 a day
+eaten, keep active calories as is"; `EAT_CUT_FROM`/`EAT_CUT_KCAL` in
+`eatKcalFor`; `eatKcalAvg` keeps 1,500 so the Watch active targets do NOT
+move and the 100 kcal is extra deficit; 1,500 before Nov 18), **1,200 on Sunday** (the rest day; `eatKcalRest`, read through
 `eatKcalFor(p,date)` everywhere a food target is used, and `eatKcalAvg(p)`
 for solving). **Resting is planned at a fixed 2,700** (`restingKcal` on the
 phases, the user's call: the Watch's resting figure is an estimate); a
@@ -456,9 +459,14 @@ deficit maths:
 | Food on target | 30% | finished days with food logged AND at or under `eatKcal` |
 | Workouts | 25% | `min(trained,5)` vs planned days possible so far; never over 100 |
 | Weight vs line | 25% | 0.5 kg deadband, then -25/kg; capped at 100 when ahead |
-| Weigh-ins | 10% | finished days with a weigh-in |
+| Weigh-ins | 10% | 5 of 7 days (Nov 18): two misses a week free, then -20 per miss |
 | Watch active | 10% | finished days at or over the target, clamped `+max(0,eaten-eatKcal)/ACTIVE_MULT` |
 
+- **The week's goals** (Nov 18, the user): food at or under target 7 of 7 days,
+  Watch active target met 7 of 7, Watch active logged 7 of 7, weigh-ins 5 of 7
+  (`WEEK_GOALS`, `goalRow()` in `src/nutrition.js`: done once met, "N to go"
+  while still possible, "N missed" once it can't be; used on the goal card and
+  in the drawer's Targets Hit This Week).
 - Today is never charged until it ends (`isoToday`, Toronto).
 - A weigh-in this week is judged against the line on its date. With none, the
   last one is CARRIED FORWARD against today's line, so skipping the scale
@@ -1028,7 +1036,13 @@ survived all of them and blocked every real PR beneath it. Three layers now:
 (or <=0.55x in lbs mode), in FORGE's own `#unitAsk` sheet (Nov 17, the user:
 "redesign the Apple system pop-up, act surprised and pump me": "Whoa, 61.2 kg?!
 Almost double your usual ...", "Yes, I lifted 61.2 kg" / "Oops, it was 61.2
-lb (27.8 kg)"; `unitAskPick` re-runs the tick; Hoist sets are skipped); `findUnitSuspects()` + the review sheet
+lb (27.8 kg)" / "Fix the number"; in lbs mode a weight >=1.8x usual is a
+typo check (Nov 17: 500 lbs on a ~20 lb lateral raise got through); one
+`openAsk()` sheet, `askPick` runs the choice and re-ticks; Hoist sets are
+skipped). **Remove a best** (Nov 17, "bring back option to remove PR sets"):
+the Best line on a card has Remove (`removeBest`): matching sets get `noPR`
+(kept in the log, never a best; `bestFromSessions` skips them), the PR
+entries at or above it are deleted and the next real best is recovered; `findUnitSuspects()` + the review sheet
 (`openUnitReview`, Settings, and once a day after launch) offer Convert / Keep
 per past set and `rebuildPRsFor()` the exercise; and the unit is printed in
 every weight box, with new entries defaulting to the unit last used on that

@@ -718,13 +718,13 @@ try {
     const bad = txt.match(/.{40}(undefined|NaN|null kg|null%).{30}/g);
     note("the goal card shows the new goal and five habit rows with real numbers",
       /Phase 1 of 7: 125 kg by Nov 12/.test(txt) && /95 kg by Feb 28.{0,40}kg a week needed/.test(txt) && !/Mar 31/.test(txt) && /Food logged\s*3 of 3 days/.test(txt) && /Workouts\s*\d of 5 done/.test(txt) &&
-      /Weight vs line/.test(txt) && /Weigh-ins\s*1 of 3 days/.test(txt) && /Watch active logged\s*3 of 3 days/.test(txt) && !/Score so far|Food on target/.test(txt) && !bad,
-      JSON.stringify(bad) + " " + (txt.match(/This week.{0,260}/) || [""])[0]);
+      /Weight vs line/.test(txt) && /Weigh-ins\s*1 so far, 4 days left\. Goal: 5 of 7 days\s*4 to go/.test(txt) && /Watch active logged\s*3 so far, 4 days left\. Goal: all 7 days\s*4 to go/.test(txt) && !/Score so far|Food on target/.test(txt) && !bad,
+      JSON.stringify(bad) + " " + txt.slice(txt.lastIndexOf("This week"), txt.lastIndexOf("This week") + 400));
     // Targets hit (and the score) live in the Insights drawer instead.
     await page.evaluate(() => window.openDrawer?.()); await page.waitForTimeout(300);
     const dr = await page.evaluate(() => document.getElementById("drawerContent")?.textContent || "");
     note("the Insights drawer shows targets hit this week and the score (Nov 3 at 2,600 kcal is logged but not on target)",
-      /Targets Hit This Week/.test(dr) && /Food at or under target\s*2 of 3 days/.test(dr) && /Watch active target met\s*\d of 3 days/.test(dr) && /\d+%\s*Score so far/.test(dr), dr.slice(dr.indexOf("Targets"), dr.indexOf("Targets") + 200));
+      /Targets Hit This Week/.test(dr) && /Food at or under target\s*2 of 3 so far\. Goal: all 7 days\s*1 missed/.test(dr) && /Watch active target met.{0,60}(\d+ missed|\d+ to go)/.test(dr) && /Weigh-ins.{0,60}Goal: 5 of 7 days/.test(dr) && /\d+%\s*Score so far/.test(dr), dr.slice(dr.indexOf("Targets"), dr.indexOf("Targets") + 400));
     note("the goal card says this week's goal: the plan line on Sunday (126.3 kg by Sun, Nov 8) and the gap from the latest weigh-in (128.9 kg, 2.6 to go)",
       /This week's goal/.test(txt) && /126\.3 kg by Sun, Nov 8/.test(txt) && /2\.6 kg to go from 128\.9 kg/.test(txt), (txt.match(/This week's goal.{0,80}/) || [""])[0]);
     note("the hidden goal extras stay hidden (pause, verdict, banked, drift)", !/Pause phase|Accept current result|Banked|Mid-phase drift/.test(txt));

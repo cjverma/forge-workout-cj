@@ -736,7 +736,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}</div>`;})()}</div>
+      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}${rdOnly?"":` <button class="pr-remove" onclick="event.stopPropagation();removeBest('${key}','${ex.id}')">Remove</button>`}</div>`;})()}</div>
       <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -959,7 +959,8 @@ function bestFromSessions(cid){
       for(const st of(ed.sets||[])){
         // otherMachine: logged on a different machine (user, Oct 29); kept in
         // the log but never a PR.
-        if(!st||!st.done||!st.weight||!st.reps||st.otherMachine)continue;
+        // noPR: the user removed it from their bests (Nov 17); same rule.
+        if(!st||!st.done||!st.weight||!st.reps||st.otherMachine||st.noPR)continue;
         const w=toKg(st.weight,ed.unit),r=Number(st.reps);
         if(!w||!r||r>30)continue;
         const est=epley1RM(w,r);
@@ -1766,6 +1767,8 @@ ctx.checkPhaseCelebration=checkPhaseCelebration;
 window.logCalfTwinge=logCalfTwinge;
 window.setHoistModel=setHoistModel;
 window.unitAskPick=unitAskPick;
+window.askPick=askPick;
+window.removeBest=removeBest;
 window.unitAskClose=unitAskClose;
 window.setMachine=setMachine;
 window.setHoistAddOn=setHoistAddOn;
@@ -1863,45 +1866,85 @@ const r1=x=>Math.round(x*10)/10;
 // and pump me"). Now a FORGE sheet that hypes a real jump and makes the typo
 // fix one tap. Returns true when it opened (toggleSet waits for the answer;
 // unitAskPick() then re-runs the tick). Hoist sets are machine-computed.
-let _unitAsk=null;
+let _ask=null;
+// One FORGE sheet for "are you sure" moments (#unitAsk): title, line, and up
+// to three choices (keep = blue, fix/edit = tinted). Handlers run on tap.
+function openAsk(o){
+  const $=id=>document.getElementById(id);
+  _ask=o;
+  $("uaTitle").textContent=o.title;$("uaSub").textContent=o.sub||"";
+  const ic=document.querySelector("#unitAsk .ua-icon");if(ic)ic.style.display=o.noIcon?"none":"";
+  [["uaKeep","keep"],["uaFix","fix"],["uaEdit","edit"]].forEach(([id,k])=>{const b=$(id);if(!b)return;b.textContent=o[k]||"";b.style.display=o[k]?"":"none";});
+  $("unitAsk").classList.add("show");
+}
+function askPick(which){
+  const o=_ask;document.getElementById("unitAsk")?.classList.remove("show");_ask=null;
+  if(!o)return;const fn=o["on"+which[0].toUpperCase()+which.slice(1)];if(fn)fn();
+}
+function unitAskPick(fix){askPick(fix?"fix":"keep");}
+function unitAskClose(){document.getElementById("unitAsk")?.classList.remove("show");_ask=null;}
+
+// A weight far off this exercise's usual. Was a native confirm() (the user,
+// Nov 17: "this is the Apple system pop-up, redesign it, act surprised and
+// pump me"). Kg mode, far heavier: probably lbs (convert), or a typo (fix the
+// number). Lbs mode, far heavier (500 vs ~20, Nov 17: it let that through):
+// a typo. Lbs mode, far lighter: probably kg. Returns true when it opened;
+// the chosen action re-runs the tick. Hoist sets are machine-computed.
 function checkUnitOnLog(key,exId,i,sd,ex,wEl){
   if(getHoist(key,exId))return false;
   const cid=canonicalId(exId),unit=getExUnit(key,exId),w=Number(sd.weight);
   const others=loggedSetsKg(cid).filter(s=>!(s.key===key&&s.exId===exId&&s.i===i));
   const usual=recentUsualKg(others,key)??hintMidKg(ex.hint);
-  const kg=toKg(w,unit),sus=unitSuspect(kg,unit,usual);
-  if(!sus)return false;
+  const kg=toKg(w,unit);if(!usual||!kg)return false;
+  const sus=unitSuspect(kg,unit,usual),typo=!sus&&unit==="lbs"&&kg/usual>=UNIT_HI;
+  if(!sus&&!typo)return false;
   const name=(ex.name||"this exercise").replace(/^Warm-Up · (.*)$/,"$1 warm-up");
-  const conv=sus==="lbs"?r1(w*LB_TO_KG):r1(w/LB_TO_KG);
-  _unitAsk={key,exId,i,conv};
-  const $=id=>document.getElementById(id);
-  if(sus==="lbs"){
-    const x=kg/usual,how=x>=2.2?"More than double":x>=1.7?"Almost double":"Way above";
-    $("uaTitle").textContent=`Whoa, ${w} kg?!`;
-    $("uaSub").textContent=`${how} your usual ~${Math.round(usual)} kg on ${name}. If you really moved that, that's a monster set.`;
-    $("uaKeep").textContent=`Yes, I lifted ${w} kg`;
-    $("uaFix").textContent=`Oops, it was ${w} lb (${conv} kg)`;
-    _unitAsk.keepToast=`Monster set logged: ${w} kg. Keep that form tight.`;
-  }else{
-    $("uaTitle").textContent=`Only ${w} lbs?`;
-    $("uaSub").textContent=`That's well under your usual ~${Math.round(usual/LB_TO_KG)} lbs on ${name}. Light day, or did the box mean kg?`;
-    $("uaKeep").textContent=`Light day, keep ${w} lbs`;
-    $("uaFix").textContent=`It was ${w} kg (${conv} lbs)`;
-    _unitAsk.keepToast=`Logged ${w} lbs. Easy days count too.`;
+  const ul=unit==="lbs"?"lbs":"kg",usualShown=Math.round(unit==="lbs"?usual/LB_TO_KG:usual);
+  const retick=()=>toggleSet(key,exId,i);
+  const sdNow=()=>ctx.getS().sessions[key]?.[exId]?.sets?.[i];
+  const keep=()=>{const d=sdNow();if(d)d.unitOk=true;retick();};
+  const edit=()=>{const el=document.getElementById(`wi-${exId}-${i}`);if(el){el.focus();el.select?.();}};
+  if(sus==="kg"){
+    const conv=r1(w/LB_TO_KG);
+    openAsk({title:`Only ${w} lbs?`,sub:`That's well under your usual ~${usualShown} lbs on ${name}. Light day, or did the box mean kg?`,
+      keep:`Light day, keep ${w} lbs`,fix:`It was ${w} kg (${conv} lbs)`,
+      onKeep:()=>{keep();showToastBig(`Logged ${w} lbs. Easy days count too.`);},
+      onFix:()=>{const d=sdNow();if(d){d.weight=String(conv);const el=document.getElementById(`wi-${exId}-${i}`);if(el)el.value=d.weight;}retick();}});
+    return true;
   }
-  $("unitAsk").classList.add("show");
+  const x=kg/usual,how=x>=4?`${Math.round(x)} times`:x>=2.2?"More than double":x>=1.7?"Almost double":"Way above";
+  const o={title:`Whoa, ${w} ${ul}?!`,sub:`${how} your usual ~${usualShown} ${ul} on ${name}. If you really moved that, that's a monster set.`,
+    keep:`Yes, I lifted ${w} ${ul}`,edit:"Fix the number",
+    onKeep:()=>{keep();showToastBig(`Monster set logged: ${w} ${ul}. Keep that form tight.`);},onEdit:edit};
+  if(sus==="lbs"){const conv=r1(w*LB_TO_KG);o.fix=`Oops, it was ${w} lb (${conv} kg)`;
+    o.onFix=()=>{const d=sdNow();if(d){d.weight=String(conv);const el=document.getElementById(`wi-${exId}-${i}`);if(el)el.value=d.weight;}retick();};}
+  openAsk(o);
   return true;
 }
-function unitAskPick(fix){
-  const a=_unitAsk;document.getElementById("unitAsk")?.classList.remove("show");_unitAsk=null;
-  if(!a)return;
-  const S=ctx.getS(),sd=S.sessions[a.key]?.[a.exId]?.sets?.[a.i];if(!sd)return;
-  const wEl=document.getElementById(`wi-${a.exId}-${a.i}`);
-  if(fix){sd.weight=String(a.conv);if(wEl)wEl.value=sd.weight;}else sd.unitOk=true;
-  toggleSet(a.key,a.exId,a.i);
-  if(!fix&&a.keepToast)showToastBig(a.keepToast);
+
+// "Remove" on the Best line (Nov 17, the user: "bring back option to remove PR
+// sets"; the drawer's PR list is switched off). The set stays in the log but
+// is marked noPR, so it can never come back as a best; the next best real lift
+// takes over.
+function removeBest(key,exId){
+  const S=ctx.getS(),cid=canonicalId(exId),pr=bestPR(exId);if(!pr)return;
+  const unit=getExUnit(key,exId),u=unit==="lbs"?"lb":"kg";
+  openAsk({noIcon:true,title:"Remove this best?",sub:`${inUnit(pr.weight,unit)} ${u} × ${pr.reps} stays in your log but stops counting as your best. The next best real set takes over.`,
+    keep:"Remove from bests",edit:"Keep it",
+    onKeep:()=>{
+      const touched=[];
+      for(const[k,sess]of Object.entries(S.sessions||{})){if(!sess||typeof sess!=="object")continue;
+        for(const[id,ed]of Object.entries(sess)){if(!ed||typeof ed!=="object"||id.startsWith("_")||canonicalId(id)!==cid)continue;
+          (ed.sets||[]).forEach(st=>{if(st&&st.done&&!st.noPR&&toKg(st.weight,ed.unit)===Number(pr.weight)&&Number(st.reps)===Number(pr.reps)){st.noPR=true;touched.push([k,id]);}});}}
+      touched.forEach(([k,id])=>queueSession(k,id));
+      const list=S.prs?.[cid]||[];
+      for(const e of list.filter(e=>Number(e.est)>=Number(pr.est)))queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
+      const rest=list.filter(e=>Number(e.est)<Number(pr.est));if(rest.length)S.prs[cid]=rest;else delete S.prs[cid];
+      const next=recoverPRFromLog(cid);
+      save();renderW();
+      showToast(next?`Best removed. Now ${inUnit(next.weight,unit)} ${u} × ${next.reps}`:"Best removed");
+    }});
 }
-function unitAskClose(){document.getElementById("unitAsk")?.classList.remove("show");_unitAsk=null;}
 
 // Every logged set that looks like the wrong unit, for the review sheet.
 // Sets already confirmed (unitOk) are never asked about again.
