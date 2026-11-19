@@ -3163,6 +3163,12 @@ function dayDeficitCheck(dateIso,trained){
 // Needs 3+ weeks of window, 14+ days with food and active logged, and a
 // weigh-in near each end. Clamped to 50-100% so one odd week can't swing it.
 const CAL_FROM="2026-11-09",CAL_MIN_SPAN=21,CAL_MIN_DAYS=14;
+// Nov 19 2026 (the user: "bring down active calories to 70%"): from this day
+// only 70% of the Watch's active number counts (75% before; past days keep
+// it). It is also the ceiling for the calibration: the scale can show the
+// Watch counts even less, never more. Targets solved from it go up to match.
+const ACTIVE_MULT_FROM="2026-11-19",ACTIVE_MULT_NEW=0.70;
+function activeMultBase(dateIso){return dateIso&&dateIso>=ACTIVE_MULT_FROM?ACTIVE_MULT_NEW:ACTIVE_MULT;}
 const _calMemo=new Map();
 function activeCalibration(dateIso){
   const st=phaseStore(),days=st?.nutrition?.days||{},ws=st?.nutrition?.weights||{};
@@ -3173,7 +3179,7 @@ function activeCalibration(dateIso){
     const end=addDaysIso(t,-1);
     let start=addDaysIso(end,-27);if(start<CAL_FROM)start=CAL_FROM;
     const span=daysBetween(start,end);
-    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:ACTIVE_MULT,readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
+    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:activeMultBase(t),readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
     let n=0,sumR=0,sumA=0,sumF=0;
     for(let i=0;i<=span;i++){
       const d=addDaysIso(start,i),nd=days[d]||{};
@@ -3183,11 +3189,11 @@ function activeCalibration(dateIso){
       sumR+=restingFor(d,nd);
     }
     const w0=sevenDayAvg(addDaysIso(start,3)),w1=sevenDayAvg(end);
-    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:ACTIVE_MULT,readyOn:null,days:n};
+    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:activeMultBase(t),readyOn:null,days:n};
     const R=sumR/n,A=sumA/n,F=sumF/n;
     const realDef=(w0-w1)*7700/Math.max(1,span-3);
     const raw=(realDef-R+F)/A;
-    const mult=Math.round(Math.min(1,Math.max(0.5,raw))*100)/100;
+    const mult=Math.round(Math.min(activeMultBase(t)<ACTIVE_MULT?activeMultBase(t):1,Math.max(0.5,raw))*100)/100;
     return{ready:true,mult,raw:Math.round(raw*100)/100,days:n,lostKg:Math.round((w0-w1)*10)/10,
       predictedKg:Math.round((R+ACTIVE_MULT*A-F)*Math.max(1,span-3)/7700*10)/10};
   })();
@@ -3200,7 +3206,7 @@ function actualDeficit(dateIso){
   const nd=S.nutrition?.days?.[dateIso]||{};
   const eaten=(nd.items||[]).reduce((a,i)=>a+(i.kcal||0),0);
   if(!eaten)return null;
-  return Math.round(restingFor(dateIso,nd)+ACTIVE_MULT*(nd.active||0)-eaten);
+  return Math.round(restingFor(dateIso,nd)+activeMult(dateIso)*(nd.active||0)-eaten);
 }
 
 // What the phase requires per day, FIXED for the whole phase: the weight it has
@@ -6070,7 +6076,7 @@ function buildTrendData(){
     const protein=items.reduce((s,it)=>s+(it.protein||0),0);
     const fibre=items.reduce((s,it)=>s+(it.fibre||0),0);
     const active=nd.active||0;
-    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*ACTIVE_MULT);
+    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*activeMult(iso));
     out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,fibre,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
   }
   return out;
@@ -6223,8 +6229,8 @@ function renderNutrition(){
   const resting=restingFor(date,day);
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
-  const totalBurn=resting+Math.round(active*ACTIVE_MULT);
-  const {target,phase}=calcTarget(resting,Math.round(active*ACTIVE_MULT),date);
+  const totalBurn=resting+Math.round(active*activeMult(date));
+  const {target,phase}=calcTarget(resting,Math.round(active*activeMult(date)),date);
   const shock=day.shockProtocol;
   const finalTarget=shock?1200:target;
   const items=day.items||[];
@@ -6877,7 +6883,7 @@ function weekDeficitHtml(){
   const cal=activeCalibration(t);
   const calLine=cal.ready
     ?`Watch check: your weight trend says ${Math.round(cal.mult*100)}% of the Watch's active calories are real (${cal.lostKg} kg lost vs ${cal.predictedKg} kg predicted), so targets use ${Math.round(cal.mult*100)}%.`
-    :`Watch check: counting 75% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend sets it.`;
+    :`Watch check: counting ${Math.round(cal.mult*100)}% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend can lower it, never raise it above ${Math.round(cal.mult*100)}%.`;
   // The one thing to fix this week, said once at the top.
   const daysLeft=w.days.filter(x=>x.state==="today"||x.state==="future").length;
   const note=w.counted&&w.thin?gapNote("Not enough data",`${w.finished-w.counted} day${w.finished-w.counted===1?"":"s"} not counted. Skipped days tend to be the bad ones.`)
@@ -7539,7 +7545,7 @@ function renderST(){
         }
         const resting=restingFor(iso,nutDay);
         const active=nutDay.active||0;
-        const burn=resting+Math.round(active*ACTIVE_MULT);
+        const burn=resting+Math.round(active*activeMult(iso));
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
@@ -7666,7 +7672,7 @@ function weekStats(){
     const nd=S.nutrition.days?.[iso];if(!nd)continue;
     const consumed=(nd.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
-    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*ACTIVE_MULT)-consumed;defDays++;
+    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*activeMult(iso))-consumed;defDays++;
   }
   return{sessions,setsDone,wtChange,avgDeficit:defDays?Math.round(defTotal/defDays):null,defDays};
 }
@@ -7700,7 +7706,7 @@ async function aiWeeklyReview(){
     const consumed=(d.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
     const resting=d.restingOverride!=null?d.restingOverride:bmr;
-    const burn=resting+Math.round((d.active||0)*ACTIVE_MULT);
+    const burn=resting+Math.round((d.active||0)*activeMult(iso));
     totalKcal+=consumed;totalProtein+=(d.items||[]).reduce((s,it)=>s+(it.protein||0),0);
     totalFibre+=(d.items||[]).reduce((s,it)=>s+(it.fibre||0),0);
     totalActive+=(d.active||0);totalBurn+=burn;totalDeficit+=burn-consumed;loggedDays++;
@@ -8327,7 +8333,7 @@ function buildChatContext(){
   const currentWeight=latestWeightLog()||USER.weightKg;
   // Respect the day's custom resting-calorie override (tap-to-edit), else formula BMR
   const bmr=dayData.restingOverride!=null?dayData.restingOverride:calcBMR(currentWeight);
-  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*ACTIVE_MULT),today);
+  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*activeMult(today)),today);
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const phaseCtx=phase?(()=>{

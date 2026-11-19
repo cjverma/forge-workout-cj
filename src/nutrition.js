@@ -50,7 +50,7 @@ function buildTrendData(){
     const protein=items.reduce((s,it)=>s+(it.protein||0),0);
     const fibre=items.reduce((s,it)=>s+(it.fibre||0),0);
     const active=nd.active||0;
-    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*ACTIVE_MULT);
+    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*activeMult(iso));
     out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,fibre,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
   }
   return out;
@@ -203,8 +203,8 @@ export function renderNutrition(){
   const resting=restingFor(date,day);
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
-  const totalBurn=resting+Math.round(active*ACTIVE_MULT);
-  const {target,phase}=calcTarget(resting,Math.round(active*ACTIVE_MULT),date);
+  const totalBurn=resting+Math.round(active*activeMult(date));
+  const {target,phase}=calcTarget(resting,Math.round(active*activeMult(date)),date);
   const shock=day.shockProtocol;
   const finalTarget=shock?1200:target;
   const items=day.items||[];
@@ -857,7 +857,7 @@ function weekDeficitHtml(){
   const cal=activeCalibration(t);
   const calLine=cal.ready
     ?`Watch check: your weight trend says ${Math.round(cal.mult*100)}% of the Watch's active calories are real (${cal.lostKg} kg lost vs ${cal.predictedKg} kg predicted), so targets use ${Math.round(cal.mult*100)}%.`
-    :`Watch check: counting 75% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend sets it.`;
+    :`Watch check: counting ${Math.round(cal.mult*100)}% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend can lower it, never raise it above ${Math.round(cal.mult*100)}%.`;
   // The one thing to fix this week, said once at the top.
   const daysLeft=w.days.filter(x=>x.state==="today"||x.state==="future").length;
   const note=w.counted&&w.thin?gapNote("Not enough data",`${w.finished-w.counted} day${w.finished-w.counted===1?"":"s"} not counted. Skipped days tend to be the bad ones.`)

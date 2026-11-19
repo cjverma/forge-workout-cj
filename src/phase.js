@@ -274,6 +274,12 @@ export function dayDeficitCheck(dateIso,trained){
 // Needs 3+ weeks of window, 14+ days with food and active logged, and a
 // weigh-in near each end. Clamped to 50-100% so one odd week can't swing it.
 export const CAL_FROM="2026-11-09",CAL_MIN_SPAN=21,CAL_MIN_DAYS=14;
+// Nov 19 2026 (the user: "bring down active calories to 70%"): from this day
+// only 70% of the Watch's active number counts (75% before; past days keep
+// it). It is also the ceiling for the calibration: the scale can show the
+// Watch counts even less, never more. Targets solved from it go up to match.
+export const ACTIVE_MULT_FROM="2026-11-19",ACTIVE_MULT_NEW=0.70;
+export function activeMultBase(dateIso){return dateIso&&dateIso>=ACTIVE_MULT_FROM?ACTIVE_MULT_NEW:ACTIVE_MULT;}
 const _calMemo=new Map();
 export function activeCalibration(dateIso){
   const st=phaseStore(),days=st?.nutrition?.days||{},ws=st?.nutrition?.weights||{};
@@ -284,7 +290,7 @@ export function activeCalibration(dateIso){
     const end=addDaysIso(t,-1);
     let start=addDaysIso(end,-27);if(start<CAL_FROM)start=CAL_FROM;
     const span=daysBetween(start,end);
-    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:ACTIVE_MULT,readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
+    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:activeMultBase(t),readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
     let n=0,sumR=0,sumA=0,sumF=0;
     for(let i=0;i<=span;i++){
       const d=addDaysIso(start,i),nd=days[d]||{};
@@ -294,11 +300,11 @@ export function activeCalibration(dateIso){
       sumR+=restingFor(d,nd);
     }
     const w0=sevenDayAvg(addDaysIso(start,3)),w1=sevenDayAvg(end);
-    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:ACTIVE_MULT,readyOn:null,days:n};
+    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:activeMultBase(t),readyOn:null,days:n};
     const R=sumR/n,A=sumA/n,F=sumF/n;
     const realDef=(w0-w1)*7700/Math.max(1,span-3);
     const raw=(realDef-R+F)/A;
-    const mult=Math.round(Math.min(1,Math.max(0.5,raw))*100)/100;
+    const mult=Math.round(Math.min(activeMultBase(t)<ACTIVE_MULT?activeMultBase(t):1,Math.max(0.5,raw))*100)/100;
     return{ready:true,mult,raw:Math.round(raw*100)/100,days:n,lostKg:Math.round((w0-w1)*10)/10,
       predictedKg:Math.round((R+ACTIVE_MULT*A-F)*Math.max(1,span-3)/7700*10)/10};
   })();
@@ -311,7 +317,7 @@ export function actualDeficit(dateIso){
   const nd=S.nutrition?.days?.[dateIso]||{};
   const eaten=(nd.items||[]).reduce((a,i)=>a+(i.kcal||0),0);
   if(!eaten)return null;
-  return Math.round(restingFor(dateIso,nd)+ACTIVE_MULT*(nd.active||0)-eaten);
+  return Math.round(restingFor(dateIso,nd)+activeMult(dateIso)*(nd.active||0)-eaten);
 }
 
 // What the phase requires per day, FIXED for the whole phase: the weight it has

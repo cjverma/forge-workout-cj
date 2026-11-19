@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { isoToday, eatKcalFor } from "./phase.js";
+import { isoToday, eatKcalFor, activeMult } from "./phase.js";
 import { esc, mdLite, showToast, icon } from "./ui.js";
 import { save } from "./state.js";
 import { API_CFG, queueMutation } from "./sync.js";
@@ -20,7 +20,7 @@ function buildChatContext(){
   const currentWeight=latestWeightLog()||USER.weightKg;
   // Respect the day's custom resting-calorie override (tap-to-edit), else formula BMR
   const bmr=dayData.restingOverride!=null?dayData.restingOverride:calcBMR(currentWeight);
-  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*ACTIVE_MULT),today);
+  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*activeMult(today)),today);
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const phaseCtx=phase?(()=>{

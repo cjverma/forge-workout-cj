@@ -423,7 +423,11 @@ enough data" instead of a verdict: skipped days tend to be the bad ones.
 The card also shows the week's weight change vs the plan line. **Watch
 calibration** (`activeCalibration`/`activeMult` in `src/phase.js`): from
 Nov 9 + 3 weeks, the weight actually lost over the last 4 weeks sets how much
-of the Watch's active number counts (clamped 50-100%, default 75%); targets
+of the Watch's active number counts (clamped 50-100%, default 75%; **from Nov
+19 2026 the default is 70% and also the ceiling**, the user: "bring down
+active calories to 70%", `ACTIVE_MULT_FROM`/`activeMultBase`; earlier days keep
+75%; every screen reads `activeMult(date)`, never the fixed `ACTIVE_MULT`, so
+the active targets rose ~7%, 1,301 -> 1,394 on training days); targets
 and the tracker use it. "On track" compares the counted days' deficit with what
 the plan needed from those same days (`phaseDayDeficit`, at the fixed 2,700
 resting and the day's food and active targets): within 5% is on track. The
