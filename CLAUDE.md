@@ -641,13 +641,16 @@ and `.md`: ~2,500 responses, 357/360 held-out values exact, never more than
 1 lb off). Body weight is the 7-day average (else latest), recomputed only
 when it moves 2 kg (`hoistBodyKg`, `f5_hoist_bw`; the user: "recalculated
 post 2 kg weight loss"). The machine for an exercise lives on its logged sets
-and in `f5_hoist_map`. **Each machine is its own history** (Nov 20, the user:
-"on the regular Precor I do 52 kg easily"; the Precor 52 kg x 18 showed as
-the Hoist card's best and set its Level target): `lastSessionEx(exId,
-machine)` and `bestFromSessions(cid, machine, skipKey)` filter by
-`set.hoist || ""`, so the target, the Best line ("Best on RS-1302 ..."),
-"Beat last time", the live hint, the New best toast and Remove all use only
-the machine the card is set to. `S.prs` stays one overall list per exercise.
+and in `f5_hoist_map`.
+**One shared history, the target in the card's machine** (Nov 26, the user:
+"share history but goal that appears for machine should update based on
+machine"; a per-machine split was tried on Nov 20 and undone): best, last
+time, "Beat last time" and the working weight come from every logged set,
+regular and Hoist, all in real kg/lb. A Hoist card turns that working weight
+into the level whose real weight is closest at or under it (`_hLvl`,
+`hoistLevelFor`): 120 kg x 12 on a regular machine shows e.g. "Level 8 x 12"
+on the Hoist. **The user's body weight is never printed** ("no mention of my
+actual weight but continue to calculate"): it still drives the level table.
 
 ### Vertical pulling
 A standard lat pulldown is banned by the spine rules. The only pulldown in the

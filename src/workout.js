@@ -157,11 +157,7 @@ function hintDisp(hint,unit){
 // The most recent earlier session of this exercise. Weights come back in KG
 // (kgSets / weight) plus the unit they were typed in, so callers can show them
 // in whatever unit the box is in now: "Last: 90kg" was 90 lbs shown as kg.
-// machine (Nov 20): "" = regular sets only, a Hoist model = that machine's
-// sets only, undefined = any. A Precor 52 kg and a Hoist level are different
-// machines: one must never set the other's target or best.
-const setMachine_=s=>(s&&s.hoist)||"";
-function lastSessionEx(exId,machine){
+function lastSessionEx(exId){
   const S=ctx.getS();
   const curKey=ctx.sk(ctx.cDay);
   const sessions=S.sessions||{};
@@ -175,7 +171,7 @@ function lastSessionEx(exId,machine){
     const hit=Object.keys(data).find(id=>!id.startsWith("_")&&(id===exId||canonicalId(id)===cid));
     const ed=hit&&data[hit];
     if(!ed||!ed.sets)continue;
-    const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps&&(machine===undefined||setMachine_(s)===machine));
+    const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps);
     if(!doneSets.length)continue;
     const m=key.match(/_(\d{4})W(\d+)$/);
     if(!m)continue;
@@ -209,9 +205,7 @@ const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?e1rmExac
 
 // ── OVERLOAD DIRECTION ──
 function overloadDir(exId,sess){
-  const _e=sess[exId];
-  const mach=_e&&_e.hoist!==undefined?(_e.hoist||""):((_e?.sets||[]).find(x=>x&&x.hoist)?.hoist||"");
-  const last=lastSessionEx(exId,mach);
+  const last=lastSessionEx(exId);
   if(!last)return null;
   const ed=sess[exId];
   if(!ed||!ed.sets)return null;
@@ -677,8 +671,7 @@ function card(ex,sess,key,rdOnly=false){
   // Oct 29: the target is the WORKING weight (held for every set, else the
   // session's average turned into the target reps), not the best single set,
   // which pre-filled a one-set max into every set (workingWeight, plan.js).
-  const _mach=ex.cat==="gym"?(getHoist(key,ex.id)||""):undefined;
-  const _last=(ex.cat==="gym")?lastSessionEx(ex.id,_mach):null;
+  const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
   const _tUnit=getExUnit(key,ex.id);
   const _flare=flareActive(ctx.getS(),dayIso());
   const _work0=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),_flare?null:maxRepsOf(ex.reps)):null;
@@ -693,7 +686,7 @@ function card(ex,sess,key,rdOnly=false){
   const demo=demoHtml(ex.name,ex.muscles);
 
   // Last session ghost
-  const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id,_mach):null;
+  const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
   const exUnit=getExUnit(key,ex.id);
   const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
@@ -711,9 +704,9 @@ function card(ex,sess,key,rdOnly=false){
     const exUnit=getExUnit(key,ex.id);
     const _bwKg=_hModel?hoistBodyNow():null;
     const _mSel=ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"";
-    let rows=_mSel+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(_mSel?"</div>":"")+
+    let rows=_mSel+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}${_bwKg?"":`<div class="hoist-note">Log a weigh-in to work out the weights.</div>`}`:"")+(_mSel?"</div>":"")+
       `<div class="set-hdr"><div>Set</div><div>${_hModel?`<span class="unit-chip">Level</span>`:`<button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button>`}</div><div></div><div>Reps</div><div></div><div></div></div>`;
-    const lastSetsForCarry=lastSessionEx(ex.id,_mach);
+    const lastSetsForCarry=lastSessionEx(ex.id);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
       const hasD=sd.weight&&sd.reps;
@@ -743,7 +736,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=ex.cat==="gym"?machineBest(key,ex.id):bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">${_mach?`Best on ${esc(_mach)}`:"Best"} ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}${rdOnly?"":` <button class="pr-remove" onclick="event.stopPropagation();removeBest('${key}','${ex.id}')">Remove</button>`}</div>`;})()}</div>
+      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}${rdOnly?"":` <button class="pr-remove" onclick="event.stopPropagation();removeBest('${key}','${ex.id}')">Remove</button>`}</div>`;})()}</div>
       <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -849,7 +842,7 @@ function toggleSet(key,exId,i){
   sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done){checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId),key);}
+  if(sd.done){checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
   
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   // Deferred one tick: an immediate blur here can reflow the viewport
@@ -955,11 +948,11 @@ export function toKg(weight,unit){
   return unit==="lbs"?Math.round(w*LB_TO_KG*10)/10:w;
 }
 
-function bestFromSessions(cid,machine,skipKey){
+function bestFromSessions(cid){
   const S=ctx.getS();
   let best=null;
   for(const[key,sess]of Object.entries(S.sessions||{})){
-    if(!sess||typeof sess!=="object"||key===skipKey)continue;
+    if(!sess||typeof sess!=="object")continue;
     for(const[exId,ed]of Object.entries(sess)){
       if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
       if(canonicalId(exId)!==cid)continue;
@@ -968,7 +961,6 @@ function bestFromSessions(cid,machine,skipKey){
         // the log but never a PR.
         // noPR: the user removed it from their bests (Nov 17); same rule.
         if(!st||!st.done||!st.weight||!st.reps||st.otherMachine||st.noPR)continue;
-        if(machine!==undefined&&setMachine_(st)!==machine)continue;
         const w=toKg(st.weight,ed.unit),r=Number(st.reps);
         if(!w||!r||r>30)continue;
         const est=epley1RM(w,r);
@@ -1579,9 +1571,6 @@ function mondayOf(isoDateStr){
 }
 export function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
 export function canonicalId(exId){return ctx._prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
-// The best on the machine this card is set to (Nov 20): Hoist sets and
-// regular sets are separate bests.
-function machineBest(key,exId,skipKey){return bestFromSessions(canonicalId(exId),getHoist(key,exId)||"",skipKey);}
 function bestPR(exId){
   const S=ctx.getS();
   const cid=canonicalId(exId);
@@ -1603,14 +1592,14 @@ function prHint(exId,i){
   const w=_hm?(hoistLb(hoistTable(_hm),raw)!=null?hoistLb(hoistTable(_hm),raw)*LB_TO_KG:0):toKg(raw,getExUnit(_k,exId));
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
-  const prev=machineBest(_k,exId,_k);
+  const prev=bestPR(exId);
   // Shown in the box's unit (Nov 12: "51kg (PR: 87kg)" beside a box in lbs
   // read as nonsense); the comparison itself stays in kg.
   const u=_hm||getExUnit(_k,exId)==="lbs"?"lbs":"kg",lu=u==="lbs"?"lb":"kg",show=x=>Math.round(inUnit(x,u));
   el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>New best: est. max '+show(est)+' '+lu+'</span>':"Est. max "+show(est)+" "+lu+", your best "+show(prev.est)+" "+lu):"Est. max "+show(est)+" "+lu;
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
-function checkAndStorePR(exId,weight,reps,unit,key){
+function checkAndStorePR(exId,weight,reps,unit){
   const S=ctx.getS();
   const kg=toKg(weight,unit);
   if(!kg||!reps||reps>30)return;
@@ -1624,10 +1613,8 @@ function checkAndStorePR(exId,weight,reps,unit,key){
     if(!S.prs[cid])S.prs[cid]=[];
     S.prs[cid].push({date:isoToday(),weight,reps,est});
     save();queueMutation("pr",{exerciseId:cid,date:isoToday(),weight,reps,est});
+    showToastBig("New best: "+weight+" kg × "+reps);
   }
-  // The toast is per machine (Nov 20): a best on this Hoist, or on regular.
-  if(key){const mb=machineBest(key,exId,key);if(!mb||est>mb.est){const u=unit==="lbs"?"lb":"kg";showToastBig("New best: "+inUnit(weight,unit)+" "+u+" × "+reps);}}
-  else if(!prev||est>prev.est)showToastBig("New best: "+weight+" kg × "+reps);
 }
 // A day the active program schedules nothing for. Right now that's Wednesday
 // and Sunday: PROG is PROG_V3 with physio stripped until Aug 11, which leaves
@@ -1940,7 +1927,7 @@ function checkUnitOnLog(key,exId,i,sd,ex,wEl){
 // is marked noPR, so it can never come back as a best; the next best real lift
 // takes over.
 function removeBest(key,exId){
-  const S=ctx.getS(),cid=canonicalId(exId),mach=getHoist(key,exId)||"",pr=machineBest(key,exId);if(!pr)return;
+  const S=ctx.getS(),cid=canonicalId(exId),pr=bestPR(exId);if(!pr)return;
   const unit=getExUnit(key,exId),u=unit==="lbs"?"lb":"kg";
   openAsk({noIcon:true,title:"Remove this best?",sub:`${inUnit(pr.weight,unit)} ${u} × ${pr.reps} stays in your log but stops counting as your best. The next best real set takes over.`,
     keep:"Remove from bests",edit:"Keep it",
@@ -1948,12 +1935,12 @@ function removeBest(key,exId){
       const touched=[];
       for(const[k,sess]of Object.entries(S.sessions||{})){if(!sess||typeof sess!=="object")continue;
         for(const[id,ed]of Object.entries(sess)){if(!ed||typeof ed!=="object"||id.startsWith("_")||canonicalId(id)!==cid)continue;
-          (ed.sets||[]).forEach(st=>{if(st&&st.done&&!st.noPR&&setMachine_(st)===mach&&toKg(st.weight,ed.unit)===Number(pr.weight)&&Number(st.reps)===Number(pr.reps)){st.noPR=true;touched.push([k,id]);}});}}
+          (ed.sets||[]).forEach(st=>{if(st&&st.done&&!st.noPR&&toKg(st.weight,ed.unit)===Number(pr.weight)&&Number(st.reps)===Number(pr.reps)){st.noPR=true;touched.push([k,id]);}});}}
       touched.forEach(([k,id])=>queueSession(k,id));
       const list=S.prs?.[cid]||[];
       for(const e of list.filter(e=>Number(e.est)>=Number(pr.est)))queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
       const rest=list.filter(e=>Number(e.est)<Number(pr.est));if(rest.length)S.prs[cid]=rest;else delete S.prs[cid];
-      recoverPRFromLog(cid);const next=machineBest(key,exId);
+      const next=recoverPRFromLog(cid);
       save();renderW();
       showToast(next?`Best removed. Now ${inUnit(next.weight,unit)} ${u} × ${next.reps}`:"Best removed");
     }});
