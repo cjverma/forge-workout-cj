@@ -2640,10 +2640,58 @@ const FEATURES={
 
 
 
+
+// Every write to the phone's storage goes through lsSet (Nov 26, "Add button
+// not working"). The device keeps the state, a daily full copy for 14 days and
+// five snapshots, all in one ~5 MB browser quota. Once it filled, the bare
+// setItem in save() threw mid-handler: the food was pushed in memory but no
+// toast, no re-render, so Add looked dead (and the Food tab could not even
+// render). On a full quota lsSet frees space, oldest copies first (daily
+// backups, never today's, then snapshots), retries, and never throws: the
+// change still reaches the server through the outbox.
+let _lsFullWarned = false;
+function lsFreeOne(keep) {
+  const days = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith("f5_daily_") && k !== keep) days.push(k);
+  }
+  days.sort();
+  const today = "f5_daily_" + isoToday();
+  const old = days.filter(k => k !== today);
+  if (old.length) { localStorage.removeItem(old[0]); return true; }
+  try {
+    const list = JSON.parse(localStorage.getItem("f5_snapshots") || "[]");
+    if (list.length) {
+      list.pop();
+      if (list.length) localStorage.setItem("f5_snapshots", JSON.stringify(list));
+      else localStorage.removeItem("f5_snapshots");
+      return true;
+    }
+  } catch (_) { localStorage.removeItem("f5_snapshots"); return true; }
+  if (days.length) { localStorage.removeItem(days[0]); return true; }
+  return false;
+}
+function lsSet(key, val) {
+  for (let n = 0; n < 40; n++) {
+    try { localStorage.setItem(key, val); return true; }
+    catch (e) {
+      let freed = false;
+      try { freed = lsFreeOne(key); } catch (_) {}
+      if (!freed) break;
+    }
+  }
+  if (!_lsFullWarned) {
+    _lsFullWarned = true;
+    try { showToast("Phone storage is full. Changes still sync, but this phone could not keep a copy."); } catch (_) {}
+  }
+  return false;
+}
+
 function save() {
   const S = ctx.getS();
   S._syncTs = Date.now();
-  localStorage.setItem("f5", JSON.stringify(S));
+  lsSet("f5", JSON.stringify(S));
   autoBackupTick();
 }
 
@@ -2652,9 +2700,11 @@ function autoBackupTick() {
   const today = isoToday();
   if (S._lastAutoBackupDay === today) return;
   try {
+    // A backup only takes room the state does not need: on a full quota it is
+    // skipped (tried again on the next save), never written by evicting others.
     localStorage.setItem("f5_daily_" + today, JSON.stringify(S));
     S._lastAutoBackupDay = today;
-    localStorage.setItem("f5", JSON.stringify(S));
+    lsSet("f5", JSON.stringify(S));
     const cutoff = Date.now() - 14 * 86400000;
     for (let i = localStorage.length - 1; i >= 0; i--) {
       const k = localStorage.key(i);
@@ -3163,6 +3213,12 @@ function dayDeficitCheck(dateIso,trained){
 // Needs 3+ weeks of window, 14+ days with food and active logged, and a
 // weigh-in near each end. Clamped to 50-100% so one odd week can't swing it.
 const CAL_FROM="2026-11-09",CAL_MIN_SPAN=21,CAL_MIN_DAYS=14;
+// Nov 19 2026 (the user: "bring down active calories to 70%"): from this day
+// only 70% of the Watch's active number counts (75% before; past days keep
+// it). It is also the ceiling for the calibration: the scale can show the
+// Watch counts even less, never more. Targets solved from it go up to match.
+const ACTIVE_MULT_FROM="2026-11-19",ACTIVE_MULT_NEW=0.70;
+function activeMultBase(dateIso){return dateIso&&dateIso>=ACTIVE_MULT_FROM?ACTIVE_MULT_NEW:ACTIVE_MULT;}
 const _calMemo=new Map();
 function activeCalibration(dateIso){
   const st=phaseStore(),days=st?.nutrition?.days||{},ws=st?.nutrition?.weights||{};
@@ -3173,7 +3229,7 @@ function activeCalibration(dateIso){
     const end=addDaysIso(t,-1);
     let start=addDaysIso(end,-27);if(start<CAL_FROM)start=CAL_FROM;
     const span=daysBetween(start,end);
-    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:ACTIVE_MULT,readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
+    if(span+1<CAL_MIN_SPAN)return{ready:false,mult:activeMultBase(t),readyOn:addDaysIso(CAL_FROM,CAL_MIN_SPAN)};
     let n=0,sumR=0,sumA=0,sumF=0;
     for(let i=0;i<=span;i++){
       const d=addDaysIso(start,i),nd=days[d]||{};
@@ -3183,11 +3239,11 @@ function activeCalibration(dateIso){
       sumR+=restingFor(d,nd);
     }
     const w0=sevenDayAvg(addDaysIso(start,3)),w1=sevenDayAvg(end);
-    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:ACTIVE_MULT,readyOn:null,days:n};
+    if(n<CAL_MIN_DAYS||w0==null||w1==null)return{ready:false,mult:activeMultBase(t),readyOn:null,days:n};
     const R=sumR/n,A=sumA/n,F=sumF/n;
     const realDef=(w0-w1)*7700/Math.max(1,span-3);
     const raw=(realDef-R+F)/A;
-    const mult=Math.round(Math.min(1,Math.max(0.5,raw))*100)/100;
+    const mult=Math.round(Math.min(activeMultBase(t)<ACTIVE_MULT?activeMultBase(t):1,Math.max(0.5,raw))*100)/100;
     return{ready:true,mult,raw:Math.round(raw*100)/100,days:n,lostKg:Math.round((w0-w1)*10)/10,
       predictedKg:Math.round((R+ACTIVE_MULT*A-F)*Math.max(1,span-3)/7700*10)/10};
   })();
@@ -3200,7 +3256,7 @@ function actualDeficit(dateIso){
   const nd=S.nutrition?.days?.[dateIso]||{};
   const eaten=(nd.items||[]).reduce((a,i)=>a+(i.kcal||0),0);
   if(!eaten)return null;
-  return Math.round(restingFor(dateIso,nd)+ACTIVE_MULT*(nd.active||0)-eaten);
+  return Math.round(restingFor(dateIso,nd)+activeMult(dateIso)*(nd.active||0)-eaten);
 }
 
 // What the phase requires per day, FIXED for the whole phase: the weight it has
@@ -3814,7 +3870,7 @@ function getOutbox() {
   try { return JSON.parse(localStorage.getItem("f5_outbox") || "[]"); } catch { return []; }
 }
 
-function setOutbox(list) { localStorage.setItem("f5_outbox", JSON.stringify(list)); }
+function setOutbox(list) { lsSet("f5_outbox", JSON.stringify(list)); }
 
 function queueMutation(entity, payload, dedupeKey) {
   const list = getOutbox();
@@ -3909,7 +3965,7 @@ async function loadServerState(showStatus) {
     // has to be rebuilt into the new object before it is persisted, or PR rows
     // for custom lifts fall back to the generic "Custom exercise" label.
     ctx.seedCustomNames?.();
-    localStorage.setItem("f5", JSON.stringify(ctx.getS()));
+    lsSet("f5", JSON.stringify(ctx.getS()));
     ctx.applyTheme();
     const cTab = ctx.getTab();
     if (cTab === "workout") ctx.renderW();
@@ -4136,7 +4192,11 @@ function hintDisp(hint,unit){
 // The most recent earlier session of this exercise. Weights come back in KG
 // (kgSets / weight) plus the unit they were typed in, so callers can show them
 // in whatever unit the box is in now: "Last: 90kg" was 90 lbs shown as kg.
-function lastSessionEx(exId){
+// machine (Nov 20): "" = regular sets only, a Hoist model = that machine's
+// sets only, undefined = any. A Precor 52 kg and a Hoist level are different
+// machines: one must never set the other's target or best.
+const setMachine_=s=>(s&&s.hoist)||"";
+function lastSessionEx(exId,machine){
   const S=ctx.getS();
   const curKey=ctx.sk(ctx.cDay);
   const sessions=S.sessions||{};
@@ -4150,7 +4210,7 @@ function lastSessionEx(exId){
     const hit=Object.keys(data).find(id=>!id.startsWith("_")&&(id===exId||canonicalId(id)===cid));
     const ed=hit&&data[hit];
     if(!ed||!ed.sets)continue;
-    const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps);
+    const doneSets=ed.sets.filter(s=>s.done&&s.weight&&s.reps&&(machine===undefined||setMachine_(s)===machine));
     if(!doneSets.length)continue;
     const m=key.match(/_(\d{4})W(\d+)$/);
     if(!m)continue;
@@ -4184,7 +4244,9 @@ const bestE1RM=sets=>sets.reduce((b,s)=>Math.max(b,s.reps>0&&s.reps<=30?e1rmExac
 
 // ── OVERLOAD DIRECTION ──
 function overloadDir(exId,sess){
-  const last=lastSessionEx(exId);
+  const _e=sess[exId];
+  const mach=_e&&_e.hoist!==undefined?(_e.hoist||""):((_e?.sets||[]).find(x=>x&&x.hoist)?.hoist||"");
+  const last=lastSessionEx(exId,mach);
   if(!last)return null;
   const ed=sess[exId];
   if(!ed||!ed.sets)return null;
@@ -4650,7 +4712,8 @@ function card(ex,sess,key,rdOnly=false){
   // Oct 29: the target is the WORKING weight (held for every set, else the
   // session's average turned into the target reps), not the best single set,
   // which pre-filled a one-set max into every set (workingWeight, plan.js).
-  const _last=(ex.cat==="gym")?lastSessionEx(ex.id):null;
+  const _mach=ex.cat==="gym"?(getHoist(key,ex.id)||""):undefined;
+  const _last=(ex.cat==="gym")?lastSessionEx(ex.id,_mach):null;
   const _tUnit=getExUnit(key,ex.id);
   const _flare=flareActive(ctx.getS(),dayIso());
   const _work0=_last?workingWeight(_last.kgSets,targetRepsOf(ex.reps),_flare?null:maxRepsOf(ex.reps)):null;
@@ -4665,7 +4728,7 @@ function card(ex,sess,key,rdOnly=false){
   const demo=demoHtml(ex.name,ex.muscles);
 
   // Last session ghost
-  const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id):null;
+  const lastSess=(ex.sets>1&&ex.cat!=="cardio")?lastSessionEx(ex.id,_mach):null;
   const exUnit=getExUnit(key,ex.id);
   const ghostHtml=lastSess?.top?`<div class="last-ghost">Last best: ${inUnit(lastSess.top.kg,exUnit)} ${exUnit} × ${esc(String(lastSess.top.reps))}</div>`:"";
 
@@ -4685,7 +4748,7 @@ function card(ex,sess,key,rdOnly=false){
     const _mSel=ex.cat==="gym"&&!/^Warm-Up/.test(ex.name)?machineSelectHtml(key,ex,_hModel,rdOnly):"";
     let rows=_mSel+(_hModel?`${hoistHasAddOn(_hModel)?`<label class="hoist-add"><input type="checkbox" ${hoistAddOn(_hModel)?"checked":""} ${rdOnly?"disabled":""} onchange="setHoistAddOn('${key}','${ex.id}','${_hModel}',this.checked)"> 5 lb add-on weight fitted</label>`:""}<div class="hoist-note">${_bwKg?`Weights at ${_bwKg} kg body weight. They update when your weight moves 2 kg.`:"Log a weigh-in to work out the weights."}</div>`:"")+(_mSel?"</div>":"")+
       `<div class="set-hdr"><div>Set</div><div>${_hModel?`<span class="unit-chip">Level</span>`:`<button class="unit-chip ${rdOnly?"":"tappable"}" ${rdOnly?"disabled":""} onclick="toggleExUnit('${key}','${ex.id}')">${exUnit}</button>`}</div><div></div><div>Reps</div><div></div><div></div></div>`;
-    const lastSetsForCarry=lastSessionEx(ex.id);
+    const lastSetsForCarry=lastSessionEx(ex.id,_mach);
     for(let i=0;i<cnt;i++){
       const sd=(ed.sets||[])[i]||{};
       const hasD=sd.weight&&sd.reps;
@@ -4715,7 +4778,7 @@ function card(ex,sess,key,rdOnly=false){
   return `<div class="ex-card ${cls}${isActive?" active-card":""}" id="ex-${ex.id}">
     <div class="ex-top" onclick="expand('${ex.id}')">
       <div class="ex-icon ${iconCls}">${icon(iconCls)}</div>
-      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">Best ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}${rdOnly?"":` <button class="pr-remove" onclick="event.stopPropagation();removeBest('${key}','${ex.id}')">Remove</button>`}</div>`;})()}</div>
+      <div class="ex-info"><div class="ex-name">${name}</div><div class="ex-meta">${esc([/^Warm-Up · /.test(ex.name)?"Warm-up":"",sLbl,ex.ss?"superset":"",isSkip?"skipped":""].filter(Boolean).join(", "))}</div>${olBadge}${ghostHtml}${(()=>{const pr=ex.cat==="gym"?machineBest(key,ex.id):bestPR(ex.id);if(!pr)return"";const u=exUnit==="lbs"?"lb":"kg",w=inUnit(pr.weight,exUnit),e=inUnit(pr.est,exUnit);return`<div class="pr-badge">${_mach?`Best on ${esc(_mach)}`:"Best"} ${w} ${u} × ${pr.reps}, est. max ${Math.round(e)} ${u}${rdOnly?"":` <button class="pr-remove" onclick="event.stopPropagation();removeBest('${key}','${ex.id}')">Remove</button>`}</div>`;})()}</div>
       <div class="ex-right"><span class="ex-hint">${_hLvl?esc(`Level ${_hLvl} × ${target.r}`):target?esc(`${target.w} ${_tUnit} × ${target.r}`):esc(ex.hint||"")}</span>${ex.custom&&!rdOnly?`<button class="ex-del" onclick="event.stopPropagation();removeCustomEx('${key.split("_")[0]}','${ex.id}')" title="Remove this exercise" aria-label="Remove ${esc(ex.name)}">${icon("trash",15)}</button>`:""}${isDone?'<span class="ex-done" aria-label="Done"></span>':""}<div class="ex-chev" id="chev-${ex.id}"><svg class="chev-svg" viewBox="0 0 8 14" width="8" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m1 1 6 6-6 6"/></svg></div></div>
     </div>
     <div class="sets-body" id="sb-${ex.id}">${body}</div>
@@ -4821,7 +4884,7 @@ function toggleSet(key,exId,i){
   sd.done=!sd.done;sd.attempted=true;
   const ed=S.sessions[key][exId];
   updateExerciseDone(key,exId);
-  if(sd.done){checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId));}
+  if(sd.done){checkAndStorePR(exId,Number(sd.weight),Number(sd.reps),getExUnit(key,exId),key);}
   
   if(navigator.vibrate)navigator.vibrate(sd.done?[30]:[15]);
   // Deferred one tick: an immediate blur here can reflow the viewport
@@ -4927,11 +4990,11 @@ function toKg(weight,unit){
   return unit==="lbs"?Math.round(w*LB_TO_KG*10)/10:w;
 }
 
-function bestFromSessions(cid){
+function bestFromSessions(cid,machine,skipKey){
   const S=ctx.getS();
   let best=null;
   for(const[key,sess]of Object.entries(S.sessions||{})){
-    if(!sess||typeof sess!=="object")continue;
+    if(!sess||typeof sess!=="object"||key===skipKey)continue;
     for(const[exId,ed]of Object.entries(sess)){
       if(!ed||typeof ed!=="object"||exId.startsWith("_"))continue;
       if(canonicalId(exId)!==cid)continue;
@@ -4940,6 +5003,7 @@ function bestFromSessions(cid){
         // the log but never a PR.
         // noPR: the user removed it from their bests (Nov 17); same rule.
         if(!st||!st.done||!st.weight||!st.reps||st.otherMachine||st.noPR)continue;
+        if(machine!==undefined&&setMachine_(st)!==machine)continue;
         const w=toKg(st.weight,ed.unit),r=Number(st.reps);
         if(!w||!r||r>30)continue;
         const est=epley1RM(w,r);
@@ -5550,6 +5614,9 @@ function mondayOf(isoDateStr){
 }
 function epley1RM(weight,reps){return reps===1?weight:Math.round(weight*(1+reps/30));}
 function canonicalId(exId){return ctx._prCanonMap[exId]||exId.replace(/^(?:su2?|sa2?|f2?|th2?|w2?|t2?|m2?)_/,"");}
+// The best on the machine this card is set to (Nov 20): Hoist sets and
+// regular sets are separate bests.
+function machineBest(key,exId,skipKey){return bestFromSessions(canonicalId(exId),getHoist(key,exId)||"",skipKey);}
 function bestPR(exId){
   const S=ctx.getS();
   const cid=canonicalId(exId);
@@ -5571,14 +5638,14 @@ function prHint(exId,i){
   const w=_hm?(hoistLb(hoistTable(_hm),raw)!=null?hoistLb(hoistTable(_hm),raw)*LB_TO_KG:0):toKg(raw,getExUnit(_k,exId));
   if(!w||!r||r>30){el.textContent="";return;}
   const est=epley1RM(w,r);
-  const prev=bestPR(exId);
+  const prev=machineBest(_k,exId,_k);
   // Shown in the box's unit (Nov 12: "51kg (PR: 87kg)" beside a box in lbs
   // read as nonsense); the comparison itself stays in kg.
   const u=_hm||getExUnit(_k,exId)==="lbs"?"lbs":"kg",lu=u==="lbs"?"lb":"kg",show=x=>Math.round(inUnit(x,u));
   el.innerHTML=prev?(est>prev.est?icon("trophy",15)+' <span>New best: est. max '+show(est)+' '+lu+'</span>':"Est. max "+show(est)+" "+lu+", your best "+show(prev.est)+" "+lu):"Est. max "+show(est)+" "+lu;
   el.style.color=prev&&est>prev.est?"var(--amber)":"var(--dim)";
 }
-function checkAndStorePR(exId,weight,reps,unit){
+function checkAndStorePR(exId,weight,reps,unit,key){
   const S=ctx.getS();
   const kg=toKg(weight,unit);
   if(!kg||!reps||reps>30)return;
@@ -5592,8 +5659,10 @@ function checkAndStorePR(exId,weight,reps,unit){
     if(!S.prs[cid])S.prs[cid]=[];
     S.prs[cid].push({date:isoToday(),weight,reps,est});
     save();queueMutation("pr",{exerciseId:cid,date:isoToday(),weight,reps,est});
-    showToastBig("New best: "+weight+" kg × "+reps);
   }
+  // The toast is per machine (Nov 20): a best on this Hoist, or on regular.
+  if(key){const mb=machineBest(key,exId,key);if(!mb||est>mb.est){const u=unit==="lbs"?"lb":"kg";showToastBig("New best: "+inUnit(weight,unit)+" "+u+" × "+reps);}}
+  else if(!prev||est>prev.est)showToastBig("New best: "+weight+" kg × "+reps);
 }
 // A day the active program schedules nothing for. Right now that's Wednesday
 // and Sunday: PROG is PROG_V3 with physio stripped until Aug 11, which leaves
@@ -5906,7 +5975,7 @@ function checkUnitOnLog(key,exId,i,sd,ex,wEl){
 // is marked noPR, so it can never come back as a best; the next best real lift
 // takes over.
 function removeBest(key,exId){
-  const S=ctx.getS(),cid=canonicalId(exId),pr=bestPR(exId);if(!pr)return;
+  const S=ctx.getS(),cid=canonicalId(exId),mach=getHoist(key,exId)||"",pr=machineBest(key,exId);if(!pr)return;
   const unit=getExUnit(key,exId),u=unit==="lbs"?"lb":"kg";
   openAsk({noIcon:true,title:"Remove this best?",sub:`${inUnit(pr.weight,unit)} ${u} × ${pr.reps} stays in your log but stops counting as your best. The next best real set takes over.`,
     keep:"Remove from bests",edit:"Keep it",
@@ -5914,12 +5983,12 @@ function removeBest(key,exId){
       const touched=[];
       for(const[k,sess]of Object.entries(S.sessions||{})){if(!sess||typeof sess!=="object")continue;
         for(const[id,ed]of Object.entries(sess)){if(!ed||typeof ed!=="object"||id.startsWith("_")||canonicalId(id)!==cid)continue;
-          (ed.sets||[]).forEach(st=>{if(st&&st.done&&!st.noPR&&toKg(st.weight,ed.unit)===Number(pr.weight)&&Number(st.reps)===Number(pr.reps)){st.noPR=true;touched.push([k,id]);}});}}
+          (ed.sets||[]).forEach(st=>{if(st&&st.done&&!st.noPR&&setMachine_(st)===mach&&toKg(st.weight,ed.unit)===Number(pr.weight)&&Number(st.reps)===Number(pr.reps)){st.noPR=true;touched.push([k,id]);}});}}
       touched.forEach(([k,id])=>queueSession(k,id));
       const list=S.prs?.[cid]||[];
       for(const e of list.filter(e=>Number(e.est)>=Number(pr.est)))queueMutation("pr_delete",{exerciseId:cid,date:e.date,est:e.est});
       const rest=list.filter(e=>Number(e.est)<Number(pr.est));if(rest.length)S.prs[cid]=rest;else delete S.prs[cid];
-      const next=recoverPRFromLog(cid);
+      recoverPRFromLog(cid);const next=machineBest(key,exId);
       save();renderW();
       showToast(next?`Best removed. Now ${inUnit(next.weight,unit)} ${u} × ${next.reps}`:"Best removed");
     }});
@@ -6070,7 +6139,7 @@ function buildTrendData(){
     const protein=items.reduce((s,it)=>s+(it.protein||0),0);
     const fibre=items.reduce((s,it)=>s+(it.fibre||0),0);
     const active=nd.active||0;
-    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*ACTIVE_MULT);
+    const burn=(nd.restingOverride!=null?nd.restingOverride:calcBMR(lw))+Math.round(active*activeMult(iso));
     out.push({iso,lbl:"SMTWTFS"[d.getDay()],protein,fibre,consumed,burn:consumed||active?burn:0,deficit:consumed?burn-consumed:null,trained:trainedOn(iso)||active>0,isToday:iso===isoToday()});
   }
   return out;
@@ -6223,8 +6292,8 @@ function renderNutrition(){
   const resting=restingFor(date,day);
   const restOvr=day.restingOverride!=null?day.restingOverride:null;
   const active=day.active||0;
-  const totalBurn=resting+Math.round(active*ACTIVE_MULT);
-  const {target,phase}=calcTarget(resting,Math.round(active*ACTIVE_MULT),date);
+  const totalBurn=resting+Math.round(active*activeMult(date));
+  const {target,phase}=calcTarget(resting,Math.round(active*activeMult(date)),date);
   const shock=day.shockProtocol;
   const finalTarget=shock?1200:target;
   const items=day.items||[];
@@ -6877,7 +6946,7 @@ function weekDeficitHtml(){
   const cal=activeCalibration(t);
   const calLine=cal.ready
     ?`Watch check: your weight trend says ${Math.round(cal.mult*100)}% of the Watch's active calories are real (${cal.lostKg} kg lost vs ${cal.predictedKg} kg predicted), so targets use ${Math.round(cal.mult*100)}%.`
-    :`Watch check: counting 75% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend sets it.`;
+    :`Watch check: counting ${Math.round(cal.mult*100)}% of the Watch's active calories until there are 3 weeks of logs and weigh-ins${cal.readyOn?` (from ${fmtDate(cal.readyOn)})`:""}. Then the weight trend can lower it, never raise it above ${Math.round(cal.mult*100)}%.`;
   // The one thing to fix this week, said once at the top.
   const daysLeft=w.days.filter(x=>x.state==="today"||x.state==="future").length;
   const note=w.counted&&w.thin?gapNote("Not enough data",`${w.finished-w.counted} day${w.finished-w.counted===1?"":"s"} not counted. Skipped days tend to be the bad ones.`)
@@ -7539,7 +7608,7 @@ function renderST(){
         }
         const resting=restingFor(iso,nutDay);
         const active=nutDay.active||0;
-        const burn=resting+Math.round(active*ACTIVE_MULT);
+        const burn=resting+Math.round(active*activeMult(iso));
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
@@ -7666,7 +7735,7 @@ function weekStats(){
     const nd=S.nutrition.days?.[iso];if(!nd)continue;
     const consumed=(nd.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
-    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*ACTIVE_MULT)-consumed;defDays++;
+    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*activeMult(iso))-consumed;defDays++;
   }
   return{sessions,setsDone,wtChange,avgDeficit:defDays?Math.round(defTotal/defDays):null,defDays};
 }
@@ -7700,7 +7769,7 @@ async function aiWeeklyReview(){
     const consumed=(d.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
     const resting=d.restingOverride!=null?d.restingOverride:bmr;
-    const burn=resting+Math.round((d.active||0)*ACTIVE_MULT);
+    const burn=resting+Math.round((d.active||0)*activeMult(iso));
     totalKcal+=consumed;totalProtein+=(d.items||[]).reduce((s,it)=>s+(it.protein||0),0);
     totalFibre+=(d.items||[]).reduce((s,it)=>s+(it.fibre||0),0);
     totalActive+=(d.active||0);totalBurn+=burn;totalDeficit+=burn-consumed;loggedDays++;
@@ -8327,7 +8396,7 @@ function buildChatContext(){
   const currentWeight=latestWeightLog()||USER.weightKg;
   // Respect the day's custom resting-calorie override (tap-to-edit), else formula BMR
   const bmr=dayData.restingOverride!=null?dayData.restingOverride:calcBMR(currentWeight);
-  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*ACTIVE_MULT),today);
+  const{target,req:dailyDeficitReq,phase}=calcTarget(bmr,Math.round(active*activeMult(today)),today);
   const daysLeft=Math.max(1,Math.ceil((USER.goalDate-Date.now())/86400000));
   // Explicit goal framing so AI knows this is a weight-loss context
   const phaseCtx=phase?(()=>{
@@ -8604,7 +8673,7 @@ if(!S._prCanonMigrated2){
   });
   S.prs=merged;S._prCanonMigrated=true;S._prCanonMigrated2=true;
   // Direct write — save() isn't safe yet (_appReady/queueSync not initialised at this point)
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // PR_ALIAS canonical for the thigh machines flipped to the names actually on
 // the equipment. Re-run the alias merge so history written under the old
@@ -8620,7 +8689,7 @@ if(!S._prCanonMigrated3){
   for(const k of Object.keys(merged))
     merged[k].sort((a,b)=>(b.est||0)-(a.est||0)||String(b.date).localeCompare(String(a.date)));
   S.prs=merged;S._prCanonMigrated3=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // The HealthKit shortcut wrote raw floats ("136.00000001") for months. Round
 // what is already stored, and re-queue it so the server copy is fixed too.
@@ -8631,7 +8700,7 @@ if(!S._wtRound1){
     if(r!==null&&r!==v)ws[d]=r;
   }
   S._wtRound1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // PRs were written in whatever unit the set was typed in, so a 120 lbs lift
 // became a "120 kg" PR reading 160kg est. 1RM. Heal them by finding the logged
@@ -8694,7 +8763,7 @@ if(!S._prLbFix3){
   S._prLbFix1=true;
   S._prLbFix2=true;
   S._prLbFix3=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
 }
 // One-off, requested by the user: Monday 28 Sep 2026 (first day of the PROG_V6
@@ -8714,7 +8783,7 @@ if(!S._v6MonDone1){
     queueSession(key,ex.id);
   }
   S._v6MonDone1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Heal plan stamps that came back from a sync as ["v","4"] (see applyPlan in
 // settings.js): rejoin the characters so the plan applies again.
@@ -8737,7 +8806,7 @@ if(!S._planMove41){
     if(wp[to]._prog)queueMutation("week_plan_update",{weekKey:to,dayName:"_prog",update:wp[to]._prog});
   }
   if(wk()!=="2026W41"||wp[to])S._planMove41=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Date of a session key ("Wednesday_2026W42" -> that Wednesday).
 function keyToDate(day,wkKey){
@@ -8776,7 +8845,7 @@ if(!S._oct12Fix1){
     setTimeout(()=>showToast("Monday's legs session restored to Oct 12 ✓"),3000);
   }
   S._oct12Fix1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Second half of the Oct 12 repair: the merge into Wednesday Oct 7 kept Oct
 // 7's Leg Press / Outer Thigh / Inner Thigh / warm-up (more sets) and DROPPED
@@ -8809,7 +8878,7 @@ if(!S._oct12Recover1){
   if(!Object.keys(mon).length)delete S.sessions.Monday_2026W42;
   S._oct12Recover1=true;
   S._oct12Restored=restored;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(restored.length)setTimeout(()=>showToast("Recovered "+restored.length+" exercise"+(restored.length===1?"":"s")+" from Monday Oct 12 ✓"),3500);
   else setTimeout(()=>showToast("No backup of Monday's leg press found on this device"),3500);
 }
@@ -8830,7 +8899,7 @@ if(!S._oct12Manual1){
     le.push(pr);queueMutation("pr",{exerciseId:"leg_extension_machine",...pr});
   }
   S._oct12Manual1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
 // Monday). The user did Legs & Shoulders on Monday the 12th, which under the
@@ -8887,7 +8956,7 @@ if(!S._v7Move1){
     queueMutation("week_plan_update",{weekKey:W,dayName:"_prog",update:"v7"});
   }
   S._v7Move1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(touched.size)setTimeout(()=>showToast("This week moved to the new day order ✓"),2500);
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
@@ -8962,7 +9031,7 @@ if(!S._prRecompute2){
   }
   S._prRecompute1=true;
   S._prRecompute2=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(rebuilt)setTimeout(()=>showToast(rebuilt+" unverified PR"+(rebuilt===1?"":"s")+" rebuilt from your logged sets"),4000);
   if(purged)setTimeout(()=>showToast(purged+" PR"+(purged===1?"":"s")+" with no logged sets removed"),6000);
 }
@@ -8973,7 +9042,7 @@ if(!S._wtBackfill1){
   const seed={"2026-05-25":138.0,"2026-06-02":141.4,"2026-06-07":138.8,"2026-06-08":136.6};
   for(const[d,kg]of Object.entries(seed))if(S.nutrition.weights[d]==null)S.nutrition.weights[d]=kg;
   S._wtBackfill1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // PR audit (Oct 29, from the user's backup). Three kinds of wrong record:
 // - Jul 31 chest press at 133 lbs (60.3 kg) was a DIFFERENT machine (user:
@@ -9028,7 +9097,7 @@ if(!S._prAudit1){
     fixed+=bad.length;
   }
   S._prAudit1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR record"+(fixed===1?"":"s")+" corrected from your logged sets"),4000);
 }
 // Flare mode on from Nov 8 (the user: "dial it down for now"). Once only: if
@@ -9036,13 +9105,13 @@ if(!S._prAudit1){
 if(!S._flareOn1){
   if(!S.flareSince){S.flareSince="2026-11-08";queueSettings();}
   S._flareOn1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Remove May 25 outlier — 3-point trend (Jun 2, 7, 8) is more accurate without it.
 if(!S._wtBackfill2){
   delete S.nutrition.weights["2026-05-25"];
   S._wtBackfill2=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 persistOnceFlags();
 hydrateCustomExercises();

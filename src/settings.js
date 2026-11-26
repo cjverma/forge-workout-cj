@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { ACTIVE_MULT, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseRequiredDeficit, phaseFor, proteinTargetG, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
+import { ACTIVE_MULT, activeMult, USER, PHASES, calcBMR, isoDate, isoToday, addDaysIso, latestWeightLog, phaseDayDeficit, phaseRequiredDeficit, phaseFor, proteinTargetG, requiredDeficit, restingFor, phaseState, bankedDays, projectedFinish, sevenDayAvg, effectiveEnd } from "./phase.js";
 import { esc, fmtDate, mdLite, showToast, toggleTheme, icon} from "./ui.js";
 import { save, listDailyBackups } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSettings, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
@@ -136,7 +136,7 @@ export function renderST(){
         }
         const resting=restingFor(iso,nutDay);
         const active=nutDay.active||0;
-        const burn=resting+Math.round(active*ACTIVE_MULT);
+        const burn=resting+Math.round(active*activeMult(iso));
         const deficit=burn-consumed;
         runningTotal+=deficit;
         loggedDays++;
@@ -263,7 +263,7 @@ function weekStats(){
     const nd=S.nutrition.days?.[iso];if(!nd)continue;
     const consumed=(nd.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
-    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*ACTIVE_MULT)-consumed;defDays++;
+    defTotal+=(nd.restingOverride!=null?nd.restingOverride:bmr)+Math.round((nd.active||0)*activeMult(iso))-consumed;defDays++;
   }
   return{sessions,setsDone,wtChange,avgDeficit:defDays?Math.round(defTotal/defDays):null,defDays};
 }
@@ -297,7 +297,7 @@ async function aiWeeklyReview(){
     const consumed=(d.items||[]).reduce((s,it)=>s+(it.kcal||0),0);if(!consumed)continue;
     const bmr=calcBMR(latestWeightLog()||USER.weightKg);
     const resting=d.restingOverride!=null?d.restingOverride:bmr;
-    const burn=resting+Math.round((d.active||0)*ACTIVE_MULT);
+    const burn=resting+Math.round((d.active||0)*activeMult(iso));
     totalKcal+=consumed;totalProtein+=(d.items||[]).reduce((s,it)=>s+(it.protein||0),0);
     totalFibre+=(d.items||[]).reduce((s,it)=>s+(it.fibre||0),0);
     totalActive+=(d.active||0);totalBurn+=burn;totalDeficit+=burn-consumed;loggedDays++;

@@ -282,6 +282,18 @@ screen into the previous Wednesday, overwriting a set (repaired by
 `S._oct12Fix1`). **Nothing may move logged sessions automatically**, and a
 one-off move must never target a day in the future.
 
+## Phone storage can fill up: write through `lsSet` (Nov 26)
+
+The state, a full daily copy for 14 days (`f5_daily_`) and five snapshots all
+share one ~5 MB browser quota. When it filled, the bare `setItem` in `save()`
+threw mid-handler: the food Add pushed the item in memory, then no toast and
+no re-render, so the button looked dead (a fully full quota broke the Food tab
+outright). `lsSet(key,val)` in `src/state.js` frees space on a full quota
+(oldest daily backup, never today's, then the oldest snapshot), retries, warns
+once, and never throws; the outbox still carries the change to the server.
+`save()`, `setOutbox`, the server pull and every repair's state write use it;
+`node test.js` fails on a bare `localStorage.setItem("f5"...)`.
+
 ## One-time repairs must not re-run (`f5_once`)
 
 `S._flags` guarding one-time repairs are NOT stored server-side, so every sync
@@ -423,7 +435,11 @@ enough data" instead of a verdict: skipped days tend to be the bad ones.
 The card also shows the week's weight change vs the plan line. **Watch
 calibration** (`activeCalibration`/`activeMult` in `src/phase.js`): from
 Nov 9 + 3 weeks, the weight actually lost over the last 4 weeks sets how much
-of the Watch's active number counts (clamped 50-100%, default 75%); targets
+of the Watch's active number counts (clamped 50-100%, default 75%; **from Nov
+19 2026 the default is 70% and also the ceiling**, the user: "bring down
+active calories to 70%", `ACTIVE_MULT_FROM`/`activeMultBase`; earlier days keep
+75%; every screen reads `activeMult(date)`, never the fixed `ACTIVE_MULT`, so
+the active targets rose ~7%, 1,301 -> 1,394 on training days); targets
 and the tracker use it. "On track" compares the counted days' deficit with what
 the plan needed from those same days (`phaseDayDeficit`, at the fixed 2,700
 resting and the day's food and active targets): within 5% is on track. The
@@ -625,7 +641,13 @@ and `.md`: ~2,500 responses, 357/360 held-out values exact, never more than
 1 lb off). Body weight is the 7-day average (else latest), recomputed only
 when it moves 2 kg (`hoistBodyKg`, `f5_hoist_bw`; the user: "recalculated
 post 2 kg weight loss"). The machine for an exercise lives on its logged sets
-and in `f5_hoist_map`.
+and in `f5_hoist_map`. **Each machine is its own history** (Nov 20, the user:
+"on the regular Precor I do 52 kg easily"; the Precor 52 kg x 18 showed as
+the Hoist card's best and set its Level target): `lastSessionEx(exId,
+machine)` and `bestFromSessions(cid, machine, skipKey)` filter by
+`set.hoist || ""`, so the target, the Best line ("Best on RS-1302 ..."),
+"Beat last time", the live hint, the New best toast and Remove all use only
+the machine the card is set to. `S.prs` stays one overall list per exercise.
 
 ### Vertical pulling
 A standard lat pulldown is banned by the spine rules. The only pulldown in the

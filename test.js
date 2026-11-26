@@ -266,9 +266,9 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
   ok("Sunday eats 1,200 and Mon-Sat 1,500; planning resting is a fixed 2,700, whatever the Watch logs",
     E.PHASES.find((p) => p.id === "p5_1") && mkEngine({ nutrition: { weights: {}, days: { "2026-10-27": { restingOverride: 3100 } } } }).restingForPhase(P5[0], "2026-10-28") === 2700);
   {
-    const t = E.phaseActiveTargets(P5[1], "2026-11-20"), t1 = E.phaseActiveTargets(P5[0], "2026-10-28");
-    ok("Watch active targets: ~1,300 Mon-Sat and ~560 on Sunday at 2,700 resting (phase 1, one day shorter: ~1,484 and ~636)",
-      Math.abs(t.workout - 1301) <= 2 && Math.abs(t.rest - 558) <= 2 && Math.abs(t1.workout - 1484) <= 2 && Math.abs(t1.rest - 636) <= 2, JSON.stringify({ t, t1 }));
+    const t = E.phaseActiveTargets(P5[1], "2026-11-18"), t1 = E.phaseActiveTargets(P5[0], "2026-10-28"), t2 = E.phaseActiveTargets(P5[1], "2026-11-20");
+    ok("Watch active targets: ~1,300 Mon-Sat and ~560 on Sunday at 2,700 resting (phase 1, one day shorter: ~1,484 and ~636); ~1,394 / ~597 once 70% counts (Nov 19)",
+      Math.abs(t.workout - 1301) <= 2 && Math.abs(t.rest - 558) <= 2 && Math.abs(t2.workout - 1394) <= 2 && Math.abs(t2.rest - 597) <= 2 && Math.abs(t1.workout - 1484) <= 2 && Math.abs(t1.rest - 636) <= 2, JSON.stringify({ t, t1 }));
   }
   // Oct 27 (user): a day's deficit only counts with food, the workout
   // (training days), active and resting all logged.
@@ -294,8 +294,8 @@ ok("cut-short phase_2 keeps its real daily deficit (~2,300), not 21 kg in 23 day
     for (let i = -10; i <= 28; i++) { const d = D.addDaysIso("2026-11-09", i); cd[d] = { items: [{ kcal: 1450 }], active: 1300 }; cw[d] = Math.round((126 - i * 0.22) * 10) / 10; }
     const C = mkEngine({ nutrition: { days: cd, weights: cw } });
     const early = C.activeCalibration("2026-11-20"), late = C.activeCalibration("2026-12-07");
-    ok("Watch calibration waits for 3 weeks of data (75% until Nov 30), then the weight trend sets the share",
-      !early.ready && early.mult === 0.75 && early.readyOn === "2026-11-30" && late.ready && late.lostKg < late.predictedKg && late.mult < 0.75 && late.mult >= 0.5,
+    ok("Watch calibration waits for 3 weeks of data (70% from Nov 19 until Nov 30), then the weight trend sets the share, never above 70%",
+      !early.ready && early.mult === 0.7 && early.readyOn === "2026-11-30" && late.ready && late.lostKg < late.predictedKg && late.mult <= 0.7 && late.mult >= 0.5,
       JSON.stringify({ early, late }));
     ok("the rest day needs no workout to count",
       D.dayDeficitCheck("2026-11-01", false).complete === true);
@@ -1014,6 +1014,38 @@ section("16a9 · 1,400 kcal from Nov 18, active unchanged; weekly goals (Nov 18)
   RT3.ctx.getS = prev;
   const N = readFileSync("src/nutrition.js", "utf8");
   ok("weekly goals: food 7/7, active target 7/7, active logged 7/7, weigh-ins 5/7 (two free misses)", /const WEEK_GOALS=\{food:7,active:7,activeLogged:7,weigh:5\};/.test(N) && /free=7-WEEK_GOALS\.weigh/.test(N) && /goalRow\("Weigh-ins"/.test(N));
+}
+
+section("16a10 · count 70% of Watch active from Nov 19 (Nov 19)");
+{
+  const E4 = await import("./src/phase.js");
+  const RT4 = await import("./src/runtime.js");
+  const prev = RT4.ctx.getS; RT4.ctx.getS = () => ({ nutrition: { weights: {}, days: {} }, phaseRun: {}, sessions: {} });
+  const p2 = E4.PHASES.find((x) => x.id === "p5_2");
+  ok("Watch active counts 70% from Nov 19, 75% before (past days keep what they had)", E4.activeMult("2026-11-19") === 0.7 && E4.activeMult("2026-11-18") === 0.75);
+  ok("the active target rises to match (same plan deficit with less of each Watch calorie counted)", E4.phaseActiveTarget(p2, "2026-11-19") > E4.phaseActiveTarget(p2, "2026-11-18"));
+  RT4.ctx.getS = prev;
+  ok("no screen counts Watch active with the old fixed 75% any more", !/active\*ACTIVE_MULT\)/.test(readFileSync("src/nutrition.js", "utf8") + readFileSync("src/settings.js", "utf8") + readFileSync("src/chat.js", "utf8")));
+}
+
+section("16a11 · Hoist and regular machines keep separate bests and targets (Nov 20)");
+{
+  const W = readFileSync("src/workout.js", "utf8");
+  ok("last session, best, 'Beat last time', the live hint and the New best toast are per machine (regular vs each Hoist model)",
+    /function lastSessionEx\(exId,machine\)/.test(W) && /function bestFromSessions\(cid,machine,skipKey\)/.test(W) &&
+    /const _last=\(ex\.cat==="gym"\)\?lastSessionEx\(ex\.id,_mach\):null;/.test(W) && /const prev=machineBest\(_k,exId,_k\);/.test(W) &&
+    /const last=lastSessionEx\(exId,mach\);/.test(W) && /Best on \$\{esc\(_mach\)\}/.test(W) && /const mb=machineBest\(key,exId,key\);/.test(W));
+}
+
+section("16a12 · a full phone storage never kills a save (Nov 26, food Add did nothing)");
+{
+  const ST = readFileSync("src/state.js", "utf8");
+  const all = ["src/main.js", "src/sync.js", "src/state.js", "src/nutrition.js", "src/workout.js"].map(f => [f, readFileSync(f, "utf8")]);
+  ok("save(), the outbox and the server pull write through lsSet, which frees old backups/snapshots on a full quota and never throws",
+    /export function lsSet\(key, val\)/.test(ST) && /lsSet\("f5", JSON\.stringify\(S\)\);\n  autoBackupTick\(\);/.test(ST) &&
+    /function setOutbox\(list\) \{ lsSet\("f5_outbox"/.test(readFileSync("src/sync.js", "utf8")));
+  const bare = all.flatMap(([f, s]) => (s.match(/localStorage\.setItem\(\s*"f5(_outbox)?"\s*,/g) || []).map(() => f));
+  ok("no bare localStorage.setItem of the state or the outbox outside lsSet: " + (bare.join(", ") || "none"), bare.length === 0);
 }
 
 section("16b · proteinTargetG single source of truth");
@@ -2853,7 +2885,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   const PH3 = readFileSync("src/phase.js", "utf8");
   ok("deficit is measured from logged data, not hardcoded constants",
     /export function actualDeficit/.test(PH3) &&
-    /restingFor\(dateIso,nd\)\+ACTIVE_MULT\*\(nd\.active\|\|0\)-eaten/.test(PH3) &&
+    /restingFor\(dateIso,nd\)\+activeMult\(dateIso\)\*\(nd\.active\|\|0\)-eaten/.test(PH3) &&
     /if\(!eaten\)return null;/.test(PH3));
   // FIXED for the phase, not recomputed from the latest weight. An adaptive
   // target moves the goalposts: get ahead and the bar drops, so compliance
@@ -2961,7 +2993,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   // previous stored PR would therefore ignore everything lifted since the
   // mistake; the log has to be re-read. Sessions are never pruned, so it can be.
   ok("removing a PR recomputes the real best from logged sets",
-    /function bestFromSessions\(cid\)/.test(WK5) &&
+    /function bestFromSessions\(cid,machine,skipKey\)/.test(WK5) &&
     /function recoverPRFromLog\(cid\)/.test(WK5) &&
     /ctx\.recoverPRFromLog\?\.\(cid\)/.test(NUT5));
   ok("a recovered PR carries the date it was actually lifted",
