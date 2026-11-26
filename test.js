@@ -1028,13 +1028,14 @@ section("16a10 · count 70% of Watch active from Nov 19 (Nov 19)");
   ok("no screen counts Watch active with the old fixed 75% any more", !/active\*ACTIVE_MULT\)/.test(readFileSync("src/nutrition.js", "utf8") + readFileSync("src/settings.js", "utf8") + readFileSync("src/chat.js", "utf8")));
 }
 
-section("16a11 · Hoist and regular machines keep separate bests and targets (Nov 20)");
+section("16a11 · one shared history; the target converts to the card's machine; no body weight shown (Nov 26)");
 {
   const W = readFileSync("src/workout.js", "utf8");
-  ok("last session, best, 'Beat last time', the live hint and the New best toast are per machine (regular vs each Hoist model)",
-    /function lastSessionEx\(exId,machine\)/.test(W) && /function bestFromSessions\(cid,machine,skipKey\)/.test(W) &&
-    /const _last=\(ex\.cat==="gym"\)\?lastSessionEx\(ex\.id,_mach\):null;/.test(W) && /const prev=machineBest\(_k,exId,_k\);/.test(W) &&
-    /const last=lastSessionEx\(exId,mach\);/.test(W) && /Best on \$\{esc\(_mach\)\}/.test(W) && /const mb=machineBest\(key,exId,key\);/.test(W));
+  ok("last session and best are shared across regular and Hoist (no per-machine filter)",
+    /function lastSessionEx\(exId\)/.test(W) && /function bestFromSessions\(cid\)/.test(W) && !/machineBest/.test(W) && !/Best on \$\{/.test(W));
+  ok("the Hoist target is the shared working weight turned into a level",
+    /hoistLevelFor\(/.test(W));
+  ok("the Hoist card never prints the user's body weight", !/kg body weight/.test(W));
 }
 
 section("16a12 · a full phone storage never kills a save (Nov 26, food Add did nothing)");
@@ -2993,7 +2994,7 @@ ok("the longest streak is recomputed in weeks, not accumulated",
   // previous stored PR would therefore ignore everything lifted since the
   // mistake; the log has to be re-read. Sessions are never pruned, so it can be.
   ok("removing a PR recomputes the real best from logged sets",
-    /function bestFromSessions\(cid,machine,skipKey\)/.test(WK5) &&
+    /function bestFromSessions\(cid\)/.test(WK5) &&
     /function recoverPRFromLog\(cid\)/.test(WK5) &&
     /ctx\.recoverPRFromLog\?\.\(cid\)/.test(NUT5));
   ok("a recovered PR carries the date it was actually lifted",
