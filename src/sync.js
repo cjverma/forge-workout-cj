@@ -1,5 +1,5 @@
 import { ctx } from "./runtime.js";
-import { save } from "./state.js";
+import { save, lsSet } from "./state.js";
 import { fmtDate, showToast } from "./ui.js";
 
 export const API_CFG = window.FORGE_API_CFG || { baseUrl: "", token: localStorage.getItem("forge_key") || "" };
@@ -76,7 +76,7 @@ export function getOutbox() {
   try { return JSON.parse(localStorage.getItem("f5_outbox") || "[]"); } catch { return []; }
 }
 
-function setOutbox(list) { localStorage.setItem("f5_outbox", JSON.stringify(list)); }
+function setOutbox(list) { lsSet("f5_outbox", JSON.stringify(list)); }
 
 export function queueMutation(entity, payload, dedupeKey) {
   const list = getOutbox();
@@ -171,7 +171,7 @@ export async function loadServerState(showStatus) {
     // has to be rebuilt into the new object before it is persisted, or PR rows
     // for custom lifts fall back to the generic "Custom exercise" label.
     ctx.seedCustomNames?.();
-    localStorage.setItem("f5", JSON.stringify(ctx.getS()));
+    lsSet("f5", JSON.stringify(ctx.getS()));
     ctx.applyTheme();
     const cTab = ctx.getTab();
     if (cTab === "workout") ctx.renderW();

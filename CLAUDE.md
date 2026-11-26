@@ -282,6 +282,18 @@ screen into the previous Wednesday, overwriting a set (repaired by
 `S._oct12Fix1`). **Nothing may move logged sessions automatically**, and a
 one-off move must never target a day in the future.
 
+## Phone storage can fill up: write through `lsSet` (Nov 26)
+
+The state, a full daily copy for 14 days (`f5_daily_`) and five snapshots all
+share one ~5 MB browser quota. When it filled, the bare `setItem` in `save()`
+threw mid-handler: the food Add pushed the item in memory, then no toast and
+no re-render, so the button looked dead (a fully full quota broke the Food tab
+outright). `lsSet(key,val)` in `src/state.js` frees space on a full quota
+(oldest daily backup, never today's, then the oldest snapshot), retries, warns
+once, and never throws; the outbox still carries the change to the server.
+`save()`, `setOutbox`, the server pull and every repair's state write use it;
+`node test.js` fails on a bare `localStorage.setItem("f5"...)`.
+
 ## One-time repairs must not re-run (`f5_once`)
 
 `S._flags` guarding one-time repairs are NOT stored server-side, so every sync

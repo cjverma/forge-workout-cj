@@ -2,7 +2,7 @@ import { ctx } from "./runtime.js";
 import { ACTIVE_MULT, PHASES, USER, addDaysIso, bankedDays, calcBMR, calcTarget, daysBetween, effectiveEnd, ensurePhaseRun, getPhaseRun, isoDate, isoToday, isRestDay, latestWeightLog, phaseActiveTarget, phaseCorridor, phaseCurveKg, phaseDayDeficit, phaseFor, phaseState, projectedFinish, requiredDeficit, restingFor, sevenDayAvg } from "./phase.js";
 import { cycleQ, quotePool } from "./quotes.js";
 import { applyTheme, closeMilestone, esc, fmtDate, mdLite, showMilestone, showToast, showToastBig, toggleTheme } from "./ui.js";
-import { save, autoBackupTick, listDailyBackups } from "./state.js";
+import { save, autoBackupTick, listDailyBackups, lsSet } from "./state.js";
 import { API_CFG, flushOutbox, loadServerState, queueMutation, queueSession, queueSessionMeta, queueDayMeta, queueSettings, queueMilestones, setSyncDot, getOutbox, listSnapshots, restoreSnapshot } from "./sync.js";
 import { planMonFor, isBannedExercise } from "./plan.js";
 import { FEATURES, weekKeyOf, EX_DB, PROG_V1, PROG_V2, PROG_V3, PROG_V4, PROG_V5, PROG_V6, PROG_V7, v4IdToV7, PROG, programFor, programKeyFor, PR_ALIAS, prSlug, kg1, DAYS, GYM, FIBRE_TARGET, SUGAR_LIMIT, SODIUM_LIMIT } from "./constants.js";
@@ -102,7 +102,7 @@ if(!S._prCanonMigrated2){
   });
   S.prs=merged;S._prCanonMigrated=true;S._prCanonMigrated2=true;
   // Direct write — save() isn't safe yet (_appReady/queueSync not initialised at this point)
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // PR_ALIAS canonical for the thigh machines flipped to the names actually on
 // the equipment. Re-run the alias merge so history written under the old
@@ -118,7 +118,7 @@ if(!S._prCanonMigrated3){
   for(const k of Object.keys(merged))
     merged[k].sort((a,b)=>(b.est||0)-(a.est||0)||String(b.date).localeCompare(String(a.date)));
   S.prs=merged;S._prCanonMigrated3=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // The HealthKit shortcut wrote raw floats ("136.00000001") for months. Round
 // what is already stored, and re-queue it so the server copy is fixed too.
@@ -129,7 +129,7 @@ if(!S._wtRound1){
     if(r!==null&&r!==v)ws[d]=r;
   }
   S._wtRound1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // PRs were written in whatever unit the set was typed in, so a 120 lbs lift
 // became a "120 kg" PR reading 160kg est. 1RM. Heal them by finding the logged
@@ -192,7 +192,7 @@ if(!S._prLbFix3){
   S._prLbFix1=true;
   S._prLbFix2=true;
   S._prLbFix3=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR"+(fixed===1?"":"s")+" corrected from lbs to kg"),2500);
 }
 // One-off, requested by the user: Monday 28 Sep 2026 (first day of the PROG_V6
@@ -212,7 +212,7 @@ if(!S._v6MonDone1){
     queueSession(key,ex.id);
   }
   S._v6MonDone1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Heal plan stamps that came back from a sync as ["v","4"] (see applyPlan in
 // settings.js): rejoin the characters so the plan applies again.
@@ -235,7 +235,7 @@ if(!S._planMove41){
     if(wp[to]._prog)queueMutation("week_plan_update",{weekKey:to,dayName:"_prog",update:wp[to]._prog});
   }
   if(wk()!=="2026W41"||wp[to])S._planMove41=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Date of a session key ("Wednesday_2026W42" -> that Wednesday).
 function keyToDate(day,wkKey){
@@ -274,7 +274,7 @@ if(!S._oct12Fix1){
     setTimeout(()=>showToast("Monday's legs session restored to Oct 12 ✓"),3000);
   }
   S._oct12Fix1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Second half of the Oct 12 repair: the merge into Wednesday Oct 7 kept Oct
 // 7's Leg Press / Outer Thigh / Inner Thigh / warm-up (more sets) and DROPPED
@@ -307,7 +307,7 @@ if(!S._oct12Recover1){
   if(!Object.keys(mon).length)delete S.sessions.Monday_2026W42;
   S._oct12Recover1=true;
   S._oct12Restored=restored;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(restored.length)setTimeout(()=>showToast("Recovered "+restored.length+" exercise"+(restored.length===1?"":"s")+" from Monday Oct 12 ✓"),3500);
   else setTimeout(()=>showToast("No backup of Monday's leg press found on this device"),3500);
 }
@@ -328,7 +328,7 @@ if(!S._oct12Manual1){
     le.push(pr);queueMutation("pr",{exerciseId:"leg_extension_machine",...pr});
   }
   S._oct12Manual1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // One-time: Southpaw was reordered from Mon 12 Oct 2026 (PROG_V7: chest off
 // Monday). The user did Legs & Shoulders on Monday the 12th, which under the
@@ -385,7 +385,7 @@ if(!S._v7Move1){
     queueMutation("week_plan_update",{weekKey:W,dayName:"_prog",update:"v7"});
   }
   S._v7Move1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(touched.size)setTimeout(()=>showToast("This week moved to the new day order ✓"),2500);
 }
 // The lbs heal converts only what it can PROVE, by matching a PR to the exact
@@ -460,7 +460,7 @@ if(!S._prRecompute2){
   }
   S._prRecompute1=true;
   S._prRecompute2=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(rebuilt)setTimeout(()=>showToast(rebuilt+" unverified PR"+(rebuilt===1?"":"s")+" rebuilt from your logged sets"),4000);
   if(purged)setTimeout(()=>showToast(purged+" PR"+(purged===1?"":"s")+" with no logged sets removed"),6000);
 }
@@ -471,7 +471,7 @@ if(!S._wtBackfill1){
   const seed={"2026-05-25":138.0,"2026-06-02":141.4,"2026-06-07":138.8,"2026-06-08":136.6};
   for(const[d,kg]of Object.entries(seed))if(S.nutrition.weights[d]==null)S.nutrition.weights[d]=kg;
   S._wtBackfill1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // PR audit (Oct 29, from the user's backup). Three kinds of wrong record:
 // - Jul 31 chest press at 133 lbs (60.3 kg) was a DIFFERENT machine (user:
@@ -526,7 +526,7 @@ if(!S._prAudit1){
     fixed+=bad.length;
   }
   S._prAudit1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
   if(fixed)setTimeout(()=>showToast(fixed+" PR record"+(fixed===1?"":"s")+" corrected from your logged sets"),4000);
 }
 // Flare mode on from Nov 8 (the user: "dial it down for now"). Once only: if
@@ -534,13 +534,13 @@ if(!S._prAudit1){
 if(!S._flareOn1){
   if(!S.flareSince){S.flareSince="2026-11-08";queueSettings();}
   S._flareOn1=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 // Remove May 25 outlier — 3-point trend (Jun 2, 7, 8) is more accurate without it.
 if(!S._wtBackfill2){
   delete S.nutrition.weights["2026-05-25"];
   S._wtBackfill2=true;
-  localStorage.setItem("f5",JSON.stringify(S));
+  lsSet("f5",JSON.stringify(S));
 }
 persistOnceFlags();
 hydrateCustomExercises();

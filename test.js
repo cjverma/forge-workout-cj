@@ -1037,6 +1037,17 @@ section("16a11 · Hoist and regular machines keep separate bests and targets (No
     /const last=lastSessionEx\(exId,mach\);/.test(W) && /Best on \$\{esc\(_mach\)\}/.test(W) && /const mb=machineBest\(key,exId,key\);/.test(W));
 }
 
+section("16a12 · a full phone storage never kills a save (Nov 26, food Add did nothing)");
+{
+  const ST = readFileSync("src/state.js", "utf8");
+  const all = ["src/main.js", "src/sync.js", "src/state.js", "src/nutrition.js", "src/workout.js"].map(f => [f, readFileSync(f, "utf8")]);
+  ok("save(), the outbox and the server pull write through lsSet, which frees old backups/snapshots on a full quota and never throws",
+    /export function lsSet\(key, val\)/.test(ST) && /lsSet\("f5", JSON\.stringify\(S\)\);\n  autoBackupTick\(\);/.test(ST) &&
+    /function setOutbox\(list\) \{ lsSet\("f5_outbox"/.test(readFileSync("src/sync.js", "utf8")));
+  const bare = all.flatMap(([f, s]) => (s.match(/localStorage\.setItem\(\s*"f5(_outbox)?"\s*,/g) || []).map(() => f));
+  ok("no bare localStorage.setItem of the state or the outbox outside lsSet: " + (bare.join(", ") || "none"), bare.length === 0);
+}
+
 section("16b · proteinTargetG single source of truth");
 
 const PHASE_SRC = readFileSync("src/phase.js", "utf8");
